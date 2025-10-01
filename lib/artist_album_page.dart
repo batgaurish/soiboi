@@ -1,75 +1,300 @@
+import 'dart:async';
+
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:particle_music/art_widget.dart';
+import 'package:particle_music/my_location.dart';
 import 'package:particle_music/song_list_tile.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:searchfield/searchfield.dart';
 
 Map<String, List<AudioMetadata>> artist2SongList = {};
 Map<String, List<AudioMetadata>> album2SongList = {};
 
-Widget artistAlbumScaffold(bool isArtist) {
-  final songListMap = isArtist ? artist2SongList : album2SongList;
-  return Scaffold(
-    backgroundColor: Colors.white,
-    resizeToAvoidBottomInset: false,
-    appBar: AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      title: Text(isArtist ? "Artists" : "Albums"),
-    ),
-    body: GridView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.88,
-      ),
-      itemCount: songListMap.length,
-      itemBuilder: (context, index) {
-        final key = songListMap.keys.elementAt(index);
-        final songList = songListMap[key];
-        return Column(
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(
-                MediaQuery.widthOf(context) * 0.4 / 20,
-              ),
+class ArtistAlbumScaffold extends StatelessWidget {
+  final bool isArtist;
+  const ArtistAlbumScaffold({super.key, required this.isArtist});
 
-              child: ArtWidget(
-                size: MediaQuery.widthOf(context) * 0.4,
-                borderRadius: MediaQuery.widthOf(context) * 0.4 / 20,
-                source: songList!.first.pictures.isNotEmpty
-                    ? songList.first.pictures.first
-                    : null,
+  @override
+  Widget build(BuildContext context) {
+    final songListMap = isArtist ? artist2SongList : album2SongList;
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(isArtist ? "Artists" : "Albums"),
+      ),
+      body: GridView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.88,
+        ),
+        itemCount: songListMap.length,
+        itemBuilder: (context, index) {
+          final key = songListMap.keys.elementAt(index);
+          final songList = songListMap[key];
+          return Column(
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(
+                  MediaQuery.widthOf(context) * 0.4 / 20,
+                ),
+
+                child: ArtWidget(
+                  size: MediaQuery.widthOf(context) * 0.4,
+                  borderRadius: MediaQuery.widthOf(context) * 0.4 / 20,
+                  source: songList!.first.pictures.isNotEmpty
+                      ? songList.first.pictures.first
+                      : null,
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SingleArtistAlbumScaffold(
+                        songList: songList,
+                        title: key,
+                        isArtist: isArtist,
+                      ),
+                    ),
+                  );
+                },
               ),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => songListScafflod(songList)),
+              SizedBox(height: 10),
+              Text(key, style: TextStyle(overflow: TextOverflow.ellipsis)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SingleArtistAlbumScaffold extends StatelessWidget {
+  final listIsScrollingNotifier = ValueNotifier(false);
+  final songListNotifer = ValueNotifier<List<AudioMetadata>>([]);
+  final List<AudioMetadata> songList;
+  final itemScrollController = ItemScrollController();
+  final String title;
+  final bool isArtist;
+  SingleArtistAlbumScaffold({
+    super.key,
+    required this.songList,
+    required this.title,
+    required this.isArtist,
+  }) {
+    songListNotifer.value = songList;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Timer? timer;
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      appBar: appBar(context),
+      body: Stack(
+        children: [
+          NotificationListener<UserScrollNotification>(
+            onNotification: (notification) {
+              if (notification.direction != ScrollDirection.idle) {
+                listIsScrollingNotifier.value = true;
+                if (timer != null) {
+                  timer!.cancel();
+                  timer = null;
+                }
+              } else {
+                if (listIsScrollingNotifier.value) {
+                  timer ??= Timer(const Duration(milliseconds: 3000), () {
+                    listIsScrollingNotifier.value = false;
+                    timer = null;
+                  });
+                }
+              }
+              return false;
+            },
+            child: ValueListenableBuilder(
+              valueListenable: songListNotifer,
+              builder: (context, currentSongList, child) {
+                return ScrollablePositionedList.builder(
+                  itemScrollController: itemScrollController,
+                  itemCount: currentSongList.length + 2,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return Column(
+                        children: [
+                          SizedBox(height: 10),
+                          Row(
+                            children: [
+                              SizedBox(width: 20),
+
+                              Material(
+                                elevation: 5,
+                                borderRadius: BorderRadius.circular(6),
+                                child: ArtWidget(
+                                  size: 120,
+                                  borderRadius: 6,
+                                  source: songList.first.pictures.isNotEmpty
+                                      ? songList.first.pictures.first
+                                      : null,
+                                ),
+                              ),
+
+                              Expanded(
+                                child: ListTile(
+                                  title: Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Text("${songList.length} songs"),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 20),
+                        ],
+                      );
+                    }
+
+                    if (index < currentSongList.length + 1) {
+                      return SongListTile(
+                        index: index - 1,
+                        source: currentSongList,
+                      );
+                    } else {
+                      return SizedBox(height: 90);
+                    }
+                  },
                 );
               },
             ),
-            SizedBox(height: 10),
-            Text(key, style: TextStyle(overflow: TextOverflow.ellipsis)),
-          ],
-        );
-      },
-    ),
-  );
-}
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 120,
+            child: MyLocation(
+              itemScrollController: itemScrollController,
+              listIsScrollingNotifier: listIsScrollingNotifier,
+              songListNotifer: songListNotifer,
+              offset: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-Widget songListScafflod(List<AudioMetadata> songList) {
-  return Scaffold(
-    backgroundColor: Colors.white,
-    resizeToAvoidBottomInset: false,
-    appBar: AppBar(
+  PreferredSizeWidget appBar(BuildContext context) {
+    final textController = TextEditingController();
+    final ValueNotifier<bool> isSearch = ValueNotifier(false);
+    return AppBar(
       backgroundColor: Colors.white,
-      elevation: 0,
       scrolledUnderElevation: 0,
-    ),
-    body: ListView.builder(
-      itemCount: songList.length,
-      itemBuilder: (_, index) {
-        return SongListTile(index: index, source: songList);
-      },
-    ),
-  );
+      actions: [
+        SizedBox(width: 50),
+        ValueListenableBuilder(
+          valueListenable: isSearch,
+          builder: (context, value, child) {
+            if (value) {
+              return Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: SearchField(
+                    autofocus: true,
+                    controller: textController,
+                    suggestions: [],
+                    searchInputDecoration: SearchInputDecoration(
+                      hintText: 'Search songs',
+                      prefixIcon: Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          isSearch.value = false;
+                          songListNotifer.value = songList;
+                          textController.clear();
+                          FocusScope.of(context).unfocus();
+                        },
+                        icon: Icon(Icons.clear),
+                        padding: EdgeInsets.zero,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onSearchTextChanged: (value) {
+                      songListNotifer.value = songList
+                          .where(
+                            (song) =>
+                                (value.isEmpty) ||
+                                (song.title?.toLowerCase().contains(
+                                      value.toLowerCase(),
+                                    ) ??
+                                    false) ||
+                                (song.artist?.toLowerCase().contains(
+                                      value.toLowerCase(),
+                                    ) ??
+                                    false) ||
+                                (song.album?.toLowerCase().contains(
+                                      value.toLowerCase(),
+                                    ) ??
+                                    false),
+                          )
+                          .toList();
+                      return null;
+                    },
+                  ),
+                ),
+              );
+            }
+            return IconButton(
+              onPressed: () {
+                isSearch.value = true;
+              },
+              icon: Icon(Icons.search),
+            );
+          },
+        ),
+        IconButton(
+          icon: Icon(Icons.more_vert),
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useRootNavigator: true,
+              builder: (context) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+                  child: Container(
+                    height: 500,
+                    color: Colors.white,
+                    child: Column(
+                      children: [
+                        ListTile(
+                          title: Text(
+                            (isArtist ? 'Artist: ' : 'Album: ') + title,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
 }
