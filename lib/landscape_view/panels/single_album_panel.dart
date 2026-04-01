@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/artist_album_manager.dart';
+import 'package:particle_music/artists_albums_manager.dart';
 import 'package:particle_music/landscape_view/panels/local_navidrome_panel.dart';
 
 class SingleAlbumPanel extends StatelessWidget {
