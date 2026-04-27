@@ -11,6 +11,7 @@ class WebdavDirPicker extends StatefulWidget {
 }
 
 class _WebdavDirPickerState extends State<WebdavDirPicker> {
+  String root = '/';
   String currentPath = '/';
   List<String> directories = [];
   bool isLoading = false;
@@ -54,26 +55,30 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
       padding: const EdgeInsets.all(10),
       child: Column(
         children: [
-          Stack(
+          Row(
             children: [
               IconButton(
                 onPressed: () {
+                  if (currentPath == root) {
+                    return;
+                  }
                   final last = currentPath.split('/').last;
-                  loadDirectories(
-                    currentPath.substring(0, currentPath.length - last.length),
+                  currentPath = currentPath.substring(
+                    0,
+                    currentPath.length - last.length - 1,
                   );
+                  if (currentPath.isEmpty) {
+                    currentPath = root;
+                  }
+                  loadDirectories(currentPath);
                 },
                 icon: Icon(Icons.arrow_back_ios_rounded),
               ),
-              Center(
-                child: Column(
-                  children: [
-                    SizedBox(height: 3),
-                    Text(
-                      currentPath,
-                      style: .new(fontWeight: .bold, fontSize: 18),
-                    ),
-                  ],
+              Transform.translate(
+                offset: Offset(0, isMobile ? 0 : -1.5),
+                child: Text(
+                  currentPath == root ? root : currentPath.split('/').last,
+                  style: .new(fontWeight: .bold, fontSize: 18),
                 ),
               ),
             ],
