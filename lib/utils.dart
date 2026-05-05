@@ -13,7 +13,6 @@ import 'package:lpinyin/lpinyin.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
-import 'package:particle_music/landscape_view/keyboard.dart';
 import 'package:particle_music/landscape_view/single_instance.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common_widgets/lyrics.dart';
@@ -140,103 +139,6 @@ Future<bool> showConfirmDialog(BuildContext context, String action) async {
     ),
   );
   return result ?? false;
-}
-
-Widget adaptiveTextField(
-  BuildContext context,
-  String? name,
-  TextEditingController controller, {
-  bool expand = false,
-  bool onlyNumber = false,
-  bool compact = true,
-  bool autoFocus = false,
-}) {
-  FocusNode wrapNode = FocusNode();
-  FocusNode textFieldNode = FocusNode();
-  final canRequestNotifier = ValueNotifier(autoFocus);
-  textFieldNode.addListener(() {
-    isTyping = textFieldNode.hasFocus;
-  });
-  return Column(
-    children: [
-      if (name != null)
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text('$name:', style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
-
-      Focus(
-        canRequestFocus: false,
-        onKeyEvent: (node, event) {
-          if (!isTV) {
-            return .ignored;
-          }
-          if (event is KeyDownEvent && textFieldNode.hasFocus) {
-            if (event.logicalKey == .select) {
-              textFieldNode.unfocus();
-              Future.delayed((Duration(milliseconds: 100)), () {
-                textFieldNode.requestFocus();
-              });
-            } else {
-              canRequestNotifier.value = false;
-              wrapNode.requestFocus();
-            }
-            return .handled;
-          }
-          return .ignored;
-        },
-        child: InkWell(
-          focusNode: wrapNode,
-          onTap: isTV
-              ? () {
-                  canRequestNotifier.value = true;
-                  Future.delayed((Duration(milliseconds: 100)), () {
-                    textFieldNode.requestFocus();
-                  });
-                }
-              : null,
-          child: ValueListenableBuilder(
-            valueListenable: canRequestNotifier,
-            builder: (context, value, child) {
-              final specificTextcolor = colorManager.getSpecificTextColor();
-              return Theme(
-                data: Theme.of(context).copyWith(
-                  textSelectionTheme: TextSelectionThemeData(
-                    selectionColor: specificTextcolor.withAlpha(50),
-                    cursorColor: specificTextcolor,
-                    selectionHandleColor: specificTextcolor,
-                  ),
-                ),
-                child: TextField(
-                  focusNode: textFieldNode,
-                  autofocus: autoFocus,
-                  canRequestFocus: isTV ? value : true,
-                  keyboardType: onlyNumber ? .number : null,
-                  minLines: expand ? 3 : 1,
-                  maxLines: expand ? null : 1,
-                  style: TextStyle(fontSize: 12),
-                  controller: controller,
-                  decoration: InputDecoration(
-                    visualDensity: compact ? .new(vertical: -3) : null,
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: specificTextcolor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: specificTextcolor,
-                        width: 1.5,
-                      ),
-                    ),
-                    isDense: true,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    ],
-  );
 }
 
 Future<T?> showAnimationDialog<T>({

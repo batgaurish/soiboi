@@ -3,7 +3,6 @@ import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/common_widgets/buttons.dart';
 import 'package:particle_music/common_widgets/cover_art_widget.dart';
-import 'package:particle_music/landscape_view/pages/landscape_lyrics_page.dart';
 import 'package:particle_music/landscape_view/speaker.dart';
 import 'package:particle_music/landscape_view/volume_bar.dart';
 import 'package:particle_music/common_widgets/seekbar.dart';
@@ -106,9 +105,6 @@ class BottomControl extends StatelessWidget {
                   return;
                 }
                 displayLyricsPageNotifier.value = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  playControlScopeNode.requestFocus();
-                });
               },
             ),
           ),

@@ -9,6 +9,7 @@ import 'package:particle_music/artists_albums_manager.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/common_widgets/cover_art_widget.dart';
+import 'package:particle_music/common_widgets/custom_text_field.dart';
 import 'package:particle_music/common_widgets/lyrics.dart';
 import 'package:particle_music/common_widgets/my_divider.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
@@ -188,8 +189,7 @@ class _MetadataDialog extends StatelessWidget {
                     Expanded(
                       child: Column(
                         children: [
-                          adaptiveTextField(
-                            context,
+                          CustomTextField(
                             l10n.year,
                             _yearTextController,
                             onlyNumber: true,
@@ -197,8 +197,7 @@ class _MetadataDialog extends StatelessWidget {
 
                           if (!isPhone) SizedBox(height: 10),
 
-                          adaptiveTextField(
-                            context,
+                          CustomTextField(
                             l10n.track,
                             _trackTextController,
                             onlyNumber: true,
@@ -206,8 +205,7 @@ class _MetadataDialog extends StatelessWidget {
 
                           if (!isPhone) SizedBox(height: 10),
 
-                          adaptiveTextField(
-                            context,
+                          CustomTextField(
                             l10n.disc,
                             _discTextController,
                             onlyNumber: true,
@@ -219,32 +217,27 @@ class _MetadataDialog extends StatelessWidget {
                 ),
                 SizedBox(height: 10),
 
-                adaptiveTextField(context, l10n.title, _titleTextController),
+                CustomTextField(l10n.title, _titleTextController),
 
                 SizedBox(height: 5),
 
-                adaptiveTextField(context, l10n.artist, _artistTextController),
+                CustomTextField(l10n.artist, _artistTextController),
 
                 SizedBox(height: 5),
 
-                adaptiveTextField(context, l10n.album, _albumTextController),
+                CustomTextField(l10n.album, _albumTextController),
 
                 SizedBox(height: 5),
 
-                adaptiveTextField(
-                  context,
-                  l10n.albumArtist,
-                  _albumArtistTextController,
-                ),
+                CustomTextField(l10n.albumArtist, _albumArtistTextController),
 
                 SizedBox(height: 5),
 
-                adaptiveTextField(context, l10n.genre, _genreTextController),
+                CustomTextField(l10n.genre, _genreTextController),
 
                 SizedBox(height: 5),
 
-                adaptiveTextField(
-                  context,
+                CustomTextField(
                   l10n.lyrics,
                   _lyricsTextController,
                   expand: true,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
+import 'package:particle_music/landscape_view/keyboard.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -33,7 +34,7 @@ class TitleBar extends StatefulWidget {
 class _TitleBarState extends State<TitleBar> {
   final displayCancelNotifier = ValueNotifier(false);
   final backNode = FocusNode();
-  final searchFieldWrapNode = FocusNode();
+  final inkwellNode = FocusNode();
   final searchFieldNode = FocusNode();
   final scrollToTopNode = FocusNode();
   final findLocationNode = FocusNode();
@@ -52,8 +53,14 @@ class _TitleBarState extends State<TitleBar> {
   void initState() {
     super.initState();
     widget.textController?.addListener(displayCancelOrNot);
+    searchFieldNode.addListener(() {
+      isTyping = searchFieldNode.hasFocus;
+      if (!searchFieldNode.hasFocus) {
+        inkwellNode.requestFocus();
+      }
+    });
     nodeList.add(backNode);
-    nodeList.add(searchFieldWrapNode);
+    nodeList.add(inkwellNode);
     nodeList.add(scrollToTopNode);
     nodeList.add(findLocationNode);
     nodeList.add(settingNode);
@@ -61,7 +68,12 @@ class _TitleBarState extends State<TitleBar> {
 
   @override
   void dispose() {
+    displayCancelNotifier.dispose();
     widget.textController?.removeListener(displayCancelOrNot);
+    for (final node in nodeList) {
+      node.dispose();
+    }
+    searchFieldNode.dispose();
     super.dispose();
   }
 
@@ -102,16 +114,23 @@ class _TitleBarState extends State<TitleBar> {
                   return .ignored;
                 }
                 if (event is KeyDownEvent) {
-                  if (searchFieldNode.hasFocus) {
-                    if (event.logicalKey == .select) {
+                  if (inkwellNode.hasFocus) {
+                    if (event.logicalKey == .select ||
+                        event.logicalKey == .enter) {
                       searchFieldNode.unfocus();
                       Future.delayed(Duration(milliseconds: 100), () {
                         searchFieldNode.requestFocus();
                       });
                       return .handled;
-                    } else {
-                      widget.textController!.clear();
-                      searchFieldWrapNode.requestFocus();
+                    } else if (event.logicalKey == .goBack &&
+                        searchFieldNode.hasFocus) {
+                      // ensure isTyping is true when onPopInvokedWithResult is invoked
+                      Future.delayed(Duration(milliseconds: 200), () {
+                        searchFieldNode.unfocus();
+                      });
+                      return .handled;
+                    } else if (searchFieldNode.hasFocus) {
+                      return .ignored;
                     }
                   }
                   int index = -1;
@@ -274,12 +293,8 @@ class _TitleBarState extends State<TitleBar> {
             ),
             clipBehavior: .antiAlias,
             child: InkWell(
-              focusNode: searchFieldWrapNode,
-              onTap: isTV
-                  ? () {
-                      searchFieldNode.requestFocus();
-                    }
-                  : null,
+              focusNode: inkwellNode,
+              onTap: isTV ? () {} : null,
               child: TextField(
                 focusNode: searchFieldNode,
                 controller: widget.textController,

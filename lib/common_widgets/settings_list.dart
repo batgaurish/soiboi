@@ -9,6 +9,7 @@ import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:http/http.dart' as http;
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
+import 'package:particle_music/common_widgets/custom_text_field.dart';
 import 'package:particle_music/common_widgets/equalizer.dart';
 import 'package:particle_music/common_widgets/my_divider.dart';
 import 'package:particle_music/common_widgets/tv_dir_picker.dart';
@@ -218,14 +219,14 @@ class SettingsList extends StatelessWidget {
 
                   SizedBox(height: 10),
 
-                  adaptiveTextField(context, l10n.username, usernameTmp),
+                  CustomTextField(l10n.username, usernameTmp),
 
                   SizedBox(height: 10),
 
-                  adaptiveTextField(context, l10n.password, passwordTmp),
+                  CustomTextField(l10n.password, passwordTmp),
 
                   SizedBox(height: 10),
-                  adaptiveTextField(context, 'Url', baseUrlTmp),
+                  CustomTextField('Url', baseUrlTmp),
 
                   SizedBox(height: isMobile ? 10 : 20),
                   Builder(
@@ -354,14 +355,14 @@ class SettingsList extends StatelessWidget {
 
                   SizedBox(height: 10),
 
-                  adaptiveTextField(context, l10n.username, usernameTmp),
+                  CustomTextField(l10n.username, usernameTmp),
 
                   SizedBox(height: 10),
 
-                  adaptiveTextField(context, l10n.password, passwordTmp),
+                  CustomTextField(l10n.password, passwordTmp),
 
                   SizedBox(height: 10),
-                  adaptiveTextField(context, 'Url', baseUrlTmp),
+                  CustomTextField('Url', baseUrlTmp),
 
                   SizedBox(height: isMobile ? 10 : 20),
                   Builder(

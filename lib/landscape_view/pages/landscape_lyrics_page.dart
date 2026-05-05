@@ -9,6 +9,7 @@ import 'package:particle_music/common.dart';
 import 'package:particle_music/common_widgets/buttons.dart';
 import 'package:particle_music/common_widgets/cover_art_widget.dart';
 import 'package:particle_music/common_widgets/my_auto_size_text.dart';
+import 'package:particle_music/landscape_view/bottom_control.dart';
 import 'package:particle_music/landscape_view/speaker.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/landscape_view/volume_bar.dart';
@@ -43,6 +44,19 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
     }
   }
 
+  void changeFocus() {
+    if (!isTV) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (displayLyricsPageNotifier.value) {
+        playControlScopeNode.requestFocus();
+      } else {
+        currentSongTileNode.requestFocus();
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,11 +68,13 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
       render = false;
     }
     displayLyricsPageNotifier.addListener(closeOrDisplay);
+    displayLyricsPageNotifier.addListener(changeFocus);
   }
 
   @override
   void dispose() {
     displayLyricsPageNotifier.removeListener(closeOrDisplay);
+    displayLyricsPageNotifier.removeListener(changeFocus);
     super.dispose();
   }
 

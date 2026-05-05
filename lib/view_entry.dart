@@ -7,8 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
+import 'package:particle_music/landscape_view/keyboard.dart';
 import 'package:particle_music/landscape_view/landscape_view.dart';
+import 'package:particle_music/landscape_view/pages/landscape_lyrics_page.dart';
 import 'package:particle_music/landscape_view/pages/play_queue_page.dart';
+import 'package:particle_music/landscape_view/sidebar.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/mini_view/mini_view.dart';
 import 'package:particle_music/portrait_view/portrait_view.dart';
@@ -32,6 +35,11 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
     if (Platform.isAndroid) {
       WidgetsBinding.instance.addObserver(this);
     }
+    if (isTV) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        songsFocusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -48,7 +56,15 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
       systemCanPop = false;
       _exitTimer?.cancel();
       // rebuild PopScope to allow it to handle pop
-      setState(() {});
+      setState(() {
+        if (isTV) {
+          if (displayLyricsPageNotifier.value) {
+            playControlScopeNode.requestFocus();
+          } else {
+            songsFocusNode.requestFocus();
+          }
+        }
+      });
     }
   }
 
@@ -59,7 +75,7 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         key: UniqueKey(),
         canPop: false,
         onPopInvokedWithResult: (bool didPop, dynamic result) {
-          if (didPop) return;
+          if (didPop || isTyping) return;
           if (displayLyricsPageNotifier.value) {
             displayLyricsPageNotifier.value = false;
             return;

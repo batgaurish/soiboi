@@ -13,6 +13,8 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:super_context_menu/super_context_menu.dart';
 import 'package:window_manager/window_manager.dart';
 
+FocusNode songsFocusNode = FocusNode();
+
 class Sidebar extends StatelessWidget {
   final ScrollController _scrollController = ScrollController();
   final void Function()? closeDrawer;
@@ -46,16 +48,18 @@ class Sidebar extends StatelessWidget {
             },
           );
         },
-        child: ListTile(
-          autofocus: isTV && label == 'songs' ? true : false,
-          leading: leading,
-          title: Text(
-            content,
-            style: TextStyle(fontSize: 15, overflow: TextOverflow.ellipsis),
+        child: InkWell(
+          focusNode: isTV && label == 'songs' ? songsFocusNode : null,
+          child: ListTile(
+            leading: leading,
+            title: Text(
+              content,
+              style: TextStyle(fontSize: 15, overflow: TextOverflow.ellipsis),
+            ),
+            contentPadding: contentPadding,
+            visualDensity: const VisualDensity(horizontal: 0, vertical: -3.65),
+            trailing: trailing,
           ),
-          contentPadding: contentPadding,
-          visualDensity: const VisualDensity(horizontal: 0, vertical: -3.65),
-          trailing: trailing,
           onTap: () async {
             if (closeDrawer != null) {
               closeDrawer!.call();
