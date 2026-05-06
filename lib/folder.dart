@@ -70,9 +70,6 @@ class Folder {
 
   static Future<Folder> from(Map<String, dynamic> map) async {
     String id = map['id'] as String;
-    String songIdListPath = map['songIdListPath'] as String;
-    String songMetadataListPath = map['songMetadataListPath'] as String;
-
     String path = id;
     bool isWebdav = id.startsWith('WebDAV:');
     if (isWebdav) {
@@ -85,7 +82,10 @@ class Folder {
         path = await BookmarkService.getUrlById(id) ?? '';
         library.setIOSFileProviderStorageIfNeed(path);
       }
-
+    }
+    String songIdListPath = map['songIdListPath'] as String;
+    String songMetadataListPath = map['songMetadataListPath'] as String;
+    if (Platform.isIOS) {
       songIdListPath = "${folderConfigDir.path}/$songIdListPath";
       songMetadataListPath = "${folderConfigDir.path}/$songMetadataListPath";
     }
