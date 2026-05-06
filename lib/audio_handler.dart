@@ -362,7 +362,7 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   void changePlayMode(int newPlayMode) {
-    if (newPlayMode == playModeNotifier.value) {
+    if (newPlayMode == playModeNotifier.value || playQueue.isEmpty) {
       return;
     }
 
