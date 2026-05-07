@@ -4,6 +4,7 @@ import 'package:particle_music/common.dart';
 class DynamicRoute<T> extends PageRouteBuilder<T> {
   DynamicRoute({required super.pageBuilder})
     : super(
+        opaque: false,
         transitionDuration: const Duration(milliseconds: 500),
         reverseTransitionDuration: const Duration(milliseconds: 500),
       );

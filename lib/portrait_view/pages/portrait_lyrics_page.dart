@@ -18,11 +18,55 @@ import 'package:particle_music/playlists.dart';
 import 'package:particle_music/common_widgets/seekbar.dart';
 import 'package:particle_music/utils.dart';
 
-class PortraitLyricsPage extends StatelessWidget {
+class PortraitLyricsPage extends StatefulWidget {
   const PortraitLyricsPage({super.key});
 
   @override
+  State<PortraitLyricsPage> createState() => _PortraitLyricsPageState();
+}
+
+class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
+  double dragOffset = 0.0;
+
+  int _animationDuration = 0;
+
+  @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return GestureDetector(
+      onVerticalDragUpdate: (details) {
+        setState(() {
+          _animationDuration = 0;
+          dragOffset += details.delta.dy / screenHeight;
+          dragOffset = dragOffset.clamp(0.0, 1.0);
+        });
+      },
+
+      onVerticalDragEnd: (details) {
+        double velocity = details.primaryVelocity ?? 0;
+
+        if (dragOffset > 0.25 || velocity > 500) {
+          Navigator.pop(context);
+        } else {
+          setState(() {
+            _animationDuration = 250;
+            dragOffset = 0.0;
+          });
+        }
+      },
+
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: _animationDuration),
+        curve: Curves.easeOutCubic,
+
+        transform: Matrix4.translationValues(0, dragOffset * screenHeight, 0),
+        child: content(),
+      ),
+    );
+  }
+
+  Widget content() {
     return ValueListenableBuilder(
       valueListenable: currentSongNotifier,
       builder: (context, currentSong, child) {

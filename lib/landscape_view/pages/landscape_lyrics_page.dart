@@ -109,13 +109,21 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                         Spacer(),
                         Hero(
                           tag: 'cover',
-                          child: CoverArtWidget(
-                            size: coverArtSize,
-                            borderRadius: coverArtSize * 0.05,
-                            song: currentSong,
-                            elevation: 15,
-                            color: colorManager
-                                .getSpecificLyricsPageCoverArtBaseColor(),
+                          child: GestureDetector(
+                            onVerticalDragEnd: (details) {
+                              if (isMobile &&
+                                  (details.primaryVelocity ?? 0) > 500) {
+                                Navigator.pop(context);
+                              }
+                            },
+                            child: CoverArtWidget(
+                              size: coverArtSize,
+                              borderRadius: coverArtSize * 0.05,
+                              song: currentSong,
+                              elevation: 15,
+                              color: colorManager
+                                  .getSpecificLyricsPageCoverArtBaseColor(),
+                            ),
                           ),
                         ),
                         if (pageHight >= 600) ...[
