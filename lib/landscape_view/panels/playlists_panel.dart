@@ -198,7 +198,8 @@ class _PlaylistsPanelState extends State<PlaylistsPanel> {
                                                     builder: (_, _, _) {
                                                       return CoverArtWidget(
                                                         size: coverArtWidth,
-                                                        borderRadius: 10,
+                                                        borderRadius:
+                                                            coverArtWidth / 10,
                                                         song: displaySong,
                                                       );
                                                     },

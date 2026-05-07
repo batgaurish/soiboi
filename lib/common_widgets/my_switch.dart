@@ -46,6 +46,7 @@ class MySwitch extends StatelessWidget {
       builder: (context, setState) {
         return InkWell(
           focusColor: Colors.transparent,
+          hoverColor: Colors.transparent,
           mouseCursor: SystemMouseCursors.click,
           focusNode: focusNode,
           onFocusChange: (value) {
