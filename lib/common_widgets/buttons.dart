@@ -1,8 +1,13 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/common_widgets/play_queue_sheet.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
+import 'package:particle_music/landscape_view/pages/play_queue_page.dart';
 import 'package:particle_music/utils.dart';
+import 'package:smooth_corner/smooth_corner.dart';
 
 Widget playModeButton(double? size, {Color? textColor, Color? iconColor}) {
   return ValueListenableBuilder(
@@ -21,6 +26,9 @@ Widget playModeButton(double? size, {Color? textColor, Color? iconColor}) {
           size: size,
         ),
         onPressed: () {
+          if (playQueue.isEmpty) {
+            return;
+          }
           showAnimationDialog(
             context: context,
 
@@ -176,7 +184,50 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
               },
             );
           } else {
-            displayPlayQueuePageNotifier.value = true;
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                opaque: false,
+                barrierColor: Colors.black.withAlpha(25),
+                barrierDismissible: true,
+                pageBuilder: (_, _, _) {
+                  return Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 75, bottom: 100),
+                      child: Material(
+                        elevation: 1,
+                        color: colorManager.getSpecificBgBaseColor(),
+                        shape: SmoothRectangleBorder(
+                          smoothness: 1,
+                          borderRadius: BorderRadius.horizontal(
+                            left: Radius.circular(10),
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Container(
+                          color: colorManager.getSpecificBgColor(),
+                          width: max(350, MediaQuery.widthOf(context) * 0.2),
+                          child: PlayQueuePage(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                transitionsBuilder: (_, animation, _, child) {
+                  return SlideTransition(
+                    position: Tween(begin: const Offset(1, 0), end: Offset.zero)
+                        .animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        ),
+                    child: child,
+                  );
+                },
+              ),
+            );
           }
         },
       );

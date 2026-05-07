@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -19,102 +18,11 @@ import 'package:particle_music/playlists.dart';
 import 'package:particle_music/common_widgets/seekbar.dart';
 import 'package:particle_music/utils.dart';
 
-class PortraitLyricsPage extends StatefulWidget {
+class PortraitLyricsPage extends StatelessWidget {
   const PortraitLyricsPage({super.key});
 
   @override
-  State<PortraitLyricsPage> createState() => _PortraitLyricsPageState();
-}
-
-class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
-  late double dragOffset;
-  late bool render;
-
-  int _animationDuration = 0;
-  Timer? disableRenderTimer;
-
-  void closeOrDisplay() {
-    if (displayLyricsPageNotifier.value) {
-      _display();
-    } else {
-      _close();
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (displayLyricsPageNotifier.value) {
-      dragOffset = 0;
-      render = true;
-    } else {
-      dragOffset = 1;
-      render = false;
-    }
-    displayLyricsPageNotifier.addListener(closeOrDisplay);
-  }
-
-  @override
-  void dispose() {
-    displayLyricsPageNotifier.removeListener(closeOrDisplay);
-    super.dispose();
-  }
-
-  void _display() {
-    setState(() {
-      _animationDuration = 250;
-      dragOffset = 0.0;
-      disableRenderTimer?.cancel();
-      render = true;
-    });
-  }
-
-  void _close() {
-    setState(() {
-      _animationDuration = 250;
-      dragOffset = 1.0;
-      disableRenderTimer = Timer(Duration(milliseconds: 250), () {
-        setState(() {
-          render = false;
-        });
-      });
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return GestureDetector(
-      onVerticalDragUpdate: (details) {
-        setState(() {
-          _animationDuration = 0;
-          dragOffset += details.delta.dy / screenHeight;
-          dragOffset = dragOffset.clamp(0.0, 1.0);
-        });
-      },
-
-      onVerticalDragEnd: (details) {
-        double velocity = details.primaryVelocity ?? 0;
-
-        if (dragOffset > 0.25 || velocity > 500) {
-          displayLyricsPageNotifier.value = false;
-        } else {
-          _display();
-        }
-      },
-
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: _animationDuration),
-        curve: Curves.easeOutCubic,
-
-        transform: Matrix4.translationValues(0, dragOffset * screenHeight, 0),
-        child: content(context),
-      ),
-    );
-  }
-
-  Widget content(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: currentSongNotifier,
       builder: (context, currentSong, child) {
@@ -236,20 +144,20 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
   }
 
   Widget artPage(BuildContext context, MyAudioMetadata? currentSong) {
-    if (!render) {
-      return SizedBox.shrink();
-    }
     final l10n = AppLocalizations.of(context);
     final mobileWidth = MediaQuery.widthOf(context);
 
     return Column(
       children: [
-        CoverArtWidget(
-          size: mobileWidth * 0.84,
-          borderRadius: mobileWidth * 0.04,
-          song: currentSong,
-          elevation: 15,
-          color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
+        Hero(
+          tag: 'cover',
+          child: CoverArtWidget(
+            size: mobileWidth * 0.84,
+            borderRadius: mobileWidth * 0.04,
+            song: currentSong,
+            elevation: 15,
+            color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
+          ),
         ),
 
         const SizedBox(height: 30),
@@ -476,9 +384,6 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     BuildContext context,
     MyAudioMetadata? currentSong,
   ) {
-    if (!render) {
-      return SizedBox.shrink();
-    }
     return Row(
       children: [
         Expanded(

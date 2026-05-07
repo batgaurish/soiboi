@@ -5,7 +5,6 @@ import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/landscape_view/sidebar.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/portrait_view/pages/portrait_lyrics_page.dart';
 import 'package:particle_music/portrait_view/play_bar.dart';
 
 final GlobalKey<ScaffoldState> portraitKey = GlobalKey();
@@ -201,7 +200,6 @@ class _PortraitViewState extends State<PortraitView>
             ],
           ),
         ),
-        PortraitLyricsPage(),
       ],
     );
   }

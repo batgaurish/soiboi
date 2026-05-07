@@ -9,7 +9,6 @@ import 'package:particle_music/common.dart';
 import 'package:particle_music/common_widgets/buttons.dart';
 import 'package:particle_music/common_widgets/cover_art_widget.dart';
 import 'package:particle_music/common_widgets/my_auto_size_text.dart';
-import 'package:particle_music/landscape_view/bottom_control.dart';
 import 'package:particle_music/landscape_view/speaker.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/landscape_view/volume_bar.dart';
@@ -18,131 +17,54 @@ import 'package:particle_music/common_widgets/seekbar.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/utils.dart';
 
-FocusScopeNode playControlScopeNode = FocusScopeNode();
-FocusScopeNode lyricsScopeNode = FocusScopeNode();
-FocusScopeNode fontSizeScopeNode = FocusScopeNode();
+final FocusScopeNode playControlScopeNode = FocusScopeNode();
+final FocusScopeNode lyricsScopeNode = FocusScopeNode();
+final FocusScopeNode fontSizeScopeNode = FocusScopeNode();
 
 class LandscapeLyricsPage extends StatefulWidget {
   const LandscapeLyricsPage({super.key});
 
   @override
-  State<LandscapeLyricsPage> createState() => _LandscapeLyricsPageState();
+  State<StatefulWidget> createState() => _LandscapeLyricsPageState();
 }
 
 class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
-  late double dragOffset;
-  late bool render;
-
-  int _animationDuration = 0;
-  Timer? disableRenderTimer;
-
-  void closeOrDisplay() {
-    if (displayLyricsPageNotifier.value) {
-      _display();
-    } else {
-      _close();
-    }
-  }
-
-  void changeFocus() {
-    if (!isTV) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (displayLyricsPageNotifier.value) {
-        playControlScopeNode.requestFocus();
-      } else {
-        currentSongTileNode.requestFocus();
-      }
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (displayLyricsPageNotifier.value) {
-      dragOffset = 0;
-      render = true;
-    } else {
-      dragOffset = 1;
-      render = false;
-    }
-    displayLyricsPageNotifier.addListener(closeOrDisplay);
-    displayLyricsPageNotifier.addListener(changeFocus);
-  }
+  final ValueNotifier<bool> immersiveModeNotifier = ValueNotifier(false);
+  Timer? immersiveModeTimer;
 
   @override
   void dispose() {
-    displayLyricsPageNotifier.removeListener(closeOrDisplay);
-    displayLyricsPageNotifier.removeListener(changeFocus);
+    immersiveModeNotifier.dispose();
+    immersiveModeTimer?.cancel();
     super.dispose();
-  }
-
-  void _display() {
-    setState(() {
-      _animationDuration = 250;
-      dragOffset = 0.0;
-      disableRenderTimer?.cancel();
-      render = true;
-      if (!isMobile) {
-        immersiveModeTimer = Timer(const Duration(milliseconds: 5000), () {
-          immersiveModeNotifier.value = true;
-        });
-      }
-    });
-  }
-
-  void _close() {
-    setState(() {
-      immersiveModeTimer?.cancel();
-      _animationDuration = 250;
-      dragOffset = 1.0;
-      disableRenderTimer = Timer(
-        Duration(milliseconds: _animationDuration),
-        () {
-          setState(() {
-            render = false;
-          });
-        },
-      );
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    return AnimatedContainer(
-      duration: Duration(milliseconds: _animationDuration),
-      curve: Curves.linear,
-
-      transform: Matrix4.translationValues(0, dragOffset * screenHeight, 0),
-      child: ValueListenableBuilder(
-        valueListenable: immersiveModeNotifier,
-        builder: (context, value, child) {
-          return MouseRegion(
-            cursor: value ? SystemMouseCursors.none : MouseCursor.defer,
-            onHover: (event) {
-              immersiveModeNotifier.value = false;
-              immersiveModeTimer?.cancel();
-              immersiveModeTimer = Timer(
-                const Duration(milliseconds: 5000),
-                () {
-                  immersiveModeNotifier.value = true;
-                },
-              );
-            },
-            child: child,
-          );
-        },
-        child: content(),
-      ),
+    immersiveModeTimer?.cancel();
+    immersiveModeTimer = Timer(const Duration(milliseconds: 5000), () {
+      immersiveModeNotifier.value = true;
+    });
+    return ValueListenableBuilder(
+      valueListenable: immersiveModeNotifier,
+      builder: (context, value, child) {
+        return MouseRegion(
+          cursor: value ? SystemMouseCursors.none : MouseCursor.defer,
+          onHover: (event) {
+            immersiveModeNotifier.value = false;
+            immersiveModeTimer?.cancel();
+            immersiveModeTimer = Timer(const Duration(milliseconds: 5000), () {
+              immersiveModeNotifier.value = true;
+            });
+          },
+          child: child,
+        );
+      },
+      child: content(),
     );
   }
 
   Widget content() {
-    if (!render) {
-      return SizedBox.shrink();
-    }
     return ValueListenableBuilder(
       valueListenable: currentSongNotifier,
       builder: (context, currentSong, child) {
@@ -155,197 +77,138 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              ValueListenableBuilder(
-                valueListenable: lyricsPageThemeNotifier,
-                builder: (context, value, child) {
-                  if (value != 0) {
-                    return SizedBox.shrink();
-                  }
-                  return CoverArtWidget(
-                    song: currentSong,
-                    color: colorManager
-                        .getSpecificLyricsPageCoverArtBaseColor(),
-                  );
-                },
-              ),
-              ValueListenableBuilder(
-                valueListenable: lyricsPageThemeNotifier,
-                builder: (context, value, child) {
-                  if (value != 0) {
-                    return SizedBox.shrink();
-                  }
-                  return ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: pageWidth * 0.03,
-                        sigmaY: pageHight * 0.03,
-                      ),
-                      child: Container(
-                        color: currentCoverArtColor.withAlpha(180),
-                      ),
+              if (lyricsPageThemeNotifier.value == 0) ...[
+                CoverArtWidget(
+                  song: currentSong,
+                  color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
+                ),
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: pageWidth * 0.03,
+                      sigmaY: pageHight * 0.03,
                     ),
-                  );
-                },
-              ),
+                    child: Container(
+                      color: currentCoverArtColor.withAlpha(180),
+                    ),
+                  ),
+                ),
+              ],
+
               ValueListenableBuilder(
                 valueListenable: lyricsPageBackgroundColor.valueNotifier,
                 builder: (context, value, child) {
-                  return Container(
-                    color: value,
-                    child: Row(
+                  return Container(color: value, child: child);
+                },
+                child: Row(
+                  children: [
+                    Spacer(),
+                    Column(
                       children: [
+                        if (pageHight >= 600) SizedBox(height: 75),
                         Spacer(),
-                        Column(
-                          children: [
-                            if (pageHight >= 600) SizedBox(height: 75),
-                            Spacer(),
-                            ValueListenableBuilder(
-                              valueListenable: lyricsPageThemeNotifier,
-                              builder: (context, value, child) {
-                                return GestureDetector(
-                                  onVerticalDragUpdate: (details) {
-                                    if (!isMobile) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      _animationDuration = 0;
-                                      dragOffset +=
-                                          details.delta.dy /
-                                          MediaQuery.of(context).size.height;
-                                      dragOffset = dragOffset.clamp(0.0, 1.0);
-                                    });
-                                  },
-
-                                  onVerticalDragEnd: (details) {
-                                    if (!isMobile) {
-                                      return;
-                                    }
-                                    double velocity =
-                                        details.primaryVelocity ?? 0;
-
-                                    if (dragOffset > 0.4 || velocity > 500) {
-                                      displayLyricsPageNotifier.value = false;
-                                    } else {
-                                      _display();
-                                    }
-                                  },
-                                  child: CoverArtWidget(
-                                    size: coverArtSize,
-                                    borderRadius: coverArtSize * 0.05,
-                                    song: currentSong,
-                                    elevation: 15,
-                                    color: colorManager
-                                        .getSpecificLyricsPageCoverArtBaseColor(),
-                                  ),
-                                );
-                              },
-                            ),
-                            if (pageHight >= 600) ...[
-                              message(coverArtSize, pageHight, currentSong),
-                              playControls(
-                                coverArtSize,
-                                pageHight,
-                                currentSong,
-                              ),
-                            ],
-
-                            Spacer(),
-                          ],
-                        ),
-                        SizedBox(width: pageWidth * 0.05),
-                        SizedBox(
-                          width: pageWidth * 0.45,
-                          child: Column(
-                            children: [
-                              SizedBox(height: pageHight * 0.1),
-                              if (pageHight < 600)
-                                message(
-                                  pageWidth * 0.35,
-                                  pageHight,
-                                  currentSong,
-                                ),
-
-                              Expanded(
-                                child: ShaderMask(
-                                  shaderCallback: (rect) {
-                                    return LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent, // fade out at top
-                                        Colors.black, // fully visible
-                                        Colors.black, // fully visible
-                                        Colors
-                                            .transparent, // fade out at bottom
-                                      ],
-                                      stops: [
-                                        0.0,
-                                        0.05,
-                                        0.95,
-                                        1.0,
-                                      ], // adjust fade height
-                                    ).createShader(rect);
-                                  },
-                                  blendMode: BlendMode.dstIn,
-                                  // use key to force update
-                                  child: ScrollConfiguration(
-                                    behavior: ScrollConfiguration.of(
-                                      context,
-                                    ).copyWith(scrollbars: false),
-                                    child: currentSong == null
-                                        ? SizedBox()
-                                        : FocusScope(
-                                            node: lyricsScopeNode,
-                                            onKeyEvent: (node, event) {
-                                              if (event is! KeyDownEvent) {
-                                                return .ignored;
-                                              }
-                                              if (event.logicalKey ==
-                                                  .arrowLeft) {
-                                                playControlScopeNode
-                                                    .requestFocus();
-                                                return .handled;
-                                              } else if (event.logicalKey ==
-                                                  .arrowRight) {
-                                                fontSizeScopeNode
-                                                    .requestFocus();
-                                                return .handled;
-                                              }
-                                              return .ignored;
-                                            },
-                                            child: LyricsListView(
-                                              key: ValueKey(currentSong),
-                                              expanded: pageHight < 600
-                                                  ? false
-                                                  : true,
-                                              lyrics: currentSong
-                                                  .parsedLyrics!
-                                                  .lyrics,
-                                              isKaraoke: currentSong
-                                                  .parsedLyrics!
-                                                  .isKaraoke,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ),
-
-                              if (pageHight < 600) ...[
-                                playControls(
-                                  pageWidth * 0.4,
-                                  pageHight,
-                                  currentSong,
-                                ),
-                                SizedBox(height: 20),
-                              ],
-                            ],
+                        Hero(
+                          tag: 'cover',
+                          child: CoverArtWidget(
+                            size: coverArtSize,
+                            borderRadius: coverArtSize * 0.05,
+                            song: currentSong,
+                            elevation: 15,
+                            color: colorManager
+                                .getSpecificLyricsPageCoverArtBaseColor(),
                           ),
                         ),
-                        SizedBox(width: pageWidth * 0.05),
+                        if (pageHight >= 600) ...[
+                          message(coverArtSize, pageHight, currentSong),
+                          playControls(coverArtSize, pageHight, currentSong),
+                        ],
+
+                        Spacer(),
                       ],
                     ),
-                  );
-                },
+                    SizedBox(width: pageWidth * 0.05),
+                    SizedBox(
+                      width: pageWidth * 0.45,
+                      child: Column(
+                        children: [
+                          SizedBox(height: pageHight * 0.1),
+                          if (pageHight < 600)
+                            message(pageWidth * 0.35, pageHight, currentSong),
+
+                          Expanded(
+                            child: ShaderMask(
+                              shaderCallback: (rect) {
+                                return LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent, // fade out at top
+                                    Colors.black, // fully visible
+                                    Colors.black, // fully visible
+                                    Colors.transparent, // fade out at bottom
+                                  ],
+                                  stops: [
+                                    0.0,
+                                    0.05,
+                                    0.95,
+                                    1.0,
+                                  ], // adjust fade height
+                                ).createShader(rect);
+                              },
+                              blendMode: BlendMode.dstIn,
+                              // use key to force update
+                              child: ScrollConfiguration(
+                                behavior: ScrollConfiguration.of(
+                                  context,
+                                ).copyWith(scrollbars: false),
+                                child: currentSong == null
+                                    ? SizedBox()
+                                    : FocusScope(
+                                        node: lyricsScopeNode,
+                                        onKeyEvent: (node, event) {
+                                          if (!isTV || event is! KeyDownEvent) {
+                                            return .ignored;
+                                          }
+                                          if (event.logicalKey == .arrowLeft) {
+                                            playControlScopeNode.requestFocus();
+                                            return .handled;
+                                          } else if (event.logicalKey ==
+                                              .arrowRight) {
+                                            fontSizeScopeNode.requestFocus();
+                                            return .handled;
+                                          }
+                                          return .ignored;
+                                        },
+                                        child: LyricsListView(
+                                          key: ValueKey(currentSong),
+                                          expanded: pageHight < 600
+                                              ? false
+                                              : true,
+                                          lyrics:
+                                              currentSong.parsedLyrics!.lyrics,
+                                          isKaraoke: currentSong
+                                              .parsedLyrics!
+                                              .isKaraoke,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+
+                          if (pageHight < 600) ...[
+                            playControls(
+                              pageWidth * 0.4,
+                              pageHight,
+                              currentSong,
+                            ),
+                            SizedBox(height: 20),
+                          ],
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: pageWidth * 0.05),
+                  ],
+                ),
               ),
 
               Positioned(

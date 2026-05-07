@@ -22,13 +22,13 @@ void keyboardInit() {
           }
           break;
         case LogicalKeyboardKey.escape:
-          if (displayLyricsPageNotifier.value && isFullScreenNotifier.value) {
+          if (displayLyricsPage && isFullScreenNotifier.value) {
             windowManager.setFullScreen(false);
             isFullScreenNotifier.value = false;
           }
           break;
         case LogicalKeyboardKey.f11:
-          if (displayLyricsPageNotifier.value && !isMaximizedNotifier.value) {
+          if (displayLyricsPage && !isMaximizedNotifier.value) {
             windowManager.setFullScreen(true);
             isFullScreenNotifier.value = true;
           }

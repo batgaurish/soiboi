@@ -193,7 +193,8 @@ class _TitleBarState extends State<TitleBar> {
                         return IconButton(
                           color: value,
                           onPressed: () {
-                            displayLyricsPageNotifier.value = false;
+                            displayLyricsPage = false;
+                            Navigator.pop(context);
                           },
                           icon: ImageIcon(arrowDownImage),
                         );
@@ -354,33 +355,34 @@ class _TitleBarState extends State<TitleBar> {
           builder: (context, _) {
             return Row(
               children: [
-                IconButton(
-                  color: widget.isMainPage
-                      ? iconColor.value
-                      : lyricsPageForegroundColor.value,
-                  onPressed: () async {
-                    await windowManager.hide();
-                    miniModeNotifier.value = true;
+                if (widget.isMainPage)
+                  IconButton(
+                    color: widget.isMainPage
+                        ? iconColor.value
+                        : lyricsPageForegroundColor.value,
+                    onPressed: () async {
+                      await windowManager.hide();
+                      miniModeNotifier.value = true;
 
-                    await Future.delayed(Duration(milliseconds: 200));
+                      await Future.delayed(Duration(milliseconds: 200));
 
-                    if (Platform.isWindows) {
-                      await windowManager.setMinimumSize(
-                        Size(325 + 16, 150 + 9),
-                      );
-                      await windowManager.setMaximumSize(
-                        Size(600 + 16, 950 + 9),
-                      );
-                      await windowManager.setSize(Size(325 + 16, 325 + 9));
-                    } else {
-                      await windowManager.setMinimumSize(Size(325, 150));
-                      await windowManager.setMaximumSize(Size(600, 950));
-                      await windowManager.setSize(Size(325, 325));
-                    }
-                    await windowManager.show();
-                  },
-                  icon: ImageIcon(miniModeImage),
-                ),
+                      if (Platform.isWindows) {
+                        await windowManager.setMinimumSize(
+                          Size(325 + 16, 150 + 9),
+                        );
+                        await windowManager.setMaximumSize(
+                          Size(600 + 16, 950 + 9),
+                        );
+                        await windowManager.setSize(Size(325 + 16, 325 + 9));
+                      } else {
+                        await windowManager.setMinimumSize(Size(325, 150));
+                        await windowManager.setMaximumSize(Size(600, 950));
+                        await windowManager.setSize(Size(325, 325));
+                      }
+                      await windowManager.show();
+                    },
+                    icon: ImageIcon(miniModeImage),
+                  ),
                 IconButton(
                   color: widget.isMainPage
                       ? iconColor.value

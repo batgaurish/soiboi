@@ -3,9 +3,11 @@ import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/common_widgets/buttons.dart';
 import 'package:particle_music/common_widgets/cover_art_widget.dart';
+import 'package:particle_music/dynamic_route.dart';
 import 'package:particle_music/landscape_view/speaker.dart';
 import 'package:particle_music/landscape_view/volume_bar.dart';
 import 'package:particle_music/common_widgets/seekbar.dart';
+import 'package:particle_music/layer/lyrics_page_layer.dart';
 import 'package:particle_music/utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
@@ -25,7 +27,7 @@ class BottomControl extends StatelessWidget {
             height: 75,
             child: Row(
               children: [
-                Expanded(flex: 2, child: currentSongTile()),
+                Expanded(flex: 2, child: currentSongTile(context)),
 
                 if (isMobile && !isTV) ...[
                   Expanded(flex: 2, child: bottomSeekBar()),
@@ -65,10 +67,10 @@ class BottomControl extends StatelessWidget {
     );
   }
 
-  Widget currentSongTile() {
+  Widget currentSongTile(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: currentSongNotifier,
-      builder: (context, currentSong, _) {
+      builder: (_, currentSong, _) {
         return Theme(
           data: Theme.of(context).copyWith(
             highlightColor: Colors.transparent,
@@ -84,10 +86,13 @@ class BottomControl extends StatelessWidget {
             clipBehavior: .antiAlias,
             child: ListTile(
               focusNode: currentSongTileNode,
-              leading: CoverArtWidget(
-                size: 50,
-                borderRadius: 5,
-                song: currentSong,
+              leading: Hero(
+                tag: 'cover',
+                child: CoverArtWidget(
+                  size: 50,
+                  borderRadius: 5,
+                  song: currentSong,
+                ),
               ),
               title: Text(
                 getTitle(currentSong),
@@ -104,7 +109,9 @@ class BottomControl extends StatelessWidget {
                 if (playQueue.isEmpty) {
                   return;
                 }
-                displayLyricsPageNotifier.value = true;
+                Navigator.of(context, rootNavigator: true).push(
+                  DynamicRoute(pageBuilder: (_, _, _) => LyricsPageLayer()),
+                );
               },
             ),
           ),

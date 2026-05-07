@@ -57,7 +57,6 @@ class PlayQueuePageState extends State<PlayQueuePage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     isSelectedList = List.generate(
       playQueue.length,
       (_) => ValueNotifier(false),
@@ -67,7 +66,7 @@ class PlayQueuePageState extends State<PlayQueuePage> {
     return Column(
       children: [
         SizedBox(height: 10),
-        topBar(l10n),
+        topBar(context),
         SizedBox(height: 10),
 
         Expanded(
@@ -115,7 +114,9 @@ class PlayQueuePageState extends State<PlayQueuePage> {
     );
   }
 
-  Widget topBar(AppLocalizations l10n) {
+  Widget topBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     final specificTextColor = colorManager.getSpecificTextColor();
     final specificIconColor = colorManager.getSpecificIconColor();
 
@@ -172,8 +173,11 @@ class PlayQueuePageState extends State<PlayQueuePage> {
             if (await showConfirmDialog(context, l10n.clear)) {
               await audioHandler.clear();
 
-              displayPlayQueuePageNotifier.value = false;
-              displayLyricsPageNotifier.value = false;
+              while (context.mounted && Navigator.canPop(context)) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              }
             }
           },
           icon: ImageIcon(deleteImage),
@@ -295,8 +299,11 @@ class PlayQueuePageState extends State<PlayQueuePage> {
                 setState(() {});
                 if (playQueue.isEmpty) {
                   await audioHandler.clear();
-                  displayPlayQueuePageNotifier.value = false;
-                  displayLyricsPageNotifier.value = false;
+                  while (context.mounted && Navigator.canPop(context)) {
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  }
                 } else if (removeCurrent) {
                   await audioHandler.load();
                 }

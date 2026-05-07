@@ -383,7 +383,7 @@ class ColorManager {
   }
 
   Color getSpecificBgBaseColor() {
-    return miniModeNotifier.value || displayLyricsPageNotifier.value
+    return miniModeNotifier.value || displayLyricsPage
         ? currentCoverArtColor
         : backgroundCoverArtColor;
   }
@@ -391,7 +391,7 @@ class ColorManager {
   Color getSpecificBgColor() {
     return miniModeNotifier.value
         ? Color.fromARGB(100, 245, 245, 245)
-        : displayLyricsPageNotifier.value
+        : displayLyricsPage
         ? lyricsPageBackgroundColor.value
         : isMobile
         ? pageBackgroundColor.value
@@ -401,7 +401,7 @@ class ColorManager {
   Color getSpecificTextColor() {
     return miniModeNotifier.value
         ? Colors.grey.shade50
-        : displayLyricsPageNotifier.value
+        : displayLyricsPage
         ? lyricsPageForegroundColor.value
         : textColor.value;
   }
@@ -409,7 +409,7 @@ class ColorManager {
   Color getSpecificHighlightTextColor() {
     return miniModeNotifier.value
         ? Colors.grey.shade50
-        : displayLyricsPageNotifier.value
+        : displayLyricsPage
         ? lyricsPageHighlightTextColor.value
         : highlightTextColor.value;
   }
@@ -417,7 +417,7 @@ class ColorManager {
   Color getSpecificIconColor() {
     return miniModeNotifier.value
         ? Colors.grey.shade50
-        : displayLyricsPageNotifier.value
+        : displayLyricsPage
         ? lyricsPageForegroundColor.value
         : iconColor.value;
   }
@@ -425,7 +425,7 @@ class ColorManager {
   Color getSpecificButtonColor() {
     return miniModeNotifier.value
         ? currentCoverArtColor.withAlpha(75)
-        : displayLyricsPageNotifier.value
+        : displayLyricsPage
         ? lyricsPageButtonColor.value
         : buttonColor.value;
   }
@@ -433,7 +433,7 @@ class ColorManager {
   Color getSpecificDividerColor() {
     return miniModeNotifier.value
         ? currentCoverArtColor
-        : displayLyricsPageNotifier.value
+        : displayLyricsPage
         ? lyricsPageDividerColor.value
         : dividerColor.value;
   }
@@ -441,7 +441,7 @@ class ColorManager {
   Color getSpecificSelectedItemColor() {
     return miniModeNotifier.value
         ? Colors.grey.shade50.withAlpha(50)
-        : displayLyricsPageNotifier.value
+        : displayLyricsPage
         ? lyricsPageSelectedItemColor.value
         : selectedItemColor.value;
   }
@@ -450,9 +450,7 @@ class ColorManager {
     if (miniModeNotifier.value) {
       return Colors.white30;
     }
-    return displayLyricsPageNotifier.value
-        ? lyricsPageMenuColor.value
-        : menuColor.value;
+    return displayLyricsPage ? lyricsPageMenuColor.value : menuColor.value;
   }
 }
 

@@ -6,7 +6,6 @@ import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/common_widgets/cover_art_widget.dart';
 import 'package:particle_music/landscape_view/bottom_control.dart';
-import 'package:particle_music/landscape_view/pages/landscape_lyrics_page.dart';
 import 'package:particle_music/landscape_view/sidebar.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 
@@ -54,7 +53,8 @@ class LandscapeView extends StatelessWidget {
                 child: ValueListenableBuilder(
                   valueListenable: layersManager.backgroundChangeNotifier,
                   builder: (context, value, child) {
-                    return Container(
+                    return AnimatedContainer(
+                      duration: Duration(milliseconds: 500),
                       color: backgroundCoverArtColor.withAlpha(180),
                     );
                   },
@@ -113,8 +113,6 @@ class LandscapeView extends StatelessWidget {
             ],
           ),
         ),
-
-        LandscapeLyricsPage(),
       ],
     );
   }

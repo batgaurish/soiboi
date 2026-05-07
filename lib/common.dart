@@ -53,10 +53,6 @@ final ValueNotifier<String> sidebarHighlighLabel = ValueNotifier('');
 
 MyAudioMetadata? backgroundSong;
 
-// ===================================== PlayQueuePage =====================================
-
-final ValueNotifier<bool> displayPlayQueuePageNotifier = ValueNotifier(false);
-
 // ===================================== Lyrics =====================================
 
 LyricLine? currentLyricLine;
@@ -66,9 +62,7 @@ double lyricsFontSizeOffset = 0;
 final lyricsFontSizeOffsetChangeNotifier = ValueNotifier(0);
 final updateLyricsNotifier = ValueNotifier(0);
 
-final ValueNotifier<bool> displayLyricsPageNotifier = ValueNotifier(false);
-final ValueNotifier<bool> immersiveModeNotifier = ValueNotifier(false);
-Timer? immersiveModeTimer;
+bool displayLyricsPage = false;
 
 // ===================================== Settings =====================================
 
