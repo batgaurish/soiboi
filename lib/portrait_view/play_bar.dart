@@ -57,6 +57,18 @@ class PlayBar extends StatelessWidget {
                     const SizedBox(width: 15),
                     Hero(
                       tag: 'cover',
+                      flightShuttleBuilder:
+                          (
+                            flightContext,
+                            animation,
+                            flightDirection,
+                            fromHeroContext,
+                            toHeroContext,
+                          ) => FittedBox(
+                            child: flightDirection == .push
+                                ? toHeroContext.widget
+                                : fromHeroContext.widget,
+                          ),
                       child: CoverArtWidget(
                         size: 35,
                         borderRadius: 3,
