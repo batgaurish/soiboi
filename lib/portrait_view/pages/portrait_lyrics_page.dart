@@ -104,7 +104,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 },
                 child: Column(
                   children: [
-                    SizedBox(height: 60),
+                    SizedBox(height: 50),
                     Row(
                       children: [
                         SizedBox(width: 30),
@@ -112,7 +112,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                           child: Column(
                             children: [
                               SizedBox(
-                                height: 30,
+                                height: 36,
                                 child: Center(
                                   child: ValueListenableBuilder(
                                     valueListenable:
@@ -135,7 +135,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                               ),
 
                               SizedBox(
-                                height: 24,
+                                height: 28,
                                 child: Center(
                                   child: ValueListenableBuilder(
                                     valueListenable:
@@ -456,8 +456,8 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         ),
 
         Positioned(
-          right: 50,
-          bottom: 50,
+          right: 25,
+          bottom: 40,
           child: ValueListenableBuilder(
             valueListenable: lyricsPageForegroundColor.valueNotifier,
             builder: (context, value, child) {
