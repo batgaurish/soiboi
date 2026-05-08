@@ -31,11 +31,7 @@ class Loader {
     colorManager = ColorManager();
     colorManager.loadCustomColors();
 
-    navidromeClient = NavidromeClient(
-      username: username,
-      password: password,
-      baseUrl: baseUrl,
-    );
+    navidromeClient = NavidromeClient();
 
     if (webdavBaseUrl != '') {
       webdavClient = webdav.newClient(

@@ -249,11 +249,7 @@ class SettingsList extends StatelessWidget {
                                   password = '';
                                   baseUrl = '';
                                   settingManager.saveSetting();
-                                  navidromeClient = NavidromeClient(
-                                    username: username,
-                                    password: password,
-                                    baseUrl: baseUrl,
-                                  );
+                                  navidromeClient = NavidromeClient();
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                   }
@@ -269,11 +265,7 @@ class SettingsList extends StatelessWidget {
                                 onPressed: () async {
                                   final tmp = navidromeClient;
                                   try {
-                                    navidromeClient = NavidromeClient(
-                                      username: usernameTmp.text,
-                                      password: passwordTmp.text,
-                                      baseUrl: baseUrlTmp.text,
-                                    );
+                                    navidromeClient = NavidromeClient();
                                   } catch (e) {
                                     navidromeClient = tmp;
                                     showCenterMessage(
@@ -290,6 +282,12 @@ class SettingsList extends StatelessWidget {
                                     username = usernameTmp.text;
                                     password = passwordTmp.text;
                                     baseUrl = baseUrlTmp.text;
+                                    if (baseUrl.endsWith('/')) {
+                                      baseUrl = baseUrl.substring(
+                                        0,
+                                        baseUrl.length - 1,
+                                      );
+                                    }
                                     settingManager.saveSetting();
 
                                     await Loader.reload();
@@ -413,6 +411,12 @@ class SettingsList extends StatelessWidget {
                                     webdavUsername = usernameTmp.text;
                                     webdavPassword = passwordTmp.text;
                                     webdavBaseUrl = baseUrlTmp.text;
+                                    if (webdavBaseUrl.endsWith('/')) {
+                                      webdavBaseUrl = webdavBaseUrl.substring(
+                                        0,
+                                        webdavBaseUrl.length - 1,
+                                      );
+                                    }
                                     if (context.mounted) {
                                       Navigator.pop(context);
                                       showCenterMessage(

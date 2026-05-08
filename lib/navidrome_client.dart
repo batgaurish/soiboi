@@ -14,21 +14,16 @@ late NavidromeClient navidromeClient;
 
 class NavidromeClient {
   final Dio dio;
-  final String username;
-  final String password;
-  final String baseUrl;
+
   late bool valid;
-  NavidromeClient({
-    required this.username,
-    required this.password,
-    required this.baseUrl,
-  }) : dio = Dio(
-         BaseOptions(
-           baseUrl: baseUrl,
-           connectTimeout: const Duration(seconds: 3),
-           receiveTimeout: const Duration(seconds: 5),
-         ),
-       ) {
+  NavidromeClient()
+    : dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 3),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      ) {
     valid = username.isNotEmpty && password.isNotEmpty && baseUrl.isNotEmpty;
   }
 
