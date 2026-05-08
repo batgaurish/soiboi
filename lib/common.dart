@@ -15,7 +15,7 @@ import 'package:particle_music/setting_manager.dart';
 import 'package:screen_corner_radius/screen_corner_radius.dart';
 import 'package:webdav_client/webdav_client.dart';
 
-const String versionNumber = '2.2.1';
+const String versionNumber = '2.3.0';
 
 // ===================================== App =====================================
 
