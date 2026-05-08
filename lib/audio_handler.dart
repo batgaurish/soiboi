@@ -504,10 +504,7 @@ class MyAudioHandler extends BaseAudioHandler {
       } else if (currentSong.isWebdav) {
         if (currentSong.webdavCachePath == null) {
           await _player.open(
-            Media(
-              currentSong.path!,
-              httpHeaders: {'Authorization': getWebdavAuth()},
-            ),
+            Media(currentSong.path!, httpHeaders: getWebdavHeaders()),
             play: isPlayingNotifier.value,
           );
         } else {

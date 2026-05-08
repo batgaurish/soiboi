@@ -75,21 +75,27 @@ Future<void> _tryWriteMetadata(
 
     Uint8List? writePictureBytes = _pictureBytesNotifier.value;
 
-    bool success = writeMetadata(
-      path: song.path!,
-      title: writeTitle,
-      artist: writeArtist,
-      album: writeAlbum,
-      albumArtist: writeAlbumArtist,
-      genre: writeGenre,
-      year: writeYear,
-      track: writeTrack,
-      disc: writeDisc,
-      lyrics: writeLyrics,
-      pictureBytes: writePictureBytes,
-      username: song.isWebdav ? webdavUsername : null,
-      password: song.isWebdav ? webdavPassword : null,
-    );
+    late bool success;
+    try {
+      success = writeMetadata(
+        path: song.path!,
+        title: writeTitle,
+        artist: writeArtist,
+        album: writeAlbum,
+        albumArtist: writeAlbumArtist,
+        genre: writeGenre,
+        year: writeYear,
+        track: writeTrack,
+        disc: writeDisc,
+        lyrics: writeLyrics,
+        pictureBytes: writePictureBytes,
+        headers: song.isWebdav ? getWebdavHeaders() : null,
+      );
+    } catch (e) {
+      logger.output(e.toString());
+      success = false;
+    }
+
     if (success) {
       song.modified = DateTime.now();
       song.webdavCachePath = null;

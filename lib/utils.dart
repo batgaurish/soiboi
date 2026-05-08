@@ -506,8 +506,7 @@ Future<Uint8List?> _loadPictureBytes(MyAudioMetadata song) async {
       } else {
         result = await readPictureAsync(
           song.path!,
-          username: webdavUsername,
-          password: webdavPassword,
+          headers: getWebdavHeaders(),
         );
       }
     } else {
@@ -686,8 +685,14 @@ void getDesktopLyricFromMap(dynamic data) {
   updateDesktopLyricsNotifier.value++;
 }
 
-String getWebdavAuth() {
-  return 'Basic ${base64Encode(utf8.encode('$webdavUsername:$webdavPassword'))}';
+Map<String, String>? getWebdavHeaders() {
+  if (webdavUsername == '') {
+    return null;
+  }
+  return {
+    'Authorization':
+        'Basic ${base64Encode(utf8.encode('$webdavUsername:$webdavPassword'))}',
+  };
 }
 
 Future<void> downloadFile(

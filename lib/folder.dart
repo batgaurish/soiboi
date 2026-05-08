@@ -170,12 +170,7 @@ class Folder {
     if (song?.modified != modified) {
       try {
         final tmp = isWebdav
-            ? await readMetadataAsync(
-                path,
-                false,
-                username: webdavUsername,
-                password: webdavPassword,
-              )
+            ? await readMetadataAsync(path, false, headers: getWebdavHeaders())
             : readMetadata(path, false);
 
         if (tmp != null) {

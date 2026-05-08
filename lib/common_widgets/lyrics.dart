@@ -104,11 +104,7 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
       late File lrcFile;
       if (song.isWebdav) {
         lrcFile = File('${tmpDir.path}/particle_music_lyric');
-        await downloadFile(
-          path,
-          lrcFile.path,
-          headers: {'Authorization': getWebdavAuth()},
-        );
+        await downloadFile(path, lrcFile.path, headers: getWebdavHeaders());
       } else {
         lrcFile = File(path);
       }

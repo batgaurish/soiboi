@@ -217,11 +217,7 @@ class Library {
         final uuid = Uuid();
         final savePath = "${cacheConfigDir.path}/webdavCache/${uuid.v4()}";
 
-        await downloadFile(
-          song.path!,
-          savePath,
-          headers: {'Authorization': getWebdavAuth()},
-        );
+        await downloadFile(song.path!, savePath, headers: getWebdavHeaders());
 
         final tmp = File(savePath);
         if (await tmp.exists()) {

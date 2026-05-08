@@ -77,12 +77,11 @@ packages:
   audio_tags_lofty:
     dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: "77215997b1b3f5eebeace8643f1731a2793b9470"
-      url: "https://github.com/AfalpHy/audio_tags_lofty.git"
-    source: git
-    version: "0.0.3"
+      name: audio_tags_lofty
+      sha256: "13c4ce97b7e9a5b9f9c1636754bd1fdad08b91a8c7015208ae9b55c84fa0a88a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.4"
   auto_size_text:
     dependency: "direct main"
     description:
