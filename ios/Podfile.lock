@@ -4,7 +4,7 @@ PODS:
     - FlutterMacOS
   - audio_session (0.0.1):
     - Flutter
-  - audio_tags_lofty (0.0.3):
+  - audio_tags_lofty (0.0.4):
     - Flutter
   - device_info_plus (0.0.1):
     - Flutter
@@ -116,7 +116,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   audio_service: aa99a6ba2ae7565996015322b0bb024e1d25c6fd
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
-  audio_tags_lofty: 986e441a64485c93d546b96fcc30d9a5e17e2aa7
+  audio_tags_lofty: 34a8d6f92e388530db0a636955cbb8a60a627639
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
