@@ -421,68 +421,64 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
     BuildContext context,
     MyAudioMetadata? currentSong,
   ) {
-    return Row(
+    return Stack(
       children: [
-        Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: ShaderMask(
-                  shaderCallback: (rect) {
-                    return LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent, // fade out at top
-                        Colors.grey.shade50, // fully visible
-                        Colors.grey.shade50, // fully visible
-                        Colors.transparent, // fade out at bottom
-                      ],
-                      stops: [0.0, 0.1, 0.7, 1.0], // adjust fade height
-                    ).createShader(rect);
-                  },
-                  blendMode: BlendMode.dstIn,
-                  child: currentSong == null
-                      ? SizedBox()
-                      : LyricsListView(
-                          key: ValueKey(currentSong),
-                          expanded: true,
-                          lyrics: currentSong.parsedLyrics!.lyrics,
-                          isKaraoke: currentSong.parsedLyrics!.isKaraoke,
-                        ),
-                ),
-              ),
-              SizedBox(height: 50),
-            ],
-          ),
-        ),
         Column(
           children: [
-            Spacer(),
-            ValueListenableBuilder(
-              valueListenable: lyricsPageForegroundColor.valueNotifier,
-              builder: (context, value, child) {
-                return IconButton(
-                  color: value,
-                  icon: ValueListenableBuilder(
-                    valueListenable: isPlayingNotifier,
-                    builder: (_, isPlaying, _) {
-                      return Icon(
-                        isPlaying
-                            ? Icons.pause_circle_rounded
-                            : Icons.play_circle_rounded,
-                        size: 48,
-                      );
-                    },
-                  ),
-                  onPressed: () => audioHandler.togglePlay(),
-                );
-              },
+            Expanded(
+              child: ShaderMask(
+                shaderCallback: (rect) {
+                  return LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent, // fade out at top
+                      Colors.grey.shade50, // fully visible
+                      Colors.grey.shade50, // fully visible
+                      Colors.transparent, // fade out at bottom
+                    ],
+                    stops: [0.0, 0.1, 0.7, 1.0], // adjust fade height
+                  ).createShader(rect);
+                },
+                blendMode: BlendMode.dstIn,
+                child: currentSong == null
+                    ? SizedBox()
+                    : LyricsListView(
+                        key: ValueKey(currentSong),
+                        expanded: true,
+                        lyrics: currentSong.parsedLyrics!.lyrics,
+                        isKaraoke: currentSong.parsedLyrics!.isKaraoke,
+                      ),
+              ),
             ),
-            SizedBox(height: 30),
+            SizedBox(height: 50),
           ],
         ),
-        SizedBox(width: 20),
+
+        Positioned(
+          right: 50,
+          bottom: 50,
+          child: ValueListenableBuilder(
+            valueListenable: lyricsPageForegroundColor.valueNotifier,
+            builder: (context, value, child) {
+              return IconButton(
+                color: value,
+                icon: ValueListenableBuilder(
+                  valueListenable: isPlayingNotifier,
+                  builder: (_, isPlaying, _) {
+                    return Icon(
+                      isPlaying
+                          ? Icons.pause_circle_rounded
+                          : Icons.play_circle_rounded,
+                      size: 48,
+                    );
+                  },
+                ),
+                onPressed: () => audioHandler.togglePlay(),
+              );
+            },
+          ),
+        ),
       ],
     );
   }

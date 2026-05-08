@@ -412,8 +412,8 @@ class LyricLineWidget extends StatelessWidget {
         ),
         child: Padding(
           padding: expanded
-              ? EdgeInsets.fromLTRB(20, paddingHeight, 0, paddingHeight)
-              : const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+              ? EdgeInsets.fromLTRB(25, paddingHeight, 30, paddingHeight)
+              : const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
           child: ValueListenableBuilder(
             valueListenable: lyricsFontSizeOffsetChangeNotifier,
             builder: (_, _, _) {
@@ -431,7 +431,7 @@ class LyricLineWidget extends StatelessWidget {
                   fontSize += fontSizeOffset;
 
                   return AnimatedScale(
-                    scale: isCurrent ? 1.05 : 1.0,
+                    scale: isCurrent ? 1.05 : 0.95,
                     duration: Duration(milliseconds: 300),
                     alignment: expanded ? .centerLeft : .center,
                     child: Column(
