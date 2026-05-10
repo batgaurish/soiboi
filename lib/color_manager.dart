@@ -4,13 +4,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:particle_music/common.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/adaptive_contrast_color_generator.dart';
+import 'package:particle_music/contrast_color_generator.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 
 late ColorManager colorManager;
 
-AdaptiveContrastColorTextTheme adaptiveContrastColorTheme =
-    AdaptiveContrastColorGenerator.generate(currentCoverArtColor);
+ContrastColorTextTheme contrastColorTheme = ContrastColorGenerator.generate(
+  currentCoverArtColor,
+);
 
 final MyColor pageBackgroundColor = MyColor(
   name: 'pageBackgroundColor',
@@ -150,7 +151,7 @@ final MyColor lyricsPageBackgroundColor = MyColor(
 final MyColor lyricsPageForegroundColor = MyColor(
   name: 'lyricsPageForegroundColor',
   getVividValue: () {
-    return adaptiveContrastColorTheme.regular;
+    return contrastColorTheme.regular;
   },
   lightModeValue: Colors.grey.shade900,
   darkModeValue: Colors.grey.shade300,
@@ -160,7 +161,7 @@ final MyColor lyricsPageForegroundColor = MyColor(
 final MyColor lyricsPageHighlightTextColor = MyColor(
   name: 'lyricsPageHighlightTextColor',
   getVividValue: () {
-    return adaptiveContrastColorTheme.accent;
+    return contrastColorTheme.accent;
   },
   lightModeValue: Colors.black,
   darkModeValue: Colors.grey.shade200,
@@ -170,7 +171,7 @@ final MyColor lyricsPageHighlightTextColor = MyColor(
 final MyColor lyricsPageButtonColor = MyColor(
   name: 'lyricsPageButtonColor',
   getVividValue: () {
-    return adaptiveContrastColorTheme.regular.withAlpha(50);
+    return contrastColorTheme.regular.withAlpha(50);
   },
   lightModeValue: Colors.white70,
   darkModeValue: Colors.grey.shade700,
@@ -180,7 +181,7 @@ final MyColor lyricsPageButtonColor = MyColor(
 final MyColor lyricsPageDividerColor = MyColor(
   name: 'lyricsPageDividerColor',
   getVividValue: () {
-    return adaptiveContrastColorTheme.regular;
+    return contrastColorTheme.regular;
   },
   lightModeValue: Colors.grey,
   darkModeValue: Colors.grey.shade700,
@@ -190,7 +191,7 @@ final MyColor lyricsPageDividerColor = MyColor(
 final MyColor lyricsPageSelectedItemColor = MyColor(
   name: 'lyricsPageSelectedItemColor',
   getVividValue: () {
-    return adaptiveContrastColorTheme.regular.withAlpha(50);
+    return contrastColorTheme.regular.withAlpha(50);
   },
   lightModeValue: Colors.white,
   darkModeValue: Colors.grey.shade700,

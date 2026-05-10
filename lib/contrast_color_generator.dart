@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-class AdaptiveContrastColorTextTheme {
+class ContrastColorTextTheme {
   final Color regular;
   final Color accent;
 
-  AdaptiveContrastColorTextTheme({required this.regular, required this.accent});
+  ContrastColorTextTheme({required this.regular, required this.accent});
 }
 
-class AdaptiveContrastColorGenerator {
+class ContrastColorGenerator {
   /// Regular: High-contrast complementary tint for best readability.
   /// Accent: Subtle neighboring hue for a gentle highlight.
-  static AdaptiveContrastColorTextTheme generate(Color backgroundColor) {
+  static ContrastColorTextTheme generate(Color backgroundColor) {
     final hsl = HSLColor.fromColor(backgroundColor);
     final double luminance = backgroundColor.computeLuminance();
     final bool isDark = luminance < 0.45;
@@ -37,9 +37,6 @@ class AdaptiveContrastColorGenerator {
           : 0.15, // Make it slightly closer to white/black than the regular text
     ).toColor();
 
-    return AdaptiveContrastColorTextTheme(
-      regular: regularColor,
-      accent: accentColor,
-    );
+    return ContrastColorTextTheme(regular: regularColor, accent: accentColor);
   }
 }

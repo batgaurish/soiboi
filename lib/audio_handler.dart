@@ -11,7 +11,7 @@ import 'package:particle_music/common_widgets/equalizer.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
 import 'package:particle_music/common_widgets/lyrics.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/adaptive_contrast_color_generator.dart';
+import 'package:particle_music/contrast_color_generator.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/navidrome_client.dart';
 import 'package:particle_music/utils.dart';
@@ -479,7 +479,7 @@ class MyAudioHandler extends BaseAudioHandler {
     currentCoverArtColor = await computeCoverArtColor(currentSong);
     if (lyricsPageThemeNotifier.value == 0) {
       lyricsPageBackgroundColor.updateColor();
-      adaptiveContrastColorTheme = AdaptiveContrastColorGenerator.generate(
+      contrastColorTheme = ContrastColorGenerator.generate(
         currentCoverArtColor,
       );
       lyricsPageForegroundColor.updateColor();
