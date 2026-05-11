@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/data/folder.dart';
+import 'package:particle_music/base/data/folder.dart';
 import 'package:particle_music/portrait_view/pages/song_list_page.dart';
 
 class SingleFolderPage extends StatelessWidget {

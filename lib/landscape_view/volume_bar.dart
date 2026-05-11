@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/audio_handler.dart';
-import 'package:particle_music/common/widgets/full_width_track_shape.dart';
+import 'package:particle_music/base/audio_handler.dart';
+import 'package:particle_music/base/widgets/full_width_track_shape.dart';
 
 class VolumeBar extends StatelessWidget {
   final Color activeColor;

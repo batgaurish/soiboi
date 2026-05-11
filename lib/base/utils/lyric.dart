@@ -1,0 +1,216 @@
+import 'dart:io';
+
+import 'package:charset/charset.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/audio_handler.dart';
+import 'package:particle_music/base/my_audio_metadata.dart';
+import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/utils/logger.dart';
+import 'package:particle_music/base/services/navidrome_client.dart';
+import 'package:particle_music/landscape_view/desktop_lyrics.dart';
+import 'package:particle_music/base/extensions/window_controller_extension.dart';
+
+class LyricToken {
+  final Duration start;
+  final String text;
+  Duration? end;
+
+  LyricToken(this.start, this.text, [this.end]);
+
+  Map<String, dynamic> toMap() {
+    return {
+      'start': start.inMilliseconds,
+      'end': end?.inMilliseconds,
+      'text': text,
+    };
+  }
+
+  factory LyricToken.fromMap(Map raw) {
+    final map = Map<String, dynamic>.from(raw);
+
+    return LyricToken(
+      Duration(milliseconds: map['start'] as int),
+      map['text'] as String,
+      map['end'] != null ? Duration(milliseconds: map['end'] as int) : null,
+    );
+  }
+}
+
+class LyricLine {
+  final Duration start;
+  final String text;
+  final List<LyricToken> tokens;
+
+  List<String> translates = [];
+
+  LyricLine(this.start, this.text, this.tokens);
+
+  Map<String, dynamic> toMap() {
+    return {
+      'start': start.inMilliseconds,
+      'text': text,
+      'tokens': tokens.map((t) => t.toMap()).toList(),
+      'translates': translates,
+    };
+  }
+
+  factory LyricLine.fromMap(Map raw) {
+    final map = Map<String, dynamic>.from(raw);
+    final lyricLine = LyricLine(
+      Duration(milliseconds: map['start'] as int),
+      map['text'] as String,
+      (map['tokens'] as List).map((e) => LyricToken.fromMap(e as Map)).toList(),
+    );
+    lyricLine.translates = List<String>.from(map['translates']);
+    return lyricLine;
+  }
+}
+
+class ParsedLyrics {
+  bool isKaraoke = false;
+  List<LyricLine> lines = [];
+}
+
+Duration parseTime(RegExpMatch m) {
+  final min = int.parse(m.group(1)!);
+  final sec = int.parse(m.group(2)!);
+  final ms = int.parse(m.group(3)!.padRight(3, '0'));
+  return Duration(minutes: min, seconds: sec, milliseconds: ms);
+}
+
+Future<void> setParsedLyrics(MyAudioMetadata song) async {
+  if (song.parsedLyrics != null) {
+    return;
+  }
+  ParsedLyrics result = ParsedLyrics();
+  song.parsedLyrics = result;
+
+  List<String> lines = [];
+
+  if (song.isNavidrome) {
+    final lyrics = await navidromeClient.getLyricsById(song.id);
+    if (lyrics != null) {
+      lines = lyrics.split(RegExp(r'[\n]'));
+    }
+  } else {
+    if (song.lyrics == null || song.lyrics!.isEmpty) {
+      String path = song.path!;
+      path = "${path.substring(0, path.lastIndexOf('.'))}.lrc";
+
+      late File lrcFile;
+      if (song.isWebdav) {
+        lrcFile = File('${tmpDir.path}/particle_music_lyric');
+        await downloadFile(path, lrcFile.path, headers: getWebdavHeaders());
+      } else {
+        lrcFile = File(path);
+      }
+      if (lrcFile.existsSync()) {
+        try {
+          lines = await lrcFile.readAsLines();
+        } catch (e) {
+          logger.output(e.toString());
+          try {
+            lines = await lrcFile.readAsLines(encoding: gbk);
+          } catch (e) {
+            logger.output(e.toString());
+          }
+        }
+      }
+    } else {
+      lines = song.lyrics!.split(RegExp(r'[\n]'));
+    }
+  }
+  lines.removeWhere((e) => e.isEmpty);
+  if (lines.isEmpty) {
+    result.lines.add(LyricLine(Duration.zero, 'There are no lyrics', []));
+    return;
+  }
+
+  final lineTimeRegex = RegExp(r'^[\[<](\d{2}):(\d{2})[.:](\d{2,3})[\]>]');
+  final wordRegex = RegExp(r'[\[<](\d{2}):(\d{2})[.:](\d{2,3})[\]>]([^\[<]*)');
+
+  for (var line in lines) {
+    final lineMatch = lineTimeRegex.firstMatch(line);
+    if (lineMatch == null) continue;
+
+    final lineStart = parseTime(lineMatch);
+
+    final lastLyric = result.lines.isNotEmpty ? result.lines.last : null;
+    bool isTranslate = lastLyric?.start == lineStart;
+
+    if (lastLyric?.tokens.last.end == null && !isTranslate) {
+      lastLyric?.tokens.last.end = lineStart;
+    }
+
+    final tokenMatches = wordRegex.allMatches(line);
+
+    final tokens = <LyricToken>[];
+    final textBuffer = StringBuffer();
+
+    for (final match in tokenMatches) {
+      final start = parseTime(match);
+      final token = match.group(4)!;
+
+      if (tokens.isNotEmpty) {
+        tokens.last.end = start;
+      }
+
+      if (token.isNotEmpty) {
+        tokens.add(LyricToken(start, token));
+        textBuffer.write(token);
+      }
+    }
+    if (tokens.isNotEmpty) {
+      if (tokens.length == 1 && tokens[0].text.trim().isEmpty) {
+        continue;
+      }
+      if (tokens.length > 1) {
+        result.isKaraoke = true;
+      }
+      if (isTranslate) {
+        lastLyric!.translates.add(textBuffer.toString());
+      } else {
+        result.lines.add(LyricLine(lineStart, textBuffer.toString(), tokens));
+      }
+    }
+  }
+  if (result.lines.isEmpty) {
+    result.lines.add(LyricLine(Duration.zero, 'Lyrics parsing failed', []));
+  } else {
+    if (result.lines.last.tokens.last.end == null) {
+      result.lines.last.tokens.last.end = song.duration;
+    }
+  }
+}
+
+Future<void> updateDesktopLyrics() async {
+  if (isMobile) {
+    FlutterOverlayWindow.shareData({
+      'position': audioHandler.getPosition().inMicroseconds,
+      'lyric_line': currentLyricLine?.toMap(),
+      'isKaraoke': currentLyricLineIsKaraoke,
+    });
+    return;
+  }
+
+  await lyricsWindowController?.updateLyric(
+    audioHandler.getPosition(),
+    currentLyricLine,
+    currentLyricLineIsKaraoke,
+  );
+}
+
+void getDesktopLyricFromMap(dynamic data) {
+  final raw = data as Map;
+  final map = Map<String, dynamic>.from(raw);
+
+  desktopLyricsCurrentPosition = Duration(microseconds: map['position'] as int);
+  final lyricLineMap = map['lyric_line'] as Map?;
+  currentLyricLine = lyricLineMap != null
+      ? LyricLine.fromMap(lyricLineMap)
+      : null;
+
+  currentLyricLineIsKaraoke = map['isKaraoke'] as bool;
+  updateDesktopLyricsNotifier.value++;
+}

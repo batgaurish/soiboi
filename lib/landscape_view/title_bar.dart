@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:particle_music/common/utils/color_manager.dart';
-import 'package:particle_music/common/app.dart';
-import 'package:particle_music/common/asset_images.dart';
-import 'package:particle_music/common/utils/interaction.dart';
-import 'package:particle_music/landscape_view/keyboard.dart';
-import 'package:particle_music/landscape_view/my_window_listener.dart';
+import 'package:particle_music/base/utils/color_manager.dart';
+import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/asset_images.dart';
+import 'package:particle_music/base/utils/interaction.dart';
+import 'package:particle_music/base/services/keyboard.dart';
+import 'package:particle_music/base/services/my_window_listener.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/layer/lyrics_page_layer.dart';
 import 'package:particle_music/mini_view/mini_view.dart';

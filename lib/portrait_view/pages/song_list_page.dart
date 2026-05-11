@@ -3,23 +3,23 @@ import 'dart:async';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:particle_music/common/utils/color_manager.dart';
-import 'package:particle_music/common/asset_images.dart';
-import 'package:particle_music/common/utils/interaction.dart';
-import 'package:particle_music/common/widgets/my_auto_size_text.dart';
-import 'package:particle_music/common/widgets/my_divider.dart';
-import 'package:particle_music/common/widgets/selectable_song_list_page.dart';
-import 'package:particle_music/common/data/playlist.dart';
+import 'package:particle_music/base/utils/color_manager.dart';
+import 'package:particle_music/base/asset_images.dart';
+import 'package:particle_music/base/utils/interaction.dart';
+import 'package:particle_music/base/widgets/my_auto_size_text.dart';
+import 'package:particle_music/base/widgets/my_divider.dart';
+import 'package:particle_music/base/widgets/selectable_song_list_page.dart';
+import 'package:particle_music/base/data/playlist.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/base/data/library.dart';
 import 'package:particle_music/portrait_view/custom_appbar_leading.dart';
 import 'package:particle_music/portrait_view/my_search_field.dart';
-import 'package:particle_music/common/widgets/my_sheet.dart';
+import 'package:particle_music/base/widgets/my_sheet.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common/widgets/my_location.dart';
+import 'package:particle_music/base/widgets/my_location.dart';
 import 'package:particle_music/portrait_view/song_list_tile.dart';
-import 'package:particle_music/common/widgets/base_song_list.dart';
-import 'package:particle_music/common/utils/metadata.dart';
+import 'package:particle_music/base/widgets/base_song_list.dart';
+import 'package:particle_music/base/utils/metadata.dart';
 
 class SongListPage extends BaseSongListWidget {
   const SongListPage({

@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/app.dart';
-import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/audio_handler.dart';
 
-import 'package:particle_music/common/asset_images.dart';
-import 'package:particle_music/common/utils/lyric.dart';
-import 'package:particle_music/common/widgets/lyric_list_view.dart';
-import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
+import 'package:particle_music/base/asset_images.dart';
+import 'package:particle_music/base/utils/lyric.dart';
+import 'package:particle_music/base/widgets/lyric_list_view.dart';
+import 'package:particle_music/base/extensions/window_controller_extension.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
 

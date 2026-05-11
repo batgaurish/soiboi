@@ -2,9 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:particle_music/common/app.dart';
-import 'package:particle_music/common/utils/color_manager.dart';
-import 'package:particle_music/common/widgets/cover_art_widget.dart';
+import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/utils/color_manager.dart';
+import 'package:particle_music/base/widgets/cover_art_widget.dart';
 import 'package:particle_music/landscape_view/bottom_control.dart';
 import 'package:particle_music/landscape_view/sidebar.dart';
 import 'package:particle_music/layer/layers_manager.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/audio_handler.dart';
-import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/base/audio_handler.dart';
+import 'package:particle_music/base/asset_images.dart';
 
 double? _volumeTmp;
 

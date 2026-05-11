@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/utils/color_manager.dart';
-import 'package:particle_music/common/app.dart';
-import 'package:particle_music/common/widgets/my_divider.dart';
+import 'package:particle_music/base/utils/color_manager.dart';
+import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/widgets/my_divider.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:smooth_corner/smooth_corner.dart';

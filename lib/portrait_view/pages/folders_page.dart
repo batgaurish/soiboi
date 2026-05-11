@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/widgets/cover_art_widget.dart';
+import 'package:particle_music/base/widgets/cover_art_widget.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/base/data/library.dart';
 import 'package:particle_music/portrait_view/custom_appbar_leading.dart';
-import 'package:particle_music/common/utils/metadata.dart';
+import 'package:particle_music/base/utils/metadata.dart';
 
 class FoldersPage extends StatelessWidget {
   const FoldersPage({super.key});

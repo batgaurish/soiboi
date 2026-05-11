@@ -1,12 +1,12 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/audio_handler.dart';
-import 'package:particle_music/common/data/artist_album.dart';
-import 'package:particle_music/common/utils/color_manager.dart';
-import 'package:particle_music/common/app.dart';
-import 'package:particle_music/common/widgets/cover_art_widget.dart';
-import 'package:particle_music/common/data/history.dart';
+import 'package:particle_music/base/audio_handler.dart';
+import 'package:particle_music/base/data/artist_album.dart';
+import 'package:particle_music/base/utils/color_manager.dart';
+import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/widgets/cover_art_widget.dart';
+import 'package:particle_music/base/data/history.dart';
 import 'package:particle_music/landscape_view/sidebar.dart';
 import 'package:particle_music/layer/artists_albums_layer.dart';
 import 'package:particle_music/layer/folders_layer.dart';
@@ -20,10 +20,10 @@ import 'package:particle_music/layer/single_artist_layer.dart';
 import 'package:particle_music/layer/single_folder_layer.dart';
 import 'package:particle_music/layer/single_playlist_layer.dart';
 import 'package:particle_music/layer/songs_layer.dart';
-import 'package:particle_music/common/data/library.dart';
-import 'package:particle_music/common/my_audio_metadata.dart';
-import 'package:particle_music/common/data/playlist.dart';
-import 'package:particle_music/common/utils/metadata.dart';
+import 'package:particle_music/base/data/library.dart';
+import 'package:particle_music/base/my_audio_metadata.dart';
+import 'package:particle_music/base/data/playlist.dart';
+import 'package:particle_music/base/utils/metadata.dart';
 
 final layersManager = LayersManager();
 MyAudioMetadata? backgroundSong;
