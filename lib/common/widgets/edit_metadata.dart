@@ -8,147 +8,68 @@ import 'package:flutter/material.dart';
 import 'package:particle_music/artists_albums_manager.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/cover_art_widget.dart';
-import 'package:particle_music/common_widgets/custom_text_field.dart';
-import 'package:particle_music/common_widgets/lyrics.dart';
-import 'package:particle_music/common_widgets/my_divider.dart';
+import 'package:particle_music/common/widgets/cover_art_widget.dart';
+import 'package:particle_music/common/widgets/custom_text_field.dart';
+import 'package:particle_music/common/widgets/lyrics.dart';
+import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-TextEditingController _titleTextController = TextEditingController();
-TextEditingController _artistTextController = TextEditingController();
-TextEditingController _albumTextController = TextEditingController();
-TextEditingController _albumArtistTextController = TextEditingController();
-TextEditingController _genreTextController = TextEditingController();
-TextEditingController _yearTextController = TextEditingController();
-TextEditingController _trackTextController = TextEditingController();
-TextEditingController _discTextController = TextEditingController();
-TextEditingController _lyricsTextController = TextEditingController();
-
-late ValueNotifier<Uint8List?> _pictureBytesNotifier;
-
-void showEditMetadataDialog(BuildContext context, MyAudioMetadata song) async {
-  _titleTextController.text = song.title ?? '';
-  _artistTextController.text = song.artist ?? '';
-  _albumTextController.text = song.album ?? '';
-  _albumArtistTextController.text = song.albumArtist ?? '';
-  _genreTextController.text = song.genre ?? '';
-  _yearTextController.text = song.year?.toString() ?? '';
-  _trackTextController.text = song.track?.toString() ?? '';
-  _discTextController.text = song.disc?.toString() ?? '';
-  _lyricsTextController.text = song.lyrics ?? '';
-
-  _pictureBytesNotifier = ValueNotifier(getPictureBytes(song));
-
-  await showAnimationDialog(
-    context: context,
-    child: _MetadataDialog(song: song),
-  );
-}
-
-Future<void> _tryWriteMetadata(
-  BuildContext context,
-  MyAudioMetadata song,
-) async {
-  final l10n = AppLocalizations.of(context);
-
-  if (await showConfirmDialog(context, l10n.updateMedata)) {
-    if (Platform.isAndroid) {
-      if (await Permission.manageExternalStorage.request() == .denied) {
-        if (context.mounted) {
-          showCenterMessage(context, l10n.updateFailed, duration: 2000);
-        }
-        return;
-      }
-    }
-    String writeTitle = _titleTextController.text;
-    String writeArtist = _artistTextController.text;
-    String writeAlbum = _albumTextController.text;
-    String writeAlbumArtist = _albumArtistTextController.text;
-    String writeGenre = _genreTextController.text;
-    String writeLyrics = _lyricsTextController.text;
-    int? writeYear = int.tryParse(_yearTextController.text);
-    int? writeTrack = int.tryParse(_trackTextController.text);
-    int? writeDisc = int.tryParse(_discTextController.text);
-
-    Uint8List? writePictureBytes = _pictureBytesNotifier.value;
-
-    late bool success;
-    try {
-      success = writeMetadata(
-        path: song.path!,
-        title: writeTitle,
-        artist: writeArtist,
-        album: writeAlbum,
-        albumArtist: writeAlbumArtist,
-        genre: writeGenre,
-        year: writeYear,
-        track: writeTrack,
-        disc: writeDisc,
-        lyrics: writeLyrics,
-        pictureBytes: writePictureBytes,
-        headers: song.isWebdav ? getWebdavHeaders() : null,
-      );
-    } catch (e) {
-      logger.output(e.toString());
-      success = false;
-    }
-
-    if (success) {
-      song.modified = DateTime.now();
-      song.webdavCachePath = null;
-
-      final originArtist = getArtist(song);
-      final originAlbum = getAlbum(song);
-
-      song.title = writeTitle;
-      song.artist = writeArtist;
-      song.album = writeAlbum;
-      song.albumArtist = writeAlbumArtist;
-      song.genre = writeGenre;
-      song.lyrics = writeLyrics;
-      song.parsedLyrics = null;
-      await setParsedLyrics(song);
-      // do not modify when writeValue is null
-      song.year = writeYear ?? song.year;
-      song.track = writeTrack ?? song.track;
-      song.disc = writeDisc ?? song.disc;
-
-      song.pictureBytes = _pictureBytesNotifier.value;
-      song.coverArtColor = null;
-      song.lowerLuminance = null;
-      await computeCoverArtColor(song);
-      if (song == currentSongNotifier.value) {
-        currentCoverArtColor = song.coverArtColor!;
-        colorManager.updateLyricsPageColors();
-      }
-      artistsAlbumsManager.updateArtistAlbum(song, originArtist, originAlbum);
-
-      song.updateNotifier.value++;
-      await library.update();
-      for (final folder in library.folderList) {
-        if (folder.id2Song[song.id] != null) {
-          await folder.update();
-        }
-      }
-    }
-    if (context.mounted) {
-      showCenterMessage(
-        context,
-        success ? l10n.updateSuccessfully : l10n.updateFailed,
-        duration: 2000,
-      );
-      Navigator.pop(context);
-    }
-  }
-}
-
-class _MetadataDialog extends StatelessWidget {
+class EditMetadata extends StatefulWidget {
   final MyAudioMetadata song;
 
-  const _MetadataDialog({required this.song});
+  const EditMetadata({super.key, required this.song});
+
+  @override
+  State<StatefulWidget> createState() => _EditMetadataState();
+}
+
+class _EditMetadataState extends State<EditMetadata> {
+  late final MyAudioMetadata song;
+
+  final TextEditingController _titleTextController = TextEditingController();
+  final TextEditingController _artistTextController = TextEditingController();
+  final TextEditingController _albumTextController = TextEditingController();
+  final TextEditingController _albumArtistTextController =
+      TextEditingController();
+  final TextEditingController _genreTextController = TextEditingController();
+  final TextEditingController _yearTextController = TextEditingController();
+  final TextEditingController _trackTextController = TextEditingController();
+  final TextEditingController _discTextController = TextEditingController();
+  final TextEditingController _lyricsTextController = TextEditingController();
+  late final ValueNotifier<Uint8List?> _pictureBytesNotifier;
+
+  @override
+  void initState() {
+    super.initState();
+    song = widget.song;
+    _titleTextController.text = song.title ?? '';
+    _artistTextController.text = song.artist ?? '';
+    _albumTextController.text = song.album ?? '';
+    _albumArtistTextController.text = song.albumArtist ?? '';
+    _genreTextController.text = song.genre ?? '';
+    _yearTextController.text = song.year?.toString() ?? '';
+    _trackTextController.text = song.track?.toString() ?? '';
+    _discTextController.text = song.disc?.toString() ?? '';
+    _lyricsTextController.text = song.lyrics ?? '';
+    _pictureBytesNotifier = ValueNotifier(getPictureBytes(song));
+  }
+
+  @override
+  void dispose() {
+    _titleTextController.dispose();
+    _artistTextController.dispose();
+    _albumTextController.dispose();
+    _albumArtistTextController.dispose();
+    _genreTextController.dispose();
+    _yearTextController.dispose();
+    _trackTextController.dispose();
+    _discTextController.dispose();
+    _lyricsTextController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -327,5 +248,102 @@ class _MetadataDialog extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _tryWriteMetadata(
+    BuildContext context,
+    MyAudioMetadata song,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+
+    if (await showConfirmDialog(context, l10n.updateMedata)) {
+      if (Platform.isAndroid) {
+        if (await Permission.manageExternalStorage.request() == .denied) {
+          if (context.mounted) {
+            showCenterMessage(context, l10n.updateFailed, duration: 2000);
+          }
+          return;
+        }
+      }
+      String writeTitle = _titleTextController.text;
+      String writeArtist = _artistTextController.text;
+      String writeAlbum = _albumTextController.text;
+      String writeAlbumArtist = _albumArtistTextController.text;
+      String writeGenre = _genreTextController.text;
+      String writeLyrics = _lyricsTextController.text;
+      int? writeYear = int.tryParse(_yearTextController.text);
+      int? writeTrack = int.tryParse(_trackTextController.text);
+      int? writeDisc = int.tryParse(_discTextController.text);
+
+      Uint8List? writePictureBytes = _pictureBytesNotifier.value;
+
+      late bool success;
+      try {
+        success = writeMetadata(
+          path: song.path!,
+          title: writeTitle,
+          artist: writeArtist,
+          album: writeAlbum,
+          albumArtist: writeAlbumArtist,
+          genre: writeGenre,
+          year: writeYear,
+          track: writeTrack,
+          disc: writeDisc,
+          lyrics: writeLyrics,
+          pictureBytes: writePictureBytes,
+          headers: song.isWebdav ? getWebdavHeaders() : null,
+        );
+      } catch (e) {
+        logger.output(e.toString());
+        success = false;
+      }
+
+      if (success) {
+        song.modified = DateTime.now();
+        song.webdavCachePath = null;
+
+        final originArtist = getArtist(song);
+        final originAlbum = getAlbum(song);
+
+        song.title = writeTitle;
+        song.artist = writeArtist;
+        song.album = writeAlbum;
+        song.albumArtist = writeAlbumArtist;
+        song.genre = writeGenre;
+        song.lyrics = writeLyrics;
+        song.parsedLyrics = null;
+        await setParsedLyrics(song);
+        // do not modify when writeValue is null
+        song.year = writeYear ?? song.year;
+        song.track = writeTrack ?? song.track;
+        song.disc = writeDisc ?? song.disc;
+
+        song.pictureBytes = _pictureBytesNotifier.value;
+        song.coverArtColor = null;
+        song.lowerLuminance = null;
+        await computeCoverArtColor(song);
+        if (song == currentSongNotifier.value) {
+          currentCoverArtColor = song.coverArtColor!;
+          colorManager.updateLyricsPageColors();
+        }
+        artistsAlbumsManager.updateArtistAlbum(song, originArtist, originAlbum);
+
+        song.updateNotifier.value++;
+        await library.update();
+        for (final folder in library.folderList) {
+          if (folder.id2Song[song.id] != null) {
+            await folder.update();
+          }
+        }
+      }
+      if (context.mounted) {
+        showCenterMessage(
+          context,
+          success ? l10n.updateSuccessfully : l10n.updateFailed,
+          duration: 2000,
+        );
+        Navigator.pop(context);
+      }
+    }
   }
 }

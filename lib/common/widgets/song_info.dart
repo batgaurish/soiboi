@@ -3,23 +3,29 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/cover_art_widget.dart';
-import 'package:particle_music/common_widgets/my_divider.dart';
+import 'package:particle_music/common/widgets/cover_art_widget.dart';
+import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/utils.dart';
 
-void showSongInfoDialog(BuildContext context, MyAudioMetadata song) async {
-  await showAnimationDialog(
-    context: context,
-    child: _SongInfo(song: song),
-  );
-}
-
-class _SongInfo extends StatelessWidget {
+class SongInfo extends StatefulWidget {
   final MyAudioMetadata song;
 
-  const _SongInfo({required this.song});
+  const SongInfo({super.key, required this.song});
+
+  @override
+  State<StatefulWidget> createState() => _SongInfoState();
+}
+
+class _SongInfoState extends State<SongInfo> {
+  late final MyAudioMetadata song;
+
+  @override
+  void initState() {
+    super.initState();
+    song = widget.song;
+  }
 
   @override
   Widget build(BuildContext context) {

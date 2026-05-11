@@ -4,7 +4,8 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/desktop_lyrics_widget.dart';
+import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/widgets/desktop_lyrics_widget.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';

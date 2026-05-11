@@ -4,9 +4,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/my_switch.dart';
+import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/widgets/my_switch.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common_widgets/my_sheet.dart';
+import 'package:particle_music/common/widgets/my_sheet.dart';
 
 void displayTimedPauseSetting(BuildContext context) {
   pauseTimer?.cancel();

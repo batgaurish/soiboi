@@ -15,7 +15,7 @@ import 'package:particle_music/common.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
 import 'package:particle_music/landscape_view/single_instance.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common_widgets/lyrics.dart';
+import 'package:particle_music/common/widgets/lyrics.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/navidrome_client.dart';

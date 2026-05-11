@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:particle_music/common.dart';
+import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 
 class MyLocation extends StatelessWidget {
@@ -46,7 +47,7 @@ class MyLocation extends StatelessWidget {
               curve: Curves.linear,
             );
           },
-          icon: ImageIcon(location),
+          icon: ImageIcon(locationImage),
         );
       },
     );

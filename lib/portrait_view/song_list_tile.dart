@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:particle_music/artists_albums_manager.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/my_divider.dart';
-import 'package:particle_music/common_widgets/my_sheet.dart';
-import 'package:particle_music/common_widgets/playlist_widgets.dart';
+import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/widgets/my_divider.dart';
+import 'package:particle_music/common/widgets/my_sheet.dart';
+import 'package:particle_music/common/widgets/playlist_widgets.dart';
 import 'package:particle_music/folder.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common_widgets/edit_metadata.dart';
+import 'package:particle_music/common/widgets/edit_metadata.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/playlists.dart';
-import 'package:particle_music/common_widgets/song_info.dart';
+import 'package:particle_music/common/widgets/song_info.dart';
 import 'package:particle_music/utils.dart';
-import '../common_widgets/cover_art_widget.dart';
+import '../common/widgets/cover_art_widget.dart';
 
 class SongListTile extends StatelessWidget {
   final int index;
@@ -323,9 +324,12 @@ class SongListTile extends StatelessWidget {
                             horizontal: 0,
                             vertical: -4,
                           ),
-                          onTap: () async {
+                          onTap: () {
                             Navigator.pop(context);
-                            showSongInfoDialog(context, song);
+                            showAnimationDialog(
+                              context: context,
+                              child: SongInfo(song: song),
+                            );
                           },
                         ),
 
@@ -340,9 +344,12 @@ class SongListTile extends StatelessWidget {
                               horizontal: 0,
                               vertical: -4,
                             ),
-                            onTap: () async {
+                            onTap: () {
                               Navigator.pop(context);
-                              showEditMetadataDialog(context, song);
+                              showAnimationDialog(
+                                context: context,
+                                child: EditMetadata(song: song),
+                              );
                             },
                           ),
                         if (playlist != null)

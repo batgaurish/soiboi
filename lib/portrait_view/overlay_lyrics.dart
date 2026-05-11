@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/desktop_lyrics_widget.dart';
+import 'package:particle_music/common/widgets/desktop_lyrics_widget.dart';
 import 'package:particle_music/utils.dart';
 
 class OverlayLyrics extends StatefulWidget {

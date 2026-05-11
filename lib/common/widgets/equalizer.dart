@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/full_width_track_shape.dart';
+import 'package:particle_music/common/widgets/full_width_track_shape.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 
 final List<int> freqs = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];

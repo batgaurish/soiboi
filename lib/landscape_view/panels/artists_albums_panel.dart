@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:particle_music/artists_albums_manager.dart';
 import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common_widgets/cover_art_widget.dart';
+import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/my_divider.dart';
+import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common_widgets/my_switch.dart';
+import 'package:particle_music/common/widgets/my_switch.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 
 class ArtistsAlbumsPanel extends StatefulWidget {

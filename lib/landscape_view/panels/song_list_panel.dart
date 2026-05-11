@@ -7,18 +7,19 @@ import 'package:flutter/services.dart';
 import 'package:particle_music/artists_albums_manager.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/cover_art_widget.dart';
-import 'package:particle_music/common_widgets/my_divider.dart';
-import 'package:particle_music/common_widgets/playlist_widgets.dart';
+import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/widgets/cover_art_widget.dart';
+import 'package:particle_music/common/widgets/my_divider.dart';
+import 'package:particle_music/common/widgets/playlist_widgets.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common_widgets/edit_metadata.dart';
+import 'package:particle_music/common/widgets/edit_metadata.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/playlists.dart';
-import 'package:particle_music/common_widgets/base_song_list.dart';
-import 'package:particle_music/common_widgets/selectable_song_list_page.dart';
-import 'package:particle_music/common_widgets/song_info.dart';
+import 'package:particle_music/common/widgets/base_song_list.dart';
+import 'package:particle_music/common/widgets/selectable_song_list_page.dart';
+import 'package:particle_music/common/widgets/song_info.dart';
 import 'package:particle_music/utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:super_context_menu/super_context_menu.dart';
@@ -739,7 +740,10 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
               title: l10n.songInfo,
               image: MenuImage.icon(Icons.info_outline_rounded),
               callback: () {
-                showSongInfoDialog(context, currentSongList[index]);
+                showAnimationDialog(
+                  context: context,
+                  child: SongInfo(song: currentSongList[index]),
+                );
               },
             ),
 
@@ -748,7 +752,10 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
               title: l10n.editMetadata,
               image: MenuImage.icon(Icons.edit_rounded),
               callback: () {
-                showEditMetadataDialog(context, currentSongList[index]);
+                showAnimationDialog(
+                  context: context,
+                  child: EditMetadata(song: currentSongList[index]),
+                );
               },
             ),
           if (playlist != null)
@@ -1028,9 +1035,12 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(context);
-                  showSongInfoDialog(context, song);
+                  showAnimationDialog(
+                    context: context,
+                    child: SongInfo(song: song),
+                  );
                 },
               ),
 
@@ -1047,7 +1057,10 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                   ),
                   onTap: () async {
                     Navigator.pop(context);
-                    showEditMetadataDialog(context, song);
+                    showAnimationDialog(
+                      context: context,
+                      child: EditMetadata(song: song),
+                    );
                   },
                 ),
               if (playlist != null)

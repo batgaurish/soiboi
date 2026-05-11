@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:particle_music/artists_albums_manager.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/cover_art_widget.dart';
+import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/layer/artists_albums_layer.dart';
 import 'package:particle_music/layer/folders_layer.dart';
 import 'package:particle_music/layer/license_layer.dart';

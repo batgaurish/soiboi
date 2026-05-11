@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
+import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/landscape_view/keyboard.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/utils.dart';
@@ -256,7 +257,7 @@ class _TitleBarState extends State<TitleBar> {
           IconButton(
             focusNode: findLocationNode,
             onPressed: widget.findLocation,
-            icon: ImageIcon(location),
+            icon: ImageIcon(locationImage),
           ),
 
         if (widget.isMainPage)

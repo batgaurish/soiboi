@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/my_divider.dart';
+import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/portrait_view/custom_appbar_leading.dart';
 import 'package:particle_music/portrait_view/my_search_field.dart';

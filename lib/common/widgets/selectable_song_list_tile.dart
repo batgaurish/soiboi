@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:particle_music/color_manager.dart';
 import 'package:particle_music/common.dart';
-import 'package:particle_music/common_widgets/cover_art_widget.dart';
+import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/my_audio_metadata.dart';
 import 'package:particle_music/utils.dart';
 

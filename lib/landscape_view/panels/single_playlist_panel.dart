@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common_widgets/local_navidrome_base.dart';
+import 'package:particle_music/common/widgets/local_navidrome_base.dart';
 import 'package:particle_music/playlists.dart';
 
 class SinglePlaylistPanel extends StatelessWidget {

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:flutter/material.dart';
-import 'package:particle_music/common_widgets/lyrics.dart';
+import 'package:particle_music/common/widgets/lyrics.dart';
 import 'package:particle_music/utils.dart';
 
 class MyAudioMetadata {
