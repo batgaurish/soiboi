@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/utils/io.dart';
-import 'package:particle_music/base/utils/logger.dart';
 import 'package:particle_music/base/data/folder.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/base/data/loader.dart';
@@ -156,9 +156,9 @@ class Library {
 
     await _saveSongIdList();
 
-    if (navidromeClient.valid) {
+    if (navidromeClient != null) {
       loadingNavidromeNotifier.value = true;
-      final list = await navidromeClient.getSongs();
+      final list = await navidromeClient!.getSongs();
       for (final map in list) {
         MyAudioMetadata song = MyAudioMetadata.fromNavidromeMap(map);
         navidromeSongList.add(song);
@@ -214,43 +214,39 @@ class Library {
   }
 
   Future<void> tryAddCache(MyAudioMetadata song) async {
-    try {
-      if (song.isWebdav) {
-        if (song.webdavCachePath != null) {
-          return;
-        }
-        final uuid = Uuid();
-        final savePath = "${cacheConfigDir.path}/webdavCache/${uuid.v4()}";
-
-        await downloadFile(song.path!, savePath, headers: getWebdavHeaders());
-
-        final tmp = File(savePath);
-        if (await tmp.exists()) {
-          _id2WebdavCache[song.id] = savePath;
-          song.webdavCachePath = savePath;
-          cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
-          await _saveWebdavCache();
-        }
-      } else if (song.isNavidrome) {
-        if (song.navidromeCachePath != null) {
-          return;
-        }
-
-        final uuid = Uuid();
-        final savePath = "${cacheConfigDir.path}/navidromeCache/${uuid.v4()}";
-
-        await downloadFile(song.navidromeUrl!, savePath);
-
-        final tmp = File(savePath);
-        if (await tmp.exists()) {
-          _id2navidromeCache[song.id] = savePath;
-          song.navidromeCachePath = savePath;
-          cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
-          await _saveNavidromeCache();
-        }
+    if (song.isWebdav) {
+      if (song.webdavCachePath != null) {
+        return;
       }
-    } catch (e) {
-      logger.output(e.toString());
+      final uuid = Uuid();
+      final savePath = "${cacheConfigDir.path}/webdavCache/${uuid.v4()}";
+
+      await webdavClient!.download(remotePath: song.path!, localPath: savePath);
+
+      final tmp = File(savePath);
+      if (await tmp.exists()) {
+        _id2WebdavCache[song.id] = savePath;
+        song.webdavCachePath = savePath;
+        cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
+        await _saveWebdavCache();
+      }
+    } else if (song.isNavidrome) {
+      if (song.navidromeCachePath != null) {
+        return;
+      }
+
+      final uuid = Uuid();
+      final savePath = "${cacheConfigDir.path}/navidromeCache/${uuid.v4()}";
+
+      await navidromeClient!.downloadSong(songId: song.id, savePath: savePath);
+
+      final tmp = File(savePath);
+      if (await tmp.exists()) {
+        _id2navidromeCache[song.id] = savePath;
+        song.navidromeCachePath = savePath;
+        cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
+        await _saveNavidromeCache();
+      }
     }
   }
 

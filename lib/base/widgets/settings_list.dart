@@ -7,6 +7,7 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:particle_music/base/audio_handler.dart';
+import 'package:particle_music/base/data/config.dart';
 import 'package:particle_music/base/utils/color_manager.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/asset_images.dart';
@@ -28,7 +29,6 @@ import 'package:particle_music/base/widgets/my_switch.dart';
 import 'package:particle_music/base/services/navidrome_client.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webdav_client/webdav_client.dart';
 
 class SettingsList extends StatelessWidget {
   final double? iconSize;
@@ -195,9 +195,15 @@ class SettingsList extends StatelessWidget {
       leading: ImageIcon(navidromeImage, size: iconSize),
       title: Text(l10n.connect2Navidrome),
       onTap: () {
-        final usernameTmp = TextEditingController(text: username);
-        final passwordTmp = TextEditingController(text: password);
-        final baseUrlTmp = TextEditingController(text: baseUrl);
+        final baseUrlTmp = TextEditingController(
+          text: navidromeClient?.baseUrl ?? '',
+        );
+        final usernameTmp = TextEditingController(
+          text: navidromeClient?.username ?? '',
+        );
+        final passwordTmp = TextEditingController(
+          text: navidromeClient?.password ?? '',
+        );
 
         showAnimationDialog(
           context: context,
@@ -217,15 +223,13 @@ class SettingsList extends StatelessWidget {
                   ),
 
                   SizedBox(height: 10),
+                  CustomTextField('Url', baseUrlTmp),
 
+                  SizedBox(height: 10),
                   CustomTextField(l10n.username, usernameTmp),
 
                   SizedBox(height: 10),
-
                   CustomTextField(l10n.password, passwordTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField('Url', baseUrlTmp),
 
                   SizedBox(height: isMobile ? 10 : 20),
                   Builder(
@@ -244,11 +248,9 @@ class SettingsList extends StatelessWidget {
                                   )) {
                                     return;
                                   }
-                                  username = '';
-                                  password = '';
-                                  baseUrl = '';
+
+                                  navidromeClient = null;
                                   setting.save();
-                                  navidromeClient = NavidromeClient();
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                   }
@@ -264,7 +266,11 @@ class SettingsList extends StatelessWidget {
                                 onPressed: () async {
                                   final tmp = navidromeClient;
                                   try {
-                                    navidromeClient = NavidromeClient();
+                                    navidromeClient = NavidromeClient(
+                                      baseUrl: baseUrlTmp.text,
+                                      username: usernameTmp.text,
+                                      password: passwordTmp.text,
+                                    );
                                   } catch (e) {
                                     navidromeClient = tmp;
                                     showCenterMessage(
@@ -274,20 +280,12 @@ class SettingsList extends StatelessWidget {
                                     );
                                     return;
                                   }
-                                  if (await navidromeClient.ping()) {
+                                  if (await navidromeClient!.ping()) {
                                     if (context.mounted) {
                                       Navigator.pop(context);
                                     }
-                                    username = usernameTmp.text;
-                                    password = passwordTmp.text;
-                                    baseUrl = baseUrlTmp.text;
-                                    if (baseUrl.endsWith('/')) {
-                                      baseUrl = baseUrl.substring(
-                                        0,
-                                        baseUrl.length - 1,
-                                      );
-                                    }
-                                    setting.save();
+
+                                    config.save();
 
                                     await Loader.reload();
                                   } else {
@@ -328,9 +326,15 @@ class SettingsList extends StatelessWidget {
       leading: ImageIcon(navidromeImage, size: iconSize),
       title: Text(l10n.connect2WebDAV),
       onTap: () {
-        final usernameTmp = TextEditingController(text: webdavUsername);
-        final passwordTmp = TextEditingController(text: webdavPassword);
-        final baseUrlTmp = TextEditingController(text: webdavBaseUrl);
+        final baseUrlTmp = TextEditingController(
+          text: webdavClient?.baseUrl ?? '',
+        );
+        final usernameTmp = TextEditingController(
+          text: webdavClient?.username ?? '',
+        );
+        final passwordTmp = TextEditingController(
+          text: webdavClient?.password ?? '',
+        );
 
         showAnimationDialog(
           context: context,
@@ -351,15 +355,13 @@ class SettingsList extends StatelessWidget {
                   ),
 
                   SizedBox(height: 10),
+                  CustomTextField('Url', baseUrlTmp),
 
+                  SizedBox(height: 10),
                   CustomTextField(l10n.username, usernameTmp),
 
                   SizedBox(height: 10),
-
                   CustomTextField(l10n.password, passwordTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField('Url', baseUrlTmp),
 
                   SizedBox(height: isMobile ? 10 : 20),
                   Builder(
@@ -378,11 +380,8 @@ class SettingsList extends StatelessWidget {
                                   )) {
                                     return;
                                   }
-                                  webdavUsername = '';
-                                  webdavPassword = '';
-                                  webdavBaseUrl = '';
-                                  setting.save();
                                   webdavClient = null;
+                                  setting.save();
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                   }
@@ -396,36 +395,12 @@ class SettingsList extends StatelessWidget {
                               SizedBox(width: 20),
                               ElevatedButton(
                                 onPressed: () async {
-                                  try {
-                                    await newClient(
-                                      baseUrlTmp.text,
-                                      user: usernameTmp.text,
-                                      password: passwordTmp.text,
-                                    ).ping();
-                                    webdavClient = newClient(
-                                      baseUrlTmp.text,
-                                      user: usernameTmp.text,
-                                      password: passwordTmp.text,
-                                    );
-                                    webdavUsername = usernameTmp.text;
-                                    webdavPassword = passwordTmp.text;
-                                    webdavBaseUrl = baseUrlTmp.text;
-                                    if (webdavBaseUrl.endsWith('/')) {
-                                      webdavBaseUrl = webdavBaseUrl.substring(
-                                        0,
-                                        webdavBaseUrl.length - 1,
-                                      );
-                                    }
-                                    if (context.mounted) {
-                                      Navigator.pop(context);
-                                      showCenterMessage(
-                                        context,
-                                        'Successfully connect to WebDAV',
-                                        duration: 2000,
-                                      );
-                                    }
-                                    setting.save();
-                                  } catch (e) {
+                                  webdavClient = WebDavClient(
+                                    baseUrl: baseUrlTmp.text,
+                                    username: usernameTmp.text,
+                                    password: passwordTmp.text,
+                                  );
+                                  if (!await webdavClient!.ping()) {
                                     if (context.mounted) {
                                       showCenterMessage(
                                         context,
@@ -433,7 +408,17 @@ class SettingsList extends StatelessWidget {
                                         duration: 2000,
                                       );
                                     }
+                                    return;
                                   }
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    showCenterMessage(
+                                      context,
+                                      'Successfully connect to WebDAV',
+                                      duration: 2000,
+                                    );
+                                  }
+                                  config.save();
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: value,

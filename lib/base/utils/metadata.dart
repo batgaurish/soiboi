@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image;
 import 'package:lpinyin/lpinyin.dart';
-import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/utils/logger.dart';
 import 'package:particle_music/base/my_audio_metadata.dart';
 import 'package:particle_music/base/services/navidrome_client.dart';
@@ -199,7 +199,7 @@ Future<Uint8List?> _loadPictureBytes(MyAudioMetadata song) async {
       if (song.navidromeCachePath != null) {
         result = await readPictureAsync(song.navidromeCachePath!);
       } else {
-        result = await navidromeClient.getPictureBytes(song.id);
+        result = await navidromeClient!.getPictureBytes(song.id);
       }
     } else if (song.isWebdav) {
       if (song.webdavCachePath != null) {
@@ -207,7 +207,7 @@ Future<Uint8List?> _loadPictureBytes(MyAudioMetadata song) async {
       } else {
         result = await readPictureAsync(
           song.path!,
-          headers: getWebdavHeaders(),
+          headers: webdavClient?.headers,
         );
       }
     } else {

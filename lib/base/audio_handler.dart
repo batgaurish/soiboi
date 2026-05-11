@@ -4,9 +4,9 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/utils/color_manager.dart';
 import 'package:particle_music/base/app.dart';
-import 'package:particle_music/base/utils/io.dart';
 import 'package:particle_music/base/utils/logger.dart';
 import 'package:particle_music/base/utils/lyric.dart';
 import 'package:particle_music/base/widgets/equalizer.dart';
@@ -508,7 +508,7 @@ class MyAudioHandler extends BaseAudioHandler {
     isLoading = true;
     try {
       if (currentSong.isNavidrome) {
-        currentSong.navidromeUrl ??= navidromeClient.getStreamUrl(
+        currentSong.navidromeUrl ??= navidromeClient!.getStreamUrl(
           currentSong.id,
         );
         await _player.open(
@@ -518,7 +518,7 @@ class MyAudioHandler extends BaseAudioHandler {
       } else if (currentSong.isWebdav) {
         if (currentSong.webdavCachePath == null) {
           await _player.open(
-            Media(currentSong.path!, httpHeaders: getWebdavHeaders()),
+            Media(currentSong.path!, httpHeaders: webdavClient?.headers),
             play: isPlayingNotifier.value,
           );
         } else {

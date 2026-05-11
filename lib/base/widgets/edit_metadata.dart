@@ -6,8 +6,8 @@ import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:particle_music/base/audio_handler.dart';
+import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/utils/interaction.dart';
-import 'package:particle_music/base/utils/io.dart';
 import 'package:particle_music/base/utils/logger.dart';
 import 'package:particle_music/base/data/artist_album.dart';
 import 'package:particle_music/base/utils/color_manager.dart';
@@ -296,7 +296,7 @@ class _EditMetadataState extends State<EditMetadata> {
           disc: writeDisc,
           lyrics: writeLyrics,
           pictureBytes: writePictureBytes,
-          headers: song.isWebdav ? getWebdavHeaders() : null,
+          headers: song.isWebdav ? webdavClient?.headers : null,
         );
       } catch (e) {
         logger.output(e.toString());

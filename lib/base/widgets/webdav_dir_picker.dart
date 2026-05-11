@@ -3,6 +3,7 @@ import 'package:particle_music/base/utils/color_manager.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
+import 'package:path/path.dart';
 
 class WebdavDirPicker extends StatefulWidget {
   const WebdavDirPicker({super.key});
@@ -29,11 +30,11 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
       return [];
     }
 
-    final files = await webdavClient!.readDir(path);
+    final files = await webdavClient!.list(path);
     // Keep only directories
     final directories = files
-        .where((f) => f.isDir!)
-        .map((f) => f.path!.substring(0, f.path!.length - 1))
+        .where((f) => f.isDirectory)
+        .map((f) => f.path)
         .toList();
     return directories;
   }
@@ -63,22 +64,14 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
                   if (currentPath == root) {
                     return;
                   }
-                  final last = currentPath.split('/').last;
-                  currentPath = currentPath.substring(
-                    0,
-                    currentPath.length - last.length - 1,
-                  );
-                  if (currentPath.isEmpty) {
-                    currentPath = root;
-                  }
-                  loadDirectories(currentPath);
+                  loadDirectories(dirname(currentPath));
                 },
                 icon: Icon(Icons.arrow_back_ios_rounded),
               ),
               Transform.translate(
                 offset: Offset(0, isMobile ? 0 : -1.5),
                 child: Text(
-                  currentPath == root ? root : currentPath.split('/').last,
+                  basename(currentPath),
                   style: .new(fontWeight: .bold, fontSize: 18),
                 ),
               ),
@@ -96,7 +89,7 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
                     itemBuilder: (context, index) {
                       final dir = directories[index];
                       return ListTile(
-                        title: Text(dir.split('/').last),
+                        title: Text(basename(dir)),
                         leading: Icon(Icons.folder),
                         dense: true,
                         onTap: () {

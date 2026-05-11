@@ -6,25 +6,27 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:particle_music/base/utils/logger.dart';
 
-String username = '';
-String password = '';
-String baseUrl = '';
-
-late NavidromeClient navidromeClient;
+NavidromeClient? navidromeClient;
 
 class NavidromeClient {
-  final Dio dio;
+  final String baseUrl;
+  final String username;
+  final String password;
 
-  late bool valid;
-  NavidromeClient()
-    : dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 3),
-          receiveTimeout: const Duration(seconds: 5),
-        ),
-      ) {
-    valid = username.isNotEmpty && password.isNotEmpty && baseUrl.isNotEmpty;
+  late final Dio dio;
+
+  NavidromeClient({
+    required this.baseUrl,
+    required this.username,
+    required this.password,
+  }) {
+    dio = Dio(BaseOptions(baseUrl: baseUrl));
+    _applyAuth();
+  }
+
+  void _applyAuth() {
+    dio.options.headers['authorization'] =
+        'Basic ${base64Encode(utf8.encode('$username:$password'))}';
   }
 
   String _randomSalt() {
@@ -72,9 +74,6 @@ class NavidromeClient {
     Future<Response> Function() request,
     T Function(dynamic data) parser,
   ) async {
-    if (!valid) {
-      return null;
-    }
     try {
       final res = await request();
 
@@ -237,15 +236,13 @@ class NavidromeClient {
   }
 
   String getStreamUrl(String id) {
-    return Uri.parse(
-      '$baseUrl/rest/stream.view',
-    ).replace(queryParameters: _params({'id': id})).toString();
+    return Uri.parse(baseUrl)
+        .resolve('rest/stream.view')
+        .replace(queryParameters: _params({'id': id}))
+        .toString();
   }
 
   Future<Uint8List?> getPictureBytes(String id) async {
-    if (!valid) {
-      return null;
-    }
     int maxRetries = 5;
     int attempt = 0;
 
@@ -354,5 +351,27 @@ class NavidromeClient {
         return '';
       },
     );
+  }
+
+  Future<void> downloadSong({
+    required String songId,
+    required String savePath,
+    ProgressCallback? onProgress,
+  }) async {
+    try {
+      final uri = Uri.parse(baseUrl)
+          .resolve('/rest/download.view')
+          .replace(queryParameters: _params({'id': songId}));
+
+      await dio.download(
+        uri.toString(),
+        savePath,
+        onReceiveProgress: onProgress,
+      );
+    } on DioException catch (e) {
+      logger.output('Download failed: ${e.message}');
+    } catch (e) {
+      logger.output('Download failed: $e');
+    }
   }
 }

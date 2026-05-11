@@ -32,8 +32,8 @@ class PlaylistManager {
   }
 
   Future<void> load() async {
-    if (navidromeClient.valid) {
-      final navidromePlaylists = await navidromeClient.getPlaylists();
+    if (navidromeClient != null) {
+      final navidromePlaylists = await navidromeClient!.getPlaylists();
       for (final playlist in navidromePlaylists) {
         String id = playlist['id'];
         String name = playlist['name'];
@@ -73,7 +73,7 @@ class PlaylistManager {
     }
 
     final playlist = Playlist(name: name);
-    playlist.id = await navidromeClient.createPlaylistAndGetId(name);
+    playlist.id = await navidromeClient?.createPlaylistAndGetId(name);
     addPlaylist(playlist);
 
     update();
@@ -83,7 +83,7 @@ class PlaylistManager {
     playlist.file.deleteSync();
     playlist.settingFile.deleteSync();
     if (playlist.id != null) {
-      await navidromeClient.deletePlaylist(playlist.id!);
+      await navidromeClient?.deletePlaylist(playlist.id!);
     }
     playlists.remove(playlist);
     playlistsMap.remove(playlist.name);
@@ -160,12 +160,12 @@ class Playlist {
         }
       }
     }
-    if (navidromeClient.valid) {
+    if (navidromeClient != null) {
       List<String> songIds = [];
       if (isFavorite) {
-        songIds = await navidromeClient.getFavoriteSongIds();
+        songIds = await navidromeClient!.getFavoriteSongIds();
       } else if (id != null) {
-        songIds = await navidromeClient.getPlaylistSongIds(id!);
+        songIds = await navidromeClient!.getPlaylistSongIds(id!);
       }
       for (final songId in songIds) {
         final song = library.id2Song[songId];
@@ -219,17 +219,17 @@ class Playlist {
   Future<void> update() async {
     await file.writeAsString(jsonEncode(songList.map((e) => e.id).toList()));
     if (isFavorite) {
-      await navidromeClient.unstarAllSongs();
-      await navidromeClient.starSongs(
+      await navidromeClient?.unstarAllSongs();
+      await navidromeClient?.starSongs(
         navidromeSongList.map((e) => e.id).toList().reversed.toList(),
       );
     } else if (id != null || navidromeSongList.isNotEmpty) {
       if (id != null) {
-        await navidromeClient.deletePlaylist(id!);
+        await navidromeClient!.deletePlaylist(id!);
       }
-      id = await navidromeClient.createPlaylistAndGetId(name);
+      id = await navidromeClient!.createPlaylistAndGetId(name);
       if (id != null) {
-        await navidromeClient.addSongsToPlaylist(
+        await navidromeClient!.addSongsToPlaylist(
           id!,
           navidromeSongList.map((e) => e.id).toList(),
         );

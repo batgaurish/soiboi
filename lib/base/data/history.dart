@@ -126,7 +126,7 @@ class History {
 
     if (song.isNavidrome) {
       while (times-- > 0) {
-        await navidromeClient.scrobble(song.id);
+        await navidromeClient!.scrobble(song.id);
       }
     } else {
       rankingFile.writeAsStringSync(

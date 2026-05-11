@@ -541,7 +541,9 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
       return;
     }
     List<String> idList = [root];
-    final subDirectories = await getWebdavSubDirectoriesFrom(root.substring(7));
+    final subDirectories = await webdavClient!.listSubDirectories(
+      root.substring(7),
+    );
     for (final dir in subDirectories) {
       idList.add('WebDAV:$dir');
     }

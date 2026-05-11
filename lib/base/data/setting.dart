@@ -5,12 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:particle_music/base/audio_handler.dart';
 import 'package:particle_music/base/data/playlist.dart';
 import 'package:particle_music/base/utils/interaction.dart';
-import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/widgets/lyric_list_view.dart';
 import 'package:particle_music/base/data/artist_album.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/widgets/manage_music_folders.dart';
-import 'package:particle_music/base/services/navidrome_client.dart';
 
 final exitOnCloseNotifier = ValueNotifier(false);
 
@@ -66,14 +64,6 @@ class Setting {
     exitOnCloseNotifier.value =
         json['exitOnClose'] as bool? ?? exitOnCloseNotifier.value;
 
-    username = json['username'] as String? ?? '';
-    password = json['password'] as String? ?? '';
-    baseUrl = json['baseUrl'] as String? ?? '';
-
-    webdavUsername = json['webdavUsername'] as String? ?? '';
-    webdavPassword = json['webdavPassword'] as String? ?? '';
-    webdavBaseUrl = json['webdavBaseUrl'] as String? ?? '';
-
     recursiveScanNotifier.value = json['recursiveScan'] as bool? ?? false;
   }
 
@@ -95,14 +85,6 @@ class Setting {
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
-
-        'username': username,
-        'password': password,
-        'baseUrl': baseUrl,
-
-        'webdavUsername': webdavUsername,
-        'webdavPassword': webdavPassword,
-        'webdavBaseUrl': webdavBaseUrl,
 
         'recursiveScan': recursiveScanNotifier.value,
       }),

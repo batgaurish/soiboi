@@ -176,7 +176,11 @@ class Folder {
     if (song?.modified != modified) {
       try {
         final tmp = isWebdav
-            ? await readMetadataAsync(path, false, headers: getWebdavHeaders())
+            ? await readMetadataAsync(
+                path,
+                false,
+                headers: webdavClient?.headers,
+              )
             : readMetadata(path, false);
 
         if (tmp != null) {
@@ -218,27 +222,35 @@ class Folder {
       }
 
       try {
-        final List<String> dirList = [path];
-        if (recursiveScanNotifier.value) {
-          dirList.addAll(await getWebdavSubDirectoriesFrom(path));
+        final pool = Pool(4);
+
+        final tasks = <Future>[];
+
+        await for (final file in webdavClient!.listStream(
+          path,
+          recursive: recursiveScanNotifier.value,
+        )) {
+          if (file.isDirectory) {
+            continue;
+          }
+
+          final ext = extension(file.path).toLowerCase();
+
+          if (!_loftySupportedExts.contains(ext)) {
+            continue;
+          }
+          String id = Uri.parse(
+            webdavClient!.baseUrl,
+          ).resolve(file.path).toString();
+          id = Uri.decodeFull(id);
+          tasks.add(
+            pool.withResource(() => _processSong(id, id, file.modified!)),
+          );
         }
 
-        for (final dir in dirList) {
-          final filelist = await webdavClient!.readDir(dir);
-          final pool = Pool(4);
+        await Future.wait(tasks);
 
-          final tasks = filelist
-              .where((f) {
-                if (f.isDir!) return false;
-                final ext = extension(f.path!).toLowerCase();
-                return _loftySupportedExts.contains(ext);
-              })
-              .map((f) {
-                final id = webdavBaseUrl + f.path!;
-                return pool.withResource(() => _processSong(id, id, f.mTime!));
-              });
-          await Future.wait(tasks);
-        }
+        await pool.close();
       } catch (e) {
         // If it fails, keep the original data.
         await setSongList(_songIdListFile, songList, id2Song);

@@ -5,7 +5,7 @@ import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/audio_handler.dart';
 import 'package:particle_music/base/my_audio_metadata.dart';
-import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/utils/logger.dart';
 import 'package:particle_music/base/services/navidrome_client.dart';
 import 'package:particle_music/landscape_view/desktop_lyrics.dart';
@@ -89,7 +89,7 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
   List<String> lines = [];
 
   if (song.isNavidrome) {
-    final lyrics = await navidromeClient.getLyricsById(song.id);
+    final lyrics = await navidromeClient!.getLyricsById(song.id);
     if (lyrics != null) {
       lines = lyrics.split(RegExp(r'[\n]'));
     }
@@ -101,7 +101,7 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
       late File lrcFile;
       if (song.isWebdav) {
         lrcFile = File('${tmpDir.path}/particle_music_lyric');
-        await downloadFile(path, lrcFile.path, headers: getWebdavHeaders());
+        await webdavClient?.download(remotePath: path, localPath: lrcFile.path);
       } else {
         lrcFile = File(path);
       }
