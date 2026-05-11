@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
 
 class DynamicRoute<T> extends PageRouteBuilder<T> {
   DynamicRoute({required super.pageBuilder})

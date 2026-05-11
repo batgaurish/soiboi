@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:particle_music/common/asset_images.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class CoverArtWidget extends StatelessWidget {

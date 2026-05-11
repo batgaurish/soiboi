@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/utils/logger.dart';
 
 String username = '';
 String password = '';

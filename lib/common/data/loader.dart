@@ -1,18 +1,30 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:particle_music/artists_albums_manager.dart';
-import 'package:particle_music/bookmark_service.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/utils/webdav_client.dart';
+import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/utils/bookmark_service.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/data/history.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/library.dart';
-import 'package:particle_music/navidrome_client.dart';
-import 'package:particle_music/playlists.dart';
-import 'package:particle_music/setting_manager.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/utils/navidrome_client.dart';
+import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
+
+final ValueNotifier<int> loadedCountNotifier = ValueNotifier(0);
+
+final ValueNotifier<String> currentLoadingFolderNotifier = ValueNotifier('');
+
+final ValueNotifier<bool> loadingLibraryNotifier = ValueNotifier(true);
+
+final ValueNotifier<bool> loadingNavidromeNotifier = ValueNotifier(false);
 
 class Loader {
   static Future<void> init() async {

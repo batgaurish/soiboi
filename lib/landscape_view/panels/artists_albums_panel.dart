@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/artists_albums_manager.dart';
-import 'package:particle_music/color_manager.dart';
+import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
-import 'package:particle_music/common.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common/widgets/my_switch.dart';
@@ -160,7 +161,7 @@ class _ArtistsAlbumsPanelState extends State<ArtistsAlbumsPanel> {
                           },
                         ),
 
-                        SizedBox(width: 10),
+                        SizedBox(width: 5),
 
                         MySwitch(
                           trueText: l10n.randomize,
@@ -171,7 +172,7 @@ class _ArtistsAlbumsPanelState extends State<ArtistsAlbumsPanel> {
                           },
                         ),
 
-                        SizedBox(width: 10),
+                        SizedBox(width: 5),
 
                         MySwitch(
                           trueText: l10n.large,

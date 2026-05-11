@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/landscape_view/bottom_control.dart';
 import 'package:particle_music/landscape_view/sidebar.dart';
@@ -21,7 +21,7 @@ class LandscapeView extends StatelessWidget {
         ValueListenableBuilder(
           valueListenable: mainPageThemeNotifier,
           builder: (context, value, child) {
-            if (value != 0) {
+            if (value != .vivid) {
               return SizedBox.shrink();
             }
             return ValueListenableBuilder(
@@ -38,7 +38,7 @@ class LandscapeView extends StatelessWidget {
         ValueListenableBuilder(
           valueListenable: mainPageThemeNotifier,
           builder: (context, value, child) {
-            if (value != 0) {
+            if (value != .vivid) {
               return SizedBox.shrink();
             }
             final pageWidth = MediaQuery.widthOf(context);

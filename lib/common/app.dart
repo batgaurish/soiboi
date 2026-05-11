@@ -1,0 +1,17 @@
+import 'dart:io';
+
+import 'package:screen_corner_radius/screen_corner_radius.dart';
+
+const String versionNumber = '2.3.0';
+
+late final Directory appDocsDir;
+late final Directory appSupportDir;
+late final Directory tmpDir;
+late final Directory folderConfigDir;
+late final Directory playlistConfigDir;
+late final Directory cacheConfigDir;
+
+final isMobile = Platform.isAndroid || Platform.isIOS;
+const isTV = bool.fromEnvironment('TV', defaultValue: false);
+
+late final ScreenRadius? screenRadius;

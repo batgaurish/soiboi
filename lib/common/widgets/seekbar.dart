@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/format_duration.dart';
 import 'package:particle_music/common/widgets/full_width_track_shape.dart';
-import 'package:particle_music/utils.dart';
 
 class SeekBar extends StatefulWidget {
   final Color? color;

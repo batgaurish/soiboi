@@ -1,200 +1,27 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
-import 'package:charset/charset.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/navidrome_client.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/lyric.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
-class LyricToken {
-  final Duration start;
-  final String text;
-  Duration? end;
-
-  LyricToken(this.start, this.text, [this.end]);
-
-  Map<String, dynamic> toMap() {
-    return {
-      'start': start.inMilliseconds,
-      'end': end?.inMilliseconds,
-      'text': text,
-    };
-  }
-
-  factory LyricToken.fromMap(Map raw) {
-    final map = Map<String, dynamic>.from(raw);
-
-    return LyricToken(
-      Duration(milliseconds: map['start'] as int),
-      map['text'] as String,
-      map['end'] != null ? Duration(milliseconds: map['end'] as int) : null,
-    );
-  }
-}
-
-class LyricLine {
-  final Duration start;
-  final String text;
-  final List<LyricToken> tokens;
-
-  List<String> translates = [];
-
-  LyricLine(this.start, this.text, this.tokens);
-
-  Map<String, dynamic> toMap() {
-    return {
-      'start': start.inMilliseconds,
-      'text': text,
-      'tokens': tokens.map((t) => t.toMap()).toList(),
-      'translates': translates,
-    };
-  }
-
-  factory LyricLine.fromMap(Map raw) {
-    final map = Map<String, dynamic>.from(raw);
-    final lyricLine = LyricLine(
-      Duration(milliseconds: map['start'] as int),
-      map['text'] as String,
-      (map['tokens'] as List).map((e) => LyricToken.fromMap(e as Map)).toList(),
-    );
-    lyricLine.translates = List<String>.from(map['translates']);
-    return lyricLine;
-  }
-}
-
-class ParsedLyrics {
-  bool isKaraoke = false;
-  List<LyricLine> lyrics = [];
-}
-
-Duration parseTime(RegExpMatch m) {
-  final min = int.parse(m.group(1)!);
-  final sec = int.parse(m.group(2)!);
-  final ms = int.parse(m.group(3)!.padRight(3, '0'));
-  return Duration(minutes: min, seconds: sec, milliseconds: ms);
-}
-
-Future<void> setParsedLyrics(MyAudioMetadata song) async {
-  if (song.parsedLyrics != null) {
-    return;
-  }
-  ParsedLyrics result = ParsedLyrics();
-  song.parsedLyrics = result;
-
-  List<String> lines = [];
-
-  if (song.isNavidrome) {
-    final lyrics = await navidromeClient.getLyricsById(song.id);
-    if (lyrics != null) {
-      lines = lyrics.split(RegExp(r'[\n]'));
-    }
-  } else {
-    if (song.lyrics == null || song.lyrics!.isEmpty) {
-      String path = song.path!;
-      path = "${path.substring(0, path.lastIndexOf('.'))}.lrc";
-
-      late File lrcFile;
-      if (song.isWebdav) {
-        lrcFile = File('${tmpDir.path}/particle_music_lyric');
-        await downloadFile(path, lrcFile.path, headers: getWebdavHeaders());
-      } else {
-        lrcFile = File(path);
-      }
-      if (lrcFile.existsSync()) {
-        try {
-          lines = await lrcFile.readAsLines();
-        } catch (e) {
-          logger.output(e.toString());
-          try {
-            lines = await lrcFile.readAsLines(encoding: gbk);
-          } catch (e) {
-            logger.output(e.toString());
-          }
-        }
-      }
-    } else {
-      lines = song.lyrics!.split(RegExp(r'[\n]'));
-    }
-  }
-  lines.removeWhere((e) => e.isEmpty);
-  if (lines.isEmpty) {
-    result.lyrics.add(LyricLine(Duration.zero, 'There are no lyrics', []));
-    return;
-  }
-
-  final lineTimeRegex = RegExp(r'^[\[<](\d{2}):(\d{2})[.:](\d{2,3})[\]>]');
-  final wordRegex = RegExp(r'[\[<](\d{2}):(\d{2})[.:](\d{2,3})[\]>]([^\[<]*)');
-
-  for (var line in lines) {
-    final lineMatch = lineTimeRegex.firstMatch(line);
-    if (lineMatch == null) continue;
-
-    final lineStart = parseTime(lineMatch);
-
-    final lastLyric = result.lyrics.isNotEmpty ? result.lyrics.last : null;
-    bool isTranslate = lastLyric?.start == lineStart;
-
-    if (lastLyric?.tokens.last.end == null && !isTranslate) {
-      lastLyric?.tokens.last.end = lineStart;
-    }
-
-    final tokenMatches = wordRegex.allMatches(line);
-
-    final tokens = <LyricToken>[];
-    final textBuffer = StringBuffer();
-
-    for (final match in tokenMatches) {
-      final start = parseTime(match);
-      final token = match.group(4)!;
-
-      if (tokens.isNotEmpty) {
-        tokens.last.end = start;
-      }
-
-      if (token.isNotEmpty) {
-        tokens.add(LyricToken(start, token));
-        textBuffer.write(token);
-      }
-    }
-    if (tokens.isNotEmpty) {
-      if (tokens.length == 1 && tokens[0].text.trim().isEmpty) {
-        continue;
-      }
-      if (tokens.length > 1) {
-        result.isKaraoke = true;
-      }
-      if (isTranslate) {
-        lastLyric!.translates.add(textBuffer.toString());
-      } else {
-        result.lyrics.add(LyricLine(lineStart, textBuffer.toString(), tokens));
-      }
-    }
-  }
-  if (result.lyrics.isEmpty) {
-    result.lyrics.add(LyricLine(Duration.zero, 'Lyrics parsing failed', []));
-  } else {
-    if (result.lyrics.last.tokens.last.end == null) {
-      result.lyrics.last.tokens.last.end = song.duration;
-    }
-  }
-}
+final lyricsFontSizeOffsetNotifier = ValueNotifier(0.0);
+final updateLyricsNotifier = ValueNotifier(0);
 
 class LyricsListView extends StatefulWidget {
   final bool expanded;
-  final List<LyricLine> lyrics;
+  final List<LyricLine> lines;
   final bool isKaraoke;
   const LyricsListView({
     super.key,
     required this.expanded,
-    required this.lyrics,
+    required this.lines,
     required this.isKaraoke,
   });
 
@@ -210,7 +37,7 @@ class LyricsListViewState extends State<LyricsListView>
   bool userDragging = false;
   bool userDragged = false;
 
-  List<LyricLine> lyrics = [];
+  List<LyricLine> lines = [];
   bool jump = true;
   Timer? timer;
 
@@ -222,12 +49,12 @@ class LyricsListViewState extends State<LyricsListView>
     int tmp = currentIndexNotifier.value;
     int current = -1;
 
-    for (int i = 0; i < lyrics.length; i++) {
-      final line = lyrics[i];
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
       if (position < line.start) {
         break;
       }
-      if (current == -1 || line.start > lyrics[current].start) {
+      if (current == -1 || line.start > lines[current].start) {
         current = i;
       }
     }
@@ -259,7 +86,7 @@ class LyricsListViewState extends State<LyricsListView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    lyrics = widget.lyrics;
+    lines = widget.lines;
     scroll2CurrentIndex(audioHandler.getPosition());
     positionSub = audioHandler.getPositionStream().listen(
       (position) => scroll2CurrentIndex(position),
@@ -333,7 +160,7 @@ class LyricsListViewState extends State<LyricsListView>
           },
           child: ScrollablePositionedList.builder(
             physics: ClampingScrollPhysics(),
-            itemCount: lyrics.length + 2,
+            itemCount: lines.length + 2,
             itemScrollController: itemScrollController,
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -342,7 +169,7 @@ class LyricsListViewState extends State<LyricsListView>
                       ? parentHeight * 0.25
                       : parentHeight * 0.4,
                 );
-              } else if (index == lyrics.length + 1) {
+              } else if (index == lines.length + 1) {
                 return SizedBox(
                   height: widget.expanded
                       ? parentHeight * 0.65
@@ -351,7 +178,7 @@ class LyricsListViewState extends State<LyricsListView>
               }
               return LyricLineWidget(
                 index: index - 1,
-                line: lyrics[index - 1],
+                line: lines[index - 1],
                 currentIndexNotifier: currentIndexNotifier,
                 expanded: widget.expanded,
                 isKaraoke: widget.isKaraoke,
@@ -411,14 +238,14 @@ class LyricLineWidget extends StatelessWidget {
               ? EdgeInsets.fromLTRB(25, paddingHeight, 30, paddingHeight)
               : const EdgeInsets.symmetric(vertical: 5, horizontal: 15),
           child: ValueListenableBuilder(
-            valueListenable: lyricsFontSizeOffsetChangeNotifier,
+            valueListenable: lyricsFontSizeOffsetNotifier,
             builder: (_, _, _) {
               return ValueListenableBuilder(
                 valueListenable: currentIndexNotifier,
                 builder: (context, currentIndex, child) {
                   final isCurrent = currentIndex == index;
 
-                  double fontSize = 16 + lyricsFontSizeOffset;
+                  double fontSize = 16 + lyricsFontSizeOffsetNotifier.value;
 
                   if (expanded) {
                     fontSize += isMobile ? 16 : 8;

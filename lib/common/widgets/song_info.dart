@@ -1,13 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 
 class SongInfo extends StatefulWidget {
   final MyAudioMetadata song;

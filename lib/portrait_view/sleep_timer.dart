@@ -2,12 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/common/widgets/my_switch.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common/widgets/my_sheet.dart';
+import 'package:particle_music/layer/lyrics_page_layer.dart';
+
+ValueNotifier<bool> sleepTimerOnNotifier = ValueNotifier(false);
+ValueNotifier<int> remainTimesNotifier = ValueNotifier(0);
+ValueNotifier<bool> pauseAfterCompletedNotifier = ValueNotifier(false);
+bool needPause = false;
+Timer? pauseTimer;
 
 void displayTimedPauseSetting(BuildContext context) {
   pauseTimer?.cancel();

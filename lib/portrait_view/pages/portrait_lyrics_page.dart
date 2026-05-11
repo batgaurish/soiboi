@@ -1,23 +1,27 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/color_manager.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/widgets/buttons.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
-import 'package:particle_music/common.dart';
 import 'package:particle_music/common/widgets/my_auto_size_text.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/common/widgets/playlist_widgets.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/portrait_view/sleep_timer.dart';
 import 'package:particle_music/common/widgets/my_sheet.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common/widgets/lyrics.dart';
+import 'package:particle_music/common/widgets/lyric_list_view.dart';
 import 'package:particle_music/common/widgets/play_queue_sheet.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/playlists.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/data/playlists.dart';
 import 'package:particle_music/common/widgets/seekbar.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class PortraitLyricsPage extends StatefulWidget {
@@ -84,7 +88,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (lyricsPageThemeNotifier.value == 0) ...[
+              if (lyricsPageThemeNotifier.value == .vivid) ...[
                 CoverArtWidget(
                   song: currentSong,
                   color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
@@ -224,7 +228,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   : LyricsListView(
                       key: ValueKey(currentSong),
                       expanded: false,
-                      lyrics: currentSong.parsedLyrics!.lyrics,
+                      lines: currentSong.parsedLyrics!.lines,
                       isKaraoke: currentSong.parsedLyrics!.isKaraoke,
                     ),
             ),
@@ -247,8 +251,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
             IconButton(
               color: lyricsPageForegroundColor.value,
               onPressed: () {
-                lyricsFontSizeOffset += 2;
-                lyricsFontSizeOffsetChangeNotifier.value++;
+                lyricsFontSizeOffsetNotifier.value += 2;
                 settingManager.saveSetting();
               },
               icon: Icon(Icons.text_increase_rounded),
@@ -256,11 +259,10 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
             IconButton(
               color: lyricsPageForegroundColor.value,
               onPressed: () {
-                if (lyricsFontSizeOffset < -2) {
+                if (lyricsFontSizeOffsetNotifier.value < -2) {
                   return;
                 }
-                lyricsFontSizeOffset -= 2;
-                lyricsFontSizeOffsetChangeNotifier.value++;
+                lyricsFontSizeOffsetNotifier.value -= 2;
                 settingManager.saveSetting();
               },
               icon: Icon(Icons.text_decrease_rounded),
@@ -447,7 +449,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                     : LyricsListView(
                         key: ValueKey(currentSong),
                         expanded: true,
-                        lyrics: currentSong.parsedLyrics!.lyrics,
+                        lines: currentSong.parsedLyrics!.lines,
                         isKaraoke: currentSong.parsedLyrics!.isKaraoke,
                       ),
               ),

@@ -5,23 +5,27 @@ import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:http/http.dart' as http;
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/utils/interaction.dart';
+import 'package:particle_music/common/utils/logger.dart';
+import 'package:particle_music/common/utils/webdav_client.dart';
 import 'package:particle_music/common/widgets/custom_text_field.dart';
 import 'package:particle_music/common/widgets/equalizer.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/common/widgets/tv_dir_picker.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/common/widgets/manage_music_folders.dart';
-import 'package:particle_music/loader.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/data/loader.dart';
 import 'package:particle_music/portrait_view/sleep_timer.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common/widgets/my_switch.dart';
-import 'package:particle_music/navidrome_client.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/utils/navidrome_client.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webdav_client/webdav_client.dart';
@@ -131,12 +135,6 @@ class SettingsList extends StatelessWidget {
           sliverBox(
             paddingForLandscape(exitOnClose(l10n)),
           ), // always landscape style
-
-        if (Platform.isAndroid && !isTV)
-          sliverBox(paddingIfNeed(isLandscape, desktopLyricsOnAndroid(l10n))),
-
-        if (Platform.isAndroid)
-          sliverBox(paddingIfNeed(isLandscape, lockAndUnlock(l10n))),
 
         sliverBox(paddingIfNeed(isLandscape, checkUpdate(context, l10n))),
 
@@ -609,9 +607,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.vividMode),
                                   onTap: () {
-                                    mainPageThemeNotifier.value = 0;
+                                    mainPageThemeNotifier.value = .vivid;
                                   },
-                                  trailing: value == 0
+                                  trailing: value == .vivid
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -619,9 +617,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.lightMode),
                                   onTap: () {
-                                    mainPageThemeNotifier.value = 1;
+                                    mainPageThemeNotifier.value = .light;
                                   },
-                                  trailing: value == 1
+                                  trailing: value == .light
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -629,9 +627,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.darkMode),
                                   onTap: () {
-                                    mainPageThemeNotifier.value = 2;
+                                    mainPageThemeNotifier.value = .dark;
                                   },
-                                  trailing: value == 2
+                                  trailing: value == .dark
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -639,9 +637,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.customMode),
                                   onTap: () {
-                                    mainPageThemeNotifier.value = 3;
+                                    mainPageThemeNotifier.value = .custom;
                                   },
-                                  trailing: value == 3
+                                  trailing: value == .custom
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -665,9 +663,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.vividMode),
                                   onTap: () {
-                                    lyricsPageThemeNotifier.value = 0;
+                                    lyricsPageThemeNotifier.value = .vivid;
                                   },
-                                  trailing: value == 0
+                                  trailing: value == .vivid
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -675,9 +673,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.lightMode),
                                   onTap: () {
-                                    lyricsPageThemeNotifier.value = 1;
+                                    lyricsPageThemeNotifier.value = .light;
                                   },
-                                  trailing: value == 1
+                                  trailing: value == .light
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -685,9 +683,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.darkMode),
                                   onTap: () {
-                                    lyricsPageThemeNotifier.value = 2;
+                                    lyricsPageThemeNotifier.value = .dark;
                                   },
-                                  trailing: value == 2
+                                  trailing: value == .dark
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -695,9 +693,9 @@ class SettingsList extends StatelessWidget {
                                   dense: true,
                                   title: Text(l10n.customMode),
                                   onTap: () {
-                                    lyricsPageThemeNotifier.value = 3;
+                                    lyricsPageThemeNotifier.value = .custom;
                                   },
-                                  trailing: value == 3
+                                  trailing: value == .custom
                                       ? Icon(Icons.check)
                                       : null,
                                 ),
@@ -942,101 +940,6 @@ class SettingsList extends StatelessWidget {
           },
         ),
       ),
-    );
-  }
-
-  Widget desktopLyricsOnAndroid(AppLocalizations l10n) {
-    return ListTile(
-      leading: ImageIcon(desktopLyricsImage, size: iconSize),
-      title: Text(l10n.desktopLyrics),
-      trailing: ValueListenableBuilder(
-        valueListenable: showDesktopLrcOnAndroidNotifier,
-        builder: (context, value, child) {
-          return SizedBox(
-            width: 50,
-            child: MySwitch(
-              valueNotifier: showDesktopLrcOnAndroidNotifier,
-              onToggleCallBack: () async {
-                final value = showDesktopLrcOnAndroidNotifier.value;
-                lockDesktopLrcOnAndroidNotifier.value = false;
-                if (!value) {
-                  await FlutterOverlayWindow.closeOverlay();
-                  return;
-                }
-                if (!await FlutterOverlayWindow.isPermissionGranted()) {
-                  final res = await FlutterOverlayWindow.requestPermission();
-                  if (res == false) {
-                    return;
-                  }
-                }
-                final vertical = verticalDesktopLrcNotifier.value;
-                await FlutterOverlayWindow.showOverlay(
-                  enableDrag: true,
-
-                  flag: OverlayFlag.defaultFlag,
-                  visibility: NotificationVisibility.visibilityPublic,
-                  positionGravity: PositionGravity.none,
-                  height: vertical ? 2000 : 200,
-                  width: vertical ? 200 : 1200,
-                );
-
-                await updateDesktopLyrics();
-                await FlutterOverlayWindow.shareData(isPlayingNotifier.value);
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget lockAndUnlock(AppLocalizations l10n) {
-    return ValueListenableBuilder(
-      valueListenable: showDesktopLrcOnAndroidNotifier,
-      builder: (context, value, child) {
-        if (!value) {
-          return SizedBox.shrink();
-        }
-        return ListTile(
-          trailing: SizedBox(
-            width: 150,
-            child: ValueListenableBuilder(
-              valueListenable: lockDesktopLrcOnAndroidNotifier,
-              builder: (context, value, child) {
-                return Row(
-                  children: [
-                    Spacer(),
-                    Text(value ? l10n.unlock : l10n.lock),
-                    SizedBox(width: 10),
-                    MySwitch(
-                      valueNotifier: lockDesktopLrcOnAndroidNotifier,
-                      onToggleCallBack: () async {
-                        final position =
-                            await FlutterOverlayWindow.getOverlayPosition();
-
-                        await FlutterOverlayWindow.closeOverlay();
-                        final vertical = verticalDesktopLrcNotifier.value;
-
-                        await FlutterOverlayWindow.showOverlay(
-                          enableDrag: true,
-
-                          flag: value ? .clickThrough : .defaultFlag,
-                          visibility: NotificationVisibility.visibilityPublic,
-                          positionGravity: PositionGravity.none,
-
-                          startPosition: position,
-                          height: vertical ? 2000 : 200,
-                          width: vertical ? 200 : 1200,
-                        );
-                      },
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        );
-      },
     );
   }
 

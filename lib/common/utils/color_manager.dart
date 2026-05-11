@@ -2,12 +2,19 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/theme.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/contrast_color_generator.dart';
-import 'package:particle_music/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/contrast_color_generator.dart';
+import 'package:particle_music/layer/layers_manager.dart';
+import 'package:particle_music/layer/lyrics_page_layer.dart';
+import 'package:particle_music/mini_view/mini_view.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
 
 late ColorManager colorManager;
+
+Color backgroundCoverArtColor = Colors.grey;
+Color currentCoverArtColor = Colors.grey;
 
 ContrastColorTextTheme contrastColorTheme = ContrastColorGenerator.generate(
   currentCoverArtColor,
@@ -352,7 +359,7 @@ class ColorManager {
   }
 
   Color? getSpecificMainPageCoverArtBaseColorForm(MyAudioMetadata? song) {
-    return mainPageThemeNotifier.value == 0
+    return mainPageThemeNotifier.value == .vivid
         ? song == null
               ? Colors.grey
               : song.coverArtColor
@@ -362,7 +369,7 @@ class ColorManager {
   }
 
   Color? getSpecificMainPageSearchFieldColorForm(MyAudioMetadata? song) {
-    return mainPageThemeNotifier.value == 0
+    return mainPageThemeNotifier.value == .vivid
         ? song == null
               ? Colors.grey.withAlpha(75)
               : song.coverArtColor?.withAlpha(75)
@@ -370,7 +377,7 @@ class ColorManager {
   }
 
   Color getSpecificMainPageCoverArtBaseColor() {
-    return mainPageThemeNotifier.value == 0
+    return mainPageThemeNotifier.value == .vivid
         ? backgroundCoverArtColor
         : isMobile
         ? pageBackgroundColor.value
@@ -378,7 +385,7 @@ class ColorManager {
   }
 
   Color getSpecificLyricsPageCoverArtBaseColor() {
-    return lyricsPageThemeNotifier.value == 0
+    return lyricsPageThemeNotifier.value == .vivid
         ? currentCoverArtColor
         : lyricsPageBackgroundColor.value;
   }
@@ -486,17 +493,17 @@ class MyColor {
   }
 
   void updateColor() {
-    final mode = pageType == 0
+    final themeType = pageType == 0
         ? mainPageThemeNotifier.value
         : lyricsPageThemeNotifier.value;
-    switch (mode) {
-      case 0:
+    switch (themeType) {
+      case .vivid:
         valueNotifier.value = vividModeValue ?? getVividValue!.call();
         break;
-      case 1:
+      case .light:
         valueNotifier.value = lightModeValue;
         break;
-      case 2:
+      case .dark:
         valueNotifier.value = darkModeValue;
         break;
       default:

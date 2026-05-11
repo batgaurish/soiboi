@@ -3,21 +3,39 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/io.dart';
+import 'package:particle_music/common/utils/logger.dart';
+import 'package:particle_music/common/utils/lyric.dart';
 import 'package:particle_music/common/widgets/equalizer.dart';
+import 'package:particle_music/common/widgets/lyric_list_view.dart';
+import 'package:particle_music/common/data/history.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
-import 'package:particle_music/common/widgets/lyrics.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/contrast_color_generator.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/navidrome_client.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/utils/contrast_color_generator.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/navidrome_client.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 import 'dart:async';
 
+import 'package:particle_music/portrait_view/sleep_timer.dart';
+
 late AudioSession _session;
+
+late MyAudioHandler audioHandler;
+
+List<MyAudioMetadata> playQueue = [];
+
+final ValueNotifier<MyAudioMetadata?> currentSongNotifier = ValueNotifier(null);
+final ValueNotifier<bool> isPlayingNotifier = ValueNotifier(false);
+final ValueNotifier<int> playModeNotifier = ValueNotifier(0);
+final ValueNotifier<double> volumeNotifier = ValueNotifier(0.3);
 
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();
@@ -111,27 +129,26 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     ParsedLyrics parsedLyrics = currentSong.parsedLyrics!;
 
-    List<LyricLine> lyrics = parsedLyrics.lyrics;
+    List<LyricLine> lines = parsedLyrics.lines;
 
     int current = 0;
 
-    for (int i = 0; i < lyrics.length; i++) {
-      final line = lyrics[i];
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
       if (position < line.start) {
         break;
       }
-      if (line.start > lyrics[current].start) {
+      if (line.start > lines[current].start) {
         current = i;
       }
     }
 
     final tmpLyricLine = currentLyricLine;
 
-    currentLyricLine = lyrics[current];
+    currentLyricLine = lines[current];
     currentLyricLineIsKaraoke = parsedLyrics.isKaraoke;
 
-    if ((showDesktopLrcOnAndroidNotifier.value || lyricsWindowVisible) &&
-        currentLyricLine != tmpLyricLine) {
+    if (lyricsWindowVisible && currentLyricLine != tmpLyricLine) {
       updateDesktopLyrics();
     }
   }
@@ -147,9 +164,6 @@ class MyAudioHandler extends BaseAudioHandler {
     isPlayingNotifier.value = isPlaying;
 
     lyricsWindowController?.sendPlaying(isPlaying);
-    if (showDesktopLrcOnAndroidNotifier.value) {
-      FlutterOverlayWindow.shareData(isPlaying);
-    }
   }
 
   void updatePlaybackState({Duration? postion, bool stop = false}) {
@@ -477,7 +491,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
     await setParsedLyrics(currentSong);
     currentCoverArtColor = await computeCoverArtColor(currentSong);
-    if (lyricsPageThemeNotifier.value == 0) {
+    if (lyricsPageThemeNotifier.value == .vivid) {
       lyricsPageBackgroundColor.updateColor();
       contrastColorTheme = ContrastColorGenerator.generate(
         currentCoverArtColor,

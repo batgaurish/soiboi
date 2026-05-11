@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
-import 'package:particle_music/common.dart';
+import 'package:flutter/material.dart';
+import 'package:particle_music/common/utils/exit.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/mini_view/mini_view.dart';
-import 'package:particle_music/utils.dart';
 import 'package:window_manager/window_manager.dart';
+
+ValueNotifier<bool> isMaximizedNotifier = ValueNotifier(false);
+ValueNotifier<bool> isFullScreenNotifier = ValueNotifier(false);
 
 class MyWindowListener extends WindowListener {
   @override

@@ -1,25 +1,27 @@
 import 'dart:io';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:path/path.dart';
 
-String formatForFileName(DateTime t) {
-  String two(int n) => n.toString().padLeft(2, '0');
-
-  return '${t.year}_'
-      '${two(t.month)}_'
-      '${two(t.day)}_'
-      '${two(t.hour)}_'
-      '${two(t.minute)}_'
-      '${two(t.second)}';
-}
+final logger = Logger();
 
 class Logger {
   late File _file;
 
+  String _formatForFileName(DateTime t) {
+    String two(int n) => n.toString().padLeft(2, '0');
+
+    return '${t.year}_'
+        '${two(t.month)}_'
+        '${two(t.day)}_'
+        '${two(t.hour)}_'
+        '${two(t.minute)}_'
+        '${two(t.second)}';
+  }
+
   Future<void> init() async {
-    final time = formatForFileName(DateTime.now());
+    final time = _formatForFileName(DateTime.now());
     if (Platform.isIOS) {
-      _file = File('${appDocs.path}/logs/$time.txt');
+      _file = File('${appDocsDir.path}/logs/$time.txt');
     } else {
       _file = File('${appSupportDir.path}/logs/$time.txt');
     }

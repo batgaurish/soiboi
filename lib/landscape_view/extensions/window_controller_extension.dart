@@ -1,8 +1,8 @@
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/services.dart';
-import 'package:particle_music/common.dart';
-import 'package:particle_music/common/widgets/lyrics.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/utils/lyric.dart';
+import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:window_manager/window_manager.dart';
 
 extension WindowControllerExtension on WindowController {

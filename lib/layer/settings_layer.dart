@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/landscape_view/panels/settings_panel.dart';
 import 'package:particle_music/portrait_view/pages/settings_page.dart';
 

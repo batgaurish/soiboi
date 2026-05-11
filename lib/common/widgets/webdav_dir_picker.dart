@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/webdav_client.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 
 class WebdavDirPicker extends StatefulWidget {

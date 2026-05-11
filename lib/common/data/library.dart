@@ -2,13 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
-import 'package:particle_music/folder.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/io.dart';
+import 'package:particle_music/common/utils/logger.dart';
+import 'package:particle_music/common/data/folder.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/navidrome_client.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/data/loader.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/navidrome_client.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 import 'package:uuid/uuid.dart';
+
+late Library library;
 
 class Library {
   late File _songIdListFile;

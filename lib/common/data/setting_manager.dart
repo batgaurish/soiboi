@@ -2,9 +2,22 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/artists_albums_manager.dart';
-import 'package:particle_music/common.dart';
-import 'package:particle_music/navidrome_client.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/utils/interaction.dart';
+import 'package:particle_music/common/utils/webdav_client.dart';
+import 'package:particle_music/common/widgets/lyric_list_view.dart';
+import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/widgets/manage_music_folders.dart';
+import 'package:particle_music/common/utils/navidrome_client.dart';
+
+final ValueNotifier<Locale?> localeNotifier = ValueNotifier(null);
+
+final autoPlayOnStartupNotifier = ValueNotifier(false);
+
+final exitOnCloseNotifier = ValueNotifier(false);
+
+late SettingManager settingManager;
 
 class SettingManager {
   late final File file;
@@ -23,10 +36,6 @@ class SettingManager {
 
     artistsAlbumsManager.loadSetting(json);
 
-    playlistsUseLargePictureNotifier.value =
-        json['playlistsUseLargePicture'] as bool? ??
-        playlistsUseLargePictureNotifier.value;
-
     vibrationOnNoitifier.value =
         json['vibrationOn'] as bool? ?? vibrationOnNoitifier.value;
 
@@ -39,14 +48,19 @@ class SettingManager {
     autoPlayOnStartupNotifier.value =
         json['autoPlayOnStartup'] as bool? ?? false;
 
-    mainPageThemeNotifier.value =
-        json['mainPageTheme'] as int? ?? mainPageThemeNotifier.value;
+    mainPageThemeNotifier.value = ThemeType.values.firstWhere(
+      (e) => e.name == json['mainPageTheme'],
+      orElse: () => ThemeType.vivid,
+    );
 
-    lyricsPageThemeNotifier.value =
-        json['lyricsPageTheme'] as int? ?? lyricsPageThemeNotifier.value;
+    lyricsPageThemeNotifier.value = ThemeType.values.firstWhere(
+      (e) => e.name == json['lyricsPageTheme'],
+      orElse: () => ThemeType.vivid,
+    );
 
-    lyricsFontSizeOffset =
-        json['lyricsFontSizeOffset'] as double? ?? lyricsFontSizeOffset;
+    lyricsFontSizeOffsetNotifier.value =
+        json['lyricsFontSizeOffset'] as double? ??
+        lyricsFontSizeOffsetNotifier.value;
 
     exitOnCloseNotifier.value =
         json['exitOnClose'] as bool? ?? exitOnCloseNotifier.value;
@@ -67,8 +81,6 @@ class SettingManager {
       jsonEncode({
         ...artistsAlbumsManager.settingToMap(),
 
-        'playlistsUseLargePicture': playlistsUseLargePictureNotifier.value,
-
         'vibrationOn': vibrationOnNoitifier.value,
         'language': localeNotifier.value == null
             ? ''
@@ -76,10 +88,10 @@ class SettingManager {
 
         'autoPlayOnStartup': autoPlayOnStartupNotifier.value,
 
-        'mainPageTheme': mainPageThemeNotifier.value,
-        'lyricsPageTheme': lyricsPageThemeNotifier.value,
+        'mainPageTheme': mainPageThemeNotifier.value.name,
+        'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
-        'lyricsFontSizeOffset': lyricsFontSizeOffset,
+        'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
 
         'username': username,

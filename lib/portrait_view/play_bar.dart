@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_auto_size_text.dart';
 import 'package:particle_music/common/widgets/play_queue_sheet.dart';
-import 'package:particle_music/dynamic_route.dart';
+import 'package:particle_music/common/utils/dynamic_route.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/layer/lyrics_page_layer.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class PlayBar extends StatelessWidget {
@@ -33,9 +35,9 @@ class PlayBar extends StatelessWidget {
                     25,
                   ), // rounded half-circle ends
                 ),
-                color: mainPageThemeNotifier.value != 0
-                    ? Colors.transparent
-                    : backgroundCoverArtColor.withAlpha(180),
+                color: mainPageThemeNotifier.value == .vivid
+                    ? backgroundCoverArtColor.withAlpha(180)
+                    : Colors.transparent,
                 clipBehavior: .antiAlias,
                 child: child,
               );

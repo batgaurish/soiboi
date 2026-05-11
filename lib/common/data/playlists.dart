@@ -3,17 +3,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/navidrome_client.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/navidrome_client.dart';
+import 'package:particle_music/common/utils/metadata.dart';
+
+late PlaylistsManager playlistsManager;
 
 class PlaylistsManager {
   late File file;
   List<Playlist> playlists = [];
   Map<String, Playlist> playlistsMap = {};
   ValueNotifier<int> updateNotifier = ValueNotifier(0);
+  final useLargePictureNotifier = ValueNotifier(true);
 
   PlaylistsManager() {
     file = File("${playlistConfigDir.path}/particle_music_playlists.json");

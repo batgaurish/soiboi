@@ -3,11 +3,17 @@ import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:flutter/material.dart';
-import 'package:particle_music/bookmark_service.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/utils/bookmark_service.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/io.dart';
+import 'package:particle_music/common/utils/logger.dart';
+import 'package:particle_music/common/utils/webdav_client.dart';
+import 'package:particle_music/common/widgets/manage_music_folders.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/data/loader.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
 import 'package:pool/pool.dart';
@@ -77,7 +83,7 @@ class Folder {
     } else if (Platform.isIOS) {
       if (id.startsWith('Particle Music')) {
         path =
-            '${appDocs.parent.path}/${id.replaceFirst('Particle Music', 'Documents')}';
+            '${appDocsDir.parent.path}/${id.replaceFirst('Particle Music', 'Documents')}';
       } else {
         path = await BookmarkService.getUrlById(id) ?? '';
         library.setIOSFileProviderStorageIfNeed(path);
@@ -111,7 +117,7 @@ class Folder {
     } else if (Platform.isIOS) {
       if (id.startsWith('Particle Music')) {
         path =
-            '${appDocs.parent.path}/${id.replaceFirst('Particle Music', 'Documents')}';
+            '${appDocsDir.parent.path}/${id.replaceFirst('Particle Music', 'Documents')}';
       } else {
         path = library.iosFileProviderStorage! + id;
         if (!await BookmarkService.saveDirectoryAndActive(id, path)) {

@@ -4,19 +4,24 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/utils/lyric.dart';
 import 'package:particle_music/common/widgets/buttons.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_auto_size_text.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:particle_music/landscape_view/speaker.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/landscape_view/volume_bar.dart';
-import 'package:particle_music/common/widgets/lyrics.dart';
+import 'package:particle_music/common/widgets/lyric_list_view.dart';
 import 'package:particle_music/common/widgets/seekbar.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 
 final FocusScopeNode playControlScopeNode = FocusScopeNode();
 final FocusScopeNode lyricsScopeNode = FocusScopeNode();
@@ -78,7 +83,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (lyricsPageThemeNotifier.value == 0) ...[
+              if (lyricsPageThemeNotifier.value == .vivid) ...[
                 CoverArtWidget(
                   song: currentSong,
                   color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
@@ -193,8 +198,8 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                                           expanded: pageHight < 600
                                               ? false
                                               : true,
-                                          lyrics:
-                                              currentSong.parsedLyrics!.lyrics,
+                                          lines:
+                                              currentSong.parsedLyrics!.lines,
                                           isKaraoke: currentSong
                                               .parsedLyrics!
                                               .isKaraoke,
@@ -230,8 +235,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                       IconButton(
                         color: lyricsPageForegroundColor.value,
                         onPressed: () {
-                          lyricsFontSizeOffset += 2;
-                          lyricsFontSizeOffsetChangeNotifier.value++;
+                          lyricsFontSizeOffsetNotifier.value += 2;
                           settingManager.saveSetting();
                         },
                         icon: Icon(Icons.text_increase_rounded, size: 20),
@@ -239,11 +243,10 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                       IconButton(
                         color: lyricsPageForegroundColor.value,
                         onPressed: () {
-                          if (lyricsFontSizeOffset < -2) {
+                          if (lyricsFontSizeOffsetNotifier.value < -2) {
                             return;
                           }
-                          lyricsFontSizeOffset -= 2;
-                          lyricsFontSizeOffsetChangeNotifier.value++;
+                          lyricsFontSizeOffsetNotifier.value -= 2;
                           settingManager.saveSetting();
                         },
                         icon: Icon(Icons.text_decrease_rounded, size: 18),

@@ -2,10 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/navidrome_client.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/navidrome_client.dart';
+
+final History history = History();
+
+final rankingChangeNotifier = ValueNotifier(0);
+final recentlyChangeNotifier = ValueNotifier(0);
 
 class History {
   late File rankingFile;

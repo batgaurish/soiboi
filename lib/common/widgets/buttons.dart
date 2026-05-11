@@ -1,13 +1,14 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/widgets/play_queue_sheet.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/landscape_view/pages/play_queue_page.dart';
-import 'package:particle_music/utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 Widget playModeButton(double? size, {Color? textColor, Color? iconColor}) {

@@ -3,17 +3,23 @@ import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:particle_music/bookmark_service.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/utils/bookmark_service.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/interaction.dart';
+import 'package:particle_music/common/utils/io.dart';
+import 'package:particle_music/common/utils/webdav_client.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/common/widgets/my_switch.dart';
 import 'package:particle_music/common/widgets/tv_dir_picker.dart';
 import 'package:particle_music/common/widgets/webdav_dir_picker.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/loader.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/data/loader.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+
+final ValueNotifier<bool> recursiveScanNotifier = ValueNotifier(false);
 
 class ManageMusicFolders extends StatefulWidget {
   const ManageMusicFolders({super.key});
@@ -377,7 +383,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     String path,
   ) async {
     bool isOnMyiPhone = isFileProviderStorePath(path);
-    if (!isOnMyiPhone && !path.contains(appDocs.path)) {
+    if (!isOnMyiPhone && !path.contains(appDocsDir.path)) {
       if (context.mounted) {
         showCenterMessage(
           context,

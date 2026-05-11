@@ -1,8 +1,13 @@
 import 'package:flutter/services.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/landscape_view/my_window_listener.dart';
+import 'package:particle_music/layer/lyrics_page_layer.dart';
 import 'package:window_manager/window_manager.dart';
 
 bool isTyping = false;
+
+bool shiftIsPressed = false;
+bool ctrlIsPressed = false;
 
 void keyboardInit() {
   HardwareKeyboard.instance.addHandler((event) {

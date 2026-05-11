@@ -4,8 +4,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/logger.dart';
+import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
 import 'package:particle_music/landscape_view/keyboard.dart';
@@ -14,8 +16,7 @@ import 'package:particle_music/landscape_view/my_window_listener.dart';
 import 'package:particle_music/landscape_view/single_instance.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/l10n/generated/app_localizations_en.dart';
-import 'package:particle_music/loader.dart';
-import 'package:particle_music/portrait_view/overlay_lyrics.dart';
+import 'package:particle_music/common/data/loader.dart';
 import 'package:particle_music/portrait_view/custom_page_transition_builder.dart';
 import 'package:particle_music/view_entry.dart';
 import 'dart:async';
@@ -24,12 +25,12 @@ import 'package:screen_corner_radius/screen_corner_radius.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
-import 'audio_handler.dart';
+import 'common/audio_handler.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  appDocs = await getApplicationDocumentsDirectory();
+  appDocsDir = await getApplicationDocumentsDirectory();
   appSupportDir = await getApplicationSupportDirectory();
   tmpDir = await getTemporaryDirectory();
 
@@ -335,10 +336,4 @@ Widget _loadingPage(BuildContext context) {
       },
     ),
   );
-}
-
-@pragma("vm:entry-point")
-void overlayMain() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: OverlayLyrics()));
 }

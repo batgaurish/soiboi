@@ -1,10 +1,14 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/artists_albums_manager.dart';
-import 'package:particle_music/color_manager.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
+import 'package:particle_music/common/data/history.dart';
+import 'package:particle_music/landscape_view/sidebar.dart';
 import 'package:particle_music/layer/artists_albums_layer.dart';
 import 'package:particle_music/layer/folders_layer.dart';
 import 'package:particle_music/layer/license_layer.dart';
@@ -17,11 +21,13 @@ import 'package:particle_music/layer/single_artist_layer.dart';
 import 'package:particle_music/layer/single_folder_layer.dart';
 import 'package:particle_music/layer/single_playlist_layer.dart';
 import 'package:particle_music/layer/songs_layer.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/playlists.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/data/library.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 
 final layersManager = LayersManager();
+MyAudioMetadata? backgroundSong;
 
 class LayerInfo {
   MyAudioMetadata? backgroundSong;
@@ -63,7 +69,7 @@ class LayersManager {
               return ValueListenableBuilder(
                 valueListenable: mainPageThemeNotifier,
                 builder: (context, value, child) {
-                  if (value != 0) {
+                  if (value != .vivid) {
                     return SizedBox();
                   }
                   return Stack(
@@ -305,7 +311,7 @@ class LayersManager {
       layerInfo.changeNotifier.value++;
     }
 
-    if (mainPageThemeNotifier.value == 0) {
+    if (mainPageThemeNotifier.value == .vivid) {
       searchFieldColor.updateColor();
       buttonColor.updateColor();
       dividerColor.updateColor();

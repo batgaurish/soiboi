@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
 import 'package:particle_music/common/widgets/local_navidrome_base.dart';
+import 'package:particle_music/common/data/library.dart';
 
 class SongsPage extends StatelessWidget {
   const SongsPage({super.key});

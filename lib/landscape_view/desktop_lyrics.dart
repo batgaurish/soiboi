@@ -2,13 +2,24 @@ import 'dart:io';
 
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/audio_handler.dart';
 
-import 'package:particle_music/common.dart';
 import 'package:particle_music/common/asset_images.dart';
-import 'package:particle_music/common/widgets/desktop_lyrics_widget.dart';
+import 'package:particle_music/common/utils/lyric.dart';
+import 'package:particle_music/common/widgets/lyric_list_view.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
+
+WindowController? lyricsWindowController;
+bool lyricsWindowVisible = false;
+
+Duration desktopLyricsCurrentPosition = Duration.zero;
+
+LyricLine? currentLyricLine;
+bool currentLyricLineIsKaraoke = false;
+final updateDesktopLyricsNotifier = ValueNotifier(0);
 
 Future<void> initDesktopLyrics() async {
   lyricsWindowController = await WindowController.create(
@@ -63,7 +74,7 @@ class DesktopLyrics extends StatelessWidget {
                         height: 50,
                         child: isTransparent ? null : controlsRow(),
                       ),
-                      DesktopLyricsWidget(),
+                      content(),
                       Spacer(),
                     ],
                   ),
@@ -73,6 +84,82 @@ class DesktopLyrics extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget content() {
+    return ValueListenableBuilder(
+      valueListenable: updateDesktopLyricsNotifier,
+      builder: (context, value, child) {
+        if (currentLyricLine == null) {
+          return Text(
+            'Particle Music',
+            style: TextStyle(
+              fontSize: isMobile ? 20 : 30,
+              color: Colors.white,
+              shadows: [
+                Shadow(
+                  offset: Offset(0, 1),
+                  blurRadius: 1,
+                  color: Colors.black87,
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: .center,
+          children: [
+            if (currentLyricLineIsKaraoke)
+              ValueListenableBuilder(
+                valueListenable: updateLyricsNotifier,
+                builder: (context, value, child) {
+                  return KaraokeText(
+                    key: UniqueKey(),
+                    line: currentLyricLine!,
+                    position: desktopLyricsCurrentPosition,
+                    fontSize: isMobile ? 20 : 30,
+                    expanded: false,
+                    isDesktopLyrics: true,
+                  );
+                },
+              )
+            else
+              Text(
+                currentLyricLine!.text,
+
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 30,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(0, 1),
+                      blurRadius: 1,
+                      color: Colors.black87,
+                    ),
+                  ],
+                ),
+              ),
+            for (final translate in currentLyricLine!.translates)
+              Text(
+                translate,
+
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 24,
+                  color: Colors.white.withAlpha(128),
+                  shadows: [
+                    Shadow(
+                      offset: Offset(0, 1),
+                      blurRadius: 1,
+                      color: Colors.black87,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

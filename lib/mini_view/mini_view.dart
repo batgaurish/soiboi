@@ -3,22 +3,25 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/audio_handler.dart';
 import 'package:particle_music/common/asset_images.dart';
+import 'package:particle_music/common/utils/color_manager.dart';
+import 'package:particle_music/common/utils/lyric.dart';
 import 'package:particle_music/common/widgets/buttons.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/seekbar.dart';
+import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:particle_music/landscape_view/pages/play_queue_page.dart';
 import 'package:particle_music/landscape_view/speaker.dart';
 import 'package:particle_music/landscape_view/volume_bar.dart';
-import 'package:particle_music/common/widgets/lyrics.dart';
-import 'package:particle_music/my_audio_metadata.dart';
-import 'package:particle_music/utils.dart';
+import 'package:particle_music/common/widgets/lyric_list_view.dart';
+import 'package:particle_music/common/my_audio_metadata.dart';
+import 'package:particle_music/common/utils/metadata.dart';
 import 'package:window_manager/window_manager.dart';
 
-final _lyricsOrPlayQueueNotifier = ValueNotifier(true);
 final miniModeDisplayOthersNotifier = ValueNotifier(true);
 Timer? miniModeHideOthersTimer;
+final miniModeNotifier = ValueNotifier(false);
 
 class MiniView extends StatefulWidget {
   const MiniView({super.key});
@@ -29,6 +32,7 @@ class MiniView extends StatefulWidget {
 
 class _MiniViewState extends State<MiniView> {
   final displayCoverNotifier = ValueNotifier(true);
+  final _lyricsOrPlayQueueNotifier = ValueNotifier(true);
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +89,7 @@ class _MiniViewState extends State<MiniView> {
                                   : LyricsListView(
                                       key: ValueKey(currentSong),
                                       expanded: false,
-                                      lyrics: currentSong.parsedLyrics!.lyrics,
+                                      lines: currentSong.parsedLyrics!.lines,
                                       isKaraoke:
                                           currentSong.parsedLyrics!.isKaraoke,
                                     ),

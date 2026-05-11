@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 
 class SingleInstance {

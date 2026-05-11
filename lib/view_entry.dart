@@ -3,16 +3,17 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:particle_music/common.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/landscape_view/keyboard.dart';
 import 'package:particle_music/landscape_view/landscape_view.dart';
 import 'package:particle_music/landscape_view/pages/landscape_lyrics_page.dart';
 import 'package:particle_music/landscape_view/sidebar.dart';
 import 'package:particle_music/layer/layers_manager.dart';
+import 'package:particle_music/layer/lyrics_page_layer.dart';
 import 'package:particle_music/mini_view/mini_view.dart';
 import 'package:particle_music/portrait_view/portrait_view.dart';
-import 'package:particle_music/utils.dart';
 
 class ViewEntry extends StatefulWidget {
   const ViewEntry({super.key});
