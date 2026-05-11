@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:particle_music/common/app.dart';
-import 'package:particle_music/common/theme.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common/utils/contrast_color_generator.dart';
 import 'package:particle_music/layer/layers_manager.dart';

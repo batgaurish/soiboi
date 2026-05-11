@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/landscape_view/panels/song_list_panel.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/common/my_audio_metadata.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/portrait_view/pages/song_list_page.dart';
 
 class LocalNavidromeBase extends StatelessWidget {

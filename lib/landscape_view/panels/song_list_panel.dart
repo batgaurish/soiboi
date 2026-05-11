@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:particle_music/common/audio_handler.dart';
 import 'package:particle_music/common/utils/format_duration.dart';
 import 'package:particle_music/common/utils/interaction.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
@@ -21,7 +21,7 @@ import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/common/my_audio_metadata.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/common/widgets/base_song_list.dart';
 import 'package:particle_music/common/widgets/selectable_song_list_page.dart';
 import 'package:particle_music/common/widgets/song_info.dart';
@@ -312,7 +312,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                                 l10n.delete,
                               )) {
                                 layersManager.removePlaylistLayer(playlist!);
-                                playlistsManager.deletePlaylist(playlist!);
+                                playlistManager.deletePlaylist(playlist!);
                               }
                             },
                             style: buttonStyle,

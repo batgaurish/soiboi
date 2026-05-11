@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/common/data/setting.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common/widgets/my_switch.dart';
@@ -36,7 +36,7 @@ class _ArtistsAlbumsPanelState extends State<ArtistsAlbumsPanel> {
 
   void updateCurrentList() {
     final value = textController.text;
-    currentArtistAlbumListNotifier.value = artistsAlbumsManager
+    currentArtistAlbumListNotifier.value = artistAlbumManager
         .getArtistAlbumList(isArtist)
         .where((e) => (e.name.toLowerCase().contains(value.toLowerCase())))
         .toList();
@@ -50,26 +50,26 @@ class _ArtistsAlbumsPanelState extends State<ArtistsAlbumsPanel> {
     super.initState();
     isArtist = widget.isArtist;
     currentArtistAlbumListNotifier = ValueNotifier(
-      artistsAlbumsManager.getArtistAlbumList(isArtist),
+      artistAlbumManager.getArtistAlbumList(isArtist),
     );
 
-    randomizeNotifier = artistsAlbumsManager.getIsRandomizeNotifier(isArtist);
+    randomizeNotifier = artistAlbumManager.getIsRandomizeNotifier(isArtist);
 
-    isAscendingNotifier = artistsAlbumsManager.getIsAscendingNotifier(isArtist);
+    isAscendingNotifier = artistAlbumManager.getIsAscendingNotifier(isArtist);
 
-    useLargePictureNotifier = artistsAlbumsManager.getUseLargePictureNotifier(
+    useLargePictureNotifier = artistAlbumManager.getUseLargePictureNotifier(
       isArtist,
     );
 
     updateCurrentList();
     textController.addListener(updateCurrentList);
-    artistsAlbumsManager.updateNotifier.addListener(updateCurrentList);
+    artistAlbumManager.updateNotifier.addListener(updateCurrentList);
   }
 
   @override
   void dispose() {
     textController.dispose();
-    artistsAlbumsManager.updateNotifier.removeListener(updateCurrentList);
+    artistAlbumManager.updateNotifier.removeListener(updateCurrentList);
     super.dispose();
   }
 
@@ -130,7 +130,7 @@ class _ArtistsAlbumsPanelState extends State<ArtistsAlbumsPanel> {
                 },
               ),
               trailing: SizedBox(
-                width: 320,
+                width: 325,
                 child: Column(
                   children: [
                     SizedBox(height: 20),
@@ -149,11 +149,11 @@ class _ArtistsAlbumsPanelState extends State<ArtistsAlbumsPanel> {
                               falseText: l10n.descending,
                               valueNotifier: isAscendingNotifier,
                               onToggleCallBack: () {
-                                settingManager.saveSetting();
+                                setting.save();
                                 if (isArtist) {
-                                  artistsAlbumsManager.sortArtists();
+                                  artistAlbumManager.sortArtists();
                                 } else {
-                                  artistsAlbumsManager.sortAlbums();
+                                  artistAlbumManager.sortAlbums();
                                 }
                                 updateCurrentList();
                               },
@@ -179,7 +179,7 @@ class _ArtistsAlbumsPanelState extends State<ArtistsAlbumsPanel> {
                           falseText: l10n.small,
                           valueNotifier: useLargePictureNotifier,
                           onToggleCallBack: () {
-                            settingManager.saveSetting();
+                            setting.save();
                           },
                         ),
                         SizedBox(width: 5),

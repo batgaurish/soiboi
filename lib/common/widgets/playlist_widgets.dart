@@ -8,7 +8,7 @@ import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/custom_text_field.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/common/my_audio_metadata.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
@@ -66,10 +66,10 @@ class _Add2PlaylistPanelState extends State<Add2PlaylistPanel> {
         SizedBox(height: 5),
         Expanded(
           child: ListView.builder(
-            itemCount: playlistsManager.playlists.length,
+            itemCount: playlistManager.playlists.length,
             itemExtent: 54,
             itemBuilder: (_, index) {
-              final playlist = playlistsManager.getPlaylistByIndex(index);
+              final playlist = playlistManager.getPlaylistByIndex(index);
               return ListTile(
                 leading: CoverArtWidget(
                   size: 40,
@@ -148,7 +148,7 @@ Future<bool> showCreatePlaylistDialog(BuildContext context) async {
   );
 
   if (result != null && result != '') {
-    await playlistsManager.createPlaylist(result);
+    await playlistManager.createPlaylist(result);
     return true;
   }
   return false;
@@ -185,16 +185,16 @@ Widget reorderablePlaylistsView(BuildContext context) {
       context: context,
       removeLeft: true, // for mobile
       removeRight: true,
-      child: _playlistListTile(playlistsManager.playlists[0]),
+      child: _playlistListTile(playlistManager.playlists[0]),
     ),
     buildDefaultDragHandles: false,
     onReorder: (oldIndex, newIndex) {
       if (newIndex > oldIndex) {
         newIndex -= 1;
       }
-      final item = playlistsManager.playlists.removeAt(oldIndex + 1);
-      playlistsManager.playlists.insert(newIndex + 1, item);
-      playlistsManager.update();
+      final item = playlistManager.playlists.removeAt(oldIndex + 1);
+      playlistManager.playlists.insert(newIndex + 1, item);
+      playlistManager.update();
     },
     onReorderStart: (_) {
       tryVibrate();
@@ -205,9 +205,9 @@ Widget reorderablePlaylistsView(BuildContext context) {
     proxyDecorator: (Widget child, int index, Animation<double> animation) {
       return Material(elevation: 0.1, color: Colors.transparent, child: child);
     },
-    itemCount: playlistsManager.playlists.length - 1,
+    itemCount: playlistManager.playlists.length - 1,
     itemBuilder: (context, index) {
-      final playlist = playlistsManager.getPlaylistByIndex(index + 1);
+      final playlist = playlistManager.getPlaylistByIndex(index + 1);
       return MediaQuery.removePadding(
         key: ValueKey(index),
         context: context,

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:particle_music/common/data/setting.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common/widgets/my_switch.dart';
@@ -18,11 +19,11 @@ class PlaylistsPanel extends StatefulWidget {
 }
 
 class _PlaylistsPanelState extends State<PlaylistsPanel> {
-  final playlistsNotifier = ValueNotifier(playlistsManager.playlists);
+  final playlistsNotifier = ValueNotifier(playlistManager.playlists);
   final textController = TextEditingController();
 
   void filterPlaylists() {
-    playlistsNotifier.value = playlistsManager.playlists.where((playlist) {
+    playlistsNotifier.value = playlistManager.playlists.where((playlist) {
       return playlist.name.toLowerCase().contains(
         textController.text.toLowerCase(),
       );
@@ -32,13 +33,13 @@ class _PlaylistsPanelState extends State<PlaylistsPanel> {
   @override
   void initState() {
     super.initState();
-    playlistsManager.updateNotifier.addListener(filterPlaylists);
+    playlistManager.updateNotifier.addListener(filterPlaylists);
     textController.addListener(filterPlaylists);
   }
 
   @override
   void dispose() {
-    playlistsManager.updateNotifier.removeListener(filterPlaylists);
+    playlistManager.updateNotifier.removeListener(filterPlaylists);
     textController.removeListener(filterPlaylists);
     super.dispose();
   }
@@ -110,7 +111,8 @@ class _PlaylistsPanelState extends State<PlaylistsPanel> {
                                   trueText: l10n.large,
                                   falseText: l10n.small,
                                   valueNotifier:
-                                      playlistsManager.useLargePictureNotifier,
+                                      playlistManager.useLargePictureNotifier,
+                                  onToggleCallBack: () => setting.save(),
                                 ),
                                 SizedBox(width: 10),
                               ],
@@ -137,7 +139,7 @@ class _PlaylistsPanelState extends State<PlaylistsPanel> {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
 
                 sliver: ValueListenableBuilder(
-                  valueListenable: playlistsManager.useLargePictureNotifier,
+                  valueListenable: playlistManager.useLargePictureNotifier,
                   builder: (context, value, child) {
                     int crossAxisCount;
                     double coverArtWidth;
@@ -217,7 +219,7 @@ class _PlaylistsPanelState extends State<PlaylistsPanel> {
                                             child: Center(
                                               child: Text(
                                                 playlist ==
-                                                        playlistsManager
+                                                        playlistManager
                                                             .playlists[0]
                                                     ? l10n.favorites
                                                     : playlist.name,

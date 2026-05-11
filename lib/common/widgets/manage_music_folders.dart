@@ -13,7 +13,7 @@ import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/common/widgets/my_switch.dart';
 import 'package:particle_music/common/widgets/tv_dir_picker.dart';
 import 'package:particle_music/common/widgets/webdav_dir_picker.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/common/data/setting.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/common/data/loader.dart';
@@ -149,7 +149,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
                             recursiveScanNotifier.value =
                                 tmpRecursiveScanNotifier.value;
 
-                            settingManager.saveSetting();
+                            setting.save();
                             if (await library.updateFolders(
                                   currentFolderIdList,
                                 ) ||
@@ -209,7 +209,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
                   tmpRecursiveScanNotifier.value != recursiveScanNotifier.value;
               recursiveScanNotifier.value = tmpRecursiveScanNotifier.value;
 
-              settingManager.saveSetting();
+              setting.save();
               if (await library.updateFolders(currentFolderIdList) ||
                   needReload) {
                 if (context.mounted) {

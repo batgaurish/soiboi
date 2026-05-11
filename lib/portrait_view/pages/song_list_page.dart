@@ -9,7 +9,7 @@ import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/widgets/my_auto_size_text.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/common/widgets/selectable_song_list_page.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/portrait_view/custom_appbar_leading.dart';
@@ -285,7 +285,7 @@ class _SongListPageState extends BaseSongListState<SongListPage> {
               onTap: () async {
                 if (await showConfirmDialog(context, l10n.delete)) {
                   layersManager.removePlaylistLayer(playlist!);
-                  playlistsManager.deletePlaylist(playlist!);
+                  playlistManager.deletePlaylist(playlist!);
                   if (context.mounted) {
                     Navigator.pop(context);
                   }
@@ -376,7 +376,7 @@ class _SongListPageState extends BaseSongListState<SongListPage> {
                 title: AutoSizeText(
                   isLibrary
                       ? l10n.songs
-                      : playlist == playlistsManager.playlists[0]
+                      : playlist == playlistManager.playlists[0]
                       ? l10n.favorites
                       : title,
                   maxLines: 1,

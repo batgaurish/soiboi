@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:particle_music/common/audio_handler.dart';
 import 'package:particle_music/common/utils/interaction.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
@@ -13,7 +13,7 @@ import 'package:particle_music/common/widgets/edit_metadata.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/common/my_audio_metadata.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/common/widgets/song_info.dart';
 import 'package:particle_music/common/utils/metadata.dart';
 import '../common/widgets/cover_art_widget.dart';

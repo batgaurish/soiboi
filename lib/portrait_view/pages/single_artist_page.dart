@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/widgets/local_navidrome_base.dart';
 
 class SingleArtistPage extends StatelessWidget {

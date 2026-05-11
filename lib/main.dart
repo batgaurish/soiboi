@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/utils/logger.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
 import 'package:particle_music/landscape_view/keyboard.dart';

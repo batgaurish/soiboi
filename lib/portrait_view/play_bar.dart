@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/audio_handler.dart';
-import 'package:particle_music/common/theme.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/common/utils/interaction.dart';

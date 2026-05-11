@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:particle_music/common/utils/interaction.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/asset_images.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/common/data/setting.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/portrait_view/custom_appbar_leading.dart';
 import 'package:particle_music/portrait_view/my_search_field.dart';
@@ -22,7 +22,7 @@ class AlbumsPage extends StatefulWidget {
 
 class _AlbumsPageState extends State<AlbumsPage> {
   final ValueNotifier<List<Album>> currentAlbumListNotifier = ValueNotifier(
-    artistsAlbumsManager.albumList,
+    artistAlbumManager.albumList,
   );
 
   final textController = TextEditingController();
@@ -32,22 +32,22 @@ class _AlbumsPageState extends State<AlbumsPage> {
   void initState() {
     super.initState();
     updateCurrentAlbumList();
-    artistsAlbumsManager.updateNotifier.addListener(updateCurrentAlbumList);
+    artistAlbumManager.updateNotifier.addListener(updateCurrentAlbumList);
   }
 
   @override
   void dispose() {
-    artistsAlbumsManager.updateNotifier.removeListener(updateCurrentAlbumList);
+    artistAlbumManager.updateNotifier.removeListener(updateCurrentAlbumList);
     super.dispose();
   }
 
   void updateCurrentAlbumList() {
     final value = textController.text;
-    currentAlbumListNotifier.value = artistsAlbumsManager.albumList
+    currentAlbumListNotifier.value = artistAlbumManager.albumList
         .where((e) => (e.name.toLowerCase().contains(value.toLowerCase())))
         .toList();
 
-    if (artistsAlbumsManager.albumsRandomizeNotifier.value) {
+    if (artistAlbumManager.albumsRandomizeNotifier.value) {
       currentAlbumListNotifier.value.shuffle();
     }
   }
@@ -129,9 +129,9 @@ class _AlbumsPageState extends State<AlbumsPage> {
                     trueText: l10n.large,
                     falseText: l10n.small,
                     valueNotifier:
-                        artistsAlbumsManager.albumsUseLargePictureNotifier,
+                        artistAlbumManager.albumsUseLargePictureNotifier,
                     onToggleCallBack: () {
-                      settingManager.saveSetting();
+                      setting.save();
                     },
                   ),
                 ],
@@ -155,7 +155,7 @@ class _AlbumsPageState extends State<AlbumsPage> {
                   MySwitch(
                     trueText: l10n.randomize,
                     falseText: l10n.normal,
-                    valueNotifier: artistsAlbumsManager.albumsRandomizeNotifier,
+                    valueNotifier: artistAlbumManager.albumsRandomizeNotifier,
                     onToggleCallBack: () {
                       updateCurrentAlbumList();
                     },
@@ -166,7 +166,7 @@ class _AlbumsPageState extends State<AlbumsPage> {
           ),
 
           ValueListenableBuilder(
-            valueListenable: artistsAlbumsManager.albumsRandomizeNotifier,
+            valueListenable: artistAlbumManager.albumsRandomizeNotifier,
             builder: (_, randomize, _) {
               if (randomize) {
                 return SizedBox();
@@ -183,10 +183,10 @@ class _AlbumsPageState extends State<AlbumsPage> {
                         trueText: l10n.ascending,
                         falseText: l10n.descending,
                         valueNotifier:
-                            artistsAlbumsManager.albumsIsAscendingNotifier,
+                            artistAlbumManager.albumsIsAscendingNotifier,
                         onToggleCallBack: () {
-                          settingManager.saveSetting();
-                          artistsAlbumsManager.sortAlbums();
+                          setting.save();
+                          artistAlbumManager.sortAlbums();
                           updateCurrentAlbumList();
                         },
                       ),
@@ -203,7 +203,7 @@ class _AlbumsPageState extends State<AlbumsPage> {
 
   Widget gridView(List<Album> albumList) {
     return ValueListenableBuilder(
-      valueListenable: artistsAlbumsManager.albumsUseLargePictureNotifier,
+      valueListenable: artistAlbumManager.albumsUseLargePictureNotifier,
       builder: (context, useLargePicture, child) {
         int crossAxisCount;
         double coverArtWidth;

@@ -8,7 +8,7 @@ import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/common/widgets/playlist_widgets.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -317,21 +317,21 @@ class Sidebar extends StatelessWidget {
                     SliverToBoxAdapter(child: playlistItem(context, 0)),
 
                     ValueListenableBuilder(
-                      valueListenable: playlistsManager.updateNotifier,
+                      valueListenable: playlistManager.updateNotifier,
                       builder: (context, _, _) {
                         return SliverReorderableList(
                           onReorder: (oldIndex, newIndex) {
                             if (newIndex > oldIndex) newIndex -= 1;
-                            final item = playlistsManager.playlists.removeAt(
+                            final item = playlistManager.playlists.removeAt(
                               oldIndex + 1,
                             );
-                            playlistsManager.playlists.insert(
+                            playlistManager.playlists.insert(
                               newIndex + 1,
                               item,
                             );
-                            playlistsManager.update();
+                            playlistManager.update();
                           },
-                          itemCount: playlistsManager.playlists.length - 1,
+                          itemCount: playlistManager.playlists.length - 1,
                           itemBuilder: (_, index) {
                             return ReorderableDragStartListener(
                               enabled: !isMobile,
@@ -367,7 +367,7 @@ class Sidebar extends StatelessWidget {
 
   Widget playlistItem(BuildContext context, int index) {
     final l10n = AppLocalizations.of(context);
-    final playlist = playlistsManager.getPlaylistByIndex(index);
+    final playlist = playlistManager.getPlaylistByIndex(index);
 
     return ListenableBuilder(
       listenable: Listenable.merge([
@@ -430,7 +430,7 @@ class Sidebar extends StatelessWidget {
                           await Future.delayed(Duration(milliseconds: 250));
                         }
                         layersManager.removePlaylistLayer(playlist);
-                        playlistsManager.deletePlaylist(playlist);
+                        playlistManager.deletePlaylist(playlist);
                       }
                     },
                   ),

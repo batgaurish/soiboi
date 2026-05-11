@@ -4,7 +4,6 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:particle_music/common/theme.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/utils/io.dart';
@@ -13,7 +12,6 @@ import 'package:particle_music/common/utils/lyric.dart';
 import 'package:particle_music/common/widgets/equalizer.dart';
 import 'package:particle_music/common/widgets/lyric_list_view.dart';
 import 'package:particle_music/common/data/history.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
 import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:particle_music/landscape_view/extensions/window_controller_extension.dart';
 import 'package:particle_music/layer/layers_manager.dart';
@@ -33,9 +31,11 @@ late MyAudioHandler audioHandler;
 List<MyAudioMetadata> playQueue = [];
 
 final ValueNotifier<MyAudioMetadata?> currentSongNotifier = ValueNotifier(null);
-final ValueNotifier<bool> isPlayingNotifier = ValueNotifier(false);
-final ValueNotifier<int> playModeNotifier = ValueNotifier(0);
-final ValueNotifier<double> volumeNotifier = ValueNotifier(0.3);
+final isPlayingNotifier = ValueNotifier(false);
+final playModeNotifier = ValueNotifier(0);
+final volumeNotifier = ValueNotifier(0.3);
+
+final autoPlayOnStartupNotifier = ValueNotifier(false);
 
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();

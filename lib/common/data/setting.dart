@@ -2,39 +2,40 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/audio_handler.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/utils/webdav_client.dart';
 import 'package:particle_music/common/widgets/lyric_list_view.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/widgets/manage_music_folders.dart';
 import 'package:particle_music/common/utils/navidrome_client.dart';
 
-final ValueNotifier<Locale?> localeNotifier = ValueNotifier(null);
-
-final autoPlayOnStartupNotifier = ValueNotifier(false);
-
 final exitOnCloseNotifier = ValueNotifier(false);
 
-late SettingManager settingManager;
+final setting = Setting();
 
-class SettingManager {
+class Setting {
   late final File file;
-  SettingManager() {
+
+  Future<void> load() async {
     file = File("${appSupportDir.path}/setting.json");
     if (!(file.existsSync())) {
-      saveSetting();
+      save();
+      return;
     }
-  }
 
-  Future<void> loadSetting() async {
     final content = await file.readAsString();
 
     final Map<String, dynamic> json =
         jsonDecode(content) as Map<String, dynamic>;
 
-    artistsAlbumsManager.loadSetting(json);
+    artistAlbumManager.loadSetting(json);
+
+    playlistManager.useLargePictureNotifier.value =
+        json['playlistsUseLargePicture'] as bool? ??
+        playlistManager.useLargePictureNotifier.value;
 
     vibrationOnNoitifier.value =
         json['vibrationOn'] as bool? ?? vibrationOnNoitifier.value;
@@ -76,15 +77,16 @@ class SettingManager {
     recursiveScanNotifier.value = json['recursiveScan'] as bool? ?? false;
   }
 
-  void saveSetting() {
+  void save() {
     file.writeAsStringSync(
       jsonEncode({
-        ...artistsAlbumsManager.settingToMap(),
+        ...artistAlbumManager.settingToMap(),
+
+        'playlistsUseLargePicture':
+            playlistManager.useLargePictureNotifier.value,
 
         'vibrationOn': vibrationOnNoitifier.value,
-        'language': localeNotifier.value == null
-            ? ''
-            : localeNotifier.value!.languageCode,
+        'language': localeNotifier.value?.languageCode,
 
         'autoPlayOnStartup': autoPlayOnStartupNotifier.value,
 

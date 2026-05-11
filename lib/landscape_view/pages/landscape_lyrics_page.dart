@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:particle_music/common/audio_handler.dart';
-import 'package:particle_music/common/theme.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
@@ -13,7 +12,7 @@ import 'package:particle_music/common/utils/lyric.dart';
 import 'package:particle_music/common/widgets/buttons.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/widgets/my_auto_size_text.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/common/data/setting.dart';
 import 'package:particle_music/landscape_view/desktop_lyrics.dart';
 import 'package:particle_music/landscape_view/speaker.dart';
 import 'package:particle_music/landscape_view/title_bar.dart';
@@ -236,7 +235,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                         color: lyricsPageForegroundColor.value,
                         onPressed: () {
                           lyricsFontSizeOffsetNotifier.value += 2;
-                          settingManager.saveSetting();
+                          setting.save();
                         },
                         icon: Icon(Icons.text_increase_rounded, size: 20),
                       ),
@@ -247,7 +246,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                             return;
                           }
                           lyricsFontSizeOffsetNotifier.value -= 2;
-                          settingManager.saveSetting();
+                          setting.save();
                         },
                         icon: Icon(Icons.text_decrease_rounded, size: 18),
                       ),

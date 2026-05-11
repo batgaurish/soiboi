@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/landscape_view/panels/single_playlist_panel.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/portrait_view/pages/single_playlist_page.dart';
 
 class SinglePlaylistLayer extends StatelessWidget {

@@ -1,15 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:particle_music/common/theme.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/app.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
 import 'package:particle_music/common/data/folder.dart';
 import 'package:particle_music/common/data/history.dart';
 import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/common/my_audio_metadata.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/common/utils/metadata.dart';
 
 abstract class BaseSongListWidget extends StatefulWidget {

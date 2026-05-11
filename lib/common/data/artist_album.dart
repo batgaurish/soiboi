@@ -6,9 +6,9 @@ import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/common/my_audio_metadata.dart';
 import 'package:particle_music/common/utils/metadata.dart';
 
-final artistsAlbumsManager = ArtistsAlbumsManager();
+final artistAlbumManager = ArtistAlbumManager();
 
-class ArtistsAlbumsManager {
+class ArtistAlbumManager {
   List<Artist> artistList = [];
   Map<String, Artist> name2Artist = {};
 
@@ -336,8 +336,7 @@ void showArtistEntries(BuildContext context, List<String> artists) {
                 leading: CoverArtWidget(
                   size: 50,
                   borderRadius: 5,
-                  song: artistsAlbumsManager.name2Artist[name]!
-                      .getDisplaySong(),
+                  song: artistAlbumManager.name2Artist[name]!.getDisplaySong(),
                 ),
                 title: Text(name),
                 onTap: () async {

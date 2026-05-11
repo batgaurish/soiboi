@@ -6,7 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:particle_music/common/theme.dart';
+import 'package:particle_music/common/audio_handler.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/asset_images.dart';
@@ -17,7 +17,7 @@ import 'package:particle_music/common/widgets/custom_text_field.dart';
 import 'package:particle_music/common/widgets/equalizer.dart';
 import 'package:particle_music/common/widgets/my_divider.dart';
 import 'package:particle_music/common/widgets/tv_dir_picker.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/common/data/setting.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/common/widgets/manage_music_folders.dart';
 import 'package:particle_music/common/data/library.dart';
@@ -58,7 +58,7 @@ class SettingsList extends StatelessWidget {
                       isTV
                           ? 13
                           : Platform.isAndroid
-                          ? 16
+                          ? 15
                           : Platform.isIOS
                           ? 14
                           : 13,
@@ -247,7 +247,7 @@ class SettingsList extends StatelessWidget {
                                   username = '';
                                   password = '';
                                   baseUrl = '';
-                                  settingManager.saveSetting();
+                                  setting.save();
                                   navidromeClient = NavidromeClient();
                                   if (context.mounted) {
                                     Navigator.pop(context);
@@ -287,7 +287,7 @@ class SettingsList extends StatelessWidget {
                                         baseUrl.length - 1,
                                       );
                                     }
-                                    settingManager.saveSetting();
+                                    setting.save();
 
                                     await Loader.reload();
                                   } else {
@@ -381,7 +381,7 @@ class SettingsList extends StatelessWidget {
                                   webdavUsername = '';
                                   webdavPassword = '';
                                   webdavBaseUrl = '';
-                                  settingManager.saveSetting();
+                                  setting.save();
                                   webdavClient = null;
                                   if (context.mounted) {
                                     Navigator.pop(context);
@@ -424,7 +424,7 @@ class SettingsList extends StatelessWidget {
                                         duration: 2000,
                                       );
                                     }
-                                    settingManager.saveSetting();
+                                    setting.save();
                                   } catch (e) {
                                     if (context.mounted) {
                                       showCenterMessage(
@@ -500,7 +500,7 @@ class SettingsList extends StatelessWidget {
                         title: Text(l10n.followSystem),
                         onTap: () {
                           localeNotifier.value = null;
-                          settingManager.saveSetting();
+                          setting.save();
                         },
                         trailing: value == null ? Icon(Icons.check) : null,
                       ),
@@ -508,7 +508,7 @@ class SettingsList extends StatelessWidget {
                         title: Text('English'),
                         onTap: () {
                           localeNotifier.value = Locale('en');
-                          settingManager.saveSetting();
+                          setting.save();
                         },
                         trailing: value == Locale('en')
                             ? Icon(Icons.check)
@@ -518,7 +518,7 @@ class SettingsList extends StatelessWidget {
                         title: Text('中文'),
                         onTap: () {
                           localeNotifier.value = Locale('zh');
-                          settingManager.saveSetting();
+                          setting.save();
                         },
                         trailing: value == Locale('zh')
                             ? Icon(Icons.check)
@@ -544,7 +544,7 @@ class SettingsList extends StatelessWidget {
         child: MySwitch(
           valueNotifier: vibrationOnNoitifier,
           onToggleCallBack: () {
-            settingManager.saveSetting();
+            setting.save();
           },
         ),
       ),
@@ -552,12 +552,12 @@ class SettingsList extends StatelessWidget {
   }
 
   void _updateMainPageTheme() {
-    settingManager.saveSetting();
+    setting.save();
     colorManager.updateMainPageColors();
   }
 
   void _updateLyricsPageTheme() {
-    settingManager.saveSetting();
+    setting.save();
     colorManager.updateLyricsPageColors();
   }
 
@@ -936,7 +936,7 @@ class SettingsList extends StatelessWidget {
         child: MySwitch(
           valueNotifier: autoPlayOnStartupNotifier,
           onToggleCallBack: () {
-            settingManager.saveSetting();
+            setting.save();
           },
         ),
       ),
@@ -958,7 +958,7 @@ class SettingsList extends StatelessWidget {
               falseText: l10n.hide,
               valueNotifier: exitOnCloseNotifier,
               onToggleCallBack: () {
-                settingManager.saveSetting();
+                setting.save();
               },
             ),
           ],

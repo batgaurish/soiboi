@@ -9,7 +9,7 @@ import 'package:particle_music/common/audio_handler.dart';
 import 'package:particle_music/common/utils/interaction.dart';
 import 'package:particle_music/common/utils/io.dart';
 import 'package:particle_music/common/utils/logger.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
 import 'package:particle_music/common/utils/lyric.dart';
@@ -331,7 +331,7 @@ class _EditMetadataState extends State<EditMetadata> {
           currentCoverArtColor = song.coverArtColor!;
           colorManager.updateLyricsPageColors();
         }
-        artistsAlbumsManager.updateArtistAlbum(song, originArtist, originAlbum);
+        artistAlbumManager.updateArtistAlbum(song, originArtist, originAlbum);
 
         song.updateNotifier.value++;
         await library.update();

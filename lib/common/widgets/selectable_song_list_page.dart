@@ -13,7 +13,7 @@ import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/portrait_view/my_search_field.dart';
 import 'package:particle_music/common/widgets/my_sheet.dart';
 import 'package:particle_music/common/my_audio_metadata.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/common/utils/metadata.dart';
 
 class SelectableSongListPage extends StatefulWidget {

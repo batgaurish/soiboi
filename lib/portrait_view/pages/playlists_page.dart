@@ -1,7 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:particle_music/common/widgets/cover_art_widget.dart';
-import 'package:particle_music/common/data/playlists.dart';
+import 'package:particle_music/common/data/playlist.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/portrait_view/custom_appbar_leading.dart';
@@ -25,15 +25,15 @@ class PlaylistsPage extends StatelessWidget {
         centerTitle: true,
       ),
       body: ValueListenableBuilder(
-        valueListenable: playlistsManager.updateNotifier,
+        valueListenable: playlistManager.updateNotifier,
         builder: (context, _, _) {
           return ListView.builder(
-            itemCount: playlistsManager.playlists.length + 1,
+            itemCount: playlistManager.playlists.length + 1,
             itemBuilder: (_, index) {
-              if (index == playlistsManager.playlists.length) {
+              if (index == playlistManager.playlists.length) {
                 return SizedBox(height: 70);
               }
-              final playlist = playlistsManager.getPlaylistByIndex(index);
+              final playlist = playlistManager.getPlaylistByIndex(index);
               return ListTile(
                 contentPadding: EdgeInsets.fromLTRB(20, 0, 20, 0),
                 visualDensity: const VisualDensity(horizontal: 0, vertical: -1),

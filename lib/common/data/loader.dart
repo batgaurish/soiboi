@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:particle_music/common/audio_handler.dart';
 import 'package:particle_music/common/utils/webdav_client.dart';
-import 'package:particle_music/common/data/artists_albums_manager.dart';
+import 'package:particle_music/common/data/artist_album.dart';
 import 'package:particle_music/common/utils/bookmark_service.dart';
 import 'package:particle_music/common/utils/color_manager.dart';
 import 'package:particle_music/common/app.dart';
@@ -12,8 +12,8 @@ import 'package:particle_music/common/data/history.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/common/data/library.dart';
 import 'package:particle_music/common/utils/navidrome_client.dart';
-import 'package:particle_music/common/data/playlists.dart';
-import 'package:particle_music/common/data/setting_manager.dart';
+import 'package:particle_music/common/data/playlist.dart';
+import 'package:particle_music/common/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
@@ -37,8 +37,7 @@ class Loader {
 
     _handleLegacyVersionData();
 
-    settingManager = SettingManager();
-    await settingManager.loadSetting();
+    await setting.load();
 
     colorManager = ColorManager();
     colorManager.loadCustomColors();
@@ -56,8 +55,7 @@ class Loader {
     library = Library();
     await library.initAllFolders();
 
-    playlistsManager = PlaylistsManager();
-    await playlistsManager.initAllPlaylists();
+    await playlistManager.initAllPlaylists();
 
     audioHandler.initStateFiles();
   }
@@ -69,11 +67,11 @@ class Loader {
 
     await library.load();
 
-    artistsAlbumsManager.load();
+    artistAlbumManager.load();
 
     await history.load();
 
-    await playlistsManager.load();
+    await playlistManager.load();
 
     await audioHandler.loadPlayQueueState();
     await audioHandler.loadPlayState();
@@ -87,9 +85,9 @@ class Loader {
   static Future<void> reload() async {
     library.clear();
 
-    playlistsManager.clear();
+    playlistManager.clear();
 
-    artistsAlbumsManager.clear();
+    artistAlbumManager.clear();
 
     history.clear();
     layersManager.clear();

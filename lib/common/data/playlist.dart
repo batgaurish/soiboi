@@ -10,27 +10,24 @@ import 'package:particle_music/common/my_audio_metadata.dart';
 import 'package:particle_music/common/utils/navidrome_client.dart';
 import 'package:particle_music/common/utils/metadata.dart';
 
-late PlaylistsManager playlistsManager;
+final playlistManager = PlaylistManager();
 
-class PlaylistsManager {
+class PlaylistManager {
   late File file;
   List<Playlist> playlists = [];
   Map<String, Playlist> playlistsMap = {};
   ValueNotifier<int> updateNotifier = ValueNotifier(0);
   final useLargePictureNotifier = ValueNotifier(true);
 
-  PlaylistsManager() {
+  Future<void> initAllPlaylists() async {
     file = File("${playlistConfigDir.path}/particle_music_playlists.json");
     if (!(file.existsSync())) {
       file.writeAsStringSync(jsonEncode(['Favorite']));
     }
-  }
-
-  Future<void> initAllPlaylists() async {
     List<dynamic> allPlaylists = jsonDecode(await file.readAsString());
     for (String name in allPlaylists) {
       final playlist = Playlist(name: name);
-      playlistsManager.addPlaylist(playlist);
+      playlistManager.addPlaylist(playlist);
     }
   }
 
@@ -279,7 +276,7 @@ class Playlist {
 }
 
 void toggleFavoriteState(MyAudioMetadata song) {
-  final favorite = playlistsManager.playlists.first;
+  final favorite = playlistManager.playlists.first;
   final isFavorite = song.isFavoriteNotifier;
   if (isFavorite.value) {
     favorite.remove([song]);
