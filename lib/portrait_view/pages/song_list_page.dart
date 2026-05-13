@@ -260,17 +260,28 @@ class _SongListPageState extends BaseSongListState<SongListPage> {
               },
             ),
 
-          if (widget.switchCallBack != null)
-            ListTile(
-              leading: ImageIcon(navidromeImage),
-              title: Text(
-                l10n.switch_,
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-              onTap: () async {
-                Navigator.of(context).pop();
-                widget.switchCallBack!(context);
+          if (folder == null)
+            ValueListenableBuilder(
+              valueListenable: songListManager.changeNotifier,
+              builder: (context, value, child) {
+                if (songListManager.notEmptyCount < 2) {
+                  return SizedBox.shrink();
+                }
+                return ListTile(
+                  leading: ImageIcon(navidromeImage),
+                  title: Text(
+                    l10n.switch_,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  visualDensity: const VisualDensity(
+                    horizontal: 0,
+                    vertical: -4,
+                  ),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    widget.switchCallBack!(context);
+                  },
+                );
               },
             ),
           if (playlist != null && playlist!.isNotFavorite)

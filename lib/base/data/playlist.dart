@@ -278,12 +278,14 @@ class Playlist {
 
   Future<void> update(int bitMask) async {
     if ((bitMask & 1) == 1) {
+      songListManager.localChangeNotifier.value++;
       await localFile.writeAsString(
         jsonEncode(songListManager.localSongList.map((e) => e.id).toList()),
       );
     }
 
     if ((bitMask & 2) == 2) {
+      songListManager.webdavChangeNotifier.value++;
       if (webdavFile == null) {
         setWebdavFile();
       }
@@ -293,6 +295,7 @@ class Playlist {
     }
 
     if ((bitMask & 4) == 4) {
+      songListManager.navidromeChangeNotifier.value++;
       if (isFavorite) {
         await navidromeClient?.unstarAllSongs();
         await navidromeClient?.starSongs(
@@ -316,7 +319,9 @@ class Playlist {
       }
     }
 
-    if ((bitMask & 8) == 8) {}
+    if ((bitMask & 8) == 8) {
+      songListManager.embyChangeNotifier.value++;
+    }
 
     if (songListManager.getSongList().isEmpty) {
       songListManager.resetSourceType();

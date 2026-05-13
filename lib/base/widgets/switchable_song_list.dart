@@ -39,58 +39,69 @@ class SwitchableSongList extends StatelessWidget {
         height: 300,
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: ListView(
-            children: [
-              if (songListManager.localSongList.isNotEmpty)
-                ListTile(
-                  title: Text(AppLocalizations.of(context).local),
-                  onTap: () {
-                    songListManager.sourceTypeNotifier.value = .local;
-                    layersManager.updateBackground();
-                    Navigator.pop(context);
-                  },
-                  trailing: songListManager.sourceTypeNotifier.value == .local
-                      ? Icon(Icons.check)
-                      : null,
-                ),
-              if (songListManager.webdavSongList.isNotEmpty)
-                ListTile(
-                  title: Text('WebDAV'),
-                  onTap: () {
-                    songListManager.sourceTypeNotifier.value = .webdav;
-                    layersManager.updateBackground();
-                    Navigator.pop(context);
-                  },
-                  trailing: songListManager.sourceTypeNotifier.value == .webdav
-                      ? Icon(Icons.check)
-                      : null,
-                ),
-              if (songListManager.navidromeSongList.isNotEmpty)
-                ListTile(
-                  title: Text('Navidrome'),
-                  onTap: () {
-                    songListManager.sourceTypeNotifier.value = .navidrome;
-                    layersManager.updateBackground();
-                    Navigator.pop(context);
-                  },
-                  trailing:
-                      songListManager.sourceTypeNotifier.value == .navidrome
-                      ? Icon(Icons.check)
-                      : null,
-                ),
-              if (songListManager.embySongList.isNotEmpty)
-                ListTile(
-                  title: Text('Emby'),
-                  onTap: () {
-                    songListManager.sourceTypeNotifier.value = .emby;
-                    layersManager.updateBackground();
-                    Navigator.pop(context);
-                  },
-                  trailing: songListManager.sourceTypeNotifier.value == .emby
-                      ? Icon(Icons.check)
-                      : null,
-                ),
-            ],
+          child: Builder(
+            builder: (context) {
+              return ListView(
+                children: [
+                  if (songListManager.localSongList.isNotEmpty)
+                    ListTile(
+                      title: Text(AppLocalizations.of(context).local),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await Future.delayed(Duration(milliseconds: 250));
+                        songListManager.sourceTypeNotifier.value = .local;
+                        layersManager.updateBackground();
+                      },
+                      trailing:
+                          songListManager.sourceTypeNotifier.value == .local
+                          ? Icon(Icons.check)
+                          : null,
+                    ),
+                  if (songListManager.webdavSongList.isNotEmpty)
+                    ListTile(
+                      title: Text('WebDAV'),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await Future.delayed(Duration(milliseconds: 250));
+                        songListManager.sourceTypeNotifier.value = .webdav;
+                        layersManager.updateBackground();
+                      },
+                      trailing:
+                          songListManager.sourceTypeNotifier.value == .webdav
+                          ? Icon(Icons.check)
+                          : null,
+                    ),
+                  if (songListManager.navidromeSongList.isNotEmpty)
+                    ListTile(
+                      title: Text('Navidrome'),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await Future.delayed(Duration(milliseconds: 250));
+                        songListManager.sourceTypeNotifier.value = .navidrome;
+                        layersManager.updateBackground();
+                      },
+                      trailing:
+                          songListManager.sourceTypeNotifier.value == .navidrome
+                          ? Icon(Icons.check)
+                          : null,
+                    ),
+                  if (songListManager.embySongList.isNotEmpty)
+                    ListTile(
+                      title: Text('Emby'),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await Future.delayed(Duration(milliseconds: 250));
+                        songListManager.sourceTypeNotifier.value = .emby;
+                        layersManager.updateBackground();
+                      },
+                      trailing:
+                          songListManager.sourceTypeNotifier.value == .emby
+                          ? Icon(Icons.check)
+                          : null,
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),

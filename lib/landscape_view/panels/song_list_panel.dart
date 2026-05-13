@@ -55,7 +55,6 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
     return Column(
       children: [
         TitleBar(
@@ -289,16 +288,27 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                           ),
                         ],
 
-                        if (songListManager.notEmptyCount >= 2) ...[
-                          SizedBox(width: 15),
-                          ElevatedButton(
-                            onPressed: () async {
-                              widget.switchCallBack!(context);
+                        if (folder == null)
+                          ValueListenableBuilder(
+                            valueListenable: songListManager.changeNotifier,
+                            builder: (context, value, child) {
+                              if (songListManager.notEmptyCount >= 2) {
+                                return Row(
+                                  children: [
+                                    SizedBox(width: 15),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        widget.switchCallBack!(context);
+                                      },
+                                      style: buttonStyle,
+                                      child: Text(l10n.switch_),
+                                    ),
+                                  ],
+                                );
+                              }
+                              return SizedBox.shrink();
                             },
-                            style: buttonStyle,
-                            child: Text(l10n.switch_),
                           ),
-                        ],
 
                         if (isTV && playlist?.isFavorite == false) ...[
                           SizedBox(width: 15),
