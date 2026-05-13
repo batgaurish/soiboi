@@ -207,12 +207,16 @@ class SettingsList extends StatelessWidget {
                 horizontal: 10.0,
                 vertical: 15,
               ),
-              child: Column(
-                children: [
-                  webdavListTile(context, l10n),
-                  navidromeListTile(context, l10n),
-                  embyListTile(context, l10n),
-                ],
+              child: Builder(
+                builder: (context) {
+                  return Column(
+                    children: [
+                      webdavListTile(context, l10n),
+                      navidromeListTile(context, l10n),
+                      embyListTile(context, l10n),
+                    ],
+                  );
+                },
               ),
             ),
           ),

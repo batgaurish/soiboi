@@ -268,7 +268,7 @@ class _SongListPageState extends BaseSongListState<SongListPage> {
                   return SizedBox.shrink();
                 }
                 return ListTile(
-                  leading: ImageIcon(navidromeImage),
+                  leading: ImageIcon(serverImage),
                   title: Text(
                     l10n.switch_,
                     style: TextStyle(fontWeight: FontWeight.bold),
