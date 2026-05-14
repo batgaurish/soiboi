@@ -365,7 +365,7 @@ class Library {
         await _saveNavidromeCache();
       }
     } else if (song.sourceType == .emby) {
-      if (song.embyUrl != null) {
+      if (song.embyCachePath != null) {
         return;
       }
 
@@ -377,9 +377,9 @@ class Library {
       final tmp = File(savePath);
       if (await tmp.exists()) {
         _id2embyCache[song.id] = savePath;
-        song.navidromeCachePath = savePath;
+        song.embyCachePath = savePath;
         cacheSizeNotifier.value += await tmp.length() / (1024 * 1024);
-        await _saveNavidromeCache();
+        await _saveEmbyCache();
       }
     }
   }

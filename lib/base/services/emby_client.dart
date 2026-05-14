@@ -106,6 +106,7 @@ class EmbyClient {
 
         'Fields':
             'Id,Name,Album,Artists,AlbumArtist,RunTimeTicks,Genres,ProductionYear,IndexNumber,ParentIndexNumber,MediaSources,UserData',
+        'EnableImages': false,
       },
     );
 
@@ -127,20 +128,6 @@ class EmbyClient {
     return Uint8List.fromList(response.data!);
   }
 
-  /// Search
-  Future<List<dynamic>> search(String query) async {
-    final response = await dio.get(
-      '/Users/$userId/Items',
-      queryParameters: {
-        'SearchTerm': query,
-        'Recursive': true,
-        'IncludeItemTypes': 'MusicAlbum,Audio,MusicArtist',
-      },
-    );
-
-    return response.data['Items'];
-  }
-
   Future<void> downloadSong({
     required String itemId,
     required String savePath,
@@ -150,5 +137,69 @@ class EmbyClient {
       savePath,
       queryParameters: {'api_key': accessToken},
     );
+  }
+
+  Future<List<String>> getFavoriteSongIds() async {
+    final res = await dio.get(
+      '/Users/$userId/Items',
+      queryParameters: {
+        'IncludeItemTypes': 'Audio',
+        'Recursive': true,
+        'Filters': 'IsFavorite',
+      },
+    );
+
+    return (res.data['Items'] as List).map((e) => e['Id'].toString()).toList();
+  }
+
+  Future<void> clearFavorites() async {
+    final ids = await getFavoriteSongIds();
+
+    for (final id in ids) {
+      await dio.delete('/Users/$userId/FavoriteItems/$id');
+    }
+  }
+
+  Future<void> rebuildFavorites(List<String> songIds) async {
+    await clearFavorites();
+
+    for (final id in songIds) {
+      await dio.post('/Users/$userId/FavoriteItems/$id');
+    }
+  }
+
+  Future<List<dynamic>> getPlaylists() async {
+    final res = await dio.get(
+      '/Users/$userId/Items',
+      queryParameters: {'IncludeItemTypes': 'Playlist', 'Recursive': true},
+    );
+
+    return res.data['Items'];
+  }
+
+  Future<List<String>> getPlaylistItems(String playlistId) async {
+    final res = await dio.get('/Playlists/$playlistId/Items');
+
+    return (res.data['Items'] as List).map((e) => e['Id'].toString()).toList();
+  }
+
+  Future<String?> createPlaylist({
+    required String name,
+    required List<String> songIds,
+  }) async {
+    final res = await dio.post(
+      '/Playlists',
+      queryParameters: {
+        'Name': name,
+        'Ids': songIds.join(','),
+        'MediaType': 'Audio',
+      },
+    );
+
+    return res.data['Id'];
+  }
+
+  Future<void> deletePlaylist(String playlistId) async {
+    await dio.delete('/Items/$playlistId');
   }
 }

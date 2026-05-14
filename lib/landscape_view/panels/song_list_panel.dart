@@ -345,6 +345,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                                       children: [
                                         ListTile(
                                           title: Text(l10n.defaultText),
+                                          dense: isMobile,
                                           onTap: () {
                                             Navigator.pop(context);
                                             sortTypeNotifier.value = 0;
@@ -357,6 +358,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                                           title: Text(
                                             l10n.modifiedTimeAscending,
                                           ),
+                                          dense: isMobile,
                                           onTap: () {
                                             Navigator.pop(context);
                                             sortTypeNotifier.value = 9;
@@ -369,6 +371,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                                           title: Text(
                                             l10n.modifiedTimedescending,
                                           ),
+                                          dense: isMobile,
                                           onTap: () {
                                             Navigator.pop(context);
                                             sortTypeNotifier.value = 10;
@@ -379,6 +382,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                                         ),
                                         ListTile(
                                           title: Text(l10n.randomizeTemp),
+                                          dense: isMobile,
                                           onTap: () {
                                             Navigator.pop(context);
                                             sortTypeNotifier.value = 11;
@@ -389,6 +393,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                                         ),
                                         ListTile(
                                           title: Text(l10n.randomizePermanent),
+                                          dense: isMobile,
                                           onTap: () async {
                                             Navigator.pop(context);
                                             if (!await showConfirmDialog(

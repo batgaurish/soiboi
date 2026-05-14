@@ -480,6 +480,7 @@ class MyAudioHandler extends BaseAudioHandler {
       }
 
       _playLastSyncTime = null;
+      _playedDuration = Duration.zero;
     }
 
     // save currentIndex
@@ -505,47 +506,50 @@ class MyAudioHandler extends BaseAudioHandler {
 
     isLoading = true;
     try {
-      if (currentSong.sourceType == .navidrome) {
-        currentSong.navidromeUrl ??= navidromeClient!.getStreamUrl(
-          currentSong.id,
-        );
-        await _player.open(
-          Media(currentSong.navidromeCachePath ?? currentSong.navidromeUrl!),
-          play: isPlayingNotifier.value,
-        );
-      } else if (currentSong.sourceType == .webdav) {
-        if (currentSong.webdavCachePath == null) {
+      switch (currentSong.sourceType) {
+        case .local:
           await _player.open(
-            Media(currentSong.path!, httpHeaders: webdavClient?.headers),
+            Media(currentSong.path!),
             play: isPlayingNotifier.value,
           );
-        } else {
+          break;
+        case .webdav:
+          if (currentSong.webdavCachePath == null) {
+            await _player.open(
+              Media(currentSong.path!, httpHeaders: webdavClient?.headers),
+              play: isPlayingNotifier.value,
+            );
+          } else {
+            await _player.open(
+              Media(currentSong.webdavCachePath!),
+              play: isPlayingNotifier.value,
+            );
+          }
+          break;
+        case .navidrome:
+          currentSong.navidromeUrl ??= navidromeClient!.getStreamUrl(
+            currentSong.id,
+          );
           await _player.open(
-            Media(currentSong.webdavCachePath!),
+            Media(currentSong.navidromeCachePath ?? currentSong.navidromeUrl!),
             play: isPlayingNotifier.value,
           );
-        }
-      } else if (currentSong.sourceType == .emby) {
-        currentSong.embyUrl ??= embyClient!.audioUrl(currentSong.id);
-        await _player.open(
-          Media(currentSong.embyCachePath ?? currentSong.embyUrl!),
-          play: isPlayingNotifier.value,
-        );
-      } else {
-        await _player.open(
-          Media(currentSong.path!),
-          play: isPlayingNotifier.value,
-        );
+          break;
+        default:
+          currentSong.embyUrl ??= embyClient!.audioUrl(currentSong.id);
+          await _player.open(
+            Media(currentSong.embyCachePath ?? currentSong.embyUrl!),
+            play: isPlayingNotifier.value,
+          );
+          break;
+      }
+      if (isPlayingNotifier.value) {
+        _playLastSyncTime = DateTime.now();
       }
     } catch (error) {
       logger.output("[${currentSong.title}] $error");
     }
     isLoading = false;
-
-    if (isPlayingNotifier.value) {
-      _playLastSyncTime = DateTime.now();
-    }
-    _playedDuration = Duration.zero;
 
     Uri? artUri;
 

@@ -10,7 +10,7 @@ class History {
   SongListManager rankingSongListManager = SongListManager();
   SongListManager recentlySongListManager = SongListManager();
 
-  void fetchSongs(
+  void _fetchSongs(
     List<MyAudioMetadata> fromSongList,
     List<MyAudioMetadata> toRankingSongList,
     List<MyAudioMetadata> toRecentlySongList,
@@ -30,25 +30,25 @@ class History {
   }
 
   Future<void> load() async {
-    fetchSongs(
+    _fetchSongs(
       library.songListManager.localSongList,
       rankingSongListManager.localSongList,
       recentlySongListManager.localSongList,
     );
 
-    fetchSongs(
+    _fetchSongs(
       library.songListManager.webdavSongList,
       rankingSongListManager.webdavSongList,
       recentlySongListManager.webdavSongList,
     );
 
-    fetchSongs(
+    _fetchSongs(
       library.songListManager.navidromeSongList,
       rankingSongListManager.navidromeSongList,
       recentlySongListManager.navidromeSongList,
     );
 
-    fetchSongs(
+    _fetchSongs(
       library.songListManager.embySongList,
       rankingSongListManager.embySongList,
       recentlySongListManager.embySongList,

@@ -251,7 +251,7 @@ class Artist extends ArtistAlbumBase {
 
   Set<Album> albumSet = {};
 
-  void fetchSongs(
+  void _fetchSongs(
     List<MyAudioMetadata> fromSongList,
     List<MyAudioMetadata> toSongList,
   ) {
@@ -277,22 +277,22 @@ class Artist extends ArtistAlbumBase {
     });
 
     for (final album in albumList) {
-      fetchSongs(
+      _fetchSongs(
         album.songListManager.localSongList,
         songListManager.localSongList,
       );
 
-      fetchSongs(
+      _fetchSongs(
         album.songListManager.webdavSongList,
         songListManager.webdavSongList,
       );
 
-      fetchSongs(
+      _fetchSongs(
         album.songListManager.navidromeSongList,
         songListManager.navidromeSongList,
       );
 
-      fetchSongs(
+      _fetchSongs(
         album.songListManager.embySongList,
         songListManager.embySongList,
       );
@@ -319,10 +319,10 @@ class Album extends ArtistAlbumBase {
   }
 
   void sort() {
-    songListManager.localSongList.sort((a, b) => _sort(a, b));
-    songListManager.webdavSongList.sort((a, b) => _sort(a, b));
-    songListManager.navidromeSongList.sort((a, b) => _sort(a, b));
-    songListManager.embySongList.sort((a, b) => _sort(a, b));
+    songListManager.localSongList.sort(_sort);
+    songListManager.webdavSongList.sort(_sort);
+    songListManager.navidromeSongList.sort(_sort);
+    songListManager.embySongList.sort(_sort);
   }
 }
 

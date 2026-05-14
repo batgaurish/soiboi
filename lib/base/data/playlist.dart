@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/data/song_list_manager.dart';
+import 'package:particle_music/base/services/emby_client.dart';
 import 'package:particle_music/base/utils/io.dart';
 import 'package:particle_music/base/utils/metadata.dart';
 import 'package:particle_music/base/utils/source_type.dart';
@@ -63,6 +64,19 @@ class PlaylistManager {
         playlistsMap[name]!.navidromeId = id;
       }
     }
+
+    if (embyClient != null) {
+      final embyPlaylists = await embyClient!.getPlaylists();
+      for (final playlist in embyPlaylists) {
+        String id = playlist['Id'];
+        String name = playlist['Name'];
+        if (playlistsMap[name] == null) {
+          addPlaylist(Playlist(name: name));
+        }
+        playlistsMap[name]!.embyId = id;
+      }
+    }
+
     update();
     for (final playlist in playlists) {
       await playlist.load();
@@ -102,6 +116,9 @@ class PlaylistManager {
     playlist.settingFile.deleteSync();
     if (playlist.navidromeId != null) {
       await navidromeClient?.deletePlaylist(playlist.navidromeId!);
+    }
+    if (playlist.embyId != null) {
+      await embyClient?.deletePlaylist(playlist.embyId!);
     }
     playlists.remove(playlist);
     playlistsMap.remove(playlist.name);
@@ -228,8 +245,24 @@ class Playlist {
   }
 
   Future<void> _loadEmby() async {
-    if (navidromeClient == null) {
+    if (embyClient == null) {
       return;
+    }
+    List<String> songIds = [];
+    if (isFavorite) {
+      songIds = await embyClient!.getFavoriteSongIds();
+    } else if (embyId != null) {
+      songIds = await embyClient!.getPlaylistItems(embyId!);
+    }
+    for (final songId in songIds) {
+      final song = library.id2Song[songId];
+      if (song == null) {
+        continue;
+      }
+      songListManager.embySongList.add(song);
+      if (isFavorite) {
+        song.isFavoriteNotifier.value = true;
+      }
     }
   }
 
@@ -321,6 +354,24 @@ class Playlist {
 
     if ((bitMask & 8) == 8) {
       songListManager.embyChangeNotifier.value++;
+      if (isFavorite) {
+        await embyClient?.clearFavorites();
+        await embyClient?.rebuildFavorites(
+          songListManager.embySongList
+              .map((e) => e.id)
+              .toList()
+              .reversed
+              .toList(),
+        );
+      } else {
+        if (embyId != null) {
+          await embyClient!.deletePlaylist(embyId!);
+        }
+        embyId = await embyClient!.createPlaylist(
+          name: name,
+          songIds: songListManager.embySongList.map((e) => e.id).toList(),
+        );
+      }
     }
 
     if (songListManager.getSongList().isEmpty) {

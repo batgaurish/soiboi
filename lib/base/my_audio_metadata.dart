@@ -129,14 +129,14 @@ class MyAudioMetadata {
         title: song['Name'],
 
         artist:
-            (song['ArtistItems'] as List?)?.map((a) => a['Name']).join(', ') ??
-            (song['Artists'] as List?)?.join(', '),
+            (song['ArtistItems'] as List?)?.map((a) => a['Name']).join('/') ??
+            (song['Artists'] as List?)?.join('/'),
 
         album: song['Album'],
 
         albumArtist: song['AlbumArtist'],
 
-        genre: (song['Genres'] as List?)?.join(', '),
+        genre: (song['Genres'] as List?)?.join('/'),
 
         year: song['ProductionYear'],
 
