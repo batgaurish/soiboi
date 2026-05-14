@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image;
 import 'package:lpinyin/lpinyin.dart';
+import 'package:particle_music/base/data/library.dart';
 import 'package:particle_music/base/services/emby_client.dart';
 import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/utils/logger.dart';
@@ -288,7 +289,18 @@ MyAudioMetadata? getFirstSong(List<MyAudioMetadata> songList) {
   return songList.first;
 }
 
-Future<void> setSongList(
+Future<void> loadSongList(
+  File songIdListFile,
+  List<MyAudioMetadata> destList,
+) async {
+  final jsonString = await songIdListFile.readAsString();
+  final List<dynamic> songIdList = jsonDecode(jsonString);
+  for (final id in songIdList) {
+    destList.add(library.id2Song[id]!);
+  }
+}
+
+Future<void> syncSongList(
   File songIdListFile,
   List<MyAudioMetadata> destList,
   Map<String, MyAudioMetadata> id2Song,

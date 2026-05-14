@@ -32,32 +32,6 @@ Future<void> main() async {
   appSupportDir = await getApplicationSupportDirectory();
   tmpDir = await getTemporaryDirectory();
 
-  localFolderConfigDir = Directory('${appSupportDir.path}/local/folder_config');
-  if (!localFolderConfigDir.existsSync()) {
-    localFolderConfigDir.createSync(recursive: true);
-  }
-
-  localPlaylistConfigDir = Directory(
-    '${appSupportDir.path}/local/playlist_config',
-  );
-  if (!localPlaylistConfigDir.existsSync()) {
-    localPlaylistConfigDir.createSync(recursive: true);
-  }
-
-  webdavFolderConfigDir = Directory(
-    '${appSupportDir.path}/webdav/folder_config',
-  );
-  if (!webdavFolderConfigDir.existsSync()) {
-    webdavFolderConfigDir.createSync(recursive: true);
-  }
-
-  webdavPlaylistConfigDir = Directory(
-    '${appSupportDir.path}/webdav/playlist_config',
-  );
-  if (!webdavPlaylistConfigDir.existsSync()) {
-    webdavPlaylistConfigDir.createSync(recursive: true);
-  }
-
   cacheConfigDir = Directory('${appSupportDir.path}/cache_config');
   if (!cacheConfigDir.existsSync()) {
     cacheConfigDir.createSync();
@@ -91,7 +65,7 @@ Future<void> main() async {
   await initAudioService();
 
   await Loader.init();
-
+  await Loader.load();
   runApp(
     ListenableBuilder(
       listenable: Listenable.merge([
@@ -162,13 +136,8 @@ Future<void> main() async {
           home: child,
         );
       },
-      child: ValueListenableBuilder(
-        valueListenable: loadingLibraryNotifier,
-        builder: (context, value, child) {
-          if (value) {
-            return _loadingPage(context);
-          }
-
+      child: Builder(
+        builder: (context) {
           return MediaQuery.removePadding(
             context: context,
             removeLeft: true, // for mobile
@@ -180,7 +149,6 @@ Future<void> main() async {
     ),
   );
   logger.output('App start');
-  await Loader.load();
   if (!isMobile) {
     await initDesktopLyrics();
   }
@@ -282,54 +250,4 @@ Future<void> _setupTray() async {
   });
 
   trayManager.addListener(MyTrayListener());
-}
-
-Widget _loadingPage(BuildContext context) {
-  final l10n = AppLocalizations.of(context);
-
-  return Scaffold(
-    backgroundColor: isMobile
-        ? pageBackgroundColor.value.withAlpha(255)
-        : panelColor.value.withAlpha(255),
-    body: ValueListenableBuilder(
-      valueListenable: loadingNavidromeNotifier,
-      builder: (context, value, child) {
-        if (value) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: iconColor.value),
-                SizedBox(height: 15),
-                Text(l10n.loadingNavidrome),
-              ],
-            ),
-          );
-        }
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: iconColor.value),
-              SizedBox(height: 15),
-              ValueListenableBuilder(
-                valueListenable: currentLoadingFolderNotifier,
-                builder: (context, value, child) {
-                  return Text('${l10n.loadingFolder}: $value');
-                },
-              ),
-              SizedBox(height: 5),
-
-              ValueListenableBuilder(
-                valueListenable: loadedCountNotifier,
-                builder: (context, value, child) {
-                  return Text('${l10n.loadedSongs}: $value');
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    ),
-  );
 }

@@ -5,13 +5,12 @@ import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:flutter/material.dart';
 import 'package:particle_music/base/services/bookmark_service.dart';
 import 'package:particle_music/base/app.dart';
-import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/utils/path.dart';
 import 'package:particle_music/base/utils/logger.dart';
 import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/widgets/manage_music_folders.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/base/data/library.dart';
-import 'package:particle_music/base/data/loader.dart';
 import 'package:particle_music/base/my_audio_metadata.dart';
 import 'package:particle_music/base/utils/metadata.dart';
 import 'package:path/path.dart';
@@ -73,7 +72,7 @@ class Folder {
         path = await BookmarkService.getUrlById(id) ?? '';
         library.setIOSFileProviderStorageIfNeed(path);
       }
-      songIdListPath = "${localFolderConfigDir.path}/$songIdListPath";
+      songIdListPath = "${getFolderConfigPath(.local)}/$songIdListPath";
     }
 
     return Folder(id, path, songIdListPath);
@@ -90,7 +89,7 @@ class Folder {
 
   static Future<Folder> createLocal(String id) async {
     final uuid = Uuid();
-    final songIdListPath = '${localFolderConfigDir.path}/${uuid.v4()}.json';
+    final songIdListPath = '${getFolderConfigPath(.local)}/${uuid.v4()}.json';
 
     String path = id;
     if (Platform.isIOS) {
@@ -110,7 +109,7 @@ class Folder {
 
   static Future<Folder> createWebdav(String id) async {
     final uuid = Uuid();
-    final songIdListPath = '${webdavFolderConfigDir.path}/${uuid.v4()}.json';
+    final songIdListPath = '${getFolderConfigPath(.webdav)}/${uuid.v4()}.json';
 
     String path = id;
 
@@ -126,7 +125,7 @@ class Folder {
     };
   }
 
-  Future<void> _processSong(String id, String path, DateTime modified) async {
+  Future<void> _syncSong(String id, String path, DateTime modified) async {
     MyAudioMetadata? song = library.id2Song[id];
     // visited
     if (song != null) {
@@ -163,13 +162,12 @@ class Folder {
     }
     if (song != null) {
       id2Song[id] = song;
-      loadedCountNotifier.value++;
     } else {
       id2Song.remove(id);
     }
   }
 
-  void prepare() {
+  void _prepare() {
     final jsonString = _songIdListFile.readAsStringSync();
     final List<dynamic> songIdList = jsonDecode(jsonString);
     for (final id in songIdList) {
@@ -178,75 +176,8 @@ class Folder {
   }
 
   Future<void> load() async {
-    currentLoadingFolderNotifier.value = id;
-    if (isWebdav) {
-      if (await webdavClient?.ping() != true) {
-        logger.output('WebDAV not connected');
-        return;
-      }
-
-      try {
-        final pool = Pool(4);
-
-        final tasks = <Future>[];
-
-        await for (final file in webdavClient!.listStream(
-          path,
-          recursive: recursiveScanNotifier.value,
-        )) {
-          if (file.isDirectory) {
-            continue;
-          }
-
-          final ext = extension(file.path).toLowerCase();
-
-          if (!_loftySupportedExts.contains(ext)) {
-            continue;
-          }
-          String id = Uri.parse(
-            webdavClient!.baseUrl,
-          ).resolve(file.path).toString();
-          id = Uri.decodeFull(id);
-          tasks.add(
-            pool.withResource(() => _processSong(id, id, file.modified!)),
-          );
-        }
-
-        await Future.wait(tasks);
-
-        await pool.close();
-      } catch (e) {
-        logger.output(e.toString());
-        return;
-      }
-    } else {
-      if (!_dir!.existsSync()) {
-        logger.output('$path is not exist');
-        return;
-      }
-      await for (final file in _dir!.list(
-        recursive: recursiveScanNotifier.value,
-      )) {
-        if (file is! File) continue;
-
-        final ext = extension(file.path).toLowerCase();
-        if (!_loftySupportedExts.contains(ext)) {
-          continue;
-        }
-
-        String path = file.path;
-        final modified = (await file.stat()).modified;
-        if (Platform.isIOS) {
-          await _processSong(convertIOSPath(path), path, modified);
-        } else {
-          await _processSong(path, path, modified);
-        }
-      }
-    }
-
-    await setSongList(_songIdListFile, songList, id2Song);
-
-    await _saveSongIdList();
+    _prepare();
+    await loadSongList(_songIdListFile, songList);
   }
 
   Future<void> _saveSongIdList() async {
@@ -277,5 +208,74 @@ class Folder {
   void clear() {
     songList = [];
     id2Song = {};
+  }
+
+  Future<void> sync() async {
+    songList.clear();
+
+    if (isWebdav) {
+      if (await webdavClient?.ping() != true) {
+        logger.output('WebDAV not connected');
+        return;
+      }
+
+      try {
+        final pool = Pool(4);
+
+        final tasks = <Future>[];
+
+        await for (final file in webdavClient!.listStream(
+          path,
+          recursive: recursiveScanNotifier.value,
+        )) {
+          if (file.isDirectory) {
+            continue;
+          }
+
+          final ext = extension(file.path).toLowerCase();
+
+          if (!_loftySupportedExts.contains(ext)) {
+            continue;
+          }
+          String id = Uri.parse(
+            webdavClient!.baseUrl,
+          ).resolve(file.path).toString();
+          id = Uri.decodeFull(id);
+          tasks.add(pool.withResource(() => _syncSong(id, id, file.modified!)));
+        }
+
+        await Future.wait(tasks);
+
+        await pool.close();
+      } catch (e) {
+        logger.output(e.toString());
+        return;
+      }
+    } else {
+      if (!_dir!.existsSync()) {
+        logger.output('$path is not exist');
+        return;
+      }
+      await for (final file in _dir!.list(
+        recursive: recursiveScanNotifier.value,
+      )) {
+        if (file is! File) continue;
+
+        final ext = extension(file.path).toLowerCase();
+        if (!_loftySupportedExts.contains(ext)) {
+          continue;
+        }
+
+        String path = file.path;
+        final modified = (await file.stat()).modified;
+        if (Platform.isIOS) {
+          await _syncSong(convertIOSPath(path), path, modified);
+        } else {
+          await _syncSong(path, path, modified);
+        }
+      }
+    }
+
+    await syncSongList(_songIdListFile, songList, id2Song);
   }
 }

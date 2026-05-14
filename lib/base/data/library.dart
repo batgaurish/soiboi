@@ -9,10 +9,9 @@ import 'package:particle_music/base/data/song_list_manager.dart';
 import 'package:particle_music/base/extensions/metadata_extension.dart';
 import 'package:particle_music/base/services/emby_client.dart';
 import 'package:particle_music/base/services/webdav_client.dart';
-import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/utils/path.dart';
 import 'package:particle_music/base/data/folder.dart';
 import 'package:particle_music/layer/layers_manager.dart';
-import 'package:particle_music/base/data/loader.dart';
 import 'package:particle_music/base/my_audio_metadata.dart';
 import 'package:particle_music/base/services/navidrome_client.dart';
 import 'package:particle_music/base/utils/metadata.dart';
@@ -23,9 +22,13 @@ late Library library;
 class Library {
   late File _localSongIdListFile;
   late File _webdavSongIdListFile;
+  late File _navidromeSongIdListFile;
+  late File _embySongIdListFile;
 
   late MetadataDB _localMetadataDB;
   late MetadataDB _webdavMetadataDB;
+  late MetadataDB _navidromeMetadataDB;
+  late MetadataDB _embyMetadataDB;
 
   late File _cacheMapFile;
   final Map<String, String> _id2CachePath = {};
@@ -52,20 +55,30 @@ class Library {
     );
     initFile(_webdavSongIdListFile, true);
 
+    _navidromeSongIdListFile = File(
+      "${appSupportDir.path}/navidrome/song_id_list.json",
+    );
+    initFile(_navidromeSongIdListFile, true);
+
+    _embySongIdListFile = File("${appSupportDir.path}/emby/song_id_list.json");
+    initFile(_embySongIdListFile, true);
+
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     _localMetadataDB = MetadataDB(openMetadataDB('local/metadata.db'));
     _webdavMetadataDB = MetadataDB(openMetadataDB('webdav/metadata.db'));
+    _navidromeMetadataDB = MetadataDB(openMetadataDB('navidrome/metadata.db'));
+    _embyMetadataDB = MetadataDB(openMetadataDB('emby/metadata.db'));
 
     _cacheMapFile = File("${cacheConfigDir.path}/cache_map.json");
     initFile(_cacheMapFile, false);
 
     _localFolderMapListFile = File(
-      "${localFolderConfigDir.path}/folder_map_list.json",
+      "${getFolderConfigPath(.local)}/folder_map_list.json",
     );
     initFile(_localFolderMapListFile, true);
 
     _webdavFolderMapListFile = File(
-      "${webdavFolderConfigDir.path}/folder_map_list.json",
+      "${getFolderConfigPath(.webdav)}/folder_map_list.json",
     );
     initFile(_webdavFolderMapListFile, true);
   }
@@ -178,76 +191,39 @@ class Library {
 
   Future<Map<String, MyAudioMetadata>> _loadSongMap(MetadataDB db) async {
     final rows = await db.select(db.metadataItems).get();
-
     return {for (final row in rows) row.id: row.toMetadata()};
   }
 
   Future<void> _prepare() async {
     id2Song.addAll(await _loadSongMap(_localMetadataDB));
     id2Song.addAll(await _loadSongMap(_webdavMetadataDB));
-
-    for (final folder in localFolderList) {
-      folder.prepare();
-    }
-    for (final folder in webdavFolderList) {
-      folder.prepare();
-    }
-    id2Song = {};
+    id2Song.addAll(await _loadSongMap(_navidromeMetadataDB));
+    id2Song.addAll(await _loadSongMap(_embyMetadataDB));
   }
 
   Future<void> _loadLocal() async {
     for (final folder in localFolderList) {
       await folder.load();
-      id2Song.addAll(folder.id2Song);
     }
-    await setSongList(
-      _localSongIdListFile,
-      songListManager.localSongList,
-      Map.fromEntries(
-        id2Song.entries.where((e) => e.value.sourceType == .local),
-      ),
-    );
-
-    await _saveLocalSongIdList();
+    await loadSongList(_localSongIdListFile, songListManager.localSongList);
   }
 
   Future<void> _loadWebdav() async {
     for (final folder in webdavFolderList) {
       await folder.load();
-      id2Song.addAll(folder.id2Song);
     }
-    await setSongList(
-      _webdavSongIdListFile,
-      songListManager.webdavSongList,
-      Map.fromEntries(
-        id2Song.entries.where((e) => e.value.sourceType == .webdav),
-      ),
-    );
-
-    await _saveWebdavSongIdList();
+    await loadSongList(_webdavSongIdListFile, songListManager.webdavSongList);
   }
 
   Future<void> _loadNavidrome() async {
-    if (navidromeClient != null) {
-      loadingNavidromeNotifier.value = true;
-      final list = await navidromeClient!.getSongs();
-      for (final map in list) {
-        MyAudioMetadata song = MyAudioMetadata.fromNavidromeMap(map);
-        songListManager.navidromeSongList.add(song);
-        id2Song[song.id] = song;
-      }
-    }
+    await loadSongList(
+      _navidromeSongIdListFile,
+      songListManager.navidromeSongList,
+    );
   }
 
   Future<void> _loadEmby() async {
-    if (embyClient != null) {
-      final list = await embyClient!.getAllSongs();
-      for (final map in list) {
-        MyAudioMetadata song = MyAudioMetadata.fromEmbyMap(map);
-        songListManager.embySongList.add(song);
-        id2Song[song.id] = song;
-      }
-    }
+    await loadSongList(_embySongIdListFile, songListManager.embySongList);
   }
 
   Future<void> load() async {
@@ -259,39 +235,25 @@ class Library {
 
     songListManager.resetSourceType();
 
-    await _saveLocalMetadata();
-    await _saveWebdavMetadata();
-
-    await _processCache();
+    await _loadCache();
   }
 
-  Future<void> _processCache() async {
+  Future<void> _loadCache() async {
     _id2CachePath.addAll(
       (jsonDecode(await _cacheMapFile.readAsString()) as Map<String, dynamic>)
           .cast(),
     );
 
     for (final id in _id2CachePath.keys) {
-      final song = id2Song[id];
       String cachePath = _id2CachePath[id]!;
-
       if (Platform.isIOS) {
         cachePath = revertIOSSupportPath(cachePath);
       }
+      final song = id2Song[id];
+      song!.cachePath = cachePath;
       File cacheFile = File(cachePath);
-      if (song != null && await cacheFile.exists()) {
-        song.cachePath = cachePath;
-        cacheSizeNotifier.value += await cacheFile.length() / (1024 * 1024);
-      } else {
-        if (await cacheFile.exists()) {
-          await cacheFile.delete();
-        }
-        _id2CachePath[id] = '';
-      }
+      cacheSizeNotifier.value += await cacheFile.length() / (1024 * 1024);
     }
-
-    _id2CachePath.removeWhere((key, value) => value == '');
-    await _saveCacheMap();
   }
 
   Future<void> tryAddCache(MyAudioMetadata song) async {
@@ -346,46 +308,63 @@ class Library {
     cacheSizeNotifier.value = 0;
   }
 
-  Future<void> _saveLocalSongIdList() async {
-    await _localSongIdListFile.writeAsString(
-      jsonEncode(songListManager.localSongList.map((e) => e.id).toList()),
+  File _getSongIdListFile(SourceType sourceType) {
+    switch (sourceType) {
+      case .local:
+        return _localSongIdListFile;
+      case .webdav:
+        return _webdavSongIdListFile;
+      case .navidrome:
+        return _navidromeSongIdListFile;
+      default:
+        return _embySongIdListFile;
+    }
+  }
+
+  MetadataDB _getMetadataDB(SourceType sourceType) {
+    switch (sourceType) {
+      case .local:
+        return _localMetadataDB;
+      case .webdav:
+        return _webdavMetadataDB;
+      case .navidrome:
+        return _navidromeMetadataDB;
+      default:
+        return _embyMetadataDB;
+    }
+  }
+
+  Future<void> _saveSongIdList(SourceType sourceType) async {
+    await _getSongIdListFile(sourceType).writeAsString(
+      jsonEncode(
+        songListManager.getSongList2(sourceType).map((e) => e.id).toList(),
+      ),
     );
   }
 
-  Future<void> _saveWebdavSongIdList() async {
-    await _webdavSongIdListFile.writeAsString(
-      jsonEncode(songListManager.webdavSongList.map((e) => e.id).toList()),
-    );
-  }
+  Future<void> _saveMetadata(SourceType sourceType) async {
+    final metadataDB = _getMetadataDB(sourceType);
 
-  Future<void> _saveLocalMetadata() async {
-    await _localMetadataDB.batch((batch) {
-      batch.insertAll(
-        _localMetadataDB.metadataItems,
+    await metadataDB.transaction(() async {
+      await metadataDB.delete(metadataDB.metadataItems).go();
 
-        songListManager.localSongList.map((e) => e.toCompanion()).toList(),
-
-        mode: InsertMode.insertOrReplace,
-      );
-    });
-  }
-
-  Future<void> _saveWebdavMetadata() async {
-    await _webdavMetadataDB.batch((batch) {
-      batch.insertAll(
-        _webdavMetadataDB.metadataItems,
-
-        songListManager.webdavSongList.map((e) => e.toCompanion()).toList(),
-
-        mode: InsertMode.insertOrReplace,
-      );
+      await metadataDB.batch((batch) {
+        batch.insertAll(
+          metadataDB.metadataItems,
+          songListManager
+              .getSongList2(sourceType)
+              .map((e) => e.toCompanion())
+              .toList(),
+        );
+      });
     });
   }
 
   Future<void> updatePlayCount(MyAudioMetadata song) async {
-    final db = song.sourceType == .local ? _localMetadataDB : _webdavMetadataDB;
-    await (db.update(
-      db.metadataItems,
+    final metadataDB = _getMetadataDB(song.sourceType);
+
+    await (metadataDB.update(
+      metadataDB.metadataItems,
     )..where((t) => t.id.equals(song.id))).write(
       MetadataItemsCompanion(
         playCount: Value(song.playCount),
@@ -395,40 +374,59 @@ class Library {
   }
 
   void shuffle(SourceType sourceType) {
-    if (sourceType == .local) {
-      songListManager.localSongList.shuffle();
-    } else {
-      songListManager.webdavSongList.shuffle();
-    }
-
+    songListManager.getSongList2(sourceType).shuffle();
     update(sourceType);
   }
 
-  Future<void> update(SourceType sourceType) async {
-    if (sourceType == .local) {
-      songListManager.localChangeNotifier.value++;
-      _saveLocalSongIdList();
-    } else {
-      songListManager.webdavChangeNotifier.value++;
-      _saveWebdavSongIdList();
-    }
-
+  void update(SourceType sourceType) {
+    songListManager.getChangeNotifier2(sourceType).value++;
     layersManager.updateBackground();
+    _saveSongIdList(sourceType);
   }
 
-  void clear() {
-    _id2CachePath.clear();
-    cacheSizeNotifier.value = 0;
+  Future<void> sync(SourceType sourceType) async {
+    id2Song.removeWhere((id, song) => song.sourceType == sourceType);
+    songListManager.getSongList2(sourceType).clear();
+    songListManager.getChangeNotifier2(sourceType).value++;
 
-    songListManager.clear();
-    id2Song.clear();
+    switch (sourceType) {
+      case .local:
+      case .webdav:
+        for (final folder
+            in sourceType == .local ? localFolderList : webdavFolderList) {
+          await folder.sync();
+          id2Song.addAll(folder.id2Song);
+        }
 
-    for (final folder in localFolderList) {
-      folder.clear();
+        await syncSongList(
+          _getSongIdListFile(sourceType),
+          songListManager.getSongList2(sourceType),
+          Map.fromEntries(
+            id2Song.entries.where((e) => e.value.sourceType == sourceType),
+          ),
+        );
+
+        break;
+      case .navidrome:
+        final list = await navidromeClient!.getSongs();
+        for (final map in list) {
+          MyAudioMetadata song = MyAudioMetadata.fromNavidromeMap(map);
+          songListManager.navidromeSongList.add(song);
+          id2Song[song.id] = song;
+        }
+        break;
+      default:
+        final list = await embyClient!.getAllSongs();
+        for (final map in list) {
+          MyAudioMetadata song = MyAudioMetadata.fromEmbyMap(map);
+          songListManager.embySongList.add(song);
+          id2Song[song.id] = song;
+        }
+        break;
     }
 
-    for (final folder in webdavFolderList) {
-      folder.clear();
-    }
+    songListManager.getChangeNotifier2(sourceType).value++;
+    await _saveSongIdList(sourceType);
+    await _saveMetadata(sourceType);
   }
 }

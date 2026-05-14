@@ -44,7 +44,7 @@ class ArtistAlbumManager {
         : albumsUseLargePictureNotifier;
   }
 
-  void load() {
+  void classify() {
     for (final song in library.songListManager.localSongList) {
       _processSong(song);
     }
@@ -73,6 +73,8 @@ class ArtistAlbumManager {
       artist.combineAlbums();
       artist.songListManager.resetSourceType();
     }
+
+    updateNotifier.value++;
   }
 
   void _processSong(MyAudioMetadata song) {
@@ -226,6 +228,7 @@ class ArtistAlbumManager {
     name2Artist = {};
     albumList = [];
     name2Album = {};
+    updateNotifier.value++;
   }
 }
 

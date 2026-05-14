@@ -41,6 +41,15 @@ String revertIOSSupportPath(String path) {
 
 void initFile(File file, bool isList) {
   if (!file.existsSync()) {
+    file.createSync(recursive: true);
     file.writeAsStringSync(isList ? '[]' : '{}');
   }
+}
+
+String getFolderConfigPath(SourceType sourceType) {
+  return '${appSupportDir.path}/${sourceType.name}/folder_config';
+}
+
+String getPlaylistConfigPath(SourceType sourceType) {
+  return '${appSupportDir.path}/${sourceType.name}/playlist_config';
 }

@@ -17,12 +17,6 @@ import 'package:permission_handler/permission_handler.dart';
 
 final ValueNotifier<int> loadedCountNotifier = ValueNotifier(0);
 
-final ValueNotifier<String> currentLoadingFolderNotifier = ValueNotifier('');
-
-final ValueNotifier<bool> loadingLibraryNotifier = ValueNotifier(true);
-
-final ValueNotifier<bool> loadingNavidromeNotifier = ValueNotifier(false);
-
 class Loader {
   static Future<void> init() async {
     if (Platform.isAndroid) {
@@ -49,15 +43,11 @@ class Loader {
   }
 
   static Future<void> load() async {
-    loadingLibraryNotifier.value = true;
-    loadingNavidromeNotifier.value = false;
-    loadedCountNotifier.value = 0;
-
     await library.load();
 
-    artistAlbumManager.load();
+    artistAlbumManager.classify();
 
-    await history.load();
+    history.load();
 
     await playlistManager.load();
 
@@ -66,23 +56,37 @@ class Loader {
     await audioHandler.loadEqualizerState();
 
     await layersManager.pushLayer('songs');
-
-    loadingLibraryNotifier.value = false;
   }
 
-  static Future<void> reload() async {
-    library.clear();
-
-    playlistManager.clear();
-
+  static Future<void> sync(int syncBitMask) async {
+    await audioHandler.clear();
     artistAlbumManager.clear();
 
-    history.clear();
-    layersManager.clear();
+    if ((syncBitMask & 1) == 1) {
+      await library.sync(.local);
+      history.sync(.local);
+      await playlistManager.sync(.local);
+    }
 
-    await audioHandler.clearForReload();
+    if ((syncBitMask & 2) == 2) {
+      await library.sync(.webdav);
+      history.sync(.webdav);
+      await playlistManager.sync(.webdav);
+    }
 
-    await load();
+    if ((syncBitMask & 4) == 4) {
+      await library.sync(.navidrome);
+      history.sync(.navidrome);
+      await playlistManager.sync(.navidrome);
+    }
+
+    if ((syncBitMask & 8) == 8) {
+      await library.sync(.emby);
+      history.sync(.emby);
+      await playlistManager.sync(.emby);
+    }
+
+    artistAlbumManager.classify();
   }
 
   static void _handleLegacyVersionData() {

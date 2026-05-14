@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:particle_music/base/app.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -11,6 +12,8 @@ class MetadataItems extends Table {
   TextColumn get id => text()();
 
   IntColumn get modified => integer().nullable()();
+
+  TextColumn get sourceType => textEnum<SourceType>()();
 
   TextColumn get format => text().nullable()();
 

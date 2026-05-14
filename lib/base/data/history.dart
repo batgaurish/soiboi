@@ -1,3 +1,4 @@
+import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/data/song_list_manager.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/base/data/library.dart';
@@ -29,7 +30,7 @@ class History {
     toRecentlySongList.sort((a, b) => b.lastPlayed!.compareTo(a.lastPlayed!));
   }
 
-  Future<void> load() async {
+  void load() {
     _fetchSongs(
       library.songListManager.localSongList,
       rankingSongListManager.localSongList,
@@ -122,5 +123,19 @@ class History {
   void clear() {
     rankingSongListManager.clear();
     recentlySongListManager.clear();
+  }
+
+  void sync(SourceType sourceType) {
+    rankingSongListManager.getSongList2(sourceType).clear();
+    recentlySongListManager.getSongList2(sourceType).clear();
+
+    _fetchSongs(
+      library.songListManager.getSongList2(sourceType),
+      rankingSongListManager.getSongList2(sourceType),
+      recentlySongListManager.getSongList2(sourceType),
+    );
+
+    rankingSongListManager.resetSourceType();
+    recentlySongListManager.resetSourceType();
   }
 }

@@ -173,7 +173,7 @@ class SettingsList extends StatelessWidget {
       title: Text(l10n.reload),
       onTap: () async {
         if (await showConfirmDialog(context, l10n.reload)) {
-          await Loader.reload();
+          await Loader.sync(15);
         }
       },
     );
@@ -289,7 +289,7 @@ class SettingsList extends StatelessWidget {
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                   }
-                                  Loader.reload();
+                                  Loader.sync(4);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: value,
@@ -322,7 +322,7 @@ class SettingsList extends StatelessWidget {
 
                                     config.save();
 
-                                    await Loader.reload();
+                                    await Loader.sync(4);
                                   } else {
                                     navidromeClient = tmp;
                                     if (context.mounted) {
@@ -421,7 +421,7 @@ class SettingsList extends StatelessWidget {
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                   }
-                                  Loader.reload();
+                                  Loader.sync(2);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: value,
@@ -543,7 +543,7 @@ class SettingsList extends StatelessWidget {
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                   }
-                                  Loader.reload();
+                                  Loader.sync(2);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: value,

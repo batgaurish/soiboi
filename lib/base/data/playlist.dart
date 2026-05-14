@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/data/song_list_manager.dart';
 import 'package:particle_music/base/services/emby_client.dart';
-import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/utils/path.dart';
 import 'package:particle_music/base/utils/metadata.dart';
 import 'package:particle_music/base/utils/source_type.dart';
 import 'package:particle_music/layer/layers_manager.dart';
@@ -17,8 +17,10 @@ import 'package:particle_music/base/services/navidrome_client.dart';
 final playlistManager = PlaylistManager();
 
 class PlaylistManager {
-  late File localFile;
-  late File webdavFile;
+  late File _localFile;
+  late File _webdavFile;
+  late File _navidromeFile;
+  late File _embyFile;
 
   List<Playlist> playlists = [];
   Map<String, Playlist> playlistsMap = {};
@@ -26,34 +28,72 @@ class PlaylistManager {
   final useLargePictureNotifier = ValueNotifier(true);
 
   Future<void> initAllPlaylists() async {
-    localFile = File(
-      "${localPlaylistConfigDir.path}/particle_music_playlists.json",
+    _localFile = File(
+      "${getPlaylistConfigPath(.local)}/particle_music_playlists.json",
     );
-    if (!(localFile.existsSync())) {
-      localFile.writeAsStringSync(jsonEncode(['Favorite']));
+    if (!(_localFile.existsSync())) {
+      _localFile.createSync(recursive: true);
+      _localFile.writeAsStringSync(jsonEncode(['Favorite']));
     }
 
-    webdavFile = File(
-      "${webdavPlaylistConfigDir.path}/particle_music_playlists.json",
+    _webdavFile = File(
+      "${getPlaylistConfigPath(.webdav)}/particle_music_playlists.json",
     );
-    initFile(webdavFile, true);
+    initFile(_webdavFile, true);
+
+    _navidromeFile = File(
+      "${getPlaylistConfigPath(.navidrome)}/particle_music_playlists.json",
+    );
+    initFile(_navidromeFile, true);
+
+    _embyFile = File(
+      "${getPlaylistConfigPath(.emby)}/particle_music_playlists.json",
+    );
+    initFile(_embyFile, true);
   }
 
   Future<void> load() async {
-    List<dynamic> localPlaylists = jsonDecode(await localFile.readAsString());
+    List<dynamic> localPlaylists = jsonDecode(await _localFile.readAsString());
     for (String name in localPlaylists) {
       addPlaylist(Playlist(name: name));
     }
 
-    List<dynamic> webdavPlaylits = jsonDecode(await webdavFile.readAsString());
-    for (String name in webdavPlaylits) {
-      if (playlistsMap[name] == null) {
-        addPlaylist(Playlist(name: name));
-      }
+    List<dynamic> webdavPlaylists = jsonDecode(
+      await _webdavFile.readAsString(),
+    );
+    for (String name in webdavPlaylists) {
       playlistsMap[name]!.setWebdavFile();
     }
 
-    if (navidromeClient != null) {
+    List<dynamic> navidromePlaylists = jsonDecode(
+      await _navidromeFile.readAsString(),
+    );
+    for (final map in navidromePlaylists) {
+      String id = map['id'];
+      String name = map['name'];
+      playlistsMap[name]!.navidromeId = id;
+      playlistsMap[name]!.setNavidromeFile();
+    }
+
+    List<dynamic> embyPlaylists = jsonDecode(await _embyFile.readAsString());
+    for (final map in embyPlaylists) {
+      String id = map['id'];
+      String name = map['name'];
+      playlistsMap[name]!.embyId = id;
+      playlistsMap[name]!.setEmbyFile();
+    }
+
+    for (final playlist in playlists) {
+      await playlist.load();
+    }
+  }
+
+  Future<void> sync(SourceType sourceType) async {
+    if (sourceType == .navidrome) {
+      for (final playlist in playlists) {
+        playlist.navidromeId = null;
+        await playlist.navidromeFile?.delete();
+      }
       final navidromePlaylists = await navidromeClient!.getPlaylists();
       for (final playlist in navidromePlaylists) {
         String id = playlist['id'];
@@ -62,10 +102,13 @@ class PlaylistManager {
           addPlaylist(Playlist(name: name));
         }
         playlistsMap[name]!.navidromeId = id;
+        playlistsMap[name]!.setNavidromeFile();
       }
-    }
-
-    if (embyClient != null) {
+    } else if (sourceType == .emby) {
+      for (final playlist in playlists) {
+        playlist.embyId = null;
+        await playlist.embyFile?.delete();
+      }
       final embyPlaylists = await embyClient!.getPlaylists();
       for (final playlist in embyPlaylists) {
         String id = playlist['Id'];
@@ -74,13 +117,13 @@ class PlaylistManager {
           addPlaylist(Playlist(name: name));
         }
         playlistsMap[name]!.embyId = id;
+        playlistsMap[name]!.setEmbyFile();
       }
     }
-
-    update();
     for (final playlist in playlists) {
-      await playlist.load();
+      await playlist.sync(sourceType);
     }
+    update();
   }
 
   Playlist getPlaylistByIndex(int index) {
@@ -113,7 +156,9 @@ class PlaylistManager {
   Future<void> deletePlaylist(Playlist playlist) async {
     playlist.localFile.deleteSync();
     playlist.webdavFile?.deleteSync();
-    playlist.settingFile.deleteSync();
+    playlist.navidromeFile?.deleteSync();
+    playlist.embyFile?.deleteSync();
+    playlist._settingFile.deleteSync();
     if (playlist.navidromeId != null) {
       await navidromeClient?.deletePlaylist(playlist.navidromeId!);
     }
@@ -127,14 +172,30 @@ class PlaylistManager {
   }
 
   void update() {
-    localFile.writeAsStringSync(
+    _localFile.writeAsStringSync(
       jsonEncode(playlists.map((pl) => pl.name).toList()),
     );
-    webdavFile.writeAsStringSync(
+    _webdavFile.writeAsStringSync(
       jsonEncode(
         playlists
             .where((pl) => pl.webdavFile != null)
             .map((pl) => pl.name)
+            .toList(),
+      ),
+    );
+    _navidromeFile.writeAsStringSync(
+      jsonEncode(
+        playlists
+            .where((pl) => pl.navidromeFile != null)
+            .map((pl) => {'id': pl.navidromeId, 'name': pl.name})
+            .toList(),
+      ),
+    );
+    _embyFile.writeAsStringSync(
+      jsonEncode(
+        playlists
+            .where((pl) => pl.embyFile != null)
+            .map((pl) => {'id': pl.embyId, 'name': pl.name})
             .toList(),
       ),
     );
@@ -155,8 +216,10 @@ class Playlist {
 
   late File localFile;
   File? webdavFile;
+  File? navidromeFile;
+  File? embyFile;
 
-  late File settingFile;
+  late File _settingFile;
 
   SongListManager songListManager = SongListManager();
 
@@ -164,11 +227,14 @@ class Playlist {
   late bool isNotFavorite;
 
   Playlist({required this.name}) {
-    localFile = File("${localPlaylistConfigDir.path}/$name.json");
+    localFile = File("${getPlaylistConfigPath(.local)}/$name.json");
     initFile(localFile, true);
-    settingFile = File("${localPlaylistConfigDir.path}/${name}_setting.json");
 
-    if (!settingFile.existsSync()) {
+    _settingFile = File(
+      "${getPlaylistConfigPath(.local)}/${name}_setting.json",
+    );
+
+    if (!_settingFile.existsSync()) {
       saveSetting();
     } else {
       loadSetting();
@@ -179,8 +245,18 @@ class Playlist {
   }
 
   void setWebdavFile() {
-    webdavFile = File("${webdavPlaylistConfigDir.path}/$name.json");
+    webdavFile = File("${getPlaylistConfigPath(.webdav)}/$name.json");
     initFile(webdavFile!, true);
+  }
+
+  void setNavidromeFile() {
+    navidromeFile = File("${getPlaylistConfigPath(.navidrome)}/$name.json");
+    initFile(navidromeFile!, true);
+  }
+
+  void setEmbyFile() {
+    embyFile = File("${getPlaylistConfigPath(.emby)}/$name.json");
+    initFile(embyFile!, true);
   }
 
   MyAudioMetadata? getCoverSong() {
@@ -189,77 +265,33 @@ class Playlist {
 
   int get totalCount => songListManager.totalCount;
 
-  Future<void> _loadLocal() async {
-    final contents = await localFile.readAsString();
+  Future<void> _load(SourceType sourceType) async {
+    late File? file;
+    switch (sourceType) {
+      case .local:
+        file = localFile;
+        break;
+      case .webdav:
+        file = webdavFile;
+        break;
+      case .navidrome:
+        file = navidromeFile;
+        break;
+      default:
+        file = embyFile;
+        break;
+    }
+    if (file == null) {
+      return;
+    }
+    final contents = await file.readAsString();
     List<dynamic> decoded = jsonDecode(contents);
     for (String id in decoded) {
       MyAudioMetadata? song = library.id2Song[id];
       if (song == null) {
         continue;
       }
-      songListManager.localSongList.add(song);
-      if (isFavorite) {
-        song.isFavoriteNotifier.value = true;
-      }
-    }
-  }
-
-  Future<void> _loadWebdav() async {
-    if (webdavFile == null) {
-      return;
-    }
-    final contents = await webdavFile!.readAsString();
-    List<dynamic> decoded = jsonDecode(contents);
-    for (String id in decoded) {
-      MyAudioMetadata? song = library.id2Song[id];
-      if (song == null) {
-        continue;
-      }
-      songListManager.webdavSongList.add(song);
-      if (isFavorite) {
-        song.isFavoriteNotifier.value = true;
-      }
-    }
-  }
-
-  Future<void> _loadNavidrome() async {
-    if (navidromeClient == null) {
-      return;
-    }
-    List<String> songIds = [];
-    if (isFavorite) {
-      songIds = await navidromeClient!.getFavoriteSongIds();
-    } else if (navidromeId != null) {
-      songIds = await navidromeClient!.getPlaylistSongIds(navidromeId!);
-    }
-    for (final songId in songIds) {
-      final song = library.id2Song[songId];
-      if (song == null) {
-        continue;
-      }
-      songListManager.navidromeSongList.add(song);
-      if (isFavorite) {
-        song.isFavoriteNotifier.value = true;
-      }
-    }
-  }
-
-  Future<void> _loadEmby() async {
-    if (embyClient == null) {
-      return;
-    }
-    List<String> songIds = [];
-    if (isFavorite) {
-      songIds = await embyClient!.getFavoriteSongIds();
-    } else if (embyId != null) {
-      songIds = await embyClient!.getPlaylistItems(embyId!);
-    }
-    for (final songId in songIds) {
-      final song = library.id2Song[songId];
-      if (song == null) {
-        continue;
-      }
-      songListManager.embySongList.add(song);
+      songListManager.getSongList2(sourceType).add(song);
       if (isFavorite) {
         song.isFavoriteNotifier.value = true;
       }
@@ -267,11 +299,51 @@ class Playlist {
   }
 
   Future<void> load() async {
-    await _loadLocal();
-    await _loadWebdav();
-    await _loadNavidrome();
-    await _loadEmby();
+    await _load(.local);
+    await _load(.webdav);
+    await _load(.navidrome);
+    await _load(.emby);
 
+    songListManager.resetSourceType();
+  }
+
+  Future<void> sync(SourceType sourceType) async {
+    songListManager.getSongList2(sourceType).clear();
+    songListManager.getChangeNotifier2(sourceType).value++;
+    if (sourceType == .navidrome) {
+      List<String> songIds = [];
+      if (isFavorite) {
+        songIds = await navidromeClient!.getFavoriteSongIds();
+      } else {
+        songIds = await navidromeClient!.getPlaylistSongIds(navidromeId!);
+      }
+      for (final songId in songIds) {
+        final song = library.id2Song[songId];
+        if (song == null) {
+          continue;
+        }
+        songListManager.navidromeSongList.add(song);
+      }
+      await update(getBitMask(sourceType));
+    } else if (sourceType == .emby) {
+      List<String> songIds = [];
+      if (isFavorite) {
+        songIds = await embyClient!.getFavoriteSongIds();
+      } else if (embyId != null) {
+        songIds = await embyClient!.getPlaylistItems(embyId!);
+      }
+      for (final songId in songIds) {
+        final song = library.id2Song[songId];
+        if (song == null) {
+          continue;
+        }
+        songListManager.embySongList.add(song);
+      }
+      await update(getBitMask(sourceType));
+    } else {
+      await _load(sourceType);
+    }
+    songListManager.getChangeNotifier2(sourceType).value++;
     songListManager.resetSourceType();
   }
 
@@ -382,7 +454,7 @@ class Playlist {
   }
 
   void loadSetting() {
-    final content = settingFile.readAsStringSync();
+    final content = _settingFile.readAsStringSync();
     final Map<String, dynamic> json =
         jsonDecode(content) as Map<String, dynamic>;
 
@@ -397,7 +469,7 @@ class Playlist {
   }
 
   void saveSetting() {
-    settingFile.writeAsStringSync(
+    _settingFile.writeAsStringSync(
       jsonEncode({
         'sortType': songListManager.localSortTypeNotifier.value,
         'wevdavSortType': songListManager.navidromeSortTypeNotifier.value,

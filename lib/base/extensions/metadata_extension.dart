@@ -2,19 +2,18 @@ import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:drift/drift.dart';
-import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/data/database.dart';
 import 'package:particle_music/base/my_audio_metadata.dart';
-import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/utils/path.dart';
 
 extension MetadataItemMapper on MetadataItem {
   MyAudioMetadata toMetadata() {
-    String path = id;
-
-    final isWebdav = id.startsWith('http://') || id.startsWith('https://');
-
-    if (!isWebdav && Platform.isIOS) {
-      path = revertIOSPath(path);
+    String? path;
+    if (sourceType == .local || sourceType == .webdav) {
+      path = id;
+    }
+    if (sourceType == .local && Platform.isIOS) {
+      path = revertIOSPath(path!);
     }
 
     return MyAudioMetadata(
@@ -36,7 +35,7 @@ extension MetadataItemMapper on MetadataItem {
       id: id,
       path: path,
 
-      sourceType: isWebdav ? SourceType.webdav : SourceType.local,
+      sourceType: sourceType,
 
       modified: modified != null
           ? DateTime.fromMillisecondsSinceEpoch(modified!)
@@ -57,6 +56,8 @@ extension MyAudioMetadataMapper on MyAudioMetadata {
       id: id,
 
       modified: Value(modified?.millisecondsSinceEpoch),
+
+      sourceType: sourceType,
 
       format: Value(format),
 

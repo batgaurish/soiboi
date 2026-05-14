@@ -452,18 +452,6 @@ class MyAudioHandler extends BaseAudioHandler {
     savePlayState();
   }
 
-  Future<void> clearForReload() async {
-    stop();
-    playQueue = [];
-    _playQueueTmp = [];
-    currentLyricLine = null;
-    if (!isMobile) {
-      await updateDesktopLyrics();
-    }
-    currentSongNotifier.value = null;
-    currentCoverArtColor = Colors.grey;
-  }
-
   Future<void> load() async {
     if (currentSongNotifier.value != null) {
       if (_playLastSyncTime != null) {

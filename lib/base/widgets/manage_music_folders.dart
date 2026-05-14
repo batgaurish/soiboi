@@ -7,7 +7,7 @@ import 'package:particle_music/base/services/bookmark_service.dart';
 import 'package:particle_music/base/utils/color_manager.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/utils/interaction.dart';
-import 'package:particle_music/base/utils/io.dart';
+import 'package:particle_music/base/utils/path.dart';
 import 'package:particle_music/base/services/webdav_client.dart';
 import 'package:particle_music/base/widgets/my_divider.dart';
 import 'package:particle_music/base/widgets/my_switch.dart';
@@ -186,18 +186,35 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     final l10n = AppLocalizations.of(context);
 
     if (await showConfirmDialog(context, l10n.confirm)) {
-      bool needReload =
-          tmpRecursiveScanNotifier.value != recursiveScanNotifier.value;
-      recursiveScanNotifier.value = tmpRecursiveScanNotifier.value;
+      bool updateLocal = await library.updateFolders(
+        currentLocalFolderIdList,
+        true,
+      );
+      bool updateWebdav = await library.updateFolders(
+        currentWebdavFolderIdList,
+        false,
+      );
+
+      int bitMask = 0;
+      if (tmpRecursiveScanNotifier.value != recursiveScanNotifier.value) {
+        bitMask = 3;
+        recursiveScanNotifier.value = tmpRecursiveScanNotifier.value;
+      } else {
+        if (updateLocal) {
+          bitMask = 1;
+        }
+        if (updateWebdav) {
+          bitMask += 2;
+        }
+      }
 
       setting.save();
-      if ((await library.updateFolders(currentLocalFolderIdList, true) |
-              await library.updateFolders(currentWebdavFolderIdList, false)) ||
-          needReload) {
+
+      if (bitMask > 0) {
         if (context.mounted) {
           Navigator.pop(context);
         }
-        await Loader.reload();
+        await Loader.sync(bitMask);
       } else {
         if (context.mounted) {
           showCenterMessage(context, 'Nothing is changed', duration: 2000);
