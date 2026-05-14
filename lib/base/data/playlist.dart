@@ -422,6 +422,12 @@ class Playlist {
           );
         }
       }
+      if (navidromeFile == null) {
+        setNavidromeFile();
+      }
+      await navidromeFile!.writeAsString(
+        jsonEncode(songListManager.navidromeSongList.map((e) => e.id).toList()),
+      );
     }
 
     if ((bitMask & 8) == 8) {
@@ -444,6 +450,12 @@ class Playlist {
           songIds: songListManager.embySongList.map((e) => e.id).toList(),
         );
       }
+      if (embyFile == null) {
+        setEmbyFile();
+      }
+      await embyFile!.writeAsString(
+        jsonEncode(songListManager.embySongList.map((e) => e.id).toList()),
+      );
     }
 
     if (songListManager.getSongList().isEmpty) {

@@ -543,7 +543,7 @@ class SettingsList extends StatelessWidget {
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                   }
-                                  Loader.sync(2);
+                                  Loader.sync(8);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: value,
@@ -571,7 +571,8 @@ class SettingsList extends StatelessWidget {
                                     return;
                                   }
 
-                                  // print(meta.toString());
+                                  Loader.sync(8);
+
                                   if (context.mounted) {
                                     Navigator.pop(context);
                                     showCenterMessage(
