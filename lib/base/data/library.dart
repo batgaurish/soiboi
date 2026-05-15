@@ -374,7 +374,7 @@ class Library {
     )..where((t) => t.id.equals(song.id))).write(
       MetadataItemsCompanion(
         playCount: Value(song.playCount),
-        lastPlayed: Value(DateTime.now().millisecondsSinceEpoch),
+        lastPlayed: Value(song.lastPlayed!.millisecondsSinceEpoch),
       ),
     );
   }
@@ -407,13 +407,11 @@ class Library {
       bool isWebdav = path.startsWith('http://') || path.startsWith('https://');
       AudioMetadata? tmp;
       try {
-        tmp = isWebdav
-            ? await readMetadataAsync(
-                path,
-                false,
-                headers: webdavClient?.headers,
-              )
-            : readMetadata(path, false);
+        tmp = await readMetadataAsync(
+          path,
+          false,
+          headers: isWebdav ? webdavClient!.headers : null,
+        );
       } catch (e) {
         logger.output("$path: $e");
       }
@@ -490,49 +488,35 @@ class Library {
         for (final id in songIdList) {
           String path = id;
 
-          if (sourceType == .local) {
-            if (Platform.isIOS) {
-              path = revertIOSPath(path);
-            }
-            final modified = pathAndModified.remove(path);
-            if (modified != null) {
-              await syncOne(id, path, modified);
-            }
-          } else {
+          if (sourceType == .local && Platform.isIOS) {
+            path = revertIOSPath(path);
+          }
+          final modified = pathAndModified.remove(path);
+          if (modified != null) {
             tasks.add(
               pool.withResource(() async {
-                final modified = pathAndModified.remove(path);
-                if (modified != null) {
-                  await syncOne(id, path, modified);
-                }
+                await syncOne(id, path, modified);
               }),
             );
           }
         }
 
-        if (sourceType == .webdav) {
-          await Future.wait(tasks);
-        }
+        await Future.wait(tasks);
 
         for (final entry in pathAndModified.entries) {
           String path = entry.key;
           String id = path;
 
-          if (sourceType == .local) {
-            if (Platform.isIOS) {
-              id = convertIOSPath(path);
-            }
-            await syncOne(id, path, entry.value);
-          } else {
+          if (sourceType == .webdav) {
             id = Uri.parse(webdavClient!.baseUrl).resolve(path).toString();
             id = Uri.decodeFull(id);
-            tasks.add(pool.withResource(() => syncOne(id, id, entry.value)));
+          } else if (Platform.isIOS) {
+            id = convertIOSPath(path);
           }
+          tasks.add(pool.withResource(() => syncOne(id, id, entry.value)));
         }
 
-        if (sourceType == .webdav) {
-          await Future.wait(tasks);
-        }
+        await Future.wait(tasks);
 
         id2Song.removeWhere(
           (id, song) => song.sourceType == sourceType && !validId.contains(id),

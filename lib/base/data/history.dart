@@ -96,6 +96,7 @@ class History {
     switch (song.sourceType) {
       case .local:
       case .webdav:
+        song.lastPlayed = DateTime.now();
         await library.updatePlayCount(song);
         break;
       case .navidrome:
