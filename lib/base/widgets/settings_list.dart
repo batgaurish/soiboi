@@ -602,8 +602,8 @@ class SettingsList extends StatelessWidget {
                                     username: usernameTmp.text,
                                     password: passwordTmp.text,
                                   );
-                                  await embyClient!.login();
-                                  if (!await embyClient!.ping()) {
+
+                                  if (!await embyClient!.login()) {
                                     embyClient = null;
                                     if (context.mounted) {
                                       showCenterMessage(
