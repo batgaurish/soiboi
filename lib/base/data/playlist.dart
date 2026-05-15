@@ -173,10 +173,10 @@ class PlaylistManager {
     playlist.embyFile?.deleteSync();
     playlist._settingFile.deleteSync();
     if (playlist.navidromeId != null) {
-      await navidromeClient?.deletePlaylist(playlist.navidromeId!);
+      await navidromeClient!.deletePlaylist(playlist.navidromeId!);
     }
     if (playlist.embyId != null) {
-      await embyClient?.deletePlaylist(playlist.embyId!);
+      await embyClient!.deletePlaylist(playlist.embyId!);
     }
     playlists.remove(playlist);
     playlistsMap.remove(playlist.name);
@@ -309,6 +309,7 @@ class Playlist {
         song.isFavoriteNotifier.value = true;
       }
     }
+    songListManager.getChangeNotifier2(sourceType).value++;
   }
 
   Future<void> load() async {
@@ -321,41 +322,63 @@ class Playlist {
   }
 
   Future<void> sync(SourceType sourceType) async {
-    if (sourceType == .navidrome) {
-      List<String> songIds = [];
-      if (navidromeClient != null) {
+    switch (sourceType) {
+      case .local:
+        await _load(sourceType);
+        break;
+      case .webdav:
+        if (webdavFile == null) {
+          return;
+        }
+        await _load(sourceType);
+        break;
+      case .navidrome:
+        if (isNotFavorite && navidromeId == null) {
+          return;
+        }
+        List<String> songIds = [];
         if (isFavorite) {
           songIds = await navidromeClient!.getFavoriteSongIds();
         } else {
           songIds = await navidromeClient!.getPlaylistSongIds(navidromeId!);
         }
-      }
-      for (final songId in songIds) {
-        final song = library.id2Song[songId];
-        if (song == null) {
-          continue;
+
+        for (final songId in songIds) {
+          final song = library.id2Song[songId];
+          if (song == null) {
+            continue;
+          }
+          songListManager.navidromeSongList.add(song);
+          if (isFavorite) {
+            song.isFavoriteNotifier.value = true;
+          }
         }
-        songListManager.navidromeSongList.add(song);
-      }
-    } else if (sourceType == .emby) {
-      List<String> songIds = [];
-      if (embyClient != null) {
-        if (isFavorite) {
-          songIds = await embyClient!.getFavoriteSongIds();
-        } else if (embyId != null) {
-          songIds = await embyClient!.getPlaylistItems(embyId!);
+        break;
+      default:
+        if (isNotFavorite && embyId == null) {
+          return;
         }
-      }
-      for (final songId in songIds) {
-        final song = library.id2Song[songId];
-        if (song == null) {
-          continue;
+        List<String> songIds = [];
+        if (embyClient != null) {
+          if (isFavorite) {
+            songIds = await embyClient!.getFavoriteSongIds();
+          } else if (embyId != null) {
+            songIds = await embyClient!.getPlaylistItems(embyId!);
+          }
         }
-        songListManager.embySongList.add(song);
-      }
-    } else {
-      await _load(sourceType);
+        for (final songId in songIds) {
+          final song = library.id2Song[songId];
+          if (song == null) {
+            continue;
+          }
+          songListManager.embySongList.add(song);
+          if (isFavorite) {
+            song.isFavoriteNotifier.value = true;
+          }
+        }
+        break;
     }
+
     await update(getSourceTypeBitMask(sourceType));
   }
 
