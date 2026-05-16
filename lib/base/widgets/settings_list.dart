@@ -836,6 +836,7 @@ class SettingsList extends StatelessWidget {
                         }
 
                         fontFamilyNotifier.value = font.name;
+                        setting.save();
                       }
                     },
                   );
