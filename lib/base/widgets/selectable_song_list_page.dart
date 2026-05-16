@@ -334,7 +334,6 @@ class SelectableSongListPageState extends State<SelectableSongListPage> {
                                   Animation<double> animation,
                                 ) {
                                   return Material(
-                                    elevation: 0.1,
                                     color: Colors.transparent,
                                     child: child,
                                   );
