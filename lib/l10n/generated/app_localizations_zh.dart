@@ -315,81 +315,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clear => '清空';
 
   @override
-  String get palette => '调色板';
-
-  @override
-  String get backgroundColor => '背景颜色';
-
-  @override
-  String get iconColor => '图标颜色';
-
-  @override
-  String get textColor => '文本颜色';
-
-  @override
-  String get highlightTextColor => '重点文本颜色';
-
-  @override
-  String get switchColor => '开关颜色';
-
-  @override
-  String get playBarColor => '播放条颜色';
-
-  @override
-  String get panelColor => '面板颜色';
-
-  @override
-  String get sidebarColor => '边栏颜色';
-
-  @override
-  String get bottomColor => '底部颜色';
-
-  @override
-  String get searchFieldColor => '搜索框颜色';
-
-  @override
-  String get buttonColor => '按钮颜色';
-
-  @override
-  String get dividerColor => '分割线颜色';
-
-  @override
-  String get selectedItemColor => '被选中项颜色';
-
-  @override
-  String get menuColor => '菜单颜色';
-
-  @override
-  String get scrollbarColor => '滚动条颜色';
-
-  @override
-  String get seekBarColor => '进度条颜色';
-
-  @override
-  String get volumeBarColor => '音量条颜色';
-
-  @override
-  String get lyricsPageBackgroundColor => '歌词页面背景颜色';
-
-  @override
-  String get lyricsPageForegroundColor => '歌词页面前景颜色';
-
-  @override
-  String get lyricsPageHighlightTextColor => '歌词页面重点文本颜色';
-
-  @override
-  String get lyricsPageButtonColor => '歌词页面按钮颜色';
-
-  @override
-  String get lyricsPageDividerColor => '歌词页面分割线颜色';
-
-  @override
-  String get lyricsPageSelectedItemColor => '歌词页面被选项颜色';
-
-  @override
-  String get lyricsPageMenuColor => '歌词页面菜单颜色';
-
-  @override
   String get reset => '重置';
 
   @override
@@ -559,4 +484,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get close => '关闭';
+
+  @override
+  String get fonts => '字体';
 }

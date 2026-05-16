@@ -47,6 +47,8 @@ class Setting {
     autoPlayOnStartupNotifier.value =
         json['autoPlayOnStartup'] as bool? ?? false;
 
+    fontFamilyNotifier.value = json['fontFamily'] as String?;
+
     mainPageThemeNotifier.value = ThemeType.values.firstWhere(
       (e) => e.name == json['mainPageTheme'],
       orElse: () => ThemeType.vivid,
@@ -79,6 +81,8 @@ class Setting {
         'language': localeNotifier.value?.languageCode,
 
         'autoPlayOnStartup': autoPlayOnStartupNotifier.value,
+
+        'fontFamily': fontFamilyNotifier.value,
 
         'mainPageTheme': mainPageThemeNotifier.value.name,
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,

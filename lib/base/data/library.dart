@@ -20,7 +20,7 @@ import 'package:particle_music/base/services/navidrome_client.dart';
 import 'package:pool/pool.dart';
 import 'package:uuid/uuid.dart';
 
-late Library library;
+final library = Library();
 
 class Library {
   late File _localSongIdListFile;
@@ -103,7 +103,7 @@ class Library {
     final folderMapList = result.cast<Map<String, dynamic>>();
 
     for (final map in folderMapList) {
-      webdavFolderList.add(await Folder.fromWebdav(map));
+      webdavFolderList.add(Folder.fromWebdav(map));
     }
   }
 

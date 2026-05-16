@@ -6,9 +6,9 @@ import 'package:particle_music/base/audio_handler.dart';
 import 'package:particle_music/base/data/config.dart';
 import 'package:particle_music/base/data/artist_album.dart';
 import 'package:particle_music/base/services/bookmark_service.dart';
-import 'package:particle_music/base/services/color_manager.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/data/history.dart';
+import 'package:particle_music/base/services/color_manager.dart';
 import 'package:particle_music/layer/layers_manager.dart';
 import 'package:particle_music/base/data/library.dart';
 import 'package:particle_music/base/data/playlist.dart';
@@ -35,10 +35,8 @@ class Loader {
     await config.load();
     await setting.load();
 
-    colorManager = ColorManager();
-    colorManager.loadCustomColors();
+    colorManager.updateColors();
 
-    library = Library();
     await library.initAllFolders();
 
     await playlistManager.initAllPlaylists();

@@ -17,6 +17,7 @@ const AssetImage embyImage = AssetImage('assets/images/emby.png');
 const AssetImage equalizerImage = AssetImage('assets/images/equalizer.png');
 const AssetImage exportLogImage = AssetImage('assets/images/export_log.png');
 const AssetImage folderImage = AssetImage('assets/images/folder.png');
+const AssetImage fontImage = AssetImage('assets/images/font.png');
 const AssetImage forwardImage = AssetImage('assets/images/forward.png');
 const AssetImage fullscreenExitImage = AssetImage(
   'assets/images/fullscreen_exit.png',
@@ -41,7 +42,6 @@ const AssetImage minimizeImage = AssetImage('assets/images/minimize.png');
 const AssetImage musicNoteImage = AssetImage('assets/images/music_note.png');
 const AssetImage navidromeImage = AssetImage('assets/images/navidrome.png');
 const AssetImage nextButtonImage = AssetImage('assets/images/next_button.png');
-const AssetImage paletteImage = AssetImage('assets/images/palette.png');
 const AssetImage pauseCircleImage = AssetImage(
   'assets/images/pause_circle.png',
 );

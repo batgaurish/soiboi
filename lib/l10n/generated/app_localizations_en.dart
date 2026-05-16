@@ -315,81 +315,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clear => 'Clear';
 
   @override
-  String get palette => 'Palette';
-
-  @override
-  String get backgroundColor => 'Background Color';
-
-  @override
-  String get iconColor => 'Icon Color';
-
-  @override
-  String get textColor => 'Text Color';
-
-  @override
-  String get highlightTextColor => 'Highlight Text Color';
-
-  @override
-  String get switchColor => 'Switch Color';
-
-  @override
-  String get playBarColor => 'Play Bar Color';
-
-  @override
-  String get panelColor => 'Panel Color';
-
-  @override
-  String get sidebarColor => 'Sidebar Color';
-
-  @override
-  String get bottomColor => 'Bottom Color';
-
-  @override
-  String get searchFieldColor => 'Search Field Color';
-
-  @override
-  String get buttonColor => 'Button Color';
-
-  @override
-  String get dividerColor => 'Divider Color';
-
-  @override
-  String get selectedItemColor => 'Selected Item Color';
-
-  @override
-  String get menuColor => 'Menu Color';
-
-  @override
-  String get scrollbarColor => 'Scrollbar Color';
-
-  @override
-  String get seekBarColor => 'Seek Bar Color';
-
-  @override
-  String get volumeBarColor => 'Volume Bar Color';
-
-  @override
-  String get lyricsPageBackgroundColor => 'Lyrics Page Background Color';
-
-  @override
-  String get lyricsPageForegroundColor => 'Lyrics Page Foreground Color';
-
-  @override
-  String get lyricsPageHighlightTextColor => 'Lyrics Page Highlight Text Color';
-
-  @override
-  String get lyricsPageButtonColor => 'Lyrics Page Button Color';
-
-  @override
-  String get lyricsPageDividerColor => 'Lyrics Page Divider Color';
-
-  @override
-  String get lyricsPageSelectedItemColor => 'Lyrics Page Selected Item Color';
-
-  @override
-  String get lyricsPageMenuColor => 'Lyrics Page Menu Color';
-
-  @override
   String get reset => 'Reset';
 
   @override
@@ -559,4 +484,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get close => 'Close';
+
+  @override
+  String get fonts => 'Fonts';
 }

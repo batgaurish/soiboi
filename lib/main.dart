@@ -70,8 +70,8 @@ Future<void> main() async {
     ListenableBuilder(
       listenable: Listenable.merge([
         localeNotifier,
-        iconColor.valueNotifier,
-        textColor.valueNotifier,
+        fontFamilyNotifier,
+        mainPageThemeNotifier,
       ]),
       builder: (context, child) {
         return MaterialApp(
@@ -80,6 +80,11 @@ Future<void> main() async {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           title: 'Particle Music',
           theme: ThemeData(
+            textTheme: Theme.of(context).textTheme.apply(
+              fontFamily: fontFamilyNotifier.value,
+              bodyColor: textColor.value,
+              displayColor: textColor.value,
+            ),
             appBarTheme: AppBarTheme(
               titleTextStyle: TextStyle(color: textColor.value, fontSize: 24),
               iconTheme: IconThemeData(color: iconColor.value),

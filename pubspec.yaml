@@ -89,6 +89,7 @@ dependencies:
   xml: ^6.6.1
   drift: ^2.33.0
   drift_flutter: ^0.3.0
+  just_font_scan: ^0.3.0
 
 dependency_overrides:
   media_kit_libs_windows_audio:

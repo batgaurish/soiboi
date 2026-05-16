@@ -590,6 +590,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.11.0"
+  just_font_scan:
+    dependency: "direct main"
+    description:
+      name: just_font_scan
+      sha256: a8206db7a5402315592447c2188a4a0205c4256422d859001ba59f2d433801ba
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0"
   leak_tracker:
     dependency: transitive
     description:

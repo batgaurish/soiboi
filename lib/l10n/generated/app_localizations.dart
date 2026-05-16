@@ -686,156 +686,6 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get clear;
 
-  /// No description provided for @palette.
-  ///
-  /// In en, this message translates to:
-  /// **'Palette'**
-  String get palette;
-
-  /// No description provided for @backgroundColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Background Color'**
-  String get backgroundColor;
-
-  /// No description provided for @iconColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Icon Color'**
-  String get iconColor;
-
-  /// No description provided for @textColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Text Color'**
-  String get textColor;
-
-  /// No description provided for @highlightTextColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Highlight Text Color'**
-  String get highlightTextColor;
-
-  /// No description provided for @switchColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch Color'**
-  String get switchColor;
-
-  /// No description provided for @playBarColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Play Bar Color'**
-  String get playBarColor;
-
-  /// No description provided for @panelColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Panel Color'**
-  String get panelColor;
-
-  /// No description provided for @sidebarColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Sidebar Color'**
-  String get sidebarColor;
-
-  /// No description provided for @bottomColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Bottom Color'**
-  String get bottomColor;
-
-  /// No description provided for @searchFieldColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Search Field Color'**
-  String get searchFieldColor;
-
-  /// No description provided for @buttonColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Button Color'**
-  String get buttonColor;
-
-  /// No description provided for @dividerColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Divider Color'**
-  String get dividerColor;
-
-  /// No description provided for @selectedItemColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Selected Item Color'**
-  String get selectedItemColor;
-
-  /// No description provided for @menuColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Menu Color'**
-  String get menuColor;
-
-  /// No description provided for @scrollbarColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Scrollbar Color'**
-  String get scrollbarColor;
-
-  /// No description provided for @seekBarColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Seek Bar Color'**
-  String get seekBarColor;
-
-  /// No description provided for @volumeBarColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Volume Bar Color'**
-  String get volumeBarColor;
-
-  /// No description provided for @lyricsPageBackgroundColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Lyrics Page Background Color'**
-  String get lyricsPageBackgroundColor;
-
-  /// No description provided for @lyricsPageForegroundColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Lyrics Page Foreground Color'**
-  String get lyricsPageForegroundColor;
-
-  /// No description provided for @lyricsPageHighlightTextColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Lyrics Page Highlight Text Color'**
-  String get lyricsPageHighlightTextColor;
-
-  /// No description provided for @lyricsPageButtonColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Lyrics Page Button Color'**
-  String get lyricsPageButtonColor;
-
-  /// No description provided for @lyricsPageDividerColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Lyrics Page Divider Color'**
-  String get lyricsPageDividerColor;
-
-  /// No description provided for @lyricsPageSelectedItemColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Lyrics Page Selected Item Color'**
-  String get lyricsPageSelectedItemColor;
-
-  /// No description provided for @lyricsPageMenuColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Lyrics Page Menu Color'**
-  String get lyricsPageMenuColor;
-
   /// No description provided for @reset.
   ///
   /// In en, this message translates to:
@@ -1177,6 +1027,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
+
+  /// No description provided for @fonts.
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts'**
+  String get fonts;
 }
 
 class _AppLocalizationsDelegate

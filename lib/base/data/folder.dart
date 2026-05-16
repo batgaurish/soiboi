@@ -77,7 +77,7 @@ class Folder {
     return Folder(id, path, songIdListPath);
   }
 
-  static Future<Folder> fromWebdav(Map<String, dynamic> map) async {
+  static Folder fromWebdav(Map<String, dynamic> map) {
     String id = map['id'] as String;
     String path = id;
 
