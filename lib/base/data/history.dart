@@ -73,7 +73,7 @@ class History {
     }
 
     if (index == -1) {
-      song.playCount = 1;
+      song.playCount = times;
       currentRankingSongList.add(song);
       index = currentRankingSongList.length - 1;
     }
@@ -93,20 +93,15 @@ class History {
   Future<void> addSongTimes(MyAudioMetadata song, int times) async {
     _addSongTimes(song, times);
 
-    switch (song.sourceType) {
-      case .local:
-      case .webdav:
-        song.lastPlayed = DateTime.now();
-        await library.updatePlayCount(song);
-        break;
-      case .navidrome:
-        while (times-- > 0) {
-          await navidromeClient!.scrobble(song.id);
-        }
-        break;
-      default:
-        break;
+    if (song.sourceType == .navidrome) {
+      while (times-- > 0) {
+        await navidromeClient!.scrobble(song.id);
+      }
     }
+
+    song.lastPlayed = DateTime.now();
+    await library.updatePlayCount(song);
+
     rankingSongListManager.getChangeNotifier2(song.sourceType).value++;
 
     _add2Recently(song);
