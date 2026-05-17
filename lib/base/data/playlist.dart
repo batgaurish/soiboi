@@ -333,7 +333,7 @@ class Playlist {
         await _load(sourceType);
         break;
       case .navidrome:
-        if (isNotFavorite && navidromeId == null) {
+        if (navidromeClient == null || (isNotFavorite && navidromeId == null)) {
           return;
         }
         List<String> songIds = [];
@@ -355,7 +355,7 @@ class Playlist {
         }
         break;
       default:
-        if (isNotFavorite && embyId == null) {
+        if (embyClient == null || (isNotFavorite && embyId == null)) {
           return;
         }
         List<String> songIds = [];

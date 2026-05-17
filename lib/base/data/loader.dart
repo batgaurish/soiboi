@@ -111,9 +111,9 @@ class Loader {
     if ((syncBitMask & 8) == 8) {
       await _sync(.emby);
     }
-
     artistAlbumManager.classify();
 
+    await library.clearCache();
     _syncing = false;
     syncStateNotifier.value++;
   }

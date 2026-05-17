@@ -467,10 +467,9 @@ class MyAudioHandler extends BaseAudioHandler {
           history.addSongTimes(currentSongNotifier.value!, times.round());
         }
       }
-
-      _playLastSyncTime = null;
-      _playedDuration = Duration.zero;
     }
+    _playLastSyncTime = null;
+    _playedDuration = Duration.zero;
 
     // save currentIndex
     savePlayState();

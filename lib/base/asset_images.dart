@@ -27,6 +27,7 @@ const AssetImage gridImage = AssetImage('assets/images/grid.png');
 const AssetImage infoImage = AssetImage('assets/images/info.png');
 const AssetImage languageImage = AssetImage('assets/images/language.png');
 const AssetImage listImage = AssetImage('assets/images/list.png');
+const AssetImage localImage = AssetImage('assets/images/local.png');
 const AssetImage locationImage = AssetImage('assets/images/location.png');
 const AssetImage longArrowDownImage = AssetImage(
   'assets/images/long_arrow_down.png',

@@ -224,7 +224,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
         await Loader.sync(sourceTypeBitMask);
       } else {
         if (context.mounted) {
-          showCenterMessage(context, 'Nothing is changed', duration: 2000);
+          showCenterMessage(context, 'Nothing is changed');
           Navigator.pop(context);
         }
       }
@@ -427,18 +427,14 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     bool isOnMyiPhone = isFileProviderStorePath(path);
     if (!isOnMyiPhone && !path.contains(appDocsDir.path)) {
       if (context.mounted) {
-        showCenterMessage(
-          context,
-          'This folder is not supported yet.',
-          duration: 2000,
-        );
+        showCenterMessage(context, 'This folder is not supported yet.');
       }
       return false;
     }
 
     if (isOnMyiPhone && !await BookmarkService.active(path)) {
       if (context.mounted) {
-        showCenterMessage(context, 'Get permission failed', duration: 2000);
+        showCenterMessage(context, 'Get permission failed');
       }
       return false;
     }
@@ -473,7 +469,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
     if (currentLocalFolderIdList.contains(id)) {
       if (context.mounted) {
-        showCenterMessage(context, 'The folder already exists', duration: 2000);
+        showCenterMessage(context, 'The folder already exists');
       }
       return;
     }
@@ -525,11 +521,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
   Future<bool> _isWebdavValid(BuildContext context) async {
     if (webdavClient == null) {
-      showCenterMessage(
-        context,
-        'There is no connected WebDAV',
-        duration: 2000,
-      );
+      showCenterMessage(context, 'There is no connected WebDAV');
       return false;
     }
     try {
@@ -538,7 +530,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
       if (!context.mounted) {
         return false;
       }
-      showCenterMessage(context, 'Can not connect to WebDAV', duration: 2000);
+      showCenterMessage(context, 'Can not connect to WebDAV');
       return false;
     }
     return true;
@@ -560,7 +552,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     }
     if (currentWebdavFolderIdList.contains(id)) {
       if (context.mounted) {
-        showCenterMessage(context, 'The folder already exists', duration: 2000);
+        showCenterMessage(context, 'The folder already exists');
       }
       return;
     }

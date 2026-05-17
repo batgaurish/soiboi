@@ -516,4 +516,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get refresh => '刷新';
+
+  @override
+  String get syncLibrary => '同步资料库';
+
+  @override
+  String get syncingTryLater => '正在同步，请稍后再试';
+
+  @override
+  String get all => '全部';
 }

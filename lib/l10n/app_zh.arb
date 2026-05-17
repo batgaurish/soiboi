@@ -163,5 +163,8 @@
   "addFont": "添加字体",
   "deleteFont": "删除字体",
   "currentFont": "当前字体",
-  "refresh": "刷新"
+  "refresh": "刷新",
+  "syncLibrary": "同步资料库",
+  "syncingTryLater": "正在同步，请稍后再试",
+  "all": "全部"
 }

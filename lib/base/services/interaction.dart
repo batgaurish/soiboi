@@ -13,7 +13,7 @@ import 'package:smooth_corner/smooth_corner.dart';
 void showCenterMessage(
   BuildContext context,
   String message, {
-  int duration = 500,
+  int duration = 2000,
 }) {
   final overlay = Overlay.of(context);
   final overlayEntry = OverlayEntry(

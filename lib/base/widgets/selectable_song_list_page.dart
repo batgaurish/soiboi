@@ -388,11 +388,7 @@ class SelectableSongListPageState extends State<SelectableSongListPage> {
                               );
                             }
                           }
-                          showCenterMessage(
-                            context,
-                            'Added to Play Queue',
-                            duration: 1000,
-                          );
+                          showCenterMessage(context, 'Added to Play Queue');
                           if (audioHandler.currentIndex == -1) {
                             await audioHandler.skipToNext();
                             audioHandler.play();
@@ -427,11 +423,7 @@ class SelectableSongListPageState extends State<SelectableSongListPage> {
                               );
                             }
                           }
-                          showCenterMessage(
-                            context,
-                            'Added to Play Queue',
-                            duration: 1000,
-                          );
+                          showCenterMessage(context, 'Added to Play Queue');
                           if (audioHandler.currentIndex == -1) {
                             await audioHandler.skipToNext();
                             audioHandler.play();
@@ -506,7 +498,6 @@ class SelectableSongListPageState extends State<SelectableSongListPage> {
                                 showCenterMessage(
                                   context,
                                   'Successfully Deleted',
-                                  duration: 1000,
                                 );
                               }
                             }

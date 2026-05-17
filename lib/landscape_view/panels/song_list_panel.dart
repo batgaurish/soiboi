@@ -75,11 +75,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
               currentSongNotifier.value!,
             );
             if (index == -1) {
-              showCenterMessage(
-                context,
-                'Current song not found',
-                duration: 1500,
-              );
+              showCenterMessage(context, 'Current song not found');
               return;
             }
             final position = scrollController.position;

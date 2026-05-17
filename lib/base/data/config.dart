@@ -51,8 +51,8 @@ class Config {
     }
   }
 
-  void save() {
-    file.writeAsStringSync(
+  Future<void> save() async {
+    await file.writeAsString(
       jsonEncode({
         if (webdavClient != null)
           'webdav': {

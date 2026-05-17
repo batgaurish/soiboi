@@ -77,11 +77,7 @@ abstract class FontPickerBaseState extends State<FontPickerBase> {
           for (final font in JustFontScan.scan().map((e) => e.name).toList()) {
             if (font == result) {
               if (context.mounted) {
-                showCenterMessage(
-                  context,
-                  'Conflict name with system font',
-                  duration: 2000,
-                );
+                showCenterMessage(context, 'Conflict name with system font');
               }
               return;
             }

@@ -212,5 +212,8 @@
   "addFont": "Add Font",
   "deleteFont": "Delete Font",
   "currentFont": "Current Font",
-  "refresh": "Refresh"
+  "refresh": "Refresh",
+  "syncLibrary": "Synchronize Library",
+  "syncingTryLater": "Syncing library, try again later",
+  "all": "All"
 }

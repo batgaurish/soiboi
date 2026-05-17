@@ -516,4 +516,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refresh => 'Refresh';
+
+  @override
+  String get syncLibrary => 'Synchronize Library';
+
+  @override
+  String get syncingTryLater => 'Syncing library, try again later';
+
+  @override
+  String get all => 'All';
 }

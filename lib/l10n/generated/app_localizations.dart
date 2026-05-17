@@ -1087,6 +1087,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refresh'**
   String get refresh;
+
+  /// No description provided for @syncLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronize Library'**
+  String get syncLibrary;
+
+  /// No description provided for @syncingTryLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing library, try again later'**
+  String get syncingTryLater;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
 }
 
 class _AppLocalizationsDelegate

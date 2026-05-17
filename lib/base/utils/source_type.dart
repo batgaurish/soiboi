@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:particle_music/base/app.dart';
+import 'package:particle_music/base/asset_images.dart';
 import 'package:particle_music/l10n/generated/app_localizations.dart';
 
 String getSourceTypeName(AppLocalizations l10n, SourceType sourceType) {
@@ -24,5 +26,18 @@ int getSourceTypeBitMask(SourceType sourceType) {
       return 4;
     default:
       return 8;
+  }
+}
+
+AssetImage getSourceTypeImage(SourceType sourceType) {
+  switch (sourceType) {
+    case .local:
+      return localImage;
+    case .webdav:
+      return webdavImage;
+    case .navidrome:
+      return navidromeImage;
+    default:
+      return embyImage;
   }
 }

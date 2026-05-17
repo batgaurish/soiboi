@@ -81,11 +81,7 @@ class _Add2PlaylistPanelState extends State<Add2PlaylistPanel> {
 
                 onTap: () {
                   playlist.add(widget.songList);
-                  showCenterMessage(
-                    context,
-                    l10n.added2Playlist,
-                    duration: 1500,
-                  );
+                  showCenterMessage(context, l10n.added2Playlist);
                   Navigator.pop(context);
                 },
               );

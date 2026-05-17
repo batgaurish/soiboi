@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:particle_music/base/audio_handler.dart';
-import 'package:particle_music/base/data/config.dart';
 import 'package:particle_music/base/services/emby_client.dart';
 import 'package:particle_music/base/services/color_manager.dart';
 import 'package:particle_music/base/app.dart';
@@ -13,7 +12,8 @@ import 'package:particle_music/base/asset_images.dart';
 import 'package:particle_music/base/services/interaction.dart';
 import 'package:particle_music/base/services/logger.dart';
 import 'package:particle_music/base/services/webdav_client.dart';
-import 'package:particle_music/base/widgets/custom_text_field.dart';
+import 'package:particle_music/base/utils/source_type.dart';
+import 'package:particle_music/base/widgets/connect_client_widget.dart';
 import 'package:particle_music/base/widgets/equalizer.dart';
 import 'package:particle_music/base/widgets/my_divider.dart';
 import 'package:particle_music/base/widgets/tv_dir_picker.dart';
@@ -102,13 +102,17 @@ class SettingsList extends StatelessWidget {
           paddingIfNeed(isLandscape, connect2ServerListTile(context, l10n)),
         ),
 
-        sliverBox(paddingIfNeed(isLandscape, reloadListTile(context, l10n))),
+        sliverBox(paddingIfNeed(isLandscape, syncListTile(context, l10n))),
 
         sliverBox(
           paddingIfNeed(isLandscape, cleanCacheListTile(context, l10n)),
         ),
 
         sliverBox(paddingIfNeed(isLandscape, languageListTile(context, l10n))),
+
+        sliverBox(paddingIfNeed(isLandscape, fontListTile(context, l10n))),
+
+        sliverBox(paddingIfNeed(isLandscape, themeListTile(context, l10n))),
 
         if (isMobile && !isTV)
           sliverBox(paddingIfNeed(isLandscape, vibrationListTile(l10n))),
@@ -120,10 +124,6 @@ class SettingsList extends StatelessWidget {
               sleepTimerListTile(context, l10n, iconSize: iconSize),
             ),
           ),
-
-        sliverBox(paddingIfNeed(isLandscape, fontListTile(context, l10n))),
-
-        sliverBox(paddingIfNeed(isLandscape, themeListTile(context, l10n))),
 
         sliverBox(paddingIfNeed(isLandscape, equalizerListTile(context, l10n))),
 
@@ -163,20 +163,101 @@ class SettingsList extends StatelessWidget {
     );
   }
 
-  Widget reloadListTile(BuildContext context, AppLocalizations l10n) {
+  Widget syncListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(reloadImage, size: iconSize),
-      title: Text(l10n.reload),
+      title: Text(l10n.syncLibrary),
       onTap: () async {
-        if (await showConfirmDialog(context, l10n.reload)) {
-          if (Loader.syncing) {
-            if (context.mounted) {
-              showCenterMessage(context, 'syncing, try it later');
-            }
-            return;
-          }
-          await Loader.sync(15);
+        final sourceTypes = <SourceType>[];
+        if (library.localFolderList.isNotEmpty) {
+          sourceTypes.add(.local);
         }
+
+        if (webdavClient != null) {
+          sourceTypes.add(.webdav);
+        }
+
+        if (navidromeClient != null) {
+          sourceTypes.add(.navidrome);
+        }
+
+        if (embyClient != null) {
+          sourceTypes.add(.emby);
+        }
+
+        if (sourceTypes.isEmpty) {
+          return;
+        }
+
+        if (sourceTypes.length == 1) {
+          if (await showConfirmDialog(context, l10n.syncLibrary)) {
+            if (Loader.syncing) {
+              if (context.mounted) {
+                showCenterMessage(context, l10n.syncingTryLater);
+              }
+              return;
+            }
+            await Loader.sync(getSourceTypeBitMask(sourceTypes.first));
+          }
+
+          return;
+        }
+
+        showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 300,
+            height: 300,
+            child: Padding(
+              padding: const EdgeInsets.all(15),
+              child: Column(
+                children: [
+                  ListTile(
+                    title: Text(l10n.all),
+                    onTap: () async {
+                      if (await showConfirmDialog(context, l10n.syncLibrary)) {
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                        if (Loader.syncing) {
+                          if (context.mounted) {
+                            showCenterMessage(context, l10n.syncingTryLater);
+                          }
+                          return;
+                        }
+                        await Loader.sync(15);
+                      }
+                    },
+                  ),
+
+                  for (final sourceType in sourceTypes)
+                    ListTile(
+                      leading: Image(
+                        image: getSourceTypeImage(sourceType),
+                        width: 30,
+                        height: 30,
+                      ),
+                      title: Text(getSourceTypeName(l10n, sourceType)),
+                      onTap: () async {
+                        if (await showConfirmDialog(
+                          context,
+                          l10n.syncLibrary,
+                        )) {
+                          if (Loader.syncing) {
+                            if (context.mounted) {
+                              showCenterMessage(context, l10n.syncingTryLater);
+                            }
+                            return;
+                          }
+                          await Loader.sync(getSourceTypeBitMask(sourceType));
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
       },
     );
   }
@@ -227,283 +308,28 @@ class SettingsList extends StatelessWidget {
     );
   }
 
-  Widget navidromeListTile(BuildContext context, AppLocalizations l10n) {
+  Widget webdavListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: Image(image: navidromeImage, width: 25, height: 25),
-      title: Text(l10n.connect2Navidrome),
-      onTap: () {
-        final baseUrlTmp = TextEditingController(
-          text: navidromeClient?.baseUrl ?? '',
-        );
-        final usernameTmp = TextEditingController(
-          text: navidromeClient?.username ?? '',
-        );
-        final passwordTmp = TextEditingController(
-          text: navidromeClient?.password ?? '',
-        );
+      leading: Image(image: webdavImage, width: 30, height: 30),
 
+      title: Text(l10n.connect2WebDAV),
+      onTap: () {
         showAnimationDialog(
           context: context,
-          child: SizedBox(
-            height: 300,
-            width: 300,
-            child: Padding(
-              padding: .fromLTRB(20, 15, 20, 15),
-              child: Column(
-                children: [
-                  Spacer(),
-                  SizedBox(
-                    child: Text(
-                      'Navidrome',
-                      style: .new(fontWeight: .bold, fontSize: 18),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-                  CustomTextField('Url', baseUrlTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField(l10n.username, usernameTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField(l10n.password, passwordTmp),
-
-                  SizedBox(height: isMobile ? 10 : 20),
-                  Builder(
-                    builder: (context) {
-                      return ValueListenableBuilder(
-                        valueListenable: buttonColor.valueNotifier,
-                        builder: (context, value, child) {
-                          return Row(
-                            children: [
-                              Spacer(),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  if (!await showConfirmDialog(
-                                    context,
-                                    l10n.clear,
-                                  )) {
-                                    return;
-                                  }
-
-                                  if (Loader.syncing) {
-                                    if (context.mounted) {
-                                      showCenterMessage(
-                                        context,
-                                        'syncing, try it later',
-                                      );
-                                    }
-                                    return;
-                                  }
-
-                                  navidromeClient = null;
-                                  setting.save();
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                  }
-                                  Loader.sync(4);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: value,
-                                ),
-                                child: Text(l10n.clear),
-                              ),
-                              SizedBox(width: 20),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  final tmp = navidromeClient;
-                                  try {
-                                    navidromeClient = NavidromeClient(
-                                      baseUrl: baseUrlTmp.text,
-                                      username: usernameTmp.text,
-                                      password: passwordTmp.text,
-                                    );
-                                  } catch (e) {
-                                    navidromeClient = tmp;
-                                    showCenterMessage(
-                                      context,
-                                      e.toString(),
-                                      duration: 5000,
-                                    );
-                                    return;
-                                  }
-                                  if (await navidromeClient!.ping()) {
-                                    if (context.mounted) {
-                                      Navigator.pop(context);
-                                    }
-
-                                    config.save();
-
-                                    if (Loader.syncing) {
-                                      if (context.mounted) {
-                                        showCenterMessage(
-                                          context,
-                                          'syncing, try it later',
-                                        );
-                                      }
-                                      return;
-                                    }
-
-                                    await Loader.sync(4);
-                                  } else {
-                                    navidromeClient = tmp;
-                                    if (context.mounted) {
-                                      showCenterMessage(
-                                        context,
-                                        "Failed to connect to Navidrome",
-                                        duration: 2000,
-                                      );
-                                    }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: value,
-                                ),
-                                child: Text(l10n.confirm),
-                              ),
-                              Spacer(),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  Spacer(),
-                ],
-              ),
-            ),
-          ),
+          child: ConnectClientWidget(sourceType: .webdav),
         );
       },
     );
   }
 
-  Widget webdavListTile(BuildContext context, AppLocalizations l10n) {
+  Widget navidromeListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: Image(image: webdavImage, width: 25, height: 25),
-
-      title: Text(l10n.connect2WebDAV),
+      leading: Image(image: navidromeImage, width: 30, height: 30),
+      title: Text(l10n.connect2Navidrome),
       onTap: () {
-        final baseUrlTmp = TextEditingController(
-          text: webdavClient?.baseUrl ?? '',
-        );
-        final usernameTmp = TextEditingController(
-          text: webdavClient?.username ?? '',
-        );
-        final passwordTmp = TextEditingController(
-          text: webdavClient?.password ?? '',
-        );
-
         showAnimationDialog(
           context: context,
-
-          child: SizedBox(
-            height: 300,
-            width: 300,
-            child: Padding(
-              padding: .fromLTRB(20, 15, 20, 15),
-              child: Column(
-                children: [
-                  Spacer(),
-                  SizedBox(
-                    child: Text(
-                      'WebDAV',
-                      style: .new(fontWeight: .bold, fontSize: 18),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-                  CustomTextField('Url', baseUrlTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField(l10n.username, usernameTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField(l10n.password, passwordTmp),
-
-                  SizedBox(height: isMobile ? 10 : 20),
-                  Builder(
-                    builder: (context) {
-                      return ValueListenableBuilder(
-                        valueListenable: buttonColor.valueNotifier,
-                        builder: (context, value, child) {
-                          return Row(
-                            children: [
-                              Spacer(),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  if (!await showConfirmDialog(
-                                    context,
-                                    l10n.clear,
-                                  )) {
-                                    return;
-                                  }
-                                  webdavClient = null;
-                                  setting.save();
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                  }
-                                  if (Loader.syncing) {
-                                    if (context.mounted) {
-                                      showCenterMessage(
-                                        context,
-                                        'syncing, try it later',
-                                      );
-                                    }
-                                    return;
-                                  }
-                                  Loader.sync(2);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: value,
-                                ),
-                                child: Text(l10n.clear),
-                              ),
-                              SizedBox(width: 20),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  webdavClient = WebDavClient(
-                                    baseUrl: baseUrlTmp.text,
-                                    username: usernameTmp.text,
-                                    password: passwordTmp.text,
-                                  );
-                                  if (!await webdavClient!.ping()) {
-                                    if (context.mounted) {
-                                      showCenterMessage(
-                                        context,
-                                        'Can not connect to WebDAV',
-                                        duration: 2000,
-                                      );
-                                    }
-                                    return;
-                                  }
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                    showCenterMessage(
-                                      context,
-                                      'Successfully connect to WebDAV',
-                                      duration: 2000,
-                                    );
-                                  }
-                                  config.save();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: value,
-                                ),
-                                child: Text(l10n.confirm),
-                              ),
-                              Spacer(),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  Spacer(),
-                ],
-              ),
-            ),
-          ),
+          child: ConnectClientWidget(sourceType: .navidrome),
         );
       },
     );
@@ -511,144 +337,13 @@ class SettingsList extends StatelessWidget {
 
   Widget embyListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: Image(image: embyImage, width: 25, height: 25),
+      leading: Image(image: embyImage, width: 30, height: 30),
 
       title: Text(l10n.connect2Emby),
       onTap: () {
-        final baseUrlTmp = TextEditingController(
-          text: embyClient?.baseUrl ?? '',
-        );
-        final usernameTmp = TextEditingController(
-          text: embyClient?.username ?? '',
-        );
-        final passwordTmp = TextEditingController(
-          text: embyClient?.password ?? '',
-        );
-
         showAnimationDialog(
           context: context,
-
-          child: SizedBox(
-            height: 300,
-            width: 300,
-            child: Padding(
-              padding: .fromLTRB(20, 15, 20, 15),
-              child: Column(
-                children: [
-                  Spacer(),
-                  SizedBox(
-                    child: Text(
-                      'Emby',
-                      style: .new(fontWeight: .bold, fontSize: 18),
-                    ),
-                  ),
-
-                  SizedBox(height: 10),
-                  CustomTextField('Url', baseUrlTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField(l10n.username, usernameTmp),
-
-                  SizedBox(height: 10),
-                  CustomTextField(l10n.password, passwordTmp),
-
-                  SizedBox(height: isMobile ? 10 : 20),
-                  Builder(
-                    builder: (context) {
-                      return ValueListenableBuilder(
-                        valueListenable: buttonColor.valueNotifier,
-                        builder: (context, value, child) {
-                          return Row(
-                            children: [
-                              Spacer(),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  if (!await showConfirmDialog(
-                                    context,
-                                    l10n.clear,
-                                  )) {
-                                    return;
-                                  }
-                                  embyClient = null;
-                                  setting.save();
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                  }
-                                  if (Loader.syncing) {
-                                    if (context.mounted) {
-                                      showCenterMessage(
-                                        context,
-                                        'syncing, try it later',
-                                      );
-                                    }
-                                    return;
-                                  }
-                                  Loader.sync(8);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: value,
-                                ),
-                                child: Text(l10n.clear),
-                              ),
-                              SizedBox(width: 20),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  embyClient = EmbyClient(
-                                    baseUrl: baseUrlTmp.text,
-                                    username: usernameTmp.text,
-                                    password: passwordTmp.text,
-                                  );
-
-                                  if (!await embyClient!.login()) {
-                                    embyClient = null;
-                                    if (context.mounted) {
-                                      showCenterMessage(
-                                        context,
-                                        'Can not connect to Emby',
-                                        duration: 2000,
-                                      );
-                                    }
-                                    return;
-                                  }
-
-                                  if (Loader.syncing) {
-                                    if (context.mounted) {
-                                      showCenterMessage(
-                                        context,
-                                        'syncing, try it later',
-                                      );
-                                    }
-                                    return;
-                                  }
-                                  Loader.sync(8);
-
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                    showCenterMessage(
-                                      context,
-                                      'Successfully connect to Emby',
-                                      duration: 2000,
-                                    );
-                                  }
-                                  config.save();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: value,
-                                ),
-                                child: Text(l10n.confirm),
-                              ),
-                              Spacer(),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  Spacer(),
-                ],
-              ),
-            ),
-          ),
+          child: ConnectClientWidget(sourceType: .emby),
         );
       },
     );
@@ -1003,7 +698,6 @@ class SettingsList extends StatelessWidget {
               showCenterMessage(
                 context,
                 'Failed to fetch GitHub release:${response.statusCode}',
-                duration: 2000,
               );
             }
             return;
@@ -1085,7 +779,7 @@ class SettingsList extends StatelessWidget {
             }
           } else {
             if (context.mounted) {
-              showCenterMessage(context, l10n.alreadyLatest, duration: 2000);
+              showCenterMessage(context, l10n.alreadyLatest);
             }
           }
         } catch (e) {
