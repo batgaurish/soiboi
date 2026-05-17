@@ -135,6 +135,7 @@ class PlaylistManager {
   Future<void> sync(SourceType sourceType) async {
     for (final playlist in playlists) {
       await playlist.sync(sourceType);
+      playlist.songListManager.resetSourceType();
     }
     update();
   }
@@ -473,7 +474,6 @@ class Playlist {
       songListManager.embyChangeNotifier.value++;
       if (embyClient != null) {
         if (isFavorite) {
-          await embyClient!.clearFavorites();
           await embyClient!.rebuildFavorites(
             songListManager.embySongList
                 .map((e) => e.id)
