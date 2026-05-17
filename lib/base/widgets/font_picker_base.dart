@@ -53,6 +53,7 @@ abstract class FontPickerBaseState extends State<FontPickerBase> {
     final l10n = AppLocalizations.of(context);
 
     if (await showConfirmDialog(context, l10n.restoreDefault)) {
+      await Future.delayed(Duration(milliseconds: 250));
       fontFamilyNotifier.value = null;
       setting.save();
       setState(() {});
@@ -119,7 +120,7 @@ abstract class FontPickerBaseState extends State<FontPickerBase> {
         child: Padding(
           padding: const EdgeInsets.all(15),
           child: StatefulBuilder(
-            builder: (context, setState) {
+            builder: (context, thisSetState) {
               return ListView.builder(
                 itemCount: importedFonts.length,
                 itemBuilder: (context, index) {
@@ -130,16 +131,19 @@ abstract class FontPickerBaseState extends State<FontPickerBase> {
                       if (await showConfirmDialog(context, l10n.deleteFont)) {
                         await library.deleteFonts(font);
 
-                        if (font == fontFamilyNotifier.value) {
-                          fontFamilyNotifier.value = null;
-                        }
-                        reloadAllFonts();
-
                         if (importedFonts.isEmpty && context.mounted) {
                           Navigator.pop(context);
-                          return;
+                          await Future.delayed(Duration(milliseconds: 250));
+                        } else {
+                          thisSetState(() {});
                         }
-                        setState(() {});
+
+                        if (font == fontFamilyNotifier.value) {
+                          fontFamilyNotifier.value = null;
+                          setting.save();
+                        }
+
+                        reloadAllFonts();
                       }
                     },
                   );

@@ -145,6 +145,7 @@ class _FontPickerPageState extends FontPickerBaseState {
           onTap: index > 0
               ? () async {
                   if (await showConfirmDialog(context, l10n.setFont)) {
+                    await Future.delayed(Duration(milliseconds: 250));
                     fontFamilyNotifier.value = font;
                     setting.save();
                   }

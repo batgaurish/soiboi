@@ -156,6 +156,7 @@ class _FontPickerPanelState extends FontPickerBaseState {
 
                   onTap: () async {
                     if (await showConfirmDialog(context, l10n.setFont)) {
+                      await Future.delayed(Duration(milliseconds: 250));
                       fontFamilyNotifier.value = font;
                       setting.save();
                       setState(() {});
