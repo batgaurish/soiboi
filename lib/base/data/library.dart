@@ -548,14 +548,23 @@ class Library {
         for (final id in songIdList) {
           String path = id;
 
-          if (sourceType == .local && Platform.isIOS) {
-            path = revertIOSPath(path);
+          DateTime? modified;
+
+          if (sourceType == .local) {
+            if (Platform.isIOS) {
+              path = revertIOSPath(path);
+            }
+            modified = pathAndModified.remove(path);
+          } else {
+            modified = pathAndModified.remove(
+              Uri.decodeFull(Uri.parse(id).path),
+            );
           }
-          final modified = pathAndModified.remove(path);
+
           if (modified != null) {
             tasks.add(
               pool.withResource(() async {
-                await syncOne(id, path, modified);
+                await syncOne(id, path, modified!);
               }),
             );
           }
@@ -566,7 +575,6 @@ class Library {
         for (final entry in pathAndModified.entries) {
           String path = entry.key;
           String id = path;
-
           if (sourceType == .webdav) {
             id = Uri.parse(webdavClient!.baseUrl).resolve(path).toString();
             id = Uri.decodeFull(id);
