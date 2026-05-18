@@ -188,7 +188,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     if (await showConfirmDialog(context, l10n.confirm)) {
       if (Loader.syncing) {
         if (context.mounted) {
-          showCenterMessage(context, 'syncing, try it later');
+          showCenterMessage(context, l10n.syncingTryLater);
         }
         return;
       }
