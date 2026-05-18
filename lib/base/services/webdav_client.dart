@@ -28,6 +28,8 @@ class WebDavClient {
   final String username;
   final String password;
 
+  late String _cleanBaseUrl;
+
   late final Dio dio;
 
   WebDavClient({
@@ -43,9 +45,15 @@ class WebDavClient {
         sendTimeout: const Duration(seconds: 30),
       ),
     );
+    _cleanBaseUrl = baseUrl;
 
+    if (_cleanBaseUrl.endsWith('/')) {
+      _cleanBaseUrl = _cleanBaseUrl.substring(0, _cleanBaseUrl.length - 1);
+    }
     _applyAuth();
   }
+
+  String get cleanBaseUrl => _cleanBaseUrl;
 
   void _applyAuth() {
     dio.options.headers['authorization'] =
@@ -71,7 +79,6 @@ class WebDavClient {
   ) async {
     try {
       final response = await request();
-
       return parser(response);
     } on DioException catch (e) {
       logger.output(
@@ -111,6 +118,8 @@ class WebDavClient {
       remotePath += '/';
     }
 
+    final baseUriPath = Uri.parse(baseUrl).path.replaceAll(RegExp(r'/$'), '');
+
     final result = await _safeRequest(
       () => dio.request(
         remotePath,
@@ -140,7 +149,15 @@ class WebDavClient {
                 .whereType<XmlElement>()
                 .firstWhere((e) => e.name.local == 'href');
 
-            final href = _safeDecodeUri(hrefElement.innerText);
+            final rawHref = _safeDecodeUri(hrefElement.innerText);
+
+            String href = rawHref;
+            if (baseUriPath.isNotEmpty && href.startsWith(baseUriPath)) {
+              href = href.substring(baseUriPath.length);
+            }
+            if (href.isEmpty) {
+              href = '/';
+            }
 
             if (remotePath == href) {
               continue;
@@ -275,6 +292,14 @@ class WebDavClient {
     return _boolRequest(() => dio.delete(remotePath));
   }
 
+  String _buildDestinationUrl(String destination) {
+    final cleanBase = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
+    final cleanDest = destination.startsWith('/')
+        ? destination.substring(1)
+        : destination;
+    return '$cleanBase$cleanDest';
+  }
+
   Future<bool> move({
     required String source,
     required String destination,
@@ -284,7 +309,7 @@ class WebDavClient {
         source,
         options: Options(
           method: 'MOVE',
-          headers: {'Destination': '$baseUrl$destination'},
+          headers: {'Destination': _buildDestinationUrl(destination)},
         ),
       ),
     );
@@ -299,7 +324,7 @@ class WebDavClient {
         source,
         options: Options(
           method: 'COPY',
-          headers: {'Destination': '$baseUrl$destination'},
+          headers: {'Destination': _buildDestinationUrl(destination)},
         ),
       ),
     );

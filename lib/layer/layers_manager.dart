@@ -158,7 +158,7 @@ class LayersManager {
     });
   }
 
-  Future<void> pushLayer(String label, {String? content}) async {
+  void pushLayer(String label, {String? content}) {
     Widget layer = getLayer(label, content: content);
     if (layer == currentLayer) {
       return;
@@ -168,7 +168,6 @@ class LayersManager {
 
     helperLayer = currentLayer;
     currentLayer = layer;
-    await updateBackground();
     if (isMobile) {
       helperPage = currentPage;
       currentPage = getPage(currentLayer!);
@@ -179,9 +178,10 @@ class LayersManager {
 
     sidebarHighlighLabel.value = label;
     switchNotifier.value++;
+    updateBackground();
   }
 
-  Future<void> popLayer() async {
+  void popLayer() {
     if (layerHistory.length == 1) {
       return;
     }
@@ -191,13 +191,14 @@ class LayersManager {
     labelHistory.removeLast();
     helperLayer = currentLayer;
     currentLayer = layerHistory.last;
-    await updateBackground();
     if (isMobile) {
       helperPage = currentPage;
       currentPage = pageMap[currentLayer];
     }
     sidebarHighlighLabel.value = labelHistory.last;
     switchNotifier.value++;
+
+    updateBackground();
   }
 
   void afterPopLayer() {
@@ -228,7 +229,7 @@ class LayersManager {
     }
     final layer = layerMap.remove(key);
     if (layer == currentLayer) {
-      await popLayer();
+      popLayer();
     }
 
     // ensure pop complete
@@ -277,7 +278,7 @@ class LayersManager {
     }
   }
 
-  Future<void> updateBackground() async {
+  void updateBackground() async {
     if (currentLayer == null) {
       return;
     }

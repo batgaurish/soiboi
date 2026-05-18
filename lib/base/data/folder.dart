@@ -173,8 +173,7 @@ class Folder {
         songList.add(song);
         String path = song.path!;
         if (isWebdav) {
-          path = Uri.parse(path).path;
-          path = Uri.decodeFull(path);
+          path = path.substring(webdavClient!.cleanBaseUrl.length);
         }
 
         pathAndModified.remove(path);
@@ -186,8 +185,7 @@ class Folder {
       String id = path;
 
       if (isWebdav) {
-        id = Uri.parse(webdavClient!.baseUrl).resolve(path).toString();
-        id = Uri.decodeFull(id);
+        id = webdavClient!.cleanBaseUrl + path;
       } else if (Platform.isIOS) {
         id = convertIOSPath(path);
       }

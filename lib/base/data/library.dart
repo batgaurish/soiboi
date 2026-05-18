@@ -540,16 +540,17 @@ class Library {
           String path = id;
 
           DateTime? modified;
-
           if (sourceType == .local) {
             if (Platform.isIOS) {
               path = revertIOSPath(path);
             }
             modified = pathAndModified.remove(path);
           } else {
-            modified = pathAndModified.remove(
-              Uri.decodeFull(Uri.parse(id).path),
-            );
+            if (webdavClient != null) {
+              modified = pathAndModified.remove(
+                path.substring(webdavClient!.cleanBaseUrl.length),
+              );
+            }
           }
 
           if (modified != null) {
@@ -567,8 +568,8 @@ class Library {
           String path = entry.key;
           String id = path;
           if (sourceType == .webdav) {
-            id = Uri.parse(webdavClient!.baseUrl).resolve(path).toString();
-            id = Uri.decodeFull(id);
+            path = webdavClient!.cleanBaseUrl + path;
+            id = path;
           } else if (Platform.isIOS) {
             id = convertIOSPath(path);
           }
