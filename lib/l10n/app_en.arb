@@ -215,5 +215,8 @@
   "refresh": "Refresh",
   "syncLibrary": "Synchronize Library",
   "syncingTryLater": "Syncing library, try again later",
-  "all": "All"
+  "all": "All",
+  "folderExist": "The folder already exist",
+  "folderNotSupportedYet": "The folder is not supported yet",
+  "getPermissionFailed": "Get permission failed"
 }

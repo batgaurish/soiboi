@@ -525,4 +525,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get all => 'All';
+
+  @override
+  String get folderExist => 'The folder already exist';
+
+  @override
+  String get folderNotSupportedYet => 'The folder is not supported yet';
+
+  @override
+  String get getPermissionFailed => 'Get permission failed';
 }

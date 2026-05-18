@@ -1105,6 +1105,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All'**
   String get all;
+
+  /// No description provided for @folderExist.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder already exist'**
+  String get folderExist;
+
+  /// No description provided for @folderNotSupportedYet.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder is not supported yet'**
+  String get folderNotSupportedYet;
+
+  /// No description provided for @getPermissionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Get permission failed'**
+  String get getPermissionFailed;
 }
 
 class _AppLocalizationsDelegate

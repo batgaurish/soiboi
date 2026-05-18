@@ -217,16 +217,11 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
       setting.save();
 
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
       if (sourceTypeBitMask > 0) {
-        if (context.mounted) {
-          Navigator.pop(context);
-        }
         await Loader.sync(sourceTypeBitMask);
-      } else {
-        if (context.mounted) {
-          showCenterMessage(context, 'Nothing is changed');
-          Navigator.pop(context);
-        }
       }
     }
   }
@@ -424,17 +419,18 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     BuildContext context,
     String path,
   ) async {
+    final l10n = AppLocalizations.of(context);
     bool isOnMyiPhone = isFileProviderStorePath(path);
     if (!isOnMyiPhone && !path.contains(appDocsDir.path)) {
       if (context.mounted) {
-        showCenterMessage(context, 'This folder is not supported yet.');
+        showCenterMessage(context, l10n.folderNotSupportedYet);
       }
       return false;
     }
 
     if (isOnMyiPhone && !await BookmarkService.active(path)) {
       if (context.mounted) {
-        showCenterMessage(context, 'Get permission failed');
+        showCenterMessage(context, l10n.getPermissionFailed);
       }
       return false;
     }
@@ -469,7 +465,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
     if (currentLocalFolderIdList.contains(id)) {
       if (context.mounted) {
-        showCenterMessage(context, 'The folder already exists');
+        showCenterMessage(context, AppLocalizations.of(context).folderExist);
       }
       return;
     }
@@ -552,7 +548,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     }
     if (currentWebdavFolderIdList.contains(id)) {
       if (context.mounted) {
-        showCenterMessage(context, 'The folder already exists');
+        showCenterMessage(context, AppLocalizations.of(context).folderExist);
       }
       return;
     }

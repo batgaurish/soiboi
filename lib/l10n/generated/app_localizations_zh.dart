@@ -525,4 +525,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get all => '全部';
+
+  @override
+  String get folderExist => '该文件夹已存在';
+
+  @override
+  String get folderNotSupportedYet => '暂不支持该文件夹';
+
+  @override
+  String get getPermissionFailed => '获取权限失败';
 }

@@ -166,5 +166,8 @@
   "refresh": "刷新",
   "syncLibrary": "同步资料库",
   "syncingTryLater": "正在同步，请稍后再试",
-  "all": "全部"
+  "all": "全部",
+  "folderExist": "该文件夹已存在",
+  "folderNotSupportedYet": "暂不支持该文件夹",
+  "getPermissionFailed": "获取权限失败"
 }
