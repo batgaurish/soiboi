@@ -222,7 +222,7 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
                                 left: Radius.circular(10),
                               ),
                             ),
-                            clipBehavior: Clip.antiAlias,
+                            clipBehavior: Clip.antiAliasWithSaveLayer,
                             child: Container(
                               color: colorManager.getSpecificBgColor(),
                               width: max(
