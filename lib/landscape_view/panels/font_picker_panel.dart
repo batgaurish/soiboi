@@ -70,7 +70,7 @@ class _FontPickerPanelState extends FontPickerBaseState {
               ),
 
               trailing: SizedBox(
-                width: 300,
+                width: 320,
                 child: ValueListenableBuilder(
                   valueListenable: buttonColor.valueNotifier,
 
@@ -91,7 +91,7 @@ class _FontPickerPanelState extends FontPickerBaseState {
                           style: buttonStyle,
                           child: Text(l10n.restoreDefault),
                         ),
-                        SizedBox(width: 10),
+                        SizedBox(width: 5),
 
                         ElevatedButton(
                           onPressed: () => addFontAction(context),
@@ -100,7 +100,7 @@ class _FontPickerPanelState extends FontPickerBaseState {
                           child: Text(l10n.addFont),
                         ),
 
-                        SizedBox(width: 10),
+                        SizedBox(width: 5),
 
                         ElevatedButton(
                           onPressed: () => deleteFontAction(context),

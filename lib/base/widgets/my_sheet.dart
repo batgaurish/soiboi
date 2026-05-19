@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:particle_music/base/audio_handler.dart';
 import 'package:particle_music/base/services/color_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
@@ -12,25 +13,30 @@ class MySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      shape: SmoothRectangleBorder(
-        smoothness: 1,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
-      ),
-      color: colorManager.getSpecificBgBaseColor(),
-      clipBehavior: .antiAlias,
-      child: Container(
-        color: colorManager.getSpecificBgColor(),
-        height: height ?? min(500, MediaQuery.heightOf(context) * 0.6),
-        child: MediaQuery.removePadding(
-          context: context,
-          removeLeft: true, // for mobile
-          removeRight: true,
-          removeBottom: true,
-          removeTop: true,
-          child: child,
-        ),
-      ),
+    return ValueListenableBuilder(
+      valueListenable: currentSongNotifier,
+      builder: (context, _, _) {
+        return Material(
+          shape: SmoothRectangleBorder(
+            smoothness: 1,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+          ),
+          color: colorManager.getSpecificBgBaseColor(),
+          clipBehavior: .antiAlias,
+          child: Container(
+            color: colorManager.getSpecificBgColor(),
+            height: height ?? min(500, MediaQuery.heightOf(context) * 0.6),
+            child: MediaQuery.removePadding(
+              context: context,
+              removeLeft: true, // for mobile
+              removeRight: true,
+              removeBottom: true,
+              removeTop: true,
+              child: child,
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -149,11 +149,7 @@ class PlayQueuePageState extends State<PlayQueuePage> {
           icon: ImageIcon(reverseImage),
         ),
 
-        playModeButton(
-          null,
-          textColor: specificTextColor,
-          iconColor: specificIconColor,
-        ),
+        playModeButton(null, iconColor: specificIconColor),
 
         IconButton(
           color: specificIconColor,

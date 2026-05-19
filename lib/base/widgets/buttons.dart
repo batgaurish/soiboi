@@ -11,7 +11,7 @@ import 'package:particle_music/l10n/generated/app_localizations.dart';
 import 'package:particle_music/landscape_view/pages/play_queue_page.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
-Widget playModeButton(double? size, {Color? textColor, Color? iconColor}) {
+Widget playModeButton(double? size, {Color? iconColor}) {
   return ValueListenableBuilder(
     valueListenable: playModeNotifier,
     builder: (context, playMode, _) {
@@ -31,56 +31,69 @@ Widget playModeButton(double? size, {Color? textColor, Color? iconColor}) {
           if (playQueue.isEmpty) {
             return;
           }
+
           showAnimationDialog(
             context: context,
 
             child: SizedBox(
               width: 300,
-              height: 300,
+              height: isMobile ? 190 : 170,
               child: Padding(
                 padding: const EdgeInsets.all(10.0),
-                child: ListView(
-                  children: [
-                    ListTile(
-                      title: Text(
-                        l10n.loop,
-                        style: TextStyle(color: textColor),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        audioHandler.changePlayMode(0);
-                      },
-                      trailing: playModeNotifier.value == 0
-                          ? Icon(Icons.check, color: iconColor)
-                          : null,
-                    ),
-                    ListTile(
-                      title: Text(
-                        l10n.shuffle,
-                        style: TextStyle(color: textColor),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        audioHandler.changePlayMode(1);
-                      },
-                      trailing: playModeNotifier.value == 1
-                          ? Icon(Icons.check, color: iconColor)
-                          : null,
-                    ),
-                    ListTile(
-                      title: Text(
-                        l10n.repeat,
-                        style: TextStyle(color: textColor),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        audioHandler.changePlayMode(2);
-                      },
-                      trailing: playModeNotifier.value == 2
-                          ? Icon(Icons.check, color: iconColor)
-                          : null,
-                    ),
-                  ],
+                child: ValueListenableBuilder(
+                  valueListenable: currentSongNotifier,
+                  builder: (context, value, child) {
+                    final iconColor = colorManager.getSpecificIconColor();
+                    final textColor = colorManager.getSpecificTextColor();
+                    return Column(
+                      children: [
+                        ListTile(
+                          leading: ImageIcon(loopImage, color: iconColor),
+                          title: Text(
+                            l10n.loop,
+                            style: TextStyle(color: textColor),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            audioHandler.changePlayMode(0);
+                          },
+                          trailing: playModeNotifier.value == 0
+                              ? Icon(Icons.check, color: iconColor)
+                              : null,
+                        ),
+                        ListTile(
+                          leading: ImageIcon(shuffleImage, color: iconColor),
+
+                          title: Text(
+                            l10n.shuffle,
+                            style: TextStyle(color: textColor),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            audioHandler.changePlayMode(1);
+                          },
+                          trailing: playModeNotifier.value == 1
+                              ? Icon(Icons.check, color: iconColor)
+                              : null,
+                        ),
+                        ListTile(
+                          leading: ImageIcon(repeatImage, color: iconColor),
+
+                          title: Text(
+                            l10n.repeat,
+                            style: TextStyle(color: textColor),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            audioHandler.changePlayMode(2);
+                          },
+                          trailing: playModeNotifier.value == 2
+                              ? Icon(Icons.check, color: iconColor)
+                              : null,
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -197,21 +210,29 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
                     alignment: Alignment.centerRight,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 75, bottom: 100),
-                      child: Material(
-                        elevation: 1,
-                        color: colorManager.getSpecificBgBaseColor(),
-                        shape: SmoothRectangleBorder(
-                          smoothness: 1,
-                          borderRadius: BorderRadius.horizontal(
-                            left: Radius.circular(10),
-                          ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Container(
-                          color: colorManager.getSpecificBgColor(),
-                          width: max(350, MediaQuery.widthOf(context) * 0.2),
-                          child: PlayQueuePage(),
-                        ),
+                      child: ValueListenableBuilder(
+                        valueListenable: currentSongNotifier,
+                        builder: (context, value, child) {
+                          return Material(
+                            elevation: 1,
+                            color: colorManager.getSpecificBgBaseColor(),
+                            shape: SmoothRectangleBorder(
+                              smoothness: 1,
+                              borderRadius: BorderRadius.horizontal(
+                                left: Radius.circular(10),
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Container(
+                              color: colorManager.getSpecificBgColor(),
+                              width: max(
+                                350,
+                                MediaQuery.widthOf(context) * 0.2,
+                              ),
+                              child: PlayQueuePage(),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   );
