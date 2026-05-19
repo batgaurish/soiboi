@@ -207,7 +207,7 @@ class SettingsList extends StatelessWidget {
           context: context,
           child: SizedBox(
             width: 300,
-            height: 300,
+            height: isMobile ? 300 : 280,
             child: Padding(
               padding: const EdgeInsets.all(15),
               child: Column(
@@ -284,7 +284,7 @@ class SettingsList extends StatelessWidget {
           context: context,
           child: SizedBox(
             width: 300,
-            height: 300,
+            height: isMobile ? 200 : 180,
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 10.0,
@@ -380,9 +380,9 @@ class SettingsList extends StatelessWidget {
 
           child: SizedBox(
             width: 300,
-            height: 300,
+            height: isMobile ? 200 : 180,
             child: Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(15.0),
               child: ValueListenableBuilder(
                 valueListenable: localeNotifier,
                 builder: (context, value, child) {
@@ -488,8 +488,8 @@ class SettingsList extends StatelessWidget {
                 height: isPhone && orientation == .landscape
                     ? 350
                     : isMobile
-                    ? 415
-                    : 365,
+                    ? 420
+                    : 370,
                 child: Padding(
                   padding: const EdgeInsets.all(15.0),
                   child: CustomScrollView(
@@ -506,7 +506,7 @@ class SettingsList extends StatelessWidget {
                               children: [
                                 Text(
                                   l10n.mainPageTheme,
-                                  style: .new(fontSize: 16),
+                                  style: .new(fontSize: 18, fontWeight: .bold),
                                 ),
                                 ListTile(
                                   title: Text(l10n.vividMode),
@@ -549,7 +549,7 @@ class SettingsList extends StatelessWidget {
                               children: [
                                 Text(
                                   l10n.lyricsPageTheme,
-                                  style: .new(fontSize: 16),
+                                  style: .new(fontSize: 18, fontWeight: .bold),
                                 ),
                                 ListTile(
                                   title: Text(l10n.vividMode),

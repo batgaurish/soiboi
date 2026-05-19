@@ -334,7 +334,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                                 context: context,
                                 child: SizedBox(
                                   width: 300,
-                                  height: 300,
+                                  height: isMobile ? 300 : 280,
                                   child: Padding(
                                     padding: const EdgeInsets.all(10),
                                     child: ListView(

@@ -128,7 +128,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                       controller: widget.controller,
                       decoration: InputDecoration(
                         visualDensity: widget.compact
-                            ? .new(vertical: -3)
+                            ? .new(vertical: -2.5)
                             : null,
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: specificTextcolor),
