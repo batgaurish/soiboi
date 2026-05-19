@@ -281,10 +281,10 @@ class LyricLineWidget extends StatelessWidget {
                               fontSize: fontSize,
                               fontWeight: .bold,
                               color: isCurrent
-                                  ? lyricsPageHighlightTextColor.value
-                                  : lyricsPageForegroundColor.value.withAlpha(
-                                      128,
-                                    ),
+                                  ? colorManager.getSpecificHighlightTextColor()
+                                  : colorManager
+                                        .getSpecificHighlightTextColor()
+                                        .withAlpha(128),
                             ),
                           ),
                         for (final translate in line.translates)
@@ -294,9 +294,9 @@ class LyricLineWidget extends StatelessWidget {
                             style: TextStyle(
                               fontSize: fontSize - (expanded ? 8 : 4),
                               fontWeight: .bold,
-                              color: lyricsPageForegroundColor.value.withAlpha(
-                                128,
-                              ),
+                              color: colorManager
+                                  .getSpecificTextColor()
+                                  .withAlpha(128),
                             ),
                           ),
                       ],
@@ -408,7 +408,7 @@ class KaraokeTextState extends State<KaraokeText>
       fontWeight: FontWeight.bold,
       color: widget.isDesktopLyrics
           ? Colors.white
-          : lyricsPageHighlightTextColor.value,
+          : colorManager.getSpecificHighlightTextColor(),
     );
 
     return WidgetSpan(
@@ -440,10 +440,12 @@ class KaraokeTextState extends State<KaraokeText>
                 colors: [
                   widget.isDesktopLyrics
                       ? Colors.white
-                      : lyricsPageHighlightTextColor.value,
+                      : colorManager.getSpecificHighlightTextColor(),
                   widget.isDesktopLyrics
                       ? Colors.white.withAlpha(128)
-                      : lyricsPageHighlightTextColor.value.withAlpha(128),
+                      : colorManager.getSpecificHighlightTextColor().withAlpha(
+                          128,
+                        ),
                 ],
                 stops: [p, p],
               ).createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height));

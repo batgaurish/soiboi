@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:particle_music/base/app.dart';
 import 'package:particle_music/base/utils/contrast_color_generator.dart';
@@ -183,10 +181,52 @@ final MyColor lyricsPageMenuColor = MyColor(
   pageType: 1,
 );
 
+final MyColor miniViewForegroundColor = MyColor(
+  getVividValue: () {
+    return contrastColorTheme.regular;
+  },
+  pageType: 2,
+);
+
+final MyColor miniViewHighlightTextColor = MyColor(
+  getVividValue: () {
+    return contrastColorTheme.accent;
+  },
+
+  pageType: 2,
+);
+
+final MyColor miniViewButtonColor = MyColor(
+  getVividValue: () {
+    return contrastColorTheme.regular.withAlpha(50);
+  },
+  pageType: 2,
+);
+
+final MyColor miniViewDividerColor = MyColor(
+  getVividValue: () {
+    return contrastColorTheme.regular;
+  },
+  pageType: 2,
+);
+
+final MyColor miniViewSelectedItemColor = MyColor(
+  getVividValue: () {
+    return contrastColorTheme.regular.withAlpha(50);
+  },
+
+  pageType: 2,
+);
+
+final MyColor miniViewMenuColor = MyColor(
+  vividModeValue: Colors.white10,
+  pageType: 2,
+);
+
 class ColorManager {
   late final List<MyColor> myMainPageColors;
   late final List<MyColor> myLyricsPageColors;
-  late File file;
+  late final List<MyColor> myMiniViewColors;
 
   ColorManager() {
     myMainPageColors = [
@@ -217,6 +257,17 @@ class ColorManager {
       lyricsPageSelectedItemColor,
       lyricsPageMenuColor,
     ];
+
+    if (!isMobile) {
+      myMiniViewColors = [
+        miniViewForegroundColor,
+        miniViewHighlightTextColor,
+        miniViewDividerColor,
+        miniViewButtonColor,
+        miniViewSelectedItemColor,
+        miniViewMenuColor,
+      ];
+    }
   }
 
   void updateMainPageColors() {
@@ -231,9 +282,18 @@ class ColorManager {
     }
   }
 
+  void updateMiniViewColors() {
+    for (final color in myMiniViewColors) {
+      color.updateColor();
+    }
+  }
+
   void updateColors() {
     updateMainPageColors();
     updateLyricsPageColors();
+    if (!isMobile) {
+      updateMiniViewColors();
+    }
   }
 
   Color? getSpecificMainPageCoverArtBaseColorForm(MyAudioMetadata? song) {
@@ -276,7 +336,7 @@ class ColorManager {
 
   Color getSpecificBgColor() {
     return miniModeNotifier.value
-        ? Color.fromARGB(100, 245, 245, 245)
+        ? Colors.transparent
         : displayLyricsPage
         ? lyricsPageBackgroundColor.value
         : isMobile
@@ -286,7 +346,7 @@ class ColorManager {
 
   Color getSpecificTextColor() {
     return miniModeNotifier.value
-        ? Colors.grey.shade50
+        ? miniViewForegroundColor.value
         : displayLyricsPage
         ? lyricsPageForegroundColor.value
         : textColor.value;
@@ -294,7 +354,7 @@ class ColorManager {
 
   Color getSpecificHighlightTextColor() {
     return miniModeNotifier.value
-        ? Colors.grey.shade50
+        ? miniViewHighlightTextColor.value
         : displayLyricsPage
         ? lyricsPageHighlightTextColor.value
         : highlightTextColor.value;
@@ -302,7 +362,7 @@ class ColorManager {
 
   Color getSpecificIconColor() {
     return miniModeNotifier.value
-        ? Colors.grey.shade50
+        ? miniViewForegroundColor.value
         : displayLyricsPage
         ? lyricsPageForegroundColor.value
         : iconColor.value;
@@ -310,7 +370,7 @@ class ColorManager {
 
   Color getSpecificButtonColor() {
     return miniModeNotifier.value
-        ? currentCoverArtColor.withAlpha(75)
+        ? miniViewButtonColor.value
         : displayLyricsPage
         ? lyricsPageButtonColor.value
         : buttonColor.value;
@@ -318,7 +378,7 @@ class ColorManager {
 
   Color getSpecificDividerColor() {
     return miniModeNotifier.value
-        ? currentCoverArtColor
+        ? miniViewDividerColor.value
         : displayLyricsPage
         ? lyricsPageDividerColor.value
         : dividerColor.value;
@@ -326,7 +386,7 @@ class ColorManager {
 
   Color getSpecificSelectedItemColor() {
     return miniModeNotifier.value
-        ? Colors.grey.shade50.withAlpha(50)
+        ? miniViewSelectedItemColor.value
         : displayLyricsPage
         ? lyricsPageSelectedItemColor.value
         : selectedItemColor.value;
@@ -334,7 +394,7 @@ class ColorManager {
 
   Color getSpecificMenuColor() {
     if (miniModeNotifier.value) {
-      return Colors.white30;
+      return miniViewMenuColor.value;
     }
     return displayLyricsPage ? lyricsPageMenuColor.value : menuColor.value;
   }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:particle_music/base/audio_handler.dart';
@@ -33,6 +32,12 @@ class MiniView extends StatefulWidget {
 class _MiniViewState extends State<MiniView> {
   final displayCoverNotifier = ValueNotifier(true);
   final _lyricsOrPlayQueueNotifier = ValueNotifier(true);
+
+  @override
+  void initState() {
+    super.initState();
+    colorManager.updateMiniViewColors();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +79,6 @@ class _MiniViewState extends State<MiniView> {
                   height: height - width,
                   child: Stack(
                     children: [
-                      Container(color: Color.fromARGB(100, 245, 245, 245)),
-
                       ValueListenableBuilder(
                         valueListenable: _lyricsOrPlayQueueNotifier,
                         builder: (context, value, child) {
@@ -143,37 +146,27 @@ class _MiniViewState extends State<MiniView> {
             return ValueListenableBuilder(
               valueListenable: miniModeDisplayOthersNotifier,
               builder: (context, displayOthers, child) {
-                if (!displayOthers) {
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [CoverArtWidget(song: currentSong)],
-                  );
-                }
                 return Stack(
                   fit: StackFit.expand,
 
                   children: [
                     CoverArtWidget(song: currentSong),
+
                     Positioned(
                       left: 0,
                       right: 0,
                       top: 0,
-                      height: 50,
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  currentCoverArtColor.withAlpha(0),
+                      height: 100,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              currentCoverArtColor.withAlpha(0),
 
-                                  currentCoverArtColor.withAlpha(180),
-                                ],
-                              ),
-                            ),
+                              currentCoverArtColor,
+                            ],
                           ),
                         ),
                       ),
@@ -183,30 +176,28 @@ class _MiniViewState extends State<MiniView> {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      height: 135,
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  currentCoverArtColor.withAlpha(0),
-                                  currentCoverArtColor.withAlpha(180),
-                                ],
-                              ),
-                            ),
+                      height: 250,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              currentCoverArtColor.withAlpha(0),
+
+                              currentCoverArtColor,
+                            ],
                           ),
                         ),
                       ),
                     ),
 
-                    topControls(),
-                    centerListTile(currentSong),
-                    seekBar(),
-                    bottomControls(),
+                    if (displayOthers) ...[
+                      topControls(),
+                      centerListTile(currentSong),
+                      seekBar(),
+                      bottomControls(),
+                    ],
                   ],
                 );
               },
@@ -274,54 +265,61 @@ class _MiniViewState extends State<MiniView> {
       top: 5,
       left: 10,
       right: 10,
-      child: Row(
-        children: [
-          Speaker(color: Colors.grey.shade50),
-          SizedBox(
-            height: 20,
-            width: 120,
-            child: VolumeBar(activeColor: Colors.grey.shade50),
-          ),
-          Spacer(),
-          IconButton(
-            color: Colors.grey.shade50,
-            onPressed: () async {
-              await windowManager.hide();
+      child: ValueListenableBuilder(
+        valueListenable: miniViewForegroundColor.valueNotifier,
+        builder: (context, foregroundColor, child) {
+          return Row(
+            children: [
+              Speaker(color: foregroundColor),
+              SizedBox(
+                height: 20,
+                width: 120,
+                child: VolumeBar(activeColor: foregroundColor),
+              ),
+              Spacer(),
+              IconButton(
+                color: foregroundColor,
+                onPressed: () async {
+                  await windowManager.hide();
 
-              if (!Platform.isLinux) {
-                await windowManager.resetMaximumSize();
-              }
-              if (Platform.isWindows) {
-                await windowManager.setMinimumSize(Size(1050 + 16, 700 + 9));
-                await windowManager.setSize(Size(1050 + 16, 700 + 9));
-              } else {
-                await windowManager.setMinimumSize(Size(1050, 700));
-                await windowManager.setSize(Size(1050, 700));
-              }
-              miniModeNotifier.value = false;
-              await Future.delayed(Duration(milliseconds: 200));
-              await windowManager.show();
-            },
-            icon: ImageIcon(miniModeImage),
-          ),
-          IconButton(
-            color: Colors.grey.shade50,
+                  if (!Platform.isLinux) {
+                    await windowManager.resetMaximumSize();
+                  }
+                  if (Platform.isWindows) {
+                    await windowManager.setMinimumSize(
+                      Size(1050 + 16, 700 + 9),
+                    );
+                    await windowManager.setSize(Size(1050 + 16, 700 + 9));
+                  } else {
+                    await windowManager.setMinimumSize(Size(1050, 700));
+                    await windowManager.setSize(Size(1050, 700));
+                  }
+                  miniModeNotifier.value = false;
+                  await Future.delayed(Duration(milliseconds: 200));
+                  await windowManager.show();
+                },
+                icon: ImageIcon(miniModeImage),
+              ),
+              IconButton(
+                color: foregroundColor,
 
-            onPressed: () {
-              windowManager.minimize();
-            },
-            icon: ImageIcon(minimizeImage),
-          ),
+                onPressed: () {
+                  windowManager.minimize();
+                },
+                icon: ImageIcon(minimizeImage),
+              ),
 
-          IconButton(
-            color: Colors.grey.shade50,
+              IconButton(
+                color: foregroundColor,
 
-            onPressed: () {
-              windowManager.close();
-            },
-            icon: ImageIcon(closeImage),
-          ),
-        ],
+                onPressed: () {
+                  windowManager.close();
+                },
+                icon: ImageIcon(closeImage),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -331,24 +329,33 @@ class _MiniViewState extends State<MiniView> {
       top: 5,
       left: 0,
       right: 0,
-      child: ListTile(
-        leading: CoverArtWidget(song: currentSong, size: 50, borderRadius: 5),
-        title: Text(
-          getTitle(currentSong),
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            overflow: .ellipsis,
-            color: Colors.grey.shade50,
-          ),
-        ),
-        subtitle: Text(
-          "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-          style: TextStyle(
-            fontSize: 12,
-            overflow: .ellipsis,
-            color: Colors.grey.shade50,
-          ),
-        ),
+      child: ValueListenableBuilder(
+        valueListenable: miniViewForegroundColor.valueNotifier,
+        builder: (context, foregroundColor, child) {
+          return ListTile(
+            leading: CoverArtWidget(
+              song: currentSong,
+              size: 50,
+              borderRadius: 5,
+            ),
+            title: Text(
+              getTitle(currentSong),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                overflow: .ellipsis,
+                color: foregroundColor,
+              ),
+            ),
+            subtitle: Text(
+              "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
+              style: TextStyle(
+                fontSize: 12,
+                overflow: .ellipsis,
+                color: foregroundColor,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -358,23 +365,28 @@ class _MiniViewState extends State<MiniView> {
       left: 0,
       right: 0,
       bottom: 70,
-      child: ListTile(
-        title: Text(
-          getTitle(currentSong),
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            overflow: .ellipsis,
-            color: Colors.grey.shade50,
-          ),
-        ),
-        subtitle: Text(
-          "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-          style: TextStyle(
-            fontSize: 12,
-            overflow: .ellipsis,
-            color: Colors.grey.shade50,
-          ),
-        ),
+      child: ValueListenableBuilder(
+        valueListenable: miniViewForegroundColor.valueNotifier,
+        builder: (context, foregroundColor, child) {
+          return ListTile(
+            title: Text(
+              getTitle(currentSong),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                overflow: .ellipsis,
+                color: foregroundColor,
+              ),
+            ),
+            subtitle: Text(
+              "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
+              style: TextStyle(
+                fontSize: 12,
+                overflow: .ellipsis,
+                color: foregroundColor,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -384,11 +396,16 @@ class _MiniViewState extends State<MiniView> {
       bottom: 45,
       left: 15,
       right: 15,
-      child: SeekBar(
-        color: Colors.grey.shade50,
-        isMiniMode: true,
-        widgetHeight: 50,
-        seekBarHeight: 10,
+      child: ValueListenableBuilder(
+        valueListenable: miniViewForegroundColor.valueNotifier,
+        builder: (context, foregroundColor, child) {
+          return SeekBar(
+            color: foregroundColor,
+            isMiniMode: true,
+            widgetHeight: 50,
+            seekBarHeight: 10,
+          );
+        },
       ),
     );
   }
@@ -398,77 +415,84 @@ class _MiniViewState extends State<MiniView> {
       bottom: 0,
       left: 10,
       right: 10,
-      child: Row(
-        children: [
-          Spacer(),
-          playModeButton(25, iconColor: Colors.grey.shade50),
+      child: ValueListenableBuilder(
+        valueListenable: miniViewForegroundColor.valueNotifier,
+        builder: (context, foregroundColor, child) {
+          return Row(
+            children: [
+              Spacer(),
+              playModeButton(25, iconColor: foregroundColor),
 
-          Spacer(),
+              Spacer(),
 
-          IconButton(
-            onPressed: () async {
-              _lyricsOrPlayQueueNotifier.value = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                final size = await windowManager.getSize();
-                if (size.height <= size.width) {
-                  windowManager.setSize(Size(size.width, size.width + 300));
-                }
-              });
-            },
-            icon: ImageIcon(lyricsImage),
-            color: Colors.grey.shade50,
-          ),
-          Spacer(),
+              IconButton(
+                onPressed: () async {
+                  _lyricsOrPlayQueueNotifier.value = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    final size = await windowManager.getSize();
+                    if (size.height <= size.width) {
+                      windowManager.setSize(Size(size.width, size.width + 300));
+                    }
+                  });
+                },
+                icon: ImageIcon(lyricsImage),
+                color: foregroundColor,
+              ),
+              Spacer(),
 
-          skip2PreviousButton(25, iconColor: Colors.grey.shade50),
+              skip2PreviousButton(25, iconColor: foregroundColor),
 
-          Spacer(),
+              Spacer(),
 
-          playOrPauseButton(35, iconColor: Colors.grey.shade50),
+              playOrPauseButton(35, iconColor: foregroundColor),
 
-          Spacer(),
+              Spacer(),
 
-          skip2NextButton(25, iconColor: Colors.grey.shade50),
+              skip2NextButton(25, iconColor: foregroundColor),
 
-          Spacer(),
+              Spacer(),
 
-          IconButton(
-            onPressed: () async {
-              _lyricsOrPlayQueueNotifier.value = false;
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                final size = await windowManager.getSize();
-                if (size.height <= size.width) {
-                  if (Platform.isWindows) {
-                    windowManager.setSize(
-                      Size(size.width, size.width + 316 - 7),
-                    );
+              IconButton(
+                onPressed: () async {
+                  _lyricsOrPlayQueueNotifier.value = false;
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    final size = await windowManager.getSize();
+                    if (size.height <= size.width) {
+                      if (Platform.isWindows) {
+                        windowManager.setSize(
+                          Size(size.width, size.width + 316 - 7),
+                        );
+                      } else {
+                        windowManager.setSize(
+                          Size(size.width, size.width + 316),
+                        );
+                      }
+                    }
+                  });
+                },
+                icon: const ImageIcon(playQueueImage, size: 25),
+                color: foregroundColor,
+              ),
+              Spacer(),
+
+              IconButton(
+                onPressed: () async {
+                  if (lyricsWindowVisible) {
+                    await lyricsWindowController!.hide();
                   } else {
-                    windowManager.setSize(Size(size.width, size.width + 316));
+                    await updateDesktopLyrics();
+                    await lyricsWindowController!.show();
                   }
-                }
-              });
-            },
-            icon: const ImageIcon(playQueueImage, size: 25),
-            color: Colors.grey.shade50,
-          ),
-          Spacer(),
+                  lyricsWindowVisible = !lyricsWindowVisible;
+                },
+                icon: const ImageIcon(desktopLyricsImage, size: 25),
 
-          IconButton(
-            onPressed: () async {
-              if (lyricsWindowVisible) {
-                await lyricsWindowController!.hide();
-              } else {
-                await updateDesktopLyrics();
-                await lyricsWindowController!.show();
-              }
-              lyricsWindowVisible = !lyricsWindowVisible;
-            },
-            icon: const ImageIcon(desktopLyricsImage, size: 25),
-
-            color: Colors.grey.shade50,
-          ),
-          Spacer(),
-        ],
+                color: foregroundColor,
+              ),
+              Spacer(),
+            ],
+          );
+        },
       ),
     );
   }

@@ -22,6 +22,7 @@ import 'package:particle_music/base/data/library.dart';
 import 'package:particle_music/base/my_audio_metadata.dart';
 import 'package:particle_music/base/services/navidrome_client.dart';
 import 'package:particle_music/base/utils/metadata_utils.dart';
+import 'package:particle_music/mini_view/mini_view.dart';
 import 'dart:async';
 
 import 'package:particle_music/portrait_view/sleep_timer.dart';
@@ -471,16 +472,13 @@ class MyAudioHandler extends BaseAudioHandler {
 
     await setParsedLyrics(currentSong);
     currentCoverArtColor = await computeCoverArtColor(currentSong);
+    contrastColorTheme = ContrastColorGenerator.generate(currentCoverArtColor);
     if (lyricsPageThemeNotifier.value == .vivid) {
-      lyricsPageBackgroundColor.updateColor();
-      contrastColorTheme = ContrastColorGenerator.generate(
-        currentCoverArtColor,
-      );
-      lyricsPageForegroundColor.updateColor();
-      lyricsPageHighlightTextColor.updateColor();
-      lyricsPageButtonColor.updateColor();
-      lyricsPageDividerColor.updateColor();
-      lyricsPageSelectedItemColor.updateColor();
+      colorManager.updateLyricsPageColors();
+    }
+
+    if (miniModeNotifier.value) {
+      colorManager.updateMiniViewColors();
     }
 
     currentSongNotifier.value = currentSong;
