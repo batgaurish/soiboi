@@ -2,7 +2,7 @@
 
 # ---------- CONFIG ----------
 APP_NAME="Sylvakru"           # Executable name
-APP_VERSION="2.3.0"               # Debian version
+APP_VERSION="3.0.0"               # Debian version
 MAINTAINER="AfalpHy"
 EXECUTABLE="build/linux/x64/release/bundle/$APP_NAME"
 DATA="build/linux/x64/release/bundle/data"
