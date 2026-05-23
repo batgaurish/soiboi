@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/utils/dynamic_route.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/base/services/keyboard.dart';
 import 'package:sylvakru/landscape_view/landscape_view.dart';
@@ -32,6 +34,16 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
     if (Platform.isAndroid) {
       WidgetsBinding.instance.addObserver(this);
     }
+
+    if (autoPlayOnStartupNotifier.value && currentSongNotifier.value != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).push(DynamicRoute(pageBuilder: (_, _, _) => LyricsPageLayer()));
+      });
+    }
+
     if (isTV) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         songsFocusNode.requestFocus();
