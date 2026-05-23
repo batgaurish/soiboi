@@ -2,9 +2,17 @@
     <img src="./app_icons/icon.png" width="256"/>
 </div>
 
-# sylvakru
+# Sylvakru
 
-A cross-platform local music player supporting Android, iOS, Windows, Linux and macOS. This project is built for learning Flutter and having some fun.
+A cross-platform music player for local libraries and self-hosted media services, supporting Android, iOS, Windows, Linux, and macOS.
+
+Currently supports:
+- Local music libraries
+- WebDAV
+- Navidrome
+- Emby
+
+> Formerly known as Particle Music.
 
 ## Supported Formats
 
