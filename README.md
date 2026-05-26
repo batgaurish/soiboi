@@ -66,6 +66,10 @@ flutter run --release
 flutter build linux
 # if you want to generate a .deb package
 flutter build linux && ./generate_deb.sh
+
+# if you want to generate a .rpm package
+sudo apt install rpm
+flutter build linux && ./generate_rpm.sh
 ```
 
 ### Windows
