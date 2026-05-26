@@ -48,7 +48,7 @@ chmod 755 "$PACKAGE_DIR/usr/bin/$BINARY_NAME"
 chmod 755 "$PACKAGE_DIR/usr/lib/$BINARY_NAME/$BINARY_NAME"
 
 # Runtime dependencies
-DEPENDS="libc6 (>= 2.31), libstdc++6, libgtk-3-0, libayatana-appindicator3-1, libdbusmenu-gtk3-4, libmpv2"
+DEPENDS="libc6 (>= 2.31), libstdc++6, libgtk-3-0, libayatana-appindicator3-1, libdbusmenu-gtk3-4, libmpv1 | libmpv2"
 
 # Control file
 cat > "$PACKAGE_DIR/DEBIAN/control" <<EOL
