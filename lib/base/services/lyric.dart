@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:charset/charset.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
@@ -188,15 +187,6 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
 }
 
 Future<void> updateDesktopLyrics() async {
-  if (isMobile) {
-    FlutterOverlayWindow.shareData({
-      'position': audioHandler.getPosition().inMicroseconds,
-      'lyric_line': currentLyricLine?.toMap(),
-      'isKaraoke': currentLyricLineIsKaraoke,
-    });
-    return;
-  }
-
   await lyricsWindowController?.updateLyric(
     audioHandler.getPosition(),
     currentLyricLine,

@@ -77,7 +77,6 @@ dependencies:
   lpinyin: ^2.0.3
   flex_color_picker: ^3.8.0
   google_fonts: ^8.0.2
-  flutter_overlay_window: ^0.5.0
   http: ^1.6.0
   url_launcher: ^6.3.2
   dio: ^5.9.2
