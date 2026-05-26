@@ -150,9 +150,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                   );
                 },
                 itemCount: currentSongList.length,
-                onReorder: (oldIndex, newIndex) {
-                  if (newIndex > oldIndex) newIndex -= 1;
-
+                onReorderItem: (oldIndex, newIndex) {
                   final item = songList.removeAt(oldIndex);
                   songList.insert(newIndex, item);
 

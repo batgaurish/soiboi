@@ -21,10 +21,12 @@ class MySheet extends StatelessWidget {
             smoothness: 1,
             borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
           ),
-          color: colorManager.getSpecificBgBaseColor(),
+          color: Color.alphaBlend(
+            colorManager.getSpecificBgColor(),
+            colorManager.getSpecificBgBaseColor(),
+          ),
           clipBehavior: .antiAlias,
-          child: Container(
-            color: colorManager.getSpecificBgColor(),
+          child: SizedBox(
             height: height ?? min(500, MediaQuery.heightOf(context) * 0.6),
             child: MediaQuery.removePadding(
               context: context,

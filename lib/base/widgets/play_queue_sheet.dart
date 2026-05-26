@@ -143,8 +143,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                 child: ReorderableListView.builder(
                   scrollController: scrollController,
                   itemExtent: 54,
-                  onReorder: (oldIndex, newIndex) {
-                    if (newIndex > oldIndex) newIndex -= 1;
+                  onReorderItem: (oldIndex, newIndex) {
                     if (oldIndex == audioHandler.currentIndex) {
                       audioHandler.currentIndex = newIndex;
                     } else if (oldIndex < audioHandler.currentIndex &&

@@ -307,18 +307,18 @@ Future<T?> showAnimationDialog<T>({
                                 smoothness: 1,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              color: colorManager.getSpecificBgBaseColor(),
+                              color: Color.alphaBlend(
+                                colorManager.getSpecificBgColor(),
+                                colorManager.getSpecificBgBaseColor(),
+                              ),
                               clipBehavior: Clip.antiAliasWithSaveLayer,
-                              child: Container(
-                                color: colorManager.getSpecificBgColor(),
-                                child: MediaQuery.removePadding(
-                                  context: context,
-                                  removeLeft: true,
-                                  removeRight: true,
-                                  removeTop: true,
-                                  removeBottom: true,
-                                  child: child,
-                                ),
+                              child: MediaQuery.removePadding(
+                                context: context,
+                                removeLeft: true,
+                                removeRight: true,
+                                removeTop: true,
+                                removeBottom: true,
+                                child: child,
                               ),
                             );
                           },

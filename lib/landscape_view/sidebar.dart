@@ -320,8 +320,7 @@ class Sidebar extends StatelessWidget {
                       valueListenable: playlistManager.updateNotifier,
                       builder: (context, _, _) {
                         return SliverReorderableList(
-                          onReorder: (oldIndex, newIndex) {
-                            if (newIndex > oldIndex) newIndex -= 1;
+                          onReorderItem: (oldIndex, newIndex) {
                             final item = playlistManager.playlists.removeAt(
                               oldIndex + 1,
                             );

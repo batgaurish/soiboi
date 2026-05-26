@@ -138,10 +138,7 @@ Widget reorderablePlaylistsView(BuildContext context) {
       child: _playlistListTile(playlistManager.playlists[0]),
     ),
     buildDefaultDragHandles: false,
-    onReorder: (oldIndex, newIndex) {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
+    onReorderItem: (oldIndex, newIndex) {
       final item = playlistManager.playlists.removeAt(oldIndex + 1);
       playlistManager.playlists.insert(newIndex + 1, item);
       playlistManager.update();

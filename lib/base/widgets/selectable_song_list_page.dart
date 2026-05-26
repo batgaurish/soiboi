@@ -298,8 +298,7 @@ class SelectableSongListPageState extends State<SelectableSongListPage> {
                         Expanded(
                           child: ReorderableListView.builder(
                             buildDefaultDragHandles: false,
-                            onReorder: (oldIndex, newIndex) {
-                              if (newIndex > oldIndex) newIndex -= 1;
+                            onReorderItem: (oldIndex, newIndex) {
                               final checkBoxitem = isSelectedList.removeAt(
                                 oldIndex,
                               );

@@ -80,8 +80,7 @@ class PlayQueuePageState extends State<PlayQueuePage> {
             slivers: [
               SliverReorderableList(
                 itemExtent: itemExtend,
-                onReorder: (oldIndex, newIndex) {
-                  if (newIndex > oldIndex) newIndex -= 1;
+                onReorderItem: (oldIndex, newIndex) {
                   if (oldIndex == audioHandler.currentIndex) {
                     audioHandler.currentIndex = newIndex;
                   } else if (oldIndex < audioHandler.currentIndex &&
