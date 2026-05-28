@@ -718,7 +718,7 @@ packages:
     description:
       path: "libs/windows/media_kit_libs_windows_audio"
       ref: main
-      resolved-ref: "5695a0bff0e78f4dd7021cdfd320942b93666667"
+      resolved-ref: "9686489ced993b9ee27f6f9329c4f1a0d50d86b9"
       url: "https://github.com/AfalpHy/media-kit"
     source: git
     version: "1.0.10"
