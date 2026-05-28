@@ -90,6 +90,15 @@ class MyAudioHandler extends BaseAudioHandler {
 
     _player.stream.completed.listen((completed) async {
       if (completed) {
+        final position = _player.state.position;
+        final duration = _player.state.duration;
+
+        // fake completed
+        if ((duration - position).inSeconds > 2) {
+          await pause();
+          return;
+        }
+
         bool needPauseTmp = needPause;
 
         if (playModeNotifier.value == 2) {
