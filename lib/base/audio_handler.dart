@@ -54,6 +54,8 @@ Future<void> initAudioService() async {
   _session = await AudioSession.instance;
   await _session.configure(AudioSessionConfiguration.music());
 
+  await _session.setActive(true);
+
   _session.becomingNoisyEventStream.listen((_) {
     audioHandler.pause();
   });
