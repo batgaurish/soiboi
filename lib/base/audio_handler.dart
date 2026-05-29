@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
@@ -666,13 +667,70 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   void applyEqualizer() async {
-    final af = [
-      'aformat=sample_fmts=fltp',
+    bool isAllZero = gains.every((g) => g.abs() < 0.01);
+    String af = '';
 
-      ...List.generate(freqs.length, (i) {
-        return 'equalizer=f=${freqs[i]}:t=o:w=1:g=${gains[i]}';
-      }),
-    ].join(',');
+    if (!isAllZero) {
+      double g1 = gains[0]; // 31Hz
+      double g2 = gains[1]; // 62Hz
+      double g3 = gains[2]; // 125Hz
+      double g4 = gains[3]; // 250Hz
+      double g5 = gains[4]; // 500Hz
+      double g6 = gains[5]; // 1kHz
+      double g7 = gains[6]; // 2kHz
+      double g8 = gains[7]; // 4kHz
+      double g9 = gains[8]; // 8kHz
+      double g10 = gains[9]; // 16kHz
+
+      double b1 = g1; // 65Hz
+      double b2 = 0.0;
+      double b3 = g2; // 131Hz
+      double b4 = g3; // 185Hz
+      double b5 = 0.0; // 263Hz
+      double b6 = g4; // 371Hz
+      double b7 = g5; // 525Hz
+      double b8 = 0.0; // 742Hz
+      double b9 = g6; // 1050Hz
+      double b10 = g7; // 1480Hz
+      double b11 = 0.0; // 2090Hz
+      double b12 = g8; // 2960Hz
+      double b13 = 0.0;
+      double b14 = g9; // 5920Hz
+      double b15 = 0.0; // 8370Hz
+      double b16 = g10; // 11800Hz
+      double b17 = g10; // 16700Hz
+      double b18 = g10; // 20000Hz
+
+      List<double> bValues = [
+        b1,
+        b2,
+        b3,
+        b4,
+        b5,
+        b6,
+        b7,
+        b8,
+        b9,
+        b10,
+        b11,
+        b12,
+        b13,
+        b14,
+        b15,
+        b16,
+        b17,
+        b18,
+      ];
+
+      final List<String> activeParams = [];
+      for (int i = 0; i < bValues.length; i++) {
+        double multiplier = math.pow(10, bValues[i] / 20).toDouble();
+
+        activeParams.add('${i + 1}b=${multiplier.toStringAsFixed(3)}');
+      }
+      af = 'superequalizer=${activeParams.join(":")}';
+    }
+
     await (_player.platform as NativePlayer).setProperty('af', af);
     saveEqualizerState();
   }
