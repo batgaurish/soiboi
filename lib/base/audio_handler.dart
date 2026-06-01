@@ -82,6 +82,7 @@ class MyAudioHandler extends BaseAudioHandler {
   late final File _equalizerState;
 
   bool isLoading = false;
+  bool isSyncing = false;
 
   MyAudioHandler() {
     // avoid reading .lrc files
@@ -104,6 +105,9 @@ class MyAudioHandler extends BaseAudioHandler {
 
         bool needPauseTmp = needPause;
 
+        while (isSyncing) {
+          await Future.delayed(Duration(milliseconds: 50));
+        }
         if (playModeNotifier.value == 2) {
           // repeat
           await load();
@@ -123,7 +127,7 @@ class MyAudioHandler extends BaseAudioHandler {
     });
 
     _player.stream.position.listen((position) {
-      if (isLoading) {
+      if (isLoading || isSyncing) {
         return;
       }
       _tryUpdateDesktopLyrics(position);
@@ -471,12 +475,14 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> sync() async {
+    isSyncing = true;
     playQueue = getNewQueue(playQueue);
     _playQueueTmp = getNewQueue(_playQueueTmp);
     final currentSong = currentSongNotifier.value;
     if (currentSong != null) {
       final tmpCurrentSong = library.id2Song[currentSong.id];
       if (tmpCurrentSong != null) {
+        await _setLyricsAndUpdateColors(tmpCurrentSong);
         currentSongNotifier.value = tmpCurrentSong;
         currentIndex = playQueue.indexOf(tmpCurrentSong);
         updateServiceMediaItem(tmpCurrentSong);
@@ -494,9 +500,22 @@ class MyAudioHandler extends BaseAudioHandler {
         }
       }
     }
-
+    isSyncing = false;
     _savePlayQueueState();
     savePlayState();
+  }
+
+  Future<void> _setLyricsAndUpdateColors(MyAudioMetadata song) async {
+    await setParsedLyrics(song);
+    currentCoverArtColor = await computeCoverArtColor(song);
+    contrastColorTheme = ContrastColorGenerator.generate(currentCoverArtColor);
+    if (lyricsPageThemeNotifier.value == .vivid) {
+      colorManager.updateLyricsPageColors();
+    }
+
+    if (miniModeNotifier.value) {
+      colorManager.updateMiniViewColors();
+    }
   }
 
   Future<void> load() async {
@@ -522,16 +541,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
     final currentSong = playQueue[currentIndex];
 
-    await setParsedLyrics(currentSong);
-    currentCoverArtColor = await computeCoverArtColor(currentSong);
-    contrastColorTheme = ContrastColorGenerator.generate(currentCoverArtColor);
-    if (lyricsPageThemeNotifier.value == .vivid) {
-      colorManager.updateLyricsPageColors();
-    }
-
-    if (miniModeNotifier.value) {
-      colorManager.updateMiniViewColors();
-    }
+    await _setLyricsAndUpdateColors(currentSong);
 
     currentSongNotifier.value = currentSong;
 
