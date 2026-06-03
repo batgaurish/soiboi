@@ -2,18 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/view_entry.dart';
 
 class DynamicDatailRoute extends PageRouteBuilder {
   DynamicDatailRoute({required super.pageBuilder});
 
   @override
-  Duration get transitionDuration =>
-      Duration(milliseconds: isLandscape ? 500 : 250);
+  Duration get transitionDuration => Duration(milliseconds: 500);
 
   @override
-  Duration get reverseTransitionDuration =>
-      Duration(milliseconds: isLandscape ? 500 : 250);
+  Duration get reverseTransitionDuration => Duration(milliseconds: 500);
 
   @override
   bool get opaque => false;
