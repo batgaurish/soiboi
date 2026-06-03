@@ -71,7 +71,9 @@ class _PlaylistsLayerState extends State<PlaylistsLayer> {
                 return ValueListenableBuilder(
                   valueListenable: playlistsVisibleNotifier,
                   builder: (context, value, child) {
-                    return Opacity(
+                    // set short animation to avoid flickering
+                    return AnimatedOpacity(
+                      duration: Duration(milliseconds: 50),
                       opacity: value ? 1 : 0,
                       child: panelView(context),
                     );

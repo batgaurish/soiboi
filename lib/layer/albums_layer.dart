@@ -96,7 +96,8 @@ class _AlbumsLayerState extends State<AlbumsLayer> {
                 return ValueListenableBuilder(
                   valueListenable: albumsVisibleNotifier,
                   builder: (context, value, child) {
-                    return Opacity(
+                    return AnimatedOpacity(
+                      duration: Duration(milliseconds: 50),
                       opacity: value ? 1 : 0,
                       child: panelView(context),
                     );

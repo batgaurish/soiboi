@@ -98,7 +98,8 @@ class _ArtistsLayerState extends State<ArtistsLayer> {
                 return ValueListenableBuilder(
                   valueListenable: artistsVisibleNotifier,
                   builder: (context, value, child) {
-                    return Opacity(
+                    return AnimatedOpacity(
+                      duration: Duration(milliseconds: 50),
                       opacity: value ? 1 : 0,
                       child: panelView(context),
                     );

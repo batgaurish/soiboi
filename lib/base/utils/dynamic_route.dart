@@ -5,10 +5,10 @@ class DynamicRoute<T> extends PageRouteBuilder<T> {
   DynamicRoute({required super.pageBuilder}) : super(opaque: false);
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 500);
+  Duration get transitionDuration => const Duration(milliseconds: 350);
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 500);
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 350);
 
   @override
   Widget buildTransitions(
