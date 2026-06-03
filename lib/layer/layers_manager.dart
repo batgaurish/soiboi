@@ -238,7 +238,7 @@ class LayersManager {
 
     detailWidgetMap[rootLayer] = detailLayer;
 
-    layersManager.updateBackground();
+    await layersManager.updateBackground();
 
     visibleNotifier.value = false;
     final detailPage = createPage(detailLayer);
@@ -334,7 +334,7 @@ class LayersManager {
       visibleNotifier = settingsVisibleNotifier;
     }
 
-    layersManager.updateBackground();
+    await layersManager.updateBackground();
 
     visibleNotifier.value = true;
     if (rootKey.currentState?.canPop() ?? false) {
