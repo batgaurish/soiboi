@@ -212,21 +212,32 @@ class SettingsList extends StatelessWidget {
               padding: const EdgeInsets.all(15),
               child: Column(
                 children: [
-                  ListTile(
-                    title: Text(l10n.all),
-                    onTap: () async {
-                      if (await showConfirmDialog(context, l10n.syncLibrary)) {
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                        if (Loader.syncing) {
-                          if (context.mounted) {
-                            showCenterMessage(context, l10n.syncingTryLater);
+                  // get context
+                  Builder(
+                    builder: (context) {
+                      return ListTile(
+                        title: Text(l10n.all),
+                        onTap: () async {
+                          if (await showConfirmDialog(
+                            context,
+                            l10n.syncLibrary,
+                          )) {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                            if (Loader.syncing) {
+                              if (context.mounted) {
+                                showCenterMessage(
+                                  context,
+                                  l10n.syncingTryLater,
+                                );
+                              }
+                              return;
+                            }
+                            await Loader.sync(15);
                           }
-                          return;
-                        }
-                        await Loader.sync(15);
-                      }
+                        },
+                      );
                     },
                   ),
 
