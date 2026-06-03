@@ -13,6 +13,8 @@ import 'package:sylvakru/layer/lyrics_page_layer.dart';
 import 'package:sylvakru/mini_view/mini_view.dart';
 import 'package:sylvakru/portrait_view/portrait_view.dart';
 
+bool isLandscape = false;
+
 class ViewEntry extends StatefulWidget {
   const ViewEntry({super.key});
 
@@ -85,9 +87,11 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
           builder: (context, orientation) {
             if (isMobile && orientation == Orientation.portrait) {
               SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+              isLandscape = false;
               return PortraitView();
             } else {
               SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+              isLandscape = true;
               return LandscapeView();
             }
           },
