@@ -31,6 +31,17 @@ class SwitchableSongList extends StatelessWidget {
   });
 
   void switchCallBack(BuildContext context) {
+    if (songListManager.notEmptyCount == 2) {
+      for (final sourceType in SourceType.values) {
+        if (sourceType != songListManager.sourceTypeNotifier.value &&
+            songListManager.getSongList2(sourceType).isNotEmpty) {
+          songListManager.sourceTypeNotifier.value = sourceType;
+          layersManager.updateBackground();
+          break;
+        }
+      }
+      return;
+    }
     showAnimationDialog(
       context: context,
       child: SizedBox(
