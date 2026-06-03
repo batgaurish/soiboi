@@ -19,29 +19,15 @@ class PortraitView extends StatefulWidget {
 class _PortraitViewState extends State<PortraitView>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<Offset> _pushSlideAnimation;
-  late Animation<Offset> _popSlideAnimation;
+  late Animation<Offset> _slideAnimation;
 
-  final dragDxNotifier = ValueNotifier(0.0);
-  final dragNotifier = ValueNotifier(false);
-
-  double slideBeginDx = 0.0;
   void slideBegin() {
-    _controller.forward(from: slideBeginDx);
-    slideBeginDx = 0;
-    dragNotifier.value = false;
+    _controller.forward(from: 0);
   }
 
   void statusListener(AnimationStatus status) {
     if (status != .completed) {
       return;
-    }
-
-    if (layersManager.switchType == .pop) {
-      layersManager.afterPopLayer();
-    } else {
-      dragNotifier.value = true;
-      dragDxNotifier.value = 0;
     }
   }
 
@@ -56,18 +42,10 @@ class _PortraitViewState extends State<PortraitView>
 
     _controller.addStatusListener(statusListener);
 
-    _pushSlideAnimation =
+    _slideAnimation =
         Tween<Offset>(
           begin: Offset(Platform.isIOS ? 1.0 : -1.0, 0.0),
           end: Offset.zero,
-        ).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic),
-        );
-
-    _popSlideAnimation =
-        Tween<Offset>(
-          begin: Offset.zero,
-          end: Offset(Platform.isIOS ? 1.0 : -1.0, 0.0),
         ).animate(
           CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic),
         );
@@ -105,20 +83,6 @@ class _PortraitViewState extends State<PortraitView>
           ValueListenableBuilder(
             valueListenable: layersManager.switchNotifier,
             builder: (context, _, _) {
-              final slideAnimation = layersManager.switchType == .push
-                  ? _pushSlideAnimation
-                  : layersManager.switchType == .pop
-                  ? _popSlideAnimation
-                  : null;
-
-              final bottomPage = layersManager.switchType == .pop
-                  ? layersManager.currentPage
-                  : layersManager.helperPage;
-
-              final topPage = layersManager.switchType == .pop
-                  ? layersManager.helperPage
-                  : layersManager.currentPage;
-
               return GestureDetector(
                 onHorizontalDragEnd: Platform.isAndroid
                     ? (details) {
@@ -129,81 +93,20 @@ class _PortraitViewState extends State<PortraitView>
                     : null,
                 child: Stack(
                   children: [
-                    ...layersManager.pageMap.values
-                        .where((page) => page != topPage)
+                    ...layersManager.rootPageMap.values
+                        .where((page) => page != layersManager.topRootPage)
                         .map(
                           (page) => Visibility(
-                            visible: page == bottomPage,
+                            visible: page == layersManager.bottomRootPage,
                             maintainState: true,
                             child: page,
                           ),
                         ),
 
-                    ValueListenableBuilder(
-                      valueListenable: dragNotifier,
-                      builder: (context, value, child) {
-                        if (value) {
-                          return ValueListenableBuilder(
-                            valueListenable: dragDxNotifier,
-                            builder: (context, value, child) {
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeOutCubic,
-                                transform: .translationValues(value, 0, 0),
-                                child: topPage,
-                              );
-                            },
-                          );
-                        }
-                        if (slideAnimation == null) {
-                          return topPage!;
-                        } else {
-                          return SlideTransition(
-                            position: slideAnimation,
-                            child: topPage,
-                          );
-                        }
-                      },
+                    SlideTransition(
+                      position: _slideAnimation,
+                      child: layersManager.topRootPage,
                     ),
-
-                    if (Platform.isIOS && layersManager.layerHistory.length > 1)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: GestureDetector(
-                          onHorizontalDragUpdate: (details) {
-                            if (dragNotifier.value == false) {
-                              return;
-                            }
-                            dragDxNotifier.value += details.delta.dx;
-                            if (dragDxNotifier.value < 0) {
-                              dragDxNotifier.value = 0;
-                            }
-                          },
-                          onHorizontalDragEnd: (details) {
-                            if (dragNotifier.value == false) {
-                              return;
-                            }
-                            if (dragDxNotifier.value /
-                                        MediaQuery.widthOf(context) >
-                                    0.6 ||
-                                (details.primaryVelocity ?? 0) > 300) {
-                              slideBeginDx =
-                                  dragDxNotifier.value /
-                                  MediaQuery.widthOf(context);
-                              layersManager.popLayer();
-                            } else {
-                              dragDxNotifier.value = 0;
-                            }
-                          },
-
-                          child: Container(
-                            color: Colors.transparent,
-                            width: 20,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               );

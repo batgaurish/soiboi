@@ -146,7 +146,7 @@ class ArtistAlbumManager {
       if (oldAlbum.isEmpty) {
         albumList.remove(oldAlbum);
         name2Album.remove(originAlbum);
-        layersManager.removeLayer(oldAlbum);
+        layersManager.removeLayerIfNeed(oldAlbum);
       }
       final newAlbum = name2Album[currentAlbum]!;
       newAlbum.sort();
@@ -179,7 +179,7 @@ class ArtistAlbumManager {
       if (artist.isEmpty) {
         artistList.remove(artist);
         name2Artist.remove(artist.name);
-        layersManager.removeLayer(artist);
+        layersManager.removeLayerIfNeed(artist);
       }
     }
 
@@ -349,7 +349,10 @@ void showArtistEntries(BuildContext context, List<String> artists) {
                   Navigator.pop(context);
                   await Future.delayed(Duration(milliseconds: 250));
 
-                  layersManager.pushLayer('artists', content: name);
+                  layersManager.switchRootLayer('artists');
+                  layersManager.pushDetailIfNeed(
+                    artistAlbumManager.name2Artist[name],
+                  );
                 },
               ),
             );

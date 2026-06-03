@@ -1,72 +1,24 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:smooth_corner/smooth_corner.dart';
+part of '../../layer/license_layer.dart';
 
-class LicensePanel extends StatefulWidget {
-  const LicensePanel({super.key});
-
-  @override
-  State<StatefulWidget> createState() => _LicensePanelState();
-}
-
-class _LicensePanelState extends State<LicensePanel> {
-  final Map<String, List<LicenseEntry>> package2Licenses = {};
-  String? selectedPackage;
-  List<String> packages = [];
-  final textController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLicenses();
-    textController.addListener(update);
-  }
-
-  @override
-  void dispose() {
-    textController.removeListener(update);
-    super.dispose();
-  }
-
-  void _loadLicenses() async {
-    await for (final license in LicenseRegistry.licenses) {
-      for (final pkg in license.packages) {
-        package2Licenses.putIfAbsent(pkg, () => []).add(license);
-      }
-    }
-
-    update();
-  }
-
-  void update() {
-    setState(() {
-      packages =
-          package2Licenses.keys
-              .where((e) => e.contains(textController.text))
-              .toList()
-            ..sort();
-      selectedPackage = packages.isNotEmpty ? packages.first : null;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+extension _LicensePanel on _LicenseLayerState {
+  Widget panelView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Column(
       children: [
-        TitleBar(hintText: l10n.searchLicenses, textController: textController),
-        Expanded(child: _content()),
+        TitleBar(
+          hintText: l10n.searchLicenses,
+          textController: textController,
+          backToRoot: () {
+            layersManager.popDetail('settings');
+          },
+        ),
+        Expanded(child: panelContent()),
       ],
     );
   }
 
-  Widget _content() {
+  Widget panelContent() {
     return Column(
       children: [
         ValueListenableBuilder(
@@ -115,9 +67,8 @@ class _LicensePanelState extends State<LicensePanel> {
                                     : null,
                                 title: Text(pkg),
                                 onTap: () {
-                                  setState(() {
-                                    selectedPackage = pkg;
-                                  });
+                                  selectedPackage = pkg;
+                                  rebuild();
                                 },
                               );
                             },
@@ -135,33 +86,17 @@ class _LicensePanelState extends State<LicensePanel> {
                   vertical: true,
                 ),
 
-                Expanded(flex: 5, child: _buildLicenseDetail()),
+                Expanded(
+                  flex: 5,
+                  child: selectedPackage == null
+                      ? SizedBox()
+                      : buildLicenseDetail(selectedPackage!),
+                ),
               ],
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildLicenseDetail() {
-    if (selectedPackage == null) {
-      return SizedBox();
-    }
-
-    final licenses = package2Licenses[selectedPackage]!;
-
-    return ListView.separated(
-      itemCount: licenses.length,
-      separatorBuilder: (_, _) =>
-          MyDivider(height: 1, thickness: 0.5, color: dividerColor),
-      itemBuilder: (context, index) {
-        final license = licenses[index];
-
-        final text = license.paragraphs.map((p) => p.text).join('\n\n');
-
-        return Padding(padding: const EdgeInsets.all(12), child: Text(text));
-      },
     );
   }
 }

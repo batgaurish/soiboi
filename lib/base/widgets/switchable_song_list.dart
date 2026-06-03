@@ -4,11 +4,10 @@ import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/song_list_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
+import 'package:sylvakru/base/widgets/song_list.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/panels/song_list_panel.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/pages/song_list_page.dart';
 
 class SwitchableSongList extends StatelessWidget {
   final Playlist? playlist;
@@ -16,9 +15,9 @@ class SwitchableSongList extends StatelessWidget {
   final Album? album;
   final bool isRanking;
   final bool isRecently;
+  final bool isRoot;
 
   final SongListManager songListManager;
-  final bool isPanel;
 
   const SwitchableSongList({
     super.key,
@@ -27,9 +26,8 @@ class SwitchableSongList extends StatelessWidget {
     this.album,
     this.isRanking = false,
     this.isRecently = false,
-
+    this.isRoot = true,
     required this.songListManager,
-    required this.isPanel,
   });
 
   void switchCallBack(BuildContext context) {
@@ -86,65 +84,41 @@ class SwitchableSongList extends StatelessWidget {
       builder: (context, sourceType, child) {
         return Stack(
           children: [
-            if (songListManager.localSongList.isNotEmpty ||
-                songListManager.isEmpty)
-              Visibility(
-                key: ValueKey('local'),
-                visible: sourceType == .local,
-                maintainState: true,
-                child: isPanel ? panel(.local) : page(.local),
-              ),
+            ...(() {
+              List<Widget> widgets = [];
+              for (int i = 0; i < SourceType.values.length; i++) {
+                final tmpSourcetype = SourceType.values[i];
+                final songListIsNotEmpty = songListManager
+                    .getSongList2(tmpSourcetype)
+                    .isNotEmpty;
 
-            if (songListManager.webdavSongList.isNotEmpty)
-              Visibility(
-                key: ValueKey('webdav'),
-                visible: sourceType == .webdav,
-                maintainState: true,
-                child: isPanel ? panel(.webdav) : page(.webdav),
-              ),
+                if (songListIsNotEmpty || (i == 0 && songListManager.isEmpty)) {
+                  widgets.add(
+                    Visibility(
+                      key: ValueKey(tmpSourcetype.name),
+                      visible: sourceType == tmpSourcetype,
+                      maintainState: true,
+                      child: SongList(
+                        playlist: playlist,
+                        artist: artist,
+                        album: album,
+                        isRanking: isRanking,
+                        isRecently: isRecently,
+                        isRoot: isRoot,
+                        sourceType: tmpSourcetype,
+                        switchCallBack: switchCallBack,
+                      ),
+                    ),
+                  );
+                  continue;
+                }
+              }
 
-            if (songListManager.navidromeSongList.isNotEmpty)
-              Visibility(
-                key: ValueKey('navidrome'),
-                visible: sourceType == .navidrome,
-                maintainState: true,
-                child: isPanel ? panel(.navidrome) : page(.navidrome),
-              ),
-
-            if (songListManager.embySongList.isNotEmpty)
-              Visibility(
-                key: ValueKey('emby'),
-                visible: sourceType == .emby,
-                maintainState: true,
-                child: isPanel ? panel(.emby) : page(.emby),
-              ),
+              return widgets;
+            })(),
           ],
         );
       },
-    );
-  }
-
-  Widget panel(SourceType sourceType) {
-    return SongListPanel(
-      playlist: playlist,
-      artist: artist,
-      album: album,
-      isRanking: isRanking,
-      isRecently: isRecently,
-      sourceType: sourceType,
-      switchCallBack: switchCallBack,
-    );
-  }
-
-  Widget page(SourceType sourceType) {
-    return SongListPage(
-      playlist: playlist,
-      artist: artist,
-      album: album,
-      isRanking: isRanking,
-      isRecently: isRecently,
-      sourceType: sourceType,
-      switchCallBack: switchCallBack,
     );
   }
 }

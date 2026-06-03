@@ -211,7 +211,7 @@ class Library {
         continue;
       }
       folder.delete();
-      layersManager.removeLayer(folder);
+      layersManager.removeLayerIfNeed(folder);
     }
 
     if (isLocal) {

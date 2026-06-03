@@ -1,21 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/data/folder.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:smooth_corner/smooth_corner.dart';
+part of '../../layer/folders_layer.dart';
 
-class FoldersPanel extends StatelessWidget {
-  const FoldersPanel({super.key});
-
-  @override
-  Widget build(BuildContext context) {
+extension FoldersPanel on FoldersLayer {
+  Widget panelView(BuildContext context) {
     return Column(
       children: [
         TitleBar(),
@@ -91,7 +77,7 @@ class FoldersPanel extends StatelessWidget {
               return ValueListenableBuilder(
                 valueListenable: folder.changeNotifier,
                 builder: (context, value, child) {
-                  final displaySong = getFirstSong(folder.songList);
+                  final coverSong = getFirstSong(folder.songList);
                   return SizedBox(
                     height: 64,
                     child: InkWell(
@@ -103,22 +89,21 @@ class FoldersPanel extends StatelessWidget {
                       child: Row(
                         children: [
                           SizedBox(width: 20),
-                          displaySong == null
-                              ? CoverArtWidget(
+                          ListenableBuilder(
+                            listenable: Listenable.merge([
+                              coverSong?.updateNotifier,
+                            ]),
+                            builder: (_, _) {
+                              return Hero(
+                                tag: (coverSong?.id ?? '') + folder.id,
+                                child: CoverArtWidget(
                                   size: 50,
                                   borderRadius: 5,
-                                  song: null,
-                                )
-                              : ValueListenableBuilder(
-                                  valueListenable: displaySong.updateNotifier,
-                                  builder: (_, _, _) {
-                                    return CoverArtWidget(
-                                      size: 50,
-                                      borderRadius: 5,
-                                      song: displaySong,
-                                    );
-                                  },
+                                  song: coverSong,
                                 ),
+                              );
+                            },
+                          ),
                           SizedBox(width: 10),
 
                           Expanded(
@@ -130,7 +115,7 @@ class FoldersPanel extends StatelessWidget {
                         ],
                       ),
                       onTap: () {
-                        layersManager.pushLayer('folders', content: folder.id);
+                        layersManager.pushDetail('folders', folder);
                       },
                     ),
                   );

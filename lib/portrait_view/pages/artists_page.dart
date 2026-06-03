@@ -1,58 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
-import 'package:sylvakru/portrait_view/my_search_field.dart';
-import 'package:sylvakru/base/widgets/my_sheet.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
+part of '../../layer/artists_layer.dart';
 
-class ArtistsPage extends StatefulWidget {
-  const ArtistsPage({super.key});
-
-  @override
-  State<StatefulWidget> createState() => _ArtistsPageState();
-}
-
-class _ArtistsPageState extends State<ArtistsPage> {
-  final ValueNotifier<List<Artist>> currentArtistListNotifier = ValueNotifier(
-    artistAlbumManager.artistList,
-  );
-
-  final textController = TextEditingController();
-  final ValueNotifier<bool> isSearchNotifier = ValueNotifier(false);
-
-  @override
-  void initState() {
-    super.initState();
-    updateCurrentArtistList();
-    artistAlbumManager.updateNotifier.addListener(updateCurrentArtistList);
-  }
-
-  @override
-  void dispose() {
-    artistAlbumManager.updateNotifier.removeListener(updateCurrentArtistList);
-    super.dispose();
-  }
-
-  void updateCurrentArtistList() {
-    final value = textController.text;
-    currentArtistListNotifier.value = artistAlbumManager.artistList
-        .where((e) => (e.name.toLowerCase().contains(value.toLowerCase())))
-        .toList();
-    if (artistAlbumManager.artistsRandomizeNotifier.value) {
-      currentArtistListNotifier.value.shuffle();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+extension _ArtistsPage on _ArtistsLayerState {
+  Widget pageView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -74,7 +23,7 @@ class _ArtistsPageState extends State<ArtistsPage> {
           return ValueListenableBuilder(
             valueListenable: currentArtistListNotifier,
             builder: (context, list, child) {
-              return isListView ? listView(list) : gridView(list);
+              return isListView ? listView(list) : pageGridView(list);
             },
           );
         },
@@ -86,7 +35,7 @@ class _ArtistsPageState extends State<ArtistsPage> {
     return MySearchField(
       hintText: hintText,
       textController: textController,
-      onSearchTextChanged: updateCurrentArtistList,
+      onSearchTextChanged: updateCurrentList,
       isSearchNotifier: isSearchNotifier,
     );
   }
@@ -169,8 +118,7 @@ class _ArtistsPageState extends State<ArtistsPage> {
                       MySwitch(
                         trueText: l10n.large,
                         falseText: l10n.small,
-                        valueNotifier:
-                            artistAlbumManager.artistsUseLargePictureNotifier,
+                        valueNotifier: useLargePictureNotifier,
                         onToggleCallBack: () {
                           setting.save();
                         },
@@ -198,9 +146,9 @@ class _ArtistsPageState extends State<ArtistsPage> {
                   MySwitch(
                     trueText: l10n.randomize,
                     falseText: l10n.normal,
-                    valueNotifier: artistAlbumManager.artistsRandomizeNotifier,
+                    valueNotifier: randomizeNotifier,
                     onToggleCallBack: () {
-                      updateCurrentArtistList();
+                      updateCurrentList();
                     },
                   ),
                 ],
@@ -209,7 +157,7 @@ class _ArtistsPageState extends State<ArtistsPage> {
           ),
 
           ValueListenableBuilder(
-            valueListenable: artistAlbumManager.artistsRandomizeNotifier,
+            valueListenable: randomizeNotifier,
             builder: (_, randomize, _) {
               if (randomize) {
                 return SizedBox();
@@ -225,12 +173,11 @@ class _ArtistsPageState extends State<ArtistsPage> {
                       MySwitch(
                         trueText: l10n.ascending,
                         falseText: l10n.descending,
-                        valueNotifier:
-                            artistAlbumManager.artistsIsAscendingNotifier,
+                        valueNotifier: isAscendingNotifier,
                         onToggleCallBack: () {
                           setting.save();
                           artistAlbumManager.sortArtists();
-                          updateCurrentArtistList();
+                          updateCurrentList();
                         },
                       ),
                     ],
@@ -258,10 +205,14 @@ class _ArtistsPageState extends State<ArtistsPage> {
             leading: ValueListenableBuilder(
               valueListenable: artist.songListManager.sourceTypeNotifier,
               builder: (context, value, child) {
-                return CoverArtWidget(
-                  size: 50,
-                  borderRadius: 25,
-                  song: artist.getCoverSong(),
+                final coverSong = artist.getCoverSong();
+                return Hero(
+                  tag: coverSong.id + artist.name,
+                  child: CoverArtWidget(
+                    size: 50,
+                    borderRadius: 25,
+                    song: coverSong,
+                  ),
                 );
               },
             ),
@@ -270,7 +221,7 @@ class _ArtistsPageState extends State<ArtistsPage> {
               AppLocalizations.of(context).songCount(artist.totalCount),
             ),
             onTap: () {
-              layersManager.pushLayer('artists', content: artist.name);
+              layersManager.pushDetail('artists', artist);
             },
           ),
         );
@@ -278,9 +229,9 @@ class _ArtistsPageState extends State<ArtistsPage> {
     );
   }
 
-  Widget gridView(List<Artist> artistList) {
+  Widget pageGridView(List<Artist> artistList) {
     return ValueListenableBuilder(
-      valueListenable: artistAlbumManager.artistsUseLargePictureNotifier,
+      valueListenable: useLargePictureNotifier,
       builder: (context, useLargePicture, child) {
         int crossAxisCount;
         double coverArtWidth;
@@ -309,15 +260,19 @@ class _ArtistsPageState extends State<ArtistsPage> {
                   child: ValueListenableBuilder(
                     valueListenable: artist.songListManager.sourceTypeNotifier,
                     builder: (context, value, child) {
-                      return CoverArtWidget(
-                        size: coverArtWidth,
-                        borderRadius: radius,
-                        song: artist.getCoverSong(),
+                      final coverSong = artist.getCoverSong();
+                      return Hero(
+                        tag: coverSong.id + artist.name,
+                        child: CoverArtWidget(
+                          size: coverArtWidth,
+                          borderRadius: radius,
+                          song: coverSong,
+                        ),
                       );
                     },
                   ),
                   onTap: () {
-                    layersManager.pushLayer('artists', content: artist.name);
+                    layersManager.pushDetail('artists', artist);
                   },
                 ),
                 SizedBox(height: 5),

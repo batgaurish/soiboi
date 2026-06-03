@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/landscape_view/panels/single_artist_panel.dart';
-import 'package:sylvakru/portrait_view/pages/single_artist_page.dart';
+import 'package:sylvakru/base/widgets/switchable_song_list.dart';
 
 class SingleArtistLayer extends StatelessWidget {
   final Artist artist;
@@ -10,14 +8,10 @@ class SingleArtistLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        if (isMobile && orientation == Orientation.portrait) {
-          return SingleArtistPage(artist: artist);
-        } else {
-          return SingleArtistPanel(artist: artist);
-        }
-      },
+    return SwitchableSongList(
+      songListManager: artist.songListManager,
+      artist: artist,
+      isRoot: false,
     );
   }
 }

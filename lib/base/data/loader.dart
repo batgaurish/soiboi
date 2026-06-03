@@ -58,7 +58,7 @@ class Loader {
     await audioHandler.loadPlayState();
     await audioHandler.loadEqualizerState();
 
-    layersManager.pushLayer('songs');
+    layersManager.switchRootLayer('songs');
   }
 
   static Future<void> _prepareForSync(SourceType sourceType) async {

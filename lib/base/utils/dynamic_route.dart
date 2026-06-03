@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sylvakru/base/app.dart';
 
 class DynamicRoute<T> extends PageRouteBuilder<T> {
-  DynamicRoute({required super.pageBuilder})
-    : super(
-        opaque: false,
-        transitionDuration: const Duration(milliseconds: 500),
-        reverseTransitionDuration: const Duration(milliseconds: 500),
-      );
+  DynamicRoute({required super.pageBuilder}) : super(opaque: false);
 
   @override
   Duration get transitionDuration => const Duration(milliseconds: 500);

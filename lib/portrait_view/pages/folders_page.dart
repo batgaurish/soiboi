@@ -1,17 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/data/folder.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
+part of '../../layer/folders_layer.dart';
 
-class FoldersPage extends StatelessWidget {
-  const FoldersPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
+extension FoldersPage on FoldersLayer {
+  Widget pageView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -41,16 +31,25 @@ class FoldersPage extends StatelessWidget {
             leading: ValueListenableBuilder(
               valueListenable: folder.changeNotifier,
               builder: (context, value, child) {
-                return CoverArtWidget(
-                  size: 40,
-                  borderRadius: 4,
-                  song: getFirstSong(folder.songList),
+                final coverSong = getFirstSong(folder.songList);
+                return ListenableBuilder(
+                  listenable: Listenable.merge([coverSong?.updateNotifier]),
+                  builder: (_, _) {
+                    return Hero(
+                      tag: (coverSong?.id ?? '') + folder.id,
+                      child: CoverArtWidget(
+                        size: 50,
+                        borderRadius: 5,
+                        song: coverSong,
+                      ),
+                    );
+                  },
                 );
               },
             ),
             title: Text(folder.id),
             onTap: () {
-              layersManager.pushLayer('folders', content: folder.id);
+              layersManager.pushDetail('folders', folder);
             },
           );
         },

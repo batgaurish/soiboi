@@ -1,51 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+part of '../../layer/playlists_layer.dart';
 
-class PlaylistsPanel extends StatefulWidget {
-  const PlaylistsPanel({super.key});
-
-  @override
-  State<StatefulWidget> createState() => _PlaylistsPanelState();
-}
-
-class _PlaylistsPanelState extends State<PlaylistsPanel> {
-  final playlistsNotifier = ValueNotifier(playlistManager.playlists);
-  final textController = TextEditingController();
-
-  void filterPlaylists() {
-    playlistsNotifier.value = playlistManager.playlists.where((playlist) {
-      return playlist.name.toLowerCase().contains(
-        textController.text.toLowerCase(),
-      );
-    }).toList();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    playlistManager.updateNotifier.addListener(filterPlaylists);
-    textController.addListener(filterPlaylists);
-  }
-
-  @override
-  void dispose() {
-    playlistManager.updateNotifier.removeListener(filterPlaylists);
-    textController.removeListener(filterPlaylists);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+extension _PlaylistsPanel on _PlaylistsLayerState {
+  Widget panelView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Column(
@@ -60,7 +16,6 @@ class _PlaylistsPanelState extends State<PlaylistsPanel> {
   }
 
   Widget contentWidget(BuildContext context) {
-    final panelWidth = (MediaQuery.widthOf(context) - 300);
     final l10n = AppLocalizations.of(context);
 
     return Column(
@@ -135,120 +90,134 @@ class _PlaylistsPanelState extends State<PlaylistsPanel> {
               ),
               SliverToBoxAdapter(child: SizedBox(height: 15)),
 
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-
-                sliver: ValueListenableBuilder(
-                  valueListenable: playlistManager.useLargePictureNotifier,
-                  builder: (context, value, child) {
-                    int crossAxisCount;
-                    double coverArtWidth;
-                    if (value) {
-                      crossAxisCount = (panelWidth / (isTV ? 150 : 240))
-                          .toInt();
-                      coverArtWidth = panelWidth / crossAxisCount - 45;
-                    } else {
-                      crossAxisCount = (panelWidth / (isTV ? 100 : 120))
-                          .toInt();
-                      coverArtWidth = panelWidth / crossAxisCount - 35;
-                    }
-                    return ValueListenableBuilder(
-                      valueListenable: playlistsNotifier,
-                      builder: (context, playlists, child) {
-                        return SliverGrid.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                childAspectRatio: 1.05,
-                              ),
-                          itemCount: playlists.length,
-                          itemBuilder: (context, index) {
-                            final playlist = playlists[index];
-                            return ValueListenableBuilder(
-                              valueListenable:
-                                  playlist.songListManager.changeNotifier,
-                              builder: (context, _, child) {
-                                final coverSong = playlist.getCoverSong();
-                                FocusNode focusNode = FocusNode();
-
-                                return StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return AnimatedScale(
-                                      duration: Duration(milliseconds: 250),
-                                      curve: Curves.easeOutCubic,
-                                      scale: focusNode.hasFocus ? 1.1 : 1.0,
-                                      child: Column(
-                                        children: [
-                                          InkWell(
-                                            focusNode: focusNode,
-                                            onFocusChange: (value) {
-                                              setState(() {});
-                                            },
-                                            mouseCursor:
-                                                SystemMouseCursors.click,
-                                            focusColor: Colors.transparent,
-                                            splashColor: Colors.transparent,
-                                            hoverColor: Colors.transparent,
-                                            highlightColor: Colors.transparent,
-
-                                            child: coverSong == null
-                                                ? CoverArtWidget(
-                                                    size: coverArtWidth,
-                                                    borderRadius: 10,
-                                                    song: null,
-                                                  )
-                                                : ValueListenableBuilder(
-                                                    valueListenable: coverSong
-                                                        .updateNotifier,
-                                                    builder: (_, _, _) {
-                                                      return CoverArtWidget(
-                                                        size: coverArtWidth,
-                                                        borderRadius:
-                                                            coverArtWidth / 10,
-                                                        song: coverSong,
-                                                      );
-                                                    },
-                                                  ),
-                                            onTap: () {
-                                              layersManager.pushLayer(
-                                                '_${playlist.name}',
-                                              );
-                                            },
-                                          ),
-                                          SizedBox(
-                                            width: coverArtWidth - 5,
-                                            child: Center(
-                                              child: Text(
-                                                playlist ==
-                                                        playlistManager
-                                                            .playlists[0]
-                                                    ? l10n.favorites
-                                                    : playlist.name,
-                                                style: TextStyle(
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
+              grid(),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget grid() {
+    final panelWidth = (MediaQuery.widthOf(context) - 300);
+    final l10n = AppLocalizations.of(context);
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+
+      sliver: ValueListenableBuilder(
+        valueListenable: playlistManager.useLargePictureNotifier,
+        builder: (context, value, child) {
+          int crossAxisCount;
+          double coverArtWidth;
+          if (value) {
+            crossAxisCount = (panelWidth / (isTV ? 150 : 240)).toInt();
+            coverArtWidth = panelWidth / crossAxisCount - 45;
+          } else {
+            crossAxisCount = (panelWidth / (isTV ? 100 : 120)).toInt();
+            coverArtWidth = panelWidth / crossAxisCount - 35;
+          }
+          return ValueListenableBuilder(
+            valueListenable: playlistsNotifier,
+            builder: (context, playlists, child) {
+              return SliverGrid.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  childAspectRatio: 1.05,
+                ),
+                itemCount: playlists.length,
+                itemBuilder: (context, index) {
+                  final playlist = playlists[index];
+                  return ValueListenableBuilder(
+                    valueListenable: playlist.songListManager.changeNotifier,
+                    builder: (context, _, child) {
+                      final coverSong = playlist.getCoverSong();
+                      FocusNode focusNode = FocusNode();
+
+                      return StatefulBuilder(
+                        builder: (context, setState) {
+                          return AnimatedScale(
+                            duration: Duration(milliseconds: 250),
+                            curve: Curves.easeOutCubic,
+                            scale: focusNode.hasFocus ? 1.1 : 1.0,
+                            child: Column(
+                              children: [
+                                InkWell(
+                                  focusNode: focusNode,
+                                  onFocusChange: (value) {
+                                    setState(() {});
+                                  },
+                                  mouseCursor: SystemMouseCursors.click,
+                                  focusColor: Colors.transparent,
+                                  splashColor: Colors.transparent,
+                                  hoverColor: Colors.transparent,
+                                  highlightColor: Colors.transparent,
+
+                                  child: ListenableBuilder(
+                                    listenable: Listenable.merge([
+                                      coverSong?.updateNotifier,
+                                    ]),
+                                    builder: (_, _) {
+                                      return Hero(
+                                        tag:
+                                            (coverSong == null
+                                                ? playlist
+                                                      .songListManager
+                                                      .sourceTypeName
+                                                : coverSong.id) +
+                                            playlist.name,
+                                        curve: Curves.easeInOutCubic,
+                                        flightShuttleBuilder:
+                                            (
+                                              flightContext,
+                                              animation,
+                                              flightDirection,
+                                              fromHeroContext,
+                                              toHeroContext,
+                                            ) => FittedBox(
+                                              child: toHeroContext.widget,
+                                            ),
+                                        child: CoverArtWidget(
+                                          size: coverArtWidth,
+                                          borderRadius: coverArtWidth / 10,
+                                          song: coverSong,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  onTap: () {
+                                    layersManager.pushDetail(
+                                      'playlists',
+                                      playlist,
+                                    );
+                                  },
+                                ),
+                                SizedBox(
+                                  width: coverArtWidth - 5,
+                                  child: Center(
+                                    child: Text(
+                                      playlist == playlistManager.playlists[0]
+                                          ? l10n.favorites
+                                          : playlist.name,
+                                      style: TextStyle(
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

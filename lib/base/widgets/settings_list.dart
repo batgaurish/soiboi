@@ -89,7 +89,7 @@ class SettingsList extends StatelessWidget {
               leading: ImageIcon(infoImage, size: iconSize),
               title: Text(l10n.openSourceLicense),
               onTap: () {
-                layersManager.pushLayer('license');
+                layersManager.pushDetail('settings', 'license');
               },
             ),
           ),
@@ -461,7 +461,7 @@ class SettingsList extends StatelessWidget {
 
       title: Text(l10n.fonts),
       onTap: () {
-        layersManager.pushLayer('font_picker');
+        layersManager.pushDetail('settings', 'font_picker');
       },
     );
   }

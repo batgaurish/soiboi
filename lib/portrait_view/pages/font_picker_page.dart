@@ -1,27 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/widgets/font_picker_base.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/widgets/my_sheet.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
-import 'package:sylvakru/portrait_view/my_search_field.dart';
+part of '../../layer/font_picker_layer.dart';
 
-class FontPickerPage extends FontPickerBase {
-  const FontPickerPage({super.key});
-
-  @override
-  State<StatefulWidget> createState() => _FontPickerPageState();
-}
-
-class _FontPickerPageState extends FontPickerBaseState {
-  final ValueNotifier<bool> isSearchNotifier = ValueNotifier(false);
-
-  @override
-  Widget build(BuildContext context) {
+extension _FontPickerPage on _FontPickerLayerState {
+  Widget pageView(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -33,7 +13,7 @@ class _FontPickerPageState extends FontPickerBaseState {
             child: ValueListenableBuilder(
               valueListenable: fontsNotifier,
               builder: (context, fonts, child) {
-                return _content(fonts);
+                return pageContent(fonts);
               },
             ),
           ),
@@ -47,7 +27,7 @@ class _FontPickerPageState extends FontPickerBaseState {
   PreferredSizeWidget customAppBar(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
-      leading: customAppBarLeading(context),
+      leading: customAppBarLeading(context, label: 'settings'),
       backgroundColor: Colors.transparent,
       scrolledUnderElevation: 0,
       actions: [
@@ -117,7 +97,7 @@ class _FontPickerPageState extends FontPickerBaseState {
     );
   }
 
-  Widget _content(List<String> fonts) {
+  Widget pageContent(List<String> fonts) {
     final l10n = AppLocalizations.of(context);
 
     return ListView.builder(

@@ -31,6 +31,8 @@ class SongListManager {
     sourceTypeNotifier.addListener(_notify);
   }
 
+  String get sourceTypeName => sourceTypeNotifier.value.name;
+
   void _notify() {
     changeNotifier.value++;
   }

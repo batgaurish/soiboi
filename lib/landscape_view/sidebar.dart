@@ -142,7 +142,7 @@ class Sidebar extends StatelessWidget {
                         content: l10n.artists,
 
                         onTap: () {
-                          layersManager.pushLayer('artists');
+                          layersManager.switchRootLayer('artists');
                         },
                       ),
                     ),
@@ -155,7 +155,7 @@ class Sidebar extends StatelessWidget {
                         content: l10n.albums,
 
                         onTap: () {
-                          layersManager.pushLayer('albums');
+                          layersManager.switchRootLayer('albums');
                         },
                       ),
                     ),
@@ -168,7 +168,7 @@ class Sidebar extends StatelessWidget {
                         content: l10n.folders,
 
                         onTap: () {
-                          layersManager.pushLayer('folders');
+                          layersManager.switchRootLayer('folders');
                         },
                       ),
                     ),
@@ -181,7 +181,7 @@ class Sidebar extends StatelessWidget {
                         content: l10n.songs,
 
                         onTap: () {
-                          layersManager.pushLayer('songs');
+                          layersManager.switchRootLayer('songs');
                         },
                       ),
                     ),
@@ -206,7 +206,7 @@ class Sidebar extends StatelessWidget {
                         content: l10n.ranking,
 
                         onTap: () {
-                          layersManager.pushLayer('ranking');
+                          layersManager.switchRootLayer('ranking');
                         },
                       ),
                     ),
@@ -219,7 +219,7 @@ class Sidebar extends StatelessWidget {
                         content: l10n.recently,
 
                         onTap: () {
-                          layersManager.pushLayer('recently');
+                          layersManager.switchRootLayer('recently');
                         },
                       ),
                     ),
@@ -273,7 +273,7 @@ class Sidebar extends StatelessWidget {
                           ),
 
                           onTap: () {
-                            layersManager.pushLayer('playlists');
+                            layersManager.switchRootLayer('playlists');
                           },
                         ),
                         menuProvider: (_) {
@@ -363,7 +363,7 @@ class Sidebar extends StatelessWidget {
                 leading: ImageIcon(settingImage, size: 30),
                 content: l10n.settings,
                 onTap: () {
-                  layersManager.pushLayer('settings');
+                  layersManager.switchRootLayer('settings');
                 },
               ),
               SizedBox(height: 40),
@@ -438,7 +438,7 @@ class Sidebar extends StatelessWidget {
                           closeDrawer!.call();
                           await Future.delayed(Duration(milliseconds: 250));
                         }
-                        layersManager.removeLayer(playlist);
+                        layersManager.removeLayerIfNeed(playlist);
                         playlistManager.deletePlaylist(playlist);
                       }
                     },
@@ -472,7 +472,7 @@ class Sidebar extends StatelessWidget {
         content: index == 0 ? l10n.favorites : playlist.name,
 
         onTap: () {
-          layersManager.pushLayer('_${playlist.name}');
+          layersManager.switchRootLayer('_${playlist.name}');
         },
       ),
     );

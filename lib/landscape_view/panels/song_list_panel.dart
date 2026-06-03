@@ -1,111 +1,66 @@
-import 'dart:async';
-import 'dart:math';
+part of '../../base/widgets/song_list.dart';
 
-import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/utils/format_duration.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/widgets/playlist_widgets.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/edit_metadata.dart';
-import 'package:sylvakru/base/services/keyboard.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/widgets/base_song_list.dart';
-import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
-import 'package:sylvakru/base/widgets/song_info.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:smooth_corner/smooth_corner.dart';
-import 'package:super_context_menu/super_context_menu.dart';
-
-class SongListPanel extends BaseSongListWidget {
-  const SongListPanel({
-    super.key,
-    super.playlist,
-    super.artist,
-    super.album,
-    super.folder,
-    super.isRanking,
-    super.isRecently,
-    super.sourceType,
-    super.switchCallBack,
-  });
-
-  @override
-  State<SongListPanel> createState() => _SongListPanel();
-}
-
-class _SongListPanel extends BaseSongListState<SongListPanel> {
-  int continuousSelectBeginIndex = 0;
-
-  final EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 30);
-
-  @override
-  Widget build(BuildContext context) {
+extension _SongListPanel on _SongListState {
+  Widget panelView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Column(
       children: [
-        TitleBar(
-          hintText: l10n.searchSongs,
-          textController: textController,
-          scrollToTop: () {
-            scrollController.animateTo(
-              0,
-              duration: Duration(milliseconds: 250),
-              curve: Curves.linear,
-            );
-          },
-          findLocation: () {
-            if (currentSongNotifier.value == null) {
-              return;
-            }
-            final index = currentSongListNotifier.value.indexOf(
-              currentSongNotifier.value!,
-            );
-            if (index == -1) {
-              showCenterMessage(context, 'Current song not found');
-              return;
-            }
-            final position = scrollController.position;
-            final maxScrollExtent = position.maxScrollExtent;
-            final minScrollExtent = position.minScrollExtent;
-            scrollController.animateTo(
-              (60 * index + 355 - (MediaQuery.heightOf(context) / 2)).clamp(
-                minScrollExtent,
-                maxScrollExtent,
-              ),
-              duration: Duration(milliseconds: 250),
-              curve: Curves.linear,
-            );
-          },
+        Opacity(
+          opacity: hideOthers ? 0 : 1,
+          child: TitleBar(
+            hintText: l10n.searchSongs,
+            textController: textController,
+            backToRoot: backToRoot,
+            scrollToTop: () {
+              scrollController.animateTo(
+                0,
+                duration: Duration(milliseconds: 250),
+                curve: Curves.linear,
+              );
+            },
+            findLocation: () {
+              if (currentSongNotifier.value == null) {
+                return;
+              }
+              final index = currentSongListNotifier.value.indexOf(
+                currentSongNotifier.value!,
+              );
+              if (index == -1) {
+                showCenterMessage(context, 'Current song not found');
+                return;
+              }
+              final position = scrollController.position;
+              final maxScrollExtent = position.maxScrollExtent;
+              final minScrollExtent = position.minScrollExtent;
+              scrollController.animateTo(
+                (60 * index + 355 - (MediaQuery.heightOf(context) / 2)).clamp(
+                  minScrollExtent,
+                  maxScrollExtent,
+                ),
+                duration: Duration(milliseconds: 250),
+                curve: Curves.linear,
+              );
+            },
+          ),
         ),
-        Expanded(child: content(context)),
+        Expanded(child: panelContent(context)),
       ],
     );
   }
 
-  Widget content(BuildContext context) {
+  Widget panelContent(BuildContext context) {
     return CustomScrollView(
       controller: scrollController,
       slivers: [
         SliverToBoxAdapter(
-          child: Padding(padding: padding, child: header()),
+          child: Padding(padding: padding, child: panelHeader()),
         ),
 
         SliverToBoxAdapter(
-          child: Padding(padding: padding, child: label()),
+          child: Padding(
+            padding: padding,
+            child: Opacity(opacity: hideOthers ? 0 : 1, child: label()),
+          ),
         ),
 
         SliverPadding(
@@ -128,6 +83,9 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
               return SliverReorderableList(
                 itemExtent: 60,
                 itemBuilder: (context, index) {
+                  if (hideOthers) {
+                    return SizedBox(key: ValueKey(index));
+                  }
                   if (isFixed) {
                     return SizedBox(
                       key: ValueKey(currentSongList[index]),
@@ -170,7 +128,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
     );
   }
 
-  Widget header() {
+  Widget panelHeader() {
     final l10n = AppLocalizations.of(context);
 
     final size = MediaQuery.of(context).size;
@@ -183,248 +141,256 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
       child: Row(
         children: [
           mainCover(isPhone ? 120 : 160),
-          SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              children: [
-                SizedBox(height: isPhone ? 15 : 30),
-                ListTile(
-                  title: AutoSizeText(
-                    getTitleText(l10n),
-                    maxLines: 1,
-                    minFontSize: 20,
-                    maxFontSize: 20,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontWeight: FontWeight.bold),
+          if (!hideOthers) SizedBox(width: 10),
+          if (!hideOthers)
+            Expanded(
+              child: Column(
+                children: [
+                  SizedBox(height: isPhone ? 15 : 30),
+                  ListTile(
+                    title: AutoSizeText(
+                      getTitleText(l10n),
+                      maxLines: 1,
+                      minFontSize: 20,
+                      maxFontSize: 20,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: ValueListenableBuilder(
+                      valueListenable: currentSongListNotifier,
+                      builder: (context, currentSongList, child) {
+                        String prefix = getSourceTypeName(l10n, sourceType);
+                        return Text(
+                          "$prefix: ${l10n.songCount(currentSongList.length)}",
+                        );
+                      },
+                    ),
                   ),
-                  subtitle: ValueListenableBuilder(
-                    valueListenable: currentSongListNotifier,
-                    builder: (context, currentSongList, child) {
-                      String prefix = getSourceTypeName(l10n, sourceType);
-                      return Text(
-                        "$prefix: ${l10n.songCount(currentSongList.length)}",
+                  Spacer(),
+
+                  ValueListenableBuilder(
+                    valueListenable: buttonColor.valueNotifier,
+                    builder: (_, value, _) {
+                      final buttonStyle = ElevatedButton.styleFrom(
+                        backgroundColor: value,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: EdgeInsets.all(10),
+                      );
+                      return Row(
+                        children: [
+                          SizedBox(width: 10),
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (currentSongListNotifier.value.isEmpty) {
+                                return;
+                              }
+                              audioHandler.currentIndex = 0;
+                              playModeNotifier.value = 0;
+                              await audioHandler.setPlayQueue(
+                                currentSongListNotifier.value,
+                              );
+                              await audioHandler.load();
+                              audioHandler.play();
+                            },
+                            style: buttonStyle,
+                            child: Text(l10n.playAll),
+                          ),
+                          SizedBox(width: 15),
+
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (currentSongListNotifier.value.isEmpty) {
+                                return;
+                              }
+                              audioHandler.currentIndex = Random().nextInt(
+                                currentSongListNotifier.value.length,
+                              );
+                              playModeNotifier.value = 1;
+                              await audioHandler.setPlayQueue(
+                                currentSongListNotifier.value,
+                              );
+                              await audioHandler.load();
+                              audioHandler.play();
+                            },
+                            style: buttonStyle,
+                            child: Text(l10n.shuffle),
+                          ),
+
+                          if (isMobile) ...[
+                            SizedBox(width: 15),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => SelectableSongListPage(
+                                      songList: songList,
+                                      playlist: playlist,
+                                      folder: folder,
+                                      isRanking: isRanking,
+                                      isRecently: isRecently,
+                                      isLibrary: isLibrary,
+                                      reorderable: reorderable,
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: buttonStyle,
+                              child: Text(l10n.select),
+                            ),
+                          ],
+
+                          if (folder == null)
+                            ValueListenableBuilder(
+                              valueListenable: songListManager.changeNotifier,
+                              builder: (context, value, child) {
+                                if (songListManager.notEmptyCount >= 2) {
+                                  return Row(
+                                    children: [
+                                      SizedBox(width: 15),
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          widget.switchCallBack!(context);
+                                        },
+                                        style: buttonStyle,
+                                        child: Text(l10n.switch_),
+                                      ),
+                                    ],
+                                  );
+                                }
+                                return SizedBox.shrink();
+                              },
+                            ),
+
+                          if (isTV && playlist?.isFavorite == false) ...[
+                            SizedBox(width: 15),
+                            ElevatedButton(
+                              onPressed: () async {
+                                if (await showConfirmDialog(
+                                  context,
+                                  l10n.delete,
+                                )) {
+                                  layersManager.removeLayerIfNeed(playlist!);
+                                  playlistManager.deletePlaylist(playlist!);
+                                }
+                              },
+                              style: buttonStyle,
+                              child: Text(l10n.delete),
+                            ),
+                          ],
+
+                          if (isLibrary &&
+                                  (sourceType == .local ||
+                                      sourceType == .webdav) ||
+                              folder != null) ...[
+                            SizedBox(width: 15),
+                            ElevatedButton(
+                              onPressed: () {
+                                showAnimationDialog(
+                                  context: context,
+                                  child: SizedBox(
+                                    width: 300,
+                                    height: isMobile ? 300 : 280,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: ListView(
+                                        children: [
+                                          ListTile(
+                                            title: Text(l10n.defaultText),
+                                            dense: isMobile,
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              sortTypeNotifier.value = 0;
+                                            },
+                                            trailing:
+                                                sortTypeNotifier.value == 0
+                                                ? Icon(Icons.check)
+                                                : null,
+                                          ),
+                                          ListTile(
+                                            title: Text(
+                                              l10n.modifiedTimeAscending,
+                                            ),
+                                            dense: isMobile,
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              sortTypeNotifier.value = 9;
+                                            },
+                                            trailing:
+                                                sortTypeNotifier.value == 9
+                                                ? Icon(Icons.check)
+                                                : null,
+                                          ),
+                                          ListTile(
+                                            title: Text(
+                                              l10n.modifiedTimedescending,
+                                            ),
+                                            dense: isMobile,
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              sortTypeNotifier.value = 10;
+                                            },
+                                            trailing:
+                                                sortTypeNotifier.value == 10
+                                                ? Icon(Icons.check)
+                                                : null,
+                                          ),
+                                          ListTile(
+                                            title: Text(l10n.randomizeTemp),
+                                            dense: isMobile,
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                              sortTypeNotifier.value = 11;
+                                            },
+                                            trailing:
+                                                sortTypeNotifier.value == 11
+                                                ? Icon(Icons.check)
+                                                : null,
+                                          ),
+                                          ListTile(
+                                            title: Text(
+                                              l10n.randomizePermanent,
+                                            ),
+                                            dense: isMobile,
+                                            onTap: () async {
+                                              Navigator.pop(context);
+                                              if (!await showConfirmDialog(
+                                                context,
+                                                l10n.cannotBeUndone,
+                                              )) {
+                                                return;
+                                              }
+                                              sortTypeNotifier.value = 0;
+                                              if (isLibrary) {
+                                                library.shuffle(sourceType);
+                                              } else {
+                                                folder!.shuffle();
+                                              }
+                                            },
+                                            trailing:
+                                                sortTypeNotifier.value == 12
+                                                ? Icon(Icons.check)
+                                                : null,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: buttonStyle,
+                              child: Icon(Icons.sort),
+                            ),
+                          ],
+                        ],
                       );
                     },
                   ),
-                ),
-                Spacer(),
-
-                ValueListenableBuilder(
-                  valueListenable: buttonColor.valueNotifier,
-                  builder: (_, value, _) {
-                    final buttonStyle = ElevatedButton.styleFrom(
-                      backgroundColor: value,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: EdgeInsets.all(10),
-                    );
-                    return Row(
-                      children: [
-                        SizedBox(width: 10),
-                        ElevatedButton(
-                          onPressed: () async {
-                            if (currentSongListNotifier.value.isEmpty) {
-                              return;
-                            }
-                            audioHandler.currentIndex = 0;
-                            playModeNotifier.value = 0;
-                            await audioHandler.setPlayQueue(
-                              currentSongListNotifier.value,
-                            );
-                            await audioHandler.load();
-                            audioHandler.play();
-                          },
-                          style: buttonStyle,
-                          child: Text(l10n.playAll),
-                        ),
-                        SizedBox(width: 15),
-
-                        ElevatedButton(
-                          onPressed: () async {
-                            if (currentSongListNotifier.value.isEmpty) {
-                              return;
-                            }
-                            audioHandler.currentIndex = Random().nextInt(
-                              currentSongListNotifier.value.length,
-                            );
-                            playModeNotifier.value = 1;
-                            await audioHandler.setPlayQueue(
-                              currentSongListNotifier.value,
-                            );
-                            await audioHandler.load();
-                            audioHandler.play();
-                          },
-                          style: buttonStyle,
-                          child: Text(l10n.shuffle),
-                        ),
-
-                        if (isMobile) ...[
-                          SizedBox(width: 15),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => SelectableSongListPage(
-                                    songList: songList,
-                                    playlist: playlist,
-                                    folder: folder,
-                                    isRanking: isRanking,
-                                    isRecently: isRecently,
-                                    isLibrary: isLibrary,
-                                    reorderable: reorderable,
-                                  ),
-                                ),
-                              );
-                            },
-                            style: buttonStyle,
-                            child: Text(l10n.select),
-                          ),
-                        ],
-
-                        if (folder == null)
-                          ValueListenableBuilder(
-                            valueListenable: songListManager.changeNotifier,
-                            builder: (context, value, child) {
-                              if (songListManager.notEmptyCount >= 2) {
-                                return Row(
-                                  children: [
-                                    SizedBox(width: 15),
-                                    ElevatedButton(
-                                      onPressed: () async {
-                                        widget.switchCallBack!(context);
-                                      },
-                                      style: buttonStyle,
-                                      child: Text(l10n.switch_),
-                                    ),
-                                  ],
-                                );
-                              }
-                              return SizedBox.shrink();
-                            },
-                          ),
-
-                        if (isTV && playlist?.isFavorite == false) ...[
-                          SizedBox(width: 15),
-                          ElevatedButton(
-                            onPressed: () async {
-                              if (await showConfirmDialog(
-                                context,
-                                l10n.delete,
-                              )) {
-                                layersManager.removeLayer(playlist!);
-                                playlistManager.deletePlaylist(playlist!);
-                              }
-                            },
-                            style: buttonStyle,
-                            child: Text(l10n.delete),
-                          ),
-                        ],
-
-                        if (isLibrary &&
-                                (sourceType == .local ||
-                                    sourceType == .webdav) ||
-                            folder != null) ...[
-                          SizedBox(width: 15),
-                          ElevatedButton(
-                            onPressed: () {
-                              showAnimationDialog(
-                                context: context,
-                                child: SizedBox(
-                                  width: 300,
-                                  height: isMobile ? 300 : 280,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(10),
-                                    child: ListView(
-                                      children: [
-                                        ListTile(
-                                          title: Text(l10n.defaultText),
-                                          dense: isMobile,
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            sortTypeNotifier.value = 0;
-                                          },
-                                          trailing: sortTypeNotifier.value == 0
-                                              ? Icon(Icons.check)
-                                              : null,
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            l10n.modifiedTimeAscending,
-                                          ),
-                                          dense: isMobile,
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            sortTypeNotifier.value = 9;
-                                          },
-                                          trailing: sortTypeNotifier.value == 9
-                                              ? Icon(Icons.check)
-                                              : null,
-                                        ),
-                                        ListTile(
-                                          title: Text(
-                                            l10n.modifiedTimedescending,
-                                          ),
-                                          dense: isMobile,
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            sortTypeNotifier.value = 10;
-                                          },
-                                          trailing: sortTypeNotifier.value == 10
-                                              ? Icon(Icons.check)
-                                              : null,
-                                        ),
-                                        ListTile(
-                                          title: Text(l10n.randomizeTemp),
-                                          dense: isMobile,
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                            sortTypeNotifier.value = 11;
-                                          },
-                                          trailing: sortTypeNotifier.value == 11
-                                              ? Icon(Icons.check)
-                                              : null,
-                                        ),
-                                        ListTile(
-                                          title: Text(l10n.randomizePermanent),
-                                          dense: isMobile,
-                                          onTap: () async {
-                                            Navigator.pop(context);
-                                            if (!await showConfirmDialog(
-                                              context,
-                                              l10n.cannotBeUndone,
-                                            )) {
-                                              return;
-                                            }
-                                            sortTypeNotifier.value = 0;
-                                            if (isLibrary) {
-                                              library.shuffle(sourceType);
-                                            } else {
-                                              folder!.shuffle();
-                                            }
-                                          },
-                                          trailing: sortTypeNotifier.value == 12
-                                              ? Icon(Icons.check)
-                                              : null,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                            style: buttonStyle,
-                            child: Icon(Icons.sort),
-                          ),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-                SizedBox(height: isPhone ? 20 : 30),
-              ],
+                  SizedBox(height: isPhone ? 20 : 30),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -736,7 +702,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                   showArtistEntries(context, artists);
                 } else {
                   await Future.delayed(Duration(milliseconds: 250));
-                  layersManager.pushLayer('artists', content: artists[0]);
+                  // layersManager.switchRootLayer('artists', content: artists[0]);
                 }
               },
             ),
@@ -747,10 +713,10 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
               image: MenuImage.icon(Icons.album_rounded),
               callback: () async {
                 await Future.delayed(Duration(milliseconds: 250));
-                layersManager.pushLayer(
-                  'albums',
-                  content: getAlbum(currentSongList[index]),
-                );
+                // layersManager.switchRootLayer(
+                //   'albums',
+                //   content: getAlbum(currentSongList[index]),
+                // );
               },
             ),
 
@@ -848,7 +814,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
         isSelected: isSelected,
         currentSongList: currentSongList,
         isRanking: isRanking,
-        moreButton: isTV ? moreButton : null,
+        moreButton: isTV ? moreButtonForSong : null,
         onTap: () async {
           if (ctrlIsPressed) {
             isSelected.value = !isSelected.value;
@@ -887,7 +853,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
     );
   }
 
-  Widget moreButton(
+  Widget moreButtonForSong(
     BuildContext context,
     int index,
     List<MyAudioMetadata> songList,
@@ -1025,7 +991,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                     showArtistEntries(context, artists);
                   } else {
                     await Future.delayed(Duration(milliseconds: 250));
-                    layersManager.pushLayer('artists', content: artists[0]);
+                    // layersManager.switchRootLayer('artists', content: artists[0]);
                   }
                 },
               ),
@@ -1040,7 +1006,7 @@ class _SongListPanel extends BaseSongListState<SongListPanel> {
                 onTap: () async {
                   Navigator.pop(context);
                   await Future.delayed(Duration(milliseconds: 250));
-                  layersManager.pushLayer('albums', content: getAlbum(song));
+                  // layersManager.switchRootLayer('albums', content: getAlbum(song));
                 },
               ),
 

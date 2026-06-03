@@ -1,16 +1,7 @@
-import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
+part of '../../layer/playlists_layer.dart';
 
-class PlaylistsPage extends StatelessWidget {
-  const PlaylistsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
+extension _PlaylistsPage on _PlaylistsLayerState {
+  Widget pageView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -41,10 +32,28 @@ class PlaylistsPage extends StatelessWidget {
                 leading: ValueListenableBuilder(
                   valueListenable: playlist.songListManager.changeNotifier,
                   builder: (_, _, _) {
-                    return CoverArtWidget(
-                      size: 50,
-                      borderRadius: 5,
-                      song: playlist.getCoverSong(),
+                    final coverSong = playlist.getCoverSong();
+
+                    return Hero(
+                      tag:
+                          (coverSong == null
+                              ? playlist.songListManager.sourceTypeName
+                              : coverSong.id) +
+                          playlist.name,
+                      curve: Curves.easeInOutCubic,
+                      flightShuttleBuilder:
+                          (
+                            flightContext,
+                            animation,
+                            flightDirection,
+                            fromHeroContext,
+                            toHeroContext,
+                          ) => FittedBox(child: toHeroContext.widget),
+                      child: CoverArtWidget(
+                        size: 50,
+                        borderRadius: 5,
+                        song: coverSong,
+                      ),
                     );
                   },
                 ),
@@ -62,7 +71,7 @@ class PlaylistsPage extends StatelessWidget {
                   },
                 ),
                 onTap: () {
-                  layersManager.pushLayer('_${playlist.name}');
+                  layersManager.pushDetail('playlists', playlist);
                 },
               );
             },

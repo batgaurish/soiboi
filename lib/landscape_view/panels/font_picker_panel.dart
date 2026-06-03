@@ -1,27 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/widgets/font_picker_base.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:smooth_corner/smooth_corner.dart';
+part of '../../layer/font_picker_layer.dart';
 
-class FontPickerPanel extends FontPickerBase {
-  const FontPickerPanel({super.key});
-
-  @override
-  State<StatefulWidget> createState() => _FontPickerPanelState();
-}
-
-class _FontPickerPanelState extends FontPickerBaseState {
-  final ScrollController scrollController = ScrollController();
-
-  @override
-  Widget build(BuildContext context) {
+extension _FontPickerPanel on _FontPickerLayerState {
+  Widget panelView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Column(
@@ -29,6 +9,9 @@ class _FontPickerPanelState extends FontPickerBaseState {
         TitleBar(
           hintText: l10n.searchFonts,
           textController: textController,
+          backToRoot: () {
+            layersManager.popDetail('settings');
+          },
           scrollToTop: () {
             scrollController.animateTo(
               0,
@@ -41,7 +24,7 @@ class _FontPickerPanelState extends FontPickerBaseState {
           child: ValueListenableBuilder(
             valueListenable: fontsNotifier,
             builder: (context, fonts, child) {
-              return _content(context, fonts);
+              return panelContent(context, fonts);
             },
           ),
         ),
@@ -49,7 +32,7 @@ class _FontPickerPanelState extends FontPickerBaseState {
     );
   }
 
-  Widget _content(BuildContext context, List<String> fonts) {
+  Widget panelContent(BuildContext context, List<String> fonts) {
     final l10n = AppLocalizations.of(context);
 
     return CustomScrollView(
@@ -159,7 +142,7 @@ class _FontPickerPanelState extends FontPickerBaseState {
                       await Future.delayed(Duration(milliseconds: 250));
                       fontFamilyNotifier.value = font;
                       setting.save();
-                      setState(() {});
+                      rebuild();
                     }
                   },
                 ),

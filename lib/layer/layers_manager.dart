@@ -7,10 +7,12 @@ import 'package:sylvakru/base/data/folder.dart';
 import 'package:sylvakru/base/services/metadata_service.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/utils/dynamic_datail_route.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/data/history.dart';
 import 'package:sylvakru/landscape_view/sidebar.dart';
-import 'package:sylvakru/layer/artists_albums_layer.dart';
+import 'package:sylvakru/layer/albums_layer.dart';
+import 'package:sylvakru/layer/artists_layer.dart';
 import 'package:sylvakru/layer/folders_layer.dart';
 import 'package:sylvakru/layer/font_picker_layer.dart';
 import 'package:sylvakru/layer/license_layer.dart';
@@ -38,226 +40,271 @@ class LayerInfo {
   LayerInfo(this.backgroundSong, this.backgroundCoverArtColor);
 }
 
-enum SwitchType { push, pop, afterPop }
-
 class LayersManager {
-  final Map<String, Widget> layerMap = {};
   final Map<Widget, LayerInfo> layerInfoMap = {};
-  final Map<Widget, Widget> pageMap = {};
 
-  final List<Widget> layerHistory = [];
-  final List<String> labelHistory = [];
+  // lable -> rootLayer
+  final Map<String, Widget> rootLayerMap = {};
+  // rootLayer -> rootPage
+  final Map<Widget, Widget> rootPageMap = {};
 
-  Widget? currentLayer;
-  Widget? helperLayer;
+  // root -> detail
+  final Map<Widget, Widget?> detailWidgetMap = {};
 
-  Widget? currentPage;
-  Widget? helperPage;
+  Widget? topRootLayer;
+  Widget? bottomRootLayer;
+
+  Widget? topRootPage;
+  Widget? bottomRootPage;
 
   final backgroundChangeNotifier = ValueNotifier(0);
   final switchNotifier = ValueNotifier(0);
-  late SwitchType switchType;
 
-  Widget getPage(Widget layer) {
-    return pageMap.putIfAbsent(layer, () {
-      final layerInfo = layerInfoMap.putIfAbsent(
-        layer,
-        () => LayerInfo(null, Colors.grey),
-      );
-      return Stack(
-        key: GlobalKey(),
+  Widget createPage(Widget layer) {
+    final layerInfo = layerInfoMap.putIfAbsent(
+      layer,
+      () => LayerInfo(null, Colors.grey),
+    );
+    return Stack(
+      key: GlobalKey(),
+      fit: .expand,
+      children: [
+        ValueListenableBuilder(
+          valueListenable: mainPageThemeNotifier,
+          builder: (context, value, child) {
+            if (value != .vivid) {
+              return SizedBox.shrink();
+            }
+            return ValueListenableBuilder(
+              valueListenable: layerInfo.changeNotifier,
+              builder: (context, value, child) {
+                return CoverArtWidget(
+                  song: layerInfo.backgroundSong,
+                  color: layerInfo.backgroundCoverArtColor,
+                );
+              },
+            );
+          },
+        ),
+        ValueListenableBuilder(
+          valueListenable: mainPageThemeNotifier,
+          builder: (context, value, child) {
+            if (value != .vivid) {
+              return SizedBox.shrink();
+            }
 
-        children: [
-          ValueListenableBuilder(
-            valueListenable: layerInfo.changeNotifier,
-            builder: (context, value, child) {
-              return ValueListenableBuilder(
-                valueListenable: mainPageThemeNotifier,
-                builder: (context, value, child) {
-                  if (value != .vivid) {
-                    return SizedBox();
-                  }
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CoverArtWidget(
-                        song: layerInfo.backgroundSong,
-                        color: layerInfo.backgroundCoverArtColor,
-                      ),
-
-                      ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                          child: Container(
-                            color: layerInfo.backgroundCoverArtColor.withAlpha(
-                              180,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-
-          ValueListenableBuilder(
-            valueListenable: pageBackgroundColor.valueNotifier,
-            builder: (context, value, child) {
-              return Material(color: value, child: layer);
-            },
-          ),
-        ],
-      );
-    });
+            // ClipRect is important
+            return ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                child: ValueListenableBuilder(
+                  valueListenable: layerInfo.changeNotifier,
+                  builder: (context, value, child) {
+                    return Container(
+                      color: layerInfo.backgroundCoverArtColor.withAlpha(180),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+        ValueListenableBuilder(
+          valueListenable: pageBackgroundColor.valueNotifier,
+          builder: (context, value, child) {
+            return Material(color: value, child: layer);
+          },
+        ),
+      ],
+    );
   }
 
-  Widget getLayer(String label, {String? content}) {
-    final keyValue = label + (content ?? '');
-    return layerMap.putIfAbsent(keyValue, () {
-      if (content == null) {
-        if (label == 'artists') {
-          return ArtistsAlbumsLayer(key: GlobalKey(), isArtist: true);
-        } else if (label == 'albums') {
-          return ArtistsAlbumsLayer(key: GlobalKey(), isArtist: false);
-        } else if (label == 'folders') {
-          return FoldersLayer(key: GlobalKey());
-        } else if (label == 'songs') {
-          return SongsLayer(key: GlobalKey());
-        } else if (label == 'ranking') {
-          return RankingLayer(key: GlobalKey());
-        } else if (label == 'recently') {
-          return RecentlyLayer(key: GlobalKey());
-        } else if (label == 'playlists') {
-          return PlaylistsLayer(key: GlobalKey());
-        } else if (label == 'settings') {
-          return SettingsLayer(key: GlobalKey());
-        } else if (label == 'license') {
-          return LicenseLayer(key: GlobalKey());
-        } else if (label == 'font_picker') {
-          return FontPickerLayer(key: GlobalKey());
-        }
+  Widget getRootLayer(String label) {
+    return rootLayerMap.putIfAbsent(label, () {
+      if (label == 'artists') {
+        return ArtistsLayer(key: GlobalKey());
+      } else if (label == 'albums') {
+        return AlbumsLayer(key: GlobalKey());
+      } else if (label == 'folders') {
+        return FoldersLayer(key: GlobalKey());
+      } else if (label == 'songs') {
+        return SongsLayer(key: GlobalKey());
+      } else if (label == 'ranking') {
+        return RankingLayer(key: GlobalKey());
+      } else if (label == 'recently') {
+        return RecentlyLayer(key: GlobalKey());
+      } else if (label == 'playlists') {
+        return PlaylistsLayer(key: GlobalKey());
+      } else if (label == 'settings') {
+        return SettingsLayer(key: GlobalKey());
+      } else {
         return SinglePlaylistLayer(
           key: GlobalKey(),
           playlist: playlistManager.getPlaylistByName(label.substring(1))!,
+          isRoot: true,
         );
       }
-      if (label == 'artists') {
-        return SingleArtistLayer(
-          key: GlobalKey(),
-          artist: artistAlbumManager.name2Artist[content]!,
-        );
-      } else if (label == 'albums') {
-        return SingleAlbumLayer(
-          key: GlobalKey(),
-          album: artistAlbumManager.name2Album[content]!,
-        );
-      }
-      return SingleFolderLayer(
-        key: GlobalKey(),
-        folder: library.getFolderById(content)!,
-      );
     });
   }
 
-  void pushLayer(String label, {String? content}) {
-    Widget layer = getLayer(label, content: content);
-    if (layer == currentLayer) {
+  void switchRootLayer(String label) {
+    Widget layer = getRootLayer(label);
+    if (layer == topRootLayer) {
       return;
     }
 
-    switchType = .push;
-
-    helperLayer = currentLayer;
-    currentLayer = layer;
+    bottomRootLayer = topRootLayer;
+    topRootLayer = layer;
     if (isMobile) {
-      helperPage = currentPage;
-      currentPage = getPage(currentLayer!);
+      bottomRootPage = topRootPage;
+      topRootPage = rootPageMap.putIfAbsent(
+        topRootLayer!,
+        () => createPage(topRootLayer!),
+      );
     }
-
-    layerHistory.add(currentLayer!);
-    labelHistory.add(label);
 
     sidebarHighlighLabel.value = label;
     switchNotifier.value++;
     updateBackground();
   }
 
-  void popLayer() {
-    if (layerHistory.length == 1) {
-      return;
-    }
-    switchType = .pop;
-
-    layerHistory.removeLast();
-    labelHistory.removeLast();
-    helperLayer = currentLayer;
-    currentLayer = layerHistory.last;
-    if (isMobile) {
-      helperPage = currentPage;
-      currentPage = pageMap[currentLayer];
-    }
-    sidebarHighlighLabel.value = labelHistory.last;
-    switchNotifier.value++;
-
-    updateBackground();
-  }
-
-  void afterPopLayer() {
-    switchType = .afterPop;
-
-    if (layerHistory.length >= 2) {
-      helperLayer = layerHistory[layerHistory.length - 2];
-      helperPage = pageMap[helperLayer];
-    } else {
-      helperLayer = null;
-      helperPage = null;
-    }
-    switchNotifier.value++;
-  }
-
-  void removeLayer(dynamic target) async {
-    late String key;
+  void removeLayerIfNeed(dynamic target) async {
     if (target is Playlist) {
-      key = '_${target.name}';
+      String key = '_${target.name}';
+      final rootLayer = getRootLayer('playlists');
+      if ((detailWidgetMap[rootLayer] as SinglePlaylistLayer?)?.playlist ==
+          target) {
+        popDetail('playlists');
+      }
+      final removedLayer = rootLayerMap.remove(key);
+      rootPageMap.remove(removedLayer);
+      if (removedLayer == topRootLayer) {
+        switchRootLayer('songs');
+      }
     } else if (target is Artist) {
-      key = 'artists${target.name}';
+      final rootLayer = getRootLayer('artists');
+      if ((detailWidgetMap[rootLayer] as SingleArtistLayer?)?.artist ==
+          target) {
+        popDetail('artists');
+      }
     } else if (target is Album) {
-      key = 'albums${target.name}';
+      final rootLayer = getRootLayer('albums');
+      if ((detailWidgetMap[rootLayer] as SingleAlbumLayer?)?.album == target) {
+        popDetail('albums');
+      }
     } else if (target is Folder) {
-      key = 'folders${target.id}';
+      final rootLayer = getRootLayer('folders');
+      if ((detailWidgetMap[rootLayer] as SingleFolderLayer?)?.folder ==
+          target) {
+        popDetail('folders');
+      }
     } else {
       assert(false);
     }
-    final layer = layerMap.remove(key);
-    if (layer == currentLayer) {
-      popLayer();
-    }
+  }
 
-    // ensure pop complete
-    await Future.delayed(Duration(milliseconds: 500));
+  void pushDetail(String label, dynamic detail) async {
+    final rootLayer = getRootLayer(label);
 
-    if (isMobile) {
-      pageMap.remove(layer);
-    }
-    for (int i = layerHistory.length - 1; i >= 0; i--) {
-      if (layerHistory[i] == layer) {
-        layerHistory.removeAt(i);
-        labelHistory.removeAt(i);
+    late GlobalKey<NavigatorState> rootKey;
+    late ValueNotifier<bool> visibleNotifier;
+    late Widget detailLayer;
+    if (label == 'artists') {
+      rootKey = artistsKey;
+      visibleNotifier = artistsVisibleNotifier;
+      detailLayer = SingleArtistLayer(artist: detail);
+    } else if (label == 'albums') {
+      rootKey = albumsKey;
+      visibleNotifier = albumsVisibleNotifier;
+      detailLayer = SingleAlbumLayer(album: detail);
+    } else if (label == 'folders') {
+      rootKey = foldersKey;
+      visibleNotifier = foldersVisibleNotifier;
+      detailLayer = SingleFolderLayer(folder: detail);
+    } else if (label == 'playlists') {
+      rootKey = playlistsKey;
+      visibleNotifier = playlistsVisibleNotifier;
+      detailLayer = SinglePlaylistLayer(playlist: detail, isRoot: false);
+    } else {
+      rootKey = settingsKey;
+      visibleNotifier = settingsVisibleNotifier;
+      if (detail == 'license') {
+        detailLayer = LicenseLayer();
+      } else {
+        detailLayer = FontPickerLayer();
       }
+    }
+
+    visibleNotifier.value = false;
+
+    detailWidgetMap[rootLayer] = detailLayer;
+
+    layersManager.updateBackground();
+
+    rootKey.currentState?.push(
+      DynamicDatailRoute(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return OrientationBuilder(
+            builder: (context, orientation) {
+              if (isMobile && orientation == Orientation.portrait) {
+                return createPage(detailLayer);
+              } else {
+                return detailLayer;
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void popDetail(String label) async {
+    final rootLayer = getRootLayer(label);
+    detailWidgetMap[rootLayer] = null;
+
+    late GlobalKey<NavigatorState> rootKey;
+    late ValueNotifier<bool> visibleNotifier;
+    if (label == 'artists') {
+      rootKey = artistsKey;
+      visibleNotifier = artistsVisibleNotifier;
+    } else if (label == 'albums') {
+      rootKey = albumsKey;
+      visibleNotifier = albumsVisibleNotifier;
+    } else if (label == 'folders') {
+      rootKey = foldersKey;
+      visibleNotifier = foldersVisibleNotifier;
+    } else if (label == 'playlists') {
+      rootKey = playlistsKey;
+      visibleNotifier = playlistsVisibleNotifier;
+    } else {
+      rootKey = settingsKey;
+      visibleNotifier = settingsVisibleNotifier;
+    }
+    visibleNotifier.value = true;
+
+    layersManager.updateBackground();
+
+    if (rootKey.currentState?.canPop() ?? false) {
+      rootKey.currentState?.pop();
     }
   }
 
-  void clear() {
-    layerHistory.clear();
-    labelHistory.clear();
-    layerMap.clear();
-    pageMap.clear();
-    currentLayer = null;
-    helperLayer = null;
-    currentPage = null;
-    helperPage = null;
+  void pushDetailIfNeed(dynamic detail) async {
+    if (detail is Artist) {
+      if ((detailWidgetMap[getRootLayer('artists')] as SingleArtistLayer?)
+              ?.artist !=
+          detail) {
+        popDetail('artists');
+        pushDetail('artists', detail);
+      }
+    } else {
+      if ((detailWidgetMap[getRootLayer('albums')] as SingleAlbumLayer?)
+              ?.album !=
+          detail) {
+        popDetail('albums');
+        pushDetail('albums', detail);
+      }
+    }
   }
 
   MyAudioMetadata? _getBackgroundSong(Widget layer) {
@@ -282,15 +329,21 @@ class LayersManager {
   }
 
   void updateBackground() async {
-    if (currentLayer == null) {
+    if (topRootLayer == null) {
       return;
     }
 
-    backgroundSong = _getBackgroundSong(currentLayer!);
+    Widget displayLayer = topRootLayer!;
+
+    if (detailWidgetMap[topRootLayer] != null) {
+      displayLayer = detailWidgetMap[topRootLayer]!;
+    }
+
+    backgroundSong = _getBackgroundSong(displayLayer);
     backgroundCoverArtColor = await computeCoverArtColor(backgroundSong);
 
     final layerInfo = layerInfoMap.putIfAbsent(
-      currentLayer!,
+      displayLayer,
       () => LayerInfo(backgroundSong, backgroundCoverArtColor),
     );
     if (layerInfo.backgroundSong != backgroundSong ||

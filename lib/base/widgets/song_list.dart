@@ -1,10 +1,22 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:smooth_corner/smooth_corner.dart';
+import 'package:super_context_menu/super_context_menu.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/asset_images.dart';
+import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/song_list_manager.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/services/keyboard.dart';
+import 'package:sylvakru/base/utils/format_duration.dart';
+import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/data/folder.dart';
 import 'package:sylvakru/base/data/history.dart';
@@ -12,9 +24,29 @@ import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/widgets/edit_metadata.dart';
+import 'package:sylvakru/base/widgets/my_auto_size_text.dart';
+import 'package:sylvakru/base/widgets/my_divider.dart';
+import 'package:sylvakru/base/widgets/my_location.dart';
+import 'package:sylvakru/base/widgets/my_sheet.dart';
+import 'package:sylvakru/base/widgets/playlist_widgets.dart';
+import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
+import 'package:sylvakru/base/widgets/song_info.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:sylvakru/landscape_view/title_bar.dart';
+import 'package:sylvakru/layer/albums_layer.dart';
+import 'package:sylvakru/layer/artists_layer.dart';
+import 'package:sylvakru/layer/folders_layer.dart';
+import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:sylvakru/layer/playlists_layer.dart';
+import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
+import 'package:sylvakru/portrait_view/my_search_field.dart';
+import 'package:sylvakru/portrait_view/song_list_tile.dart';
 
-abstract class BaseSongListWidget extends StatefulWidget {
+part '../../landscape_view/panels/song_list_panel.dart';
+part '../../portrait_view/pages/song_list_page.dart';
+
+class SongList extends StatefulWidget {
   final Playlist? playlist;
   final Artist? artist;
   final Album? album;
@@ -22,11 +54,13 @@ abstract class BaseSongListWidget extends StatefulWidget {
   final bool isRanking;
   final bool isRecently;
 
+  final bool isRoot;
+
   final SourceType sourceType;
 
   final Function(BuildContext)? switchCallBack;
 
-  const BaseSongListWidget({
+  const SongList({
     super.key,
     this.playlist,
     this.artist,
@@ -34,14 +68,17 @@ abstract class BaseSongListWidget extends StatefulWidget {
     this.folder,
     this.isRanking = false,
     this.isRecently = false,
+    this.isRoot = true,
     this.sourceType = .local,
     this.switchCallBack,
   });
+
+  @override
+  State<StatefulWidget> createState() => _SongListState();
 }
 
-abstract class BaseSongListState<T extends BaseSongListWidget>
-    extends State<T> {
-  late String title;
+class _SongListState extends State<SongList> {
+  String title = '';
   late SongListManager songListManager;
   late List<MyAudioMetadata> songList;
   Playlist? playlist;
@@ -67,6 +104,25 @@ abstract class BaseSongListState<T extends BaseSongListWidget>
   final TextEditingController textController = TextEditingController();
 
   ValueNotifier<int> sortTypeNotifier = ValueNotifier(0);
+
+  int continuousSelectBeginIndex = 0;
+
+  final EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 30);
+
+  final ValueNotifier<bool> isSearchNotifier = ValueNotifier(false);
+
+  ValueNotifier<bool>? rootVisibleNotifier;
+  Function()? backToRoot;
+
+  bool hideOthers = false;
+
+  String rootLabel = '';
+
+  void updateHideOthers() {
+    setState(() {
+      hideOthers = rootVisibleNotifier!.value;
+    });
+  }
 
   String getTitleText(AppLocalizations l10n) {
     return isLibrary
@@ -104,15 +160,37 @@ abstract class BaseSongListState<T extends BaseSongListWidget>
       title = playlist!.name;
       songListManager = playlist!.songListManager;
       reorderable = true;
+      if (!widget.isRoot) {
+        rootVisibleNotifier = playlistsVisibleNotifier;
+        backToRoot = () {
+          layersManager.popDetail('playlists');
+        };
+        rootLabel = 'playlists';
+      }
     } else if (artist != null) {
       title = artist!.name;
       songListManager = artist!.songListManager;
+      rootVisibleNotifier = artistsVisibleNotifier;
+      backToRoot = () {
+        layersManager.popDetail('artists');
+      };
+      rootLabel = 'artists';
     } else if (album != null) {
       title = album!.name;
       songListManager = album!.songListManager;
+      rootVisibleNotifier = albumsVisibleNotifier;
+      backToRoot = () {
+        layersManager.popDetail('albums');
+      };
+      rootLabel = 'albums';
     } else if (folder != null) {
       title = folder!.id;
       reorderable = true;
+      rootVisibleNotifier = foldersVisibleNotifier;
+      backToRoot = () {
+        layersManager.popDetail('folders');
+      };
+      rootLabel = 'folders';
     } else if (isRanking) {
       songListManager = history.rankingSongListManager;
     } else if (isRecently) {
@@ -133,6 +211,8 @@ abstract class BaseSongListState<T extends BaseSongListWidget>
       sortTypeNotifier = folder!.sortTypeNotifier;
       folder!.changeNotifier.addListener(updateSongList);
     }
+    rootVisibleNotifier?.addListener(updateHideOthers);
+
     updateSongList();
     sortTypeNotifier.addListener(updateSongList);
     textController.addListener(updateSongList);
@@ -148,6 +228,8 @@ abstract class BaseSongListState<T extends BaseSongListWidget>
       folder!.changeNotifier.removeListener(updateSongList);
     }
 
+    rootVisibleNotifier?.removeListener(updateHideOthers);
+
     sortTypeNotifier.removeListener(updateSongList);
     textController.removeListener(updateSongList);
     scrollController.dispose();
@@ -159,35 +241,45 @@ abstract class BaseSongListState<T extends BaseSongListWidget>
     return ValueListenableBuilder(
       valueListenable: currentSongListNotifier,
       builder: (_, _, _) {
-        if (songList.isEmpty) {
-          return CoverArtWidget(
-            size: size,
-            borderRadius: 10,
-            song: null,
-            elevation: 5,
-            color: colorManager.getSpecificMainPageCoverArtBaseColorForm(null),
-          );
-        }
-        final song = songList.first;
-        return ValueListenableBuilder(
-          valueListenable: song.updateNotifier,
-          builder: (_, _, _) {
+        final song = getFirstSong(songList);
+        return ListenableBuilder(
+          listenable: Listenable.merge([song?.updateNotifier]),
+          builder: (_, _) {
             return ValueListenableBuilder(
               valueListenable: mainPageThemeNotifier,
               builder: (_, _, _) {
-                return CoverArtWidget(
+                final coverArt = CoverArtWidget(
                   size: size,
-                  borderRadius: 10,
+                  borderRadius: size / 10,
                   song: song,
                   elevation: 5,
                   color: colorManager.getSpecificMainPageCoverArtBaseColorForm(
                     song,
                   ), // keep stable color
                 );
+                return widget.isRoot
+                    ? coverArt
+                    : Hero(
+                        tag: (song == null ? sourceType.name : song.id) + title,
+                        child: coverArt,
+                      );
               },
             );
           },
         );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        if (isMobile && orientation == Orientation.portrait) {
+          return pageView(context);
+        } else {
+          return panelView(context);
+        }
       },
     );
   }

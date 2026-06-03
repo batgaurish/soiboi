@@ -53,7 +53,7 @@ class LandscapeView extends StatelessWidget {
                 valueListenable: layersManager.backgroundChangeNotifier,
                 builder: (context, value, child) {
                   return AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
+                    duration: Duration(milliseconds: 500),
                     curve: Curves.easeInOutCubic,
                     color: backgroundCoverArtColor.withAlpha(180),
                   );
@@ -91,11 +91,11 @@ class LandscapeView extends StatelessWidget {
                           valueListenable: layersManager.switchNotifier,
                           builder: (context, value, child) {
                             return Stack(
-                              children: layersManager.layerMap.values.map((
+                              children: layersManager.rootLayerMap.values.map((
                                 layer,
                               ) {
                                 return Visibility(
-                                  visible: layer == layersManager.currentLayer,
+                                  visible: layer == layersManager.topRootLayer,
                                   maintainState: true,
                                   child: layer,
                                 );

@@ -18,6 +18,8 @@ class TitleBar extends StatefulWidget {
 
   final String? hintText;
   final TextEditingController? textController;
+
+  final Function()? backToRoot;
   final Function()? scrollToTop;
   final Function()? findLocation;
 
@@ -26,6 +28,7 @@ class TitleBar extends StatefulWidget {
     this.isMainPage = true,
     this.hintText,
     this.textController,
+    this.backToRoot,
     this.scrollToTop,
     this.findLocation,
   });
@@ -176,15 +179,16 @@ class _TitleBarState extends State<TitleBar> {
       children: [
         SizedBox(width: 30),
 
-        if (widget.isMainPage)
+        if (widget.isMainPage && widget.backToRoot != null)
           IconButton(
             focusNode: backNode,
-            onPressed: () {
-              layersManager.popLayer();
+            onPressed: () async {
+              widget.backToRoot!.call();
             },
             icon: Icon(Icons.arrow_back_ios_rounded, size: 20),
-          )
-        else
+          ),
+
+        if (!widget.isMainPage)
           ValueListenableBuilder(
             valueListenable: isFullScreenNotifier,
             builder: (context, isFullScreen, child) {
@@ -256,7 +260,7 @@ class _TitleBarState extends State<TitleBar> {
           IconButton(
             focusNode: settingNode,
             onPressed: () {
-              layersManager.pushLayer('settings');
+              layersManager.switchRootLayer('settings');
             },
             icon: ImageIcon(settingImage),
           ),

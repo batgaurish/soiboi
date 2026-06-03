@@ -1,59 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
-import 'package:sylvakru/portrait_view/my_search_field.dart';
-import 'package:sylvakru/base/widgets/my_sheet.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
+part of '../../layer/albums_layer.dart';
 
-class AlbumsPage extends StatefulWidget {
-  const AlbumsPage({super.key});
-
-  @override
-  State<StatefulWidget> createState() => _AlbumsPageState();
-}
-
-class _AlbumsPageState extends State<AlbumsPage> {
-  final ValueNotifier<List<Album>> currentAlbumListNotifier = ValueNotifier(
-    artistAlbumManager.albumList,
-  );
-
-  final textController = TextEditingController();
-  final ValueNotifier<bool> isSearchNotifier = ValueNotifier(false);
-
-  @override
-  void initState() {
-    super.initState();
-    updateCurrentAlbumList();
-    artistAlbumManager.updateNotifier.addListener(updateCurrentAlbumList);
-  }
-
-  @override
-  void dispose() {
-    artistAlbumManager.updateNotifier.removeListener(updateCurrentAlbumList);
-    super.dispose();
-  }
-
-  void updateCurrentAlbumList() {
-    final value = textController.text;
-    currentAlbumListNotifier.value = artistAlbumManager.albumList
-        .where((e) => (e.name.toLowerCase().contains(value.toLowerCase())))
-        .toList();
-
-    if (artistAlbumManager.albumsRandomizeNotifier.value) {
-      currentAlbumListNotifier.value.shuffle();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+extension _AlbumsPage on _AlbumsLayerState {
+  Widget pageView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
@@ -63,15 +11,16 @@ class _AlbumsPageState extends State<AlbumsPage> {
         automaticallyImplyLeading: false,
         leading: customAppBarLeading(context),
         backgroundColor: Colors.transparent,
+
         scrolledUnderElevation: 0,
-        title: Text(l10n.albums),
+        title: Text(l10n.album),
         centerTitle: true,
         actions: [searchField(l10n.searchAlbums), moreButton(context)],
       ),
       body: ValueListenableBuilder(
         valueListenable: currentAlbumListNotifier,
         builder: (context, list, child) {
-          return gridView(list);
+          return pageGridView(list);
         },
       ),
     );
@@ -81,7 +30,7 @@ class _AlbumsPageState extends State<AlbumsPage> {
     return MySearchField(
       hintText: hintText,
       textController: textController,
-      onSearchTextChanged: updateCurrentAlbumList,
+      onSearchTextChanged: updateCurrentList,
       isSearchNotifier: isSearchNotifier,
     );
   }
@@ -114,32 +63,6 @@ class _AlbumsPageState extends State<AlbumsPage> {
           MyDivider(thickness: 0.5, height: 1, color: dividerColor),
 
           ListTile(
-            leading: ImageIcon(pictureImage),
-            title: Text(
-              l10n.pictureSize,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            trailing: SizedBox(
-              width: 100,
-
-              child: Row(
-                children: [
-                  Spacer(),
-                  MySwitch(
-                    trueText: l10n.large,
-                    falseText: l10n.small,
-                    valueNotifier:
-                        artistAlbumManager.albumsUseLargePictureNotifier,
-                    onToggleCallBack: () {
-                      setting.save();
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          ListTile(
             leading: ImageIcon(sequenceImage),
             title: Text(
               l10n.order,
@@ -155,9 +78,9 @@ class _AlbumsPageState extends State<AlbumsPage> {
                   MySwitch(
                     trueText: l10n.randomize,
                     falseText: l10n.normal,
-                    valueNotifier: artistAlbumManager.albumsRandomizeNotifier,
+                    valueNotifier: randomizeNotifier,
                     onToggleCallBack: () {
-                      updateCurrentAlbumList();
+                      updateCurrentList();
                     },
                   ),
                 ],
@@ -166,7 +89,7 @@ class _AlbumsPageState extends State<AlbumsPage> {
           ),
 
           ValueListenableBuilder(
-            valueListenable: artistAlbumManager.albumsRandomizeNotifier,
+            valueListenable: randomizeNotifier,
             builder: (_, randomize, _) {
               if (randomize) {
                 return SizedBox();
@@ -182,12 +105,11 @@ class _AlbumsPageState extends State<AlbumsPage> {
                       MySwitch(
                         trueText: l10n.ascending,
                         falseText: l10n.descending,
-                        valueNotifier:
-                            artistAlbumManager.albumsIsAscendingNotifier,
+                        valueNotifier: isAscendingNotifier,
                         onToggleCallBack: () {
                           setting.save();
-                          artistAlbumManager.sortAlbums();
-                          updateCurrentAlbumList();
+                          artistAlbumManager.sortArtists();
+                          updateCurrentList();
                         },
                       ),
                     ],
@@ -201,13 +123,14 @@ class _AlbumsPageState extends State<AlbumsPage> {
     );
   }
 
-  Widget gridView(List<Album> albumList) {
+  Widget pageGridView(List<Album> albumList) {
     return ValueListenableBuilder(
-      valueListenable: artistAlbumManager.albumsUseLargePictureNotifier,
+      valueListenable: useLargePictureNotifier,
       builder: (context, useLargePicture, child) {
         int crossAxisCount;
         double coverArtWidth;
         final mobileWidth = MediaQuery.widthOf(context);
+
         if (useLargePicture) {
           crossAxisCount = (mobileWidth / 180).toInt();
           coverArtWidth = mobileWidth / crossAxisCount - 45;
@@ -225,22 +148,25 @@ class _AlbumsPageState extends State<AlbumsPage> {
           itemCount: albumList.length,
           itemBuilder: (context, index) {
             final album = albumList[index];
-
             return Column(
               children: [
                 GestureDetector(
                   child: ValueListenableBuilder(
                     valueListenable: album.songListManager.sourceTypeNotifier,
                     builder: (context, value, child) {
-                      return CoverArtWidget(
-                        size: coverArtWidth,
-                        borderRadius: radius,
-                        song: album.getCoverSong(),
+                      final coverSong = album.getCoverSong();
+                      return Hero(
+                        tag: coverSong.id + album.name,
+                        child: CoverArtWidget(
+                          size: coverArtWidth,
+                          borderRadius: radius,
+                          song: coverSong,
+                        ),
                       );
                     },
                   ),
                   onTap: () {
-                    layersManager.pushLayer('albums', content: album.name);
+                    layersManager.pushDetail('albums', album);
                   },
                 ),
                 SizedBox(height: 5),
