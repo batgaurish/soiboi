@@ -162,9 +162,10 @@ Future<void> main() async {
 }
 
 Future<void> _setupMainWindow(WindowController windowController) async {
+  myWindowListener = MyWindowListener();
   await windowController.mainCustomInitialize();
   WindowOptions windowOptions = WindowOptions(
-    size: Platform.isWindows ? Size(1050 + 16, 700 + 9) : Size(1050, 700),
+    size: mainSize,
     center: true,
     backgroundColor: Colors.transparent,
     titleBarStyle: TitleBarStyle.hidden,
@@ -183,8 +184,22 @@ Future<void> _setupMainWindow(WindowController windowController) async {
           ? Size(1050 + 16, 700 + 9)
           : Size(1050, 700),
     );
+    if (mainPosition != null) {
+      await windowManager.setPosition(mainPosition!);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(Duration(milliseconds: 250));
+        mainPosition = await windowManager.getPosition();
+      });
+    }
+    if (mainMaximized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(Duration(milliseconds: 500));
+        await windowManager.maximize();
+      });
+    }
   });
-  windowManager.addListener(MyWindowListener());
+  windowManager.addListener(myWindowListener);
 }
 
 Future<void> _setupDesktopLyricsWindow(

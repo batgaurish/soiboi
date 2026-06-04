@@ -364,9 +364,12 @@ class _TitleBarState extends State<TitleBar> {
                         : lyricsPageForegroundColor.value,
                     onPressed: () async {
                       await windowManager.hide();
+                      miniModeSwitching = true;
                       miniModeNotifier.value = true;
 
                       await Future.delayed(Duration(milliseconds: 200));
+
+                      miniModeSwitching = false;
 
                       if (Platform.isWindows) {
                         await windowManager.setMinimumSize(
@@ -375,11 +378,20 @@ class _TitleBarState extends State<TitleBar> {
                         await windowManager.setMaximumSize(
                           Size(600 + 16, 950 + 9),
                         );
-                        await windowManager.setSize(Size(325 + 16, 325 + 9));
                       } else {
                         await windowManager.setMinimumSize(Size(325, 150));
                         await windowManager.setMaximumSize(Size(600, 950));
-                        await windowManager.setSize(Size(325, 325));
+                      }
+
+                      await windowManager.setSize(miniSize);
+
+                      if (miniPosition != null) {
+                        await windowManager.setPosition(miniPosition!);
+                      } else {
+                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                          await Future.delayed(Duration(milliseconds: 250));
+                          miniPosition = await windowManager.getPosition();
+                        });
                       }
                       await windowManager.show();
                     },

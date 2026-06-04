@@ -7,6 +7,7 @@ import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/lyric.dart';
+import 'package:sylvakru/base/services/my_window_listener.dart';
 import 'package:sylvakru/base/widgets/buttons.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/seekbar.dart';
@@ -23,6 +24,10 @@ final miniModeDisplayOverlayNotifier = ValueNotifier(true);
 Timer? miniModeHideOverlayTimer;
 final miniModeNotifier = ValueNotifier(false);
 late double miniViewMainHeight;
+late bool miniViewDisplayBottom;
+final miniViewDisplayLyricsNotifier = ValueNotifier(true);
+
+bool miniModeSwitching = false;
 
 class MiniView extends StatefulWidget {
   const MiniView({super.key});
@@ -32,9 +37,6 @@ class MiniView extends StatefulWidget {
 }
 
 class _MiniViewState extends State<MiniView> {
-  final _lyricsOrPlayQueueNotifier = ValueNotifier(true);
-  bool _displayBottom = false;
-
   @override
   void initState() {
     super.initState();
@@ -45,22 +47,23 @@ class _MiniViewState extends State<MiniView> {
   Widget build(BuildContext context) {
     final width = MediaQuery.widthOf(context);
     final height = MediaQuery.heightOf(context);
-
-    if (!_displayBottom) {
-      if (height > width) {
-        _displayBottom = true;
+    if (!miniModeSwitching) {
+      if (!miniViewDisplayBottom) {
+        if (height > width) {
+          miniViewDisplayBottom = true;
+        } else {
+          miniViewMainHeight = height;
+        }
       } else {
-        miniViewMainHeight = height;
-      }
-    } else {
-      if (height - miniViewMainHeight > 950 - width) {
-        miniViewMainHeight = height - (950 - width);
-      }
-      if (width < miniViewMainHeight) {
-        miniViewMainHeight = width;
-      }
-      if (height <= miniViewMainHeight) {
-        _displayBottom = false;
+        if (height - miniViewMainHeight > 950 - width) {
+          miniViewMainHeight = height - (950 - width);
+        }
+        if (width < miniViewMainHeight) {
+          miniViewMainHeight = width;
+        }
+        if (height <= miniViewMainHeight) {
+          miniViewDisplayBottom = false;
+        }
       }
     }
 
@@ -79,7 +82,7 @@ class _MiniViewState extends State<MiniView> {
           ),
         ),
 
-        if (_displayBottom)
+        if (miniViewDisplayBottom)
           ValueListenableBuilder(
             valueListenable: currentSongNotifier,
             builder: (context, currentSong, child) {
@@ -91,7 +94,7 @@ class _MiniViewState extends State<MiniView> {
                   child: Stack(
                     children: [
                       ValueListenableBuilder(
-                        valueListenable: _lyricsOrPlayQueueNotifier,
+                        valueListenable: miniViewDisplayLyricsNotifier,
                         builder: (context, value, child) {
                           if (value) {
                             return ScrollConfiguration(
@@ -163,7 +166,7 @@ class _MiniViewState extends State<MiniView> {
                   children: [
                     CoverArtWidget(song: currentSong),
 
-                    if (displayOverlay || _displayBottom)
+                    if (displayOverlay || miniViewDisplayBottom)
                       Positioned(
                         left: 0,
                         right: 0,
@@ -184,7 +187,7 @@ class _MiniViewState extends State<MiniView> {
                         ),
                       ),
 
-                    if (displayOverlay || _displayBottom)
+                    if (displayOverlay || miniViewDisplayBottom)
                       Positioned(
                         left: 0,
                         right: 0,
@@ -294,21 +297,30 @@ class _MiniViewState extends State<MiniView> {
                 color: foregroundColor,
                 onPressed: () async {
                   await windowManager.hide();
+                  await Future.delayed(Duration(milliseconds: 100));
 
                   if (!Platform.isLinux) {
                     await windowManager.resetMaximumSize();
                   }
+
+                  miniModeSwitching = true;
+                  await windowManager.setSize(mainSize);
+                  miniModeNotifier.value = false;
+                  miniModeSwitching = false;
+
                   if (Platform.isWindows) {
                     await windowManager.setMinimumSize(
                       Size(1050 + 16, 700 + 9),
                     );
-                    await windowManager.setSize(Size(1050 + 16, 700 + 9));
                   } else {
                     await windowManager.setMinimumSize(Size(1050, 700));
-                    await windowManager.setSize(Size(1050, 700));
                   }
-                  miniModeNotifier.value = false;
-                  await Future.delayed(Duration(milliseconds: 200));
+
+                  await Future.delayed(Duration(milliseconds: 100));
+
+                  if (mainPosition != null) {
+                    await windowManager.setPosition(mainPosition!);
+                  }
                   await windowManager.show();
                 },
                 icon: ImageIcon(miniModeImage),
@@ -441,32 +453,31 @@ class _MiniViewState extends State<MiniView> {
               IconButton(
                 onPressed: () async {
                   final size = await windowManager.getSize();
-                  if (_displayBottom) {
-                    if (_lyricsOrPlayQueueNotifier.value) {
-                      _displayBottom = false;
-                      windowManager.setSize(
-                        Size(
-                          size.width,
-                          miniViewMainHeight + (Platform.isWindows ? 9 : 0),
-                        ),
+                  if (miniViewDisplayBottom) {
+                    if (miniViewDisplayLyricsNotifier.value) {
+                      miniViewDisplayBottom = false;
+                      miniSize = Size(
+                        size.width,
+                        miniViewMainHeight + (Platform.isWindows ? 9 : 0),
                       );
+                      windowManager.setSize(miniSize);
                     } else {
-                      _lyricsOrPlayQueueNotifier.value = true;
+                      miniViewDisplayLyricsNotifier.value = true;
                     }
                   } else {
-                    _displayBottom = true;
-                    _lyricsOrPlayQueueNotifier.value = true;
+                    miniViewDisplayBottom = true;
+                    miniViewDisplayLyricsNotifier.value = true;
 
-                    windowManager.setSize(
-                      Size(
-                        size.width,
-                        min(
-                          Platform.isWindows ? 950 + 9 : 950,
-                          size.height + 300,
-                        ),
+                    miniSize = Size(
+                      size.width,
+                      min(
+                        Platform.isWindows ? 950 + 9 : 950,
+                        size.height + 300,
                       ),
                     );
+                    windowManager.setSize(miniSize);
                   }
+                  myWindowListener.saveConfig();
                 },
                 icon: ImageIcon(lyricsImage),
                 color: foregroundColor,
@@ -488,32 +499,32 @@ class _MiniViewState extends State<MiniView> {
               IconButton(
                 onPressed: () async {
                   final size = await windowManager.getSize();
-                  if (_displayBottom) {
-                    if (!_lyricsOrPlayQueueNotifier.value) {
-                      _displayBottom = false;
-                      windowManager.setSize(
-                        Size(
-                          size.width,
-                          miniViewMainHeight + (Platform.isWindows ? 9 : 0),
-                        ),
+                  if (miniViewDisplayBottom) {
+                    if (!miniViewDisplayLyricsNotifier.value) {
+                      miniViewDisplayBottom = false;
+                      miniSize = Size(
+                        size.width,
+                        miniViewMainHeight + (Platform.isWindows ? 9 : 0),
                       );
+                      windowManager.setSize(miniSize);
                     } else {
-                      _lyricsOrPlayQueueNotifier.value = false;
+                      miniViewDisplayLyricsNotifier.value = false;
                     }
                   } else {
-                    _displayBottom = true;
-                    _lyricsOrPlayQueueNotifier.value = false;
+                    miniViewDisplayBottom = true;
+                    miniViewDisplayLyricsNotifier.value = false;
 
-                    windowManager.setSize(
-                      Size(
-                        size.width,
-                        min(
-                          Platform.isWindows ? 950 + 9 : 950,
-                          size.height + 300,
-                        ),
+                    miniSize = Size(
+                      size.width,
+                      min(
+                        Platform.isWindows ? 950 + 9 : 950,
+                        size.height + 300,
                       ),
                     );
+                    windowManager.setSize(miniSize);
                   }
+
+                  myWindowListener.saveConfig();
                 },
                 icon: const ImageIcon(playQueueImage, size: 25),
                 color: foregroundColor,
