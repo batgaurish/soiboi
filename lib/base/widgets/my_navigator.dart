@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/app.dart';
 
@@ -12,7 +14,7 @@ Widget myNavigator({
     key: key,
     observers: [HeroController()],
     pages: [
-      MaterialPage(child: SizedBox.shrink()),
+      if (Platform.isAndroid) MaterialPage(child: SizedBox.shrink()),
       MaterialPage(
         child: OrientationBuilder(
           builder: (context, orientation) {
