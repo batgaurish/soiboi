@@ -296,7 +296,7 @@ class LayersManager {
                           }
                         },
 
-                        child: Container(color: Colors.transparent, width: 20),
+                        child: Container(color: Colors.transparent, width: 30),
                       ),
                     ),
                   ],

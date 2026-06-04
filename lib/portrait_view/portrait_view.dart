@@ -84,13 +84,15 @@ class _PortraitViewState extends State<PortraitView>
             valueListenable: layersManager.switchNotifier,
             builder: (context, _, _) {
               return GestureDetector(
-                onHorizontalDragEnd: Platform.isAndroid
-                    ? (details) {
-                        if ((details.primaryVelocity ?? 0) > 300) {
-                          portraitKey.currentState?.openDrawer();
-                        }
-                      }
-                    : null,
+                onHorizontalDragEnd: (details) {
+                  final velocity = (details.primaryVelocity ?? 0);
+
+                  if (Platform.isAndroid && velocity > 500) {
+                    portraitKey.currentState?.openDrawer();
+                  } else if (Platform.isIOS && velocity < -500) {
+                    portraitKey.currentState?.openEndDrawer();
+                  }
+                },
                 child: Stack(
                   children: [
                     ...layersManager.rootPageMap.values
