@@ -293,9 +293,7 @@ class _TitleBarState extends State<TitleBar> {
               borderRadius: .circular(10),
             ),
             clipBehavior: .antiAlias,
-            child: AnimatedContainer(
-              duration: Duration(milliseconds: 500),
-              curve: Curves.easeInOutCubic,
+            child: Container(
               color: searchFieldColor.value,
               child: InkWell(
                 focusNode: inkwellNode,
