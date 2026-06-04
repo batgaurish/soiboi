@@ -97,7 +97,8 @@ class _TitleBarState extends State<TitleBar> {
               }
               windowManager.startDragging();
             },
-
+            // prevent system alert sounds on desktop when clicking non-interactive areas
+            onTap: () {},
             onDoubleTap: () async {
               if (isMobile) {
                 return;
