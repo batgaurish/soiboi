@@ -180,16 +180,13 @@ class _TitleBarState extends State<TitleBar> {
       children: [
         SizedBox(width: 30),
 
-        if (widget.isMainPage)
-          Opacity(
-            opacity: widget.backToRoot == null ? 0 : 1,
-            child: IconButton(
-              focusNode: backNode,
-              onPressed: () async {
-                widget.backToRoot?.call();
-              },
-              icon: Icon(Icons.arrow_back_ios_rounded, size: 20),
-            ),
+        if (widget.isMainPage && widget.backToRoot != null)
+          IconButton(
+            focusNode: backNode,
+            onPressed: () async {
+              widget.backToRoot?.call();
+            },
+            icon: Icon(Icons.arrow_back_ios_rounded, size: 20),
           ),
 
         if (!widget.isMainPage)
