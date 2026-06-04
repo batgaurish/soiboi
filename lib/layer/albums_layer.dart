@@ -3,6 +3,7 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/loader.dart';
 import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/widgets/my_navigator.dart';
 import 'package:sylvakru/base/widgets/my_sheet.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
@@ -79,35 +80,11 @@ class _AlbumsLayerState extends State<AlbumsLayer> {
 
   @override
   Widget build(BuildContext context) {
-    return NavigatorPopHandler(
-      onPopWithResult: (result) {
-        layersManager.popDetail('albums');
-      },
-
-      child: Navigator(
-        key: albumsKey,
-        observers: [HeroController()],
-        onGenerateRoute: (settings) => MaterialPageRoute(
-          builder: (_) => OrientationBuilder(
-            builder: (context, orientation) {
-              if (isMobile && orientation == Orientation.portrait) {
-                return pageView(context);
-              } else {
-                return ValueListenableBuilder(
-                  valueListenable: albumsVisibleNotifier,
-                  builder: (context, value, child) {
-                    return AnimatedOpacity(
-                      duration: Duration(milliseconds: 50),
-                      opacity: value ? 1 : 0,
-                      child: panelView(context),
-                    );
-                  },
-                );
-              }
-            },
-          ),
-        ),
-      ),
+    return myNavigator(
+      key: albumsKey,
+      visibleNotifier: albumsVisibleNotifier,
+      pageView: pageView(context),
+      panelView: panelView(context),
     );
   }
 }

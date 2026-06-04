@@ -311,9 +311,13 @@ class LayersManager {
     );
   }
 
-  void popDetail(String label) async {
+  Future<bool> popDetail(String label) async {
     final rootLayer = getRootLayer(label);
+    if (detailWidgetMap[rootLayer] == null) {
+      return false;
+    }
     detailWidgetMap[rootLayer] = null;
+    await layersManager.updateBackground();
 
     late GlobalKey<NavigatorState> rootKey;
     late ValueNotifier<bool> visibleNotifier;
@@ -334,12 +338,9 @@ class LayersManager {
       visibleNotifier = settingsVisibleNotifier;
     }
 
-    await layersManager.updateBackground();
-
     visibleNotifier.value = true;
-    if (rootKey.currentState?.canPop() ?? false) {
-      rootKey.currentState?.pop();
-    }
+    rootKey.currentState?.pop();
+    return true;
   }
 
   void pushDetailIfNeed(dynamic detail) async {

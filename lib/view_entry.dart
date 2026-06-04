@@ -5,10 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
+import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/services/keyboard.dart';
 import 'package:sylvakru/base/utils/dynamic_route.dart';
+import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/landscape_view.dart';
 import 'package:sylvakru/landscape_view/pages/landscape_lyrics_page.dart';
 import 'package:sylvakru/landscape_view/sidebar.dart';
+import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
 import 'package:sylvakru/mini_view/mini_view.dart';
 import 'package:sylvakru/portrait_view/portrait_view.dart';
@@ -75,6 +79,42 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    if (!Platform.isAndroid) {
+      return view();
+    }
+    return PopScope(
+      canPop: false,
+      key: UniqueKey(),
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop | isTyping) {
+          return;
+        }
+        if (portraitKey.currentState?.isDrawerOpen ?? false) {
+          portraitKey.currentState?.closeDrawer();
+          return;
+        }
+        if (await layersManager.popDetail(sidebarHighlighLabel.value)) {
+          return;
+        }
+        if (systemCanPop) {
+          systemCanPop = false;
+          _exitTimer?.cancel();
+          SystemNavigator.pop();
+        } else {
+          systemCanPop = true;
+          if (context.mounted) {
+            showCenterMessage(context, AppLocalizations.of(context).tapAgain);
+          }
+          _exitTimer = Timer(const Duration(seconds: 2), () {
+            systemCanPop = false;
+          });
+        }
+      },
+      child: view(),
+    );
+  }
+
+  Widget view() {
     return ValueListenableBuilder(
       valueListenable: miniModeNotifier,
       builder: (context, miniMode, child) {

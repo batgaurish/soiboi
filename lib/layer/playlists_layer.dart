@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/playlist.dart';
+import 'package:sylvakru/base/widgets/my_navigator.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
@@ -54,36 +55,11 @@ class _PlaylistsLayerState extends State<PlaylistsLayer> {
 
   @override
   Widget build(BuildContext context) {
-    return NavigatorPopHandler(
-      onPopWithResult: (result) {
-        layersManager.popDetail('playlists');
-      },
-
-      child: Navigator(
-        key: playlistsKey,
-        observers: [HeroController()],
-        onGenerateRoute: (settings) => MaterialPageRoute(
-          builder: (_) => OrientationBuilder(
-            builder: (context, orientation) {
-              if (isMobile && orientation == Orientation.portrait) {
-                return pageView(context);
-              } else {
-                return ValueListenableBuilder(
-                  valueListenable: playlistsVisibleNotifier,
-                  builder: (context, value, child) {
-                    // set short animation to avoid flickering
-                    return AnimatedOpacity(
-                      duration: Duration(milliseconds: 50),
-                      opacity: value ? 1 : 0,
-                      child: panelView(context),
-                    );
-                  },
-                );
-              }
-            },
-          ),
-        ),
-      ),
+    return myNavigator(
+      key: playlistsKey,
+      visibleNotifier: playlistsVisibleNotifier,
+      pageView: pageView(context),
+      panelView: panelView(context),
     );
   }
 }
