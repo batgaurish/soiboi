@@ -76,11 +76,11 @@ Future<void> main() async {
           title: 'Sylvaklu',
           theme: ThemeData(
             focusColor: mainPageThemeNotifier.value == .dark
-                ? Colors.white.withAlpha(15)
-                : Colors.black.withAlpha(10),
+                ? Colors.white.withAlpha(20)
+                : Colors.black.withAlpha(20),
             hoverColor: mainPageThemeNotifier.value == .dark
                 ? Colors.white.withAlpha(15)
-                : Colors.black.withAlpha(10),
+                : Colors.black.withAlpha(15),
             textTheme: Theme.of(context).textTheme.apply(
               fontFamily: fontFamilyNotifier.value,
               bodyColor: textColor.value,
