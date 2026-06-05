@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:sylvakru/base/services/keyboard.dart';
 
 class MySearchField extends StatefulWidget {
   final String hintText;
@@ -30,6 +31,21 @@ class MySearchField extends StatefulWidget {
 
 class _MySearchFieldState extends State<MySearchField> {
   final focusNode = FocusNode();
+
+  @override
+  void initState() {
+    focusNode.addListener(() {
+      isTyping = focusNode.hasFocus;
+    });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    focusNode.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
