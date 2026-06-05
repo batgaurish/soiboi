@@ -8,12 +8,11 @@ import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/lyric.dart';
+import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/widgets/buttons.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_auto_size_text.dart';
 import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/landscape_view/desktop_lyrics.dart';
 import 'package:sylvakru/landscape_view/speaker.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/landscape_view/volume_bar.dart';
@@ -417,13 +416,10 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                       width: 40,
                       child: IconButton(
                         onPressed: () async {
-                          if (lyricsWindowVisible) {
-                            await lyricsWindowController!.hide();
-                          } else {
-                            await updateDesktopLyrics();
-                            await lyricsWindowController!.show();
-                          }
-                          lyricsWindowVisible = !lyricsWindowVisible;
+                          showCenterMessage(
+                            context,
+                            'Desktop lyrics has been removed',
+                          );
                         },
                         icon: const ImageIcon(desktopLyricsImage, size: 25),
 

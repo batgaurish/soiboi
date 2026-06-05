@@ -1,7 +1,5 @@
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/exit.dart';
-import 'package:sylvakru/landscape_view/desktop_lyrics.dart';
-import 'package:sylvakru/base/extensions/window_controller_extension.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -29,8 +27,6 @@ class MyTrayListener extends TrayListener {
       audioHandler.togglePlay();
     } else if (menuItem.key == 'skipToNext') {
       audioHandler.skipToNext();
-    } else if (menuItem.key == 'unlock') {
-      lyricsWindowController?.unlock();
     }
   }
 }

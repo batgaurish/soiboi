@@ -77,7 +77,6 @@ dependencies:
       url: https://github.com/AfalpHy/tray_manager.git
       ref: main
       path: packages/tray_manager
-  desktop_multi_window: ^0.3.0
   lpinyin: ^2.0.3
   flex_color_picker: ^3.8.0
   google_fonts: ^8.0.2

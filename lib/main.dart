@@ -1,13 +1,10 @@
 import 'dart:io';
-import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/landscape_view/desktop_lyrics.dart';
-import 'package:sylvakru/base/extensions/window_controller_extension.dart';
 import 'package:sylvakru/base/services/keyboard.dart';
 import 'package:sylvakru/base/services/my_tray_listener.dart';
 import 'package:sylvakru/base/services/my_window_listener.dart';
@@ -32,28 +29,17 @@ Future<void> main() async {
   appSupportDir = await getApplicationSupportDirectory();
   tmpDir = await getTemporaryDirectory();
 
+  await logger.init();
   if (isMobile) {
-    await logger.init();
     screenRadius = await ScreenCornerRadius.get();
   } else {
-    await windowManager.ensureInitialized();
-    final windowController = await WindowController.fromCurrentEngine();
-
-    if (windowController.arguments == 'desktop_lyrics') {
-      _setupDesktopLyricsWindow(windowController);
-      runApp(DesktopLyrics());
-      return;
-    }
-
-    await logger.init();
-
     if (kReleaseMode) {
       await SingleInstance.start();
     }
 
     keyboardInit();
 
-    await _setupMainWindow(windowController);
+    await _setupMainWindow();
     await _setupTray();
   }
 
@@ -156,14 +142,10 @@ Future<void> main() async {
   );
 
   logger.output('App start');
-  if (!isMobile) {
-    await initDesktopLyrics();
-  }
 }
 
-Future<void> _setupMainWindow(WindowController windowController) async {
+Future<void> _setupMainWindow() async {
   myWindowListener = MyWindowListener();
-  await windowController.mainCustomInitialize();
   WindowOptions windowOptions = WindowOptions(
     size: mainSize,
     center: true,
@@ -171,6 +153,7 @@ Future<void> _setupMainWindow(WindowController windowController) async {
     titleBarStyle: TitleBarStyle.hidden,
     windowButtonVisibility: false,
   );
+  await windowManager.ensureInitialized();
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.setPreventClose(true);
     await windowManager.show();
@@ -202,25 +185,6 @@ Future<void> _setupMainWindow(WindowController windowController) async {
   windowManager.addListener(myWindowListener);
 }
 
-Future<void> _setupDesktopLyricsWindow(
-  WindowController windowController,
-) async {
-  await windowController.desktopLyricsCustomInitialize();
-  WindowOptions windowOptions = WindowOptions(
-    title: "Desktop Lyrics",
-    size: Platform.isLinux ? Size(1000, 250) : Size(1000, 200),
-    center: true,
-    backgroundColor: Colors.transparent,
-    titleBarStyle: TitleBarStyle.hidden,
-    // prevent hiding the Dock on macOS
-    skipTaskbar: Platform.isMacOS ? false : true,
-    alwaysOnTop: true,
-  );
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.setAsFrameless();
-  });
-}
-
 Future<void> _setTrayMemu(Locale locale) async {
   late AppLocalizations l10n;
   try {
@@ -237,9 +201,6 @@ Future<void> _setTrayMemu(Locale locale) async {
         MenuItem(key: 'skipToPrevious', label: l10n.skip2Previous),
         MenuItem(key: 'togglePlay', label: l10n.playOrPause),
         MenuItem(key: 'skipToNext', label: l10n.skip2Next),
-        MenuItem.separator(),
-
-        MenuItem(key: 'unlock', label: l10n.unlockDeskLrc),
 
         MenuItem.separator(),
         MenuItem(key: 'exit', label: l10n.exit),

@@ -15,8 +15,6 @@ import 'package:sylvakru/base/services/lyric.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/lyric_list_view.dart';
 import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/landscape_view/desktop_lyrics.dart';
-import 'package:sylvakru/base/extensions/window_controller_extension.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/base/utils/contrast_color_generator.dart';
 import 'package:sylvakru/base/data/library.dart';
@@ -130,39 +128,7 @@ class MyAudioHandler extends BaseAudioHandler {
       if (isLoading || isSyncing) {
         return;
       }
-      _tryUpdateDesktopLyrics(position);
     });
-  }
-
-  void _tryUpdateDesktopLyrics(Duration position) {
-    final currentSong = currentSongNotifier.value;
-    if (currentSong == null || currentSong.parsedLyrics == null) {
-      return;
-    }
-    ParsedLyrics parsedLyrics = currentSong.parsedLyrics!;
-
-    List<LyricLine> lines = parsedLyrics.lines;
-
-    int current = 0;
-
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
-      if (position < line.start) {
-        break;
-      }
-      if (line.start > lines[current].start) {
-        current = i;
-      }
-    }
-
-    final tmpLyricLine = currentLyricLine;
-
-    currentLyricLine = lines[current];
-    currentLyricLineIsKaraoke = parsedLyrics.isKaraoke;
-
-    if (lyricsWindowVisible && currentLyricLine != tmpLyricLine) {
-      updateDesktopLyrics();
-    }
   }
 
   void updateIsPlaying(bool isPlaying) {
@@ -174,8 +140,6 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     needPause = false;
     isPlayingNotifier.value = isPlaying;
-
-    lyricsWindowController?.sendPlaying(isPlaying);
   }
 
   void updatePlaybackState({Duration? postion, bool stop = false}) {
@@ -452,10 +416,6 @@ class MyAudioHandler extends BaseAudioHandler {
     stop();
     playQueue = [];
     _playQueueTmp = [];
-    currentLyricLine = null;
-    if (!isMobile) {
-      await updateDesktopLyrics();
-    }
     currentIndex = -1;
     currentSongNotifier.value = null;
     currentCoverArtColor = Colors.grey;
@@ -493,10 +453,6 @@ class MyAudioHandler extends BaseAudioHandler {
           await skipToNext();
         } else {
           await stop();
-          currentLyricLine = null;
-          if (!isMobile) {
-            await updateDesktopLyrics();
-          }
         }
       }
     }
@@ -586,7 +542,6 @@ class MyAudioHandler extends BaseAudioHandler {
     updateServiceMediaItem(currentSong);
 
     updatePlaybackState(postion: Duration.zero);
-    _tryUpdateDesktopLyrics(Duration.zero);
   }
 
   void updateServiceMediaItem(MyAudioMetadata currentSong) {
