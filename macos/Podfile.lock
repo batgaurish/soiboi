@@ -1,8 +1,6 @@
 PODS:
   - audio_tags_lofty (0.0.4):
     - FlutterMacOS
-  - desktop_multi_window (0.0.1):
-    - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - irondash_engine_context (0.0.1):
     - FlutterMacOS
@@ -15,7 +13,6 @@ PODS:
 
 DEPENDENCIES:
   - audio_tags_lofty (from `Flutter/ephemeral/.symlinks/plugins/audio_tags_lofty/macos`)
-  - desktop_multi_window (from `Flutter/ephemeral/.symlinks/plugins/desktop_multi_window/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - irondash_engine_context (from `Flutter/ephemeral/.symlinks/plugins/irondash_engine_context/macos`)
   - screen_retriever_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever_macos/macos`)
@@ -25,8 +22,6 @@ DEPENDENCIES:
 EXTERNAL SOURCES:
   audio_tags_lofty:
     :path: Flutter/ephemeral/.symlinks/plugins/audio_tags_lofty/macos
-  desktop_multi_window:
-    :path: Flutter/ephemeral/.symlinks/plugins/desktop_multi_window/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
   irondash_engine_context:
@@ -40,7 +35,6 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   audio_tags_lofty: cb4cbfd45a647369e0ecac280f880c35d55310d0
-  desktop_multi_window: 93667594ccc4b88d91a97972fd3b1b89667fa80a
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   irondash_engine_context: 893c7d96d20ce361d7e996f39d360c4c2f9869ba
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
