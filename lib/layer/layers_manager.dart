@@ -178,10 +178,12 @@ class LayersManager {
         popDetail('playlists');
       }
       final removedLayer = rootLayerMap.remove(key);
-      rootPageMap.remove(removedLayer);
       if (removedLayer == topRootLayer) {
         switchRootLayer('songs');
       }
+      // prevent black screen appear
+      await Future.delayed(Duration(milliseconds: 500));
+      rootPageMap.remove(removedLayer);
     } else if (target is Artist) {
       final rootLayer = getRootLayer('artists');
       if ((detailWidgetMap[rootLayer] as SingleArtistLayer?)?.artist ==
