@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/keyboard.dart';
+import 'package:sylvakru/base/widgets/my_navigator.dart';
 
 class CustomTextField extends StatefulWidget {
   final String? name;
@@ -37,6 +40,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
     canRequestNotifier.value = widget.autoFocus;
     textFieldNode.addListener(() {
       isTyping = textFieldNode.hasFocus;
+      if (Platform.isAndroid) {
+        canFocusNavigatorNotifier.value = !isTyping;
+      }
       if (!textFieldNode.hasFocus) {
         inkwellNode.requestFocus();
       }
@@ -89,6 +95,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
             child: AnimatedBuilder(
               animation: inkwellNode,
               builder: (context, child) {
+                if (!isTV) {
+                  return child!;
+                }
                 return PopScope(
                   canPop: !inkwellNode.hasFocus,
                   onPopInvokedWithResult: (didPop, result) {

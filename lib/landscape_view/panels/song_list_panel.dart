@@ -875,219 +875,246 @@ extension _SongListPanel on _SongListState {
     final song = songList[index];
     final l10n = AppLocalizations.of(context);
 
-    final options = Column(
-      children: [
-        SizedBox(height: 5),
+    final options = Builder(
+      builder: (context) {
+        return Column(
+          children: [
+            SizedBox(height: 5),
 
-        ListTile(
-          leading: CoverArtWidget(size: 50, borderRadius: 5, song: song),
-          title: Text(getTitle(song), overflow: TextOverflow.ellipsis),
-          subtitle: Text(
-            "${getArtist(song)} - ${getAlbum(song)}",
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-
-        SizedBox(height: 5),
-        MyDivider(color: dividerColor, thickness: 0.5, height: 1),
-        SizedBox(height: 5),
-
-        Expanded(
-          child: ListView(
-            physics: const ClampingScrollPhysics(),
-            children: [
-              if (reorderable)
-                ListTile(
-                  leading: Icon(Icons.vertical_align_top_rounded),
-                  title: Text(
-                    l10n.move2Top,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  visualDensity: const VisualDensity(
-                    horizontal: 0,
-                    vertical: -4,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-
-                    if (isLibrary) {
-                      final targetSongList = library.songListManager
-                          .getSongList2(sourceType);
-                      final item = targetSongList.removeAt(index);
-                      targetSongList.insert(0, item);
-                      library.update(sourceType);
-                    } else if (folder != null) {
-                      final item = folder!.songList.removeAt(index);
-                      folder!.songList.insert(0, item);
-                      folder!.update();
-                    } else {
-                      final targetSongList = playlist!.songListManager
-                          .getSongList2(song.sourceType);
-                      final item = targetSongList.removeAt(index);
-                      targetSongList.insert(0, item);
-                      playlist!.update(getSourceTypeBitMask(sourceType));
-                    }
-                  },
-                ),
-              ListTile(
-                leading: Icon(Icons.play_arrow_rounded),
-                title: Text(
-                  l10n.playNow,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () {
-                  audioHandler.singlePlay(songList[index]);
-                  Navigator.pop(context);
-                  audioHandler.saveAllStates();
-                },
+            ListTile(
+              leading: CoverArtWidget(size: 50, borderRadius: 5, song: song),
+              title: Text(getTitle(song), overflow: TextOverflow.ellipsis),
+              subtitle: Text(
+                "${getArtist(song)} - ${getAlbum(song)}",
+                overflow: TextOverflow.ellipsis,
               ),
-              ListTile(
-                leading: Icon(Icons.navigate_next_rounded),
-                title: Text(
-                  l10n.playNext,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () {
-                  if (playQueue.isEmpty) {
-                    audioHandler.singlePlay(songList[index]);
-                  } else {
-                    audioHandler.insert2Next(songList[index]);
-                  }
-                  Navigator.pop(context);
-                  audioHandler.saveAllStates();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.playlist_add_rounded),
-                title: Text(
-                  l10n.add2Queue,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () {
-                  if (playQueue.isEmpty) {
-                    audioHandler.singlePlay(songList[index]);
-                  } else {
-                    audioHandler.add2Last(songList[index]);
-                  }
-                  Navigator.pop(context);
-                  audioHandler.saveAllStates();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.add_rounded),
-                title: Text(
-                  l10n.add2Playlist,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () {
-                  Navigator.pop(context);
+            ),
 
-                  showAddPlaylistDialog(context, [song]);
-                },
-              ),
+            SizedBox(height: 5),
+            MyDivider(color: dividerColor, thickness: 0.5, height: 1),
+            SizedBox(height: 5),
 
-              ListTile(
-                leading: Icon(Icons.people),
-                title: Text(
-                  l10n.go2Artist,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final artists = getArtists(getArtist(song));
-                  if (artists.length > 1) {
-                    showArtistEntries(context, artists);
-                  } else {
-                    await Future.delayed(Duration(milliseconds: 250));
-                    layersManager.switchRootLayer('artists');
-                    layersManager.pushDetailIfNeed(
-                      artistAlbumManager.name2Artist[artists[0]],
-                    );
-                  }
-                },
-              ),
-
-              ListTile(
-                leading: Icon(Icons.album_rounded),
-                title: Text(
-                  l10n.go2Album,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await Future.delayed(Duration(milliseconds: 250));
-                  layersManager.switchRootLayer('albums');
-                  layersManager.pushDetailIfNeed(
-                    artistAlbumManager.name2Album[getAlbum(songList[index])],
-                  );
-                },
-              ),
-
-              ListTile(
-                leading: Icon(Icons.info_outline_rounded),
-                title: Text(
-                  l10n.songInfo,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
-                onTap: () {
-                  Navigator.pop(context);
-                  showAnimationDialog(
-                    context: context,
-                    child: SongInfo(song: song),
-                  );
-                },
-              ),
-
-              if (song.sourceType != .navidrome)
-                ListTile(
-                  leading: Icon(Icons.edit_rounded),
-                  title: Text(
-                    l10n.editMetadata,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  visualDensity: const VisualDensity(
-                    horizontal: 0,
-                    vertical: -4,
-                  ),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    showAnimationDialog(
-                      context: context,
-                      child: EditMetadata(song: song),
-                    );
-                  },
-                ),
-              if (playlist != null)
-                ListTile(
-                  leading: Icon(Icons.delete_rounded),
-                  title: Text(
-                    l10n.delete,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  visualDensity: const VisualDensity(
-                    horizontal: 0,
-                    vertical: -4,
-                  ),
-                  onTap: () async {
-                    if (await showConfirmDialog(context, l10n.delete)) {
-                      playlist!.remove([song]);
-                      if (context.mounted) {
+            Expanded(
+              child: ListView(
+                physics: const ClampingScrollPhysics(),
+                children: [
+                  if (reorderable)
+                    ListTile(
+                      leading: Icon(Icons.vertical_align_top_rounded),
+                      title: Text(
+                        l10n.move2Top,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      visualDensity: const VisualDensity(
+                        horizontal: 0,
+                        vertical: -4,
+                      ),
+                      onTap: () {
                         Navigator.pop(context);
+
+                        if (isLibrary) {
+                          final targetSongList = library.songListManager
+                              .getSongList2(sourceType);
+                          final item = targetSongList.removeAt(index);
+                          targetSongList.insert(0, item);
+                          library.update(sourceType);
+                        } else if (folder != null) {
+                          final item = folder!.songList.removeAt(index);
+                          folder!.songList.insert(0, item);
+                          folder!.update();
+                        } else {
+                          final targetSongList = playlist!.songListManager
+                              .getSongList2(song.sourceType);
+                          final item = targetSongList.removeAt(index);
+                          targetSongList.insert(0, item);
+                          playlist!.update(getSourceTypeBitMask(sourceType));
+                        }
+                      },
+                    ),
+                  ListTile(
+                    leading: Icon(Icons.play_arrow_rounded),
+                    title: Text(
+                      l10n.playNow,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    visualDensity: const VisualDensity(
+                      horizontal: 0,
+                      vertical: -4,
+                    ),
+                    onTap: () {
+                      audioHandler.singlePlay(songList[index]);
+                      Navigator.pop(context);
+                      audioHandler.saveAllStates();
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.navigate_next_rounded),
+                    title: Text(
+                      l10n.playNext,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    visualDensity: const VisualDensity(
+                      horizontal: 0,
+                      vertical: -4,
+                    ),
+                    onTap: () {
+                      if (playQueue.isEmpty) {
+                        audioHandler.singlePlay(songList[index]);
+                      } else {
+                        audioHandler.insert2Next(songList[index]);
                       }
-                    }
-                  },
-                ),
-            ],
-          ),
-        ),
-      ],
+                      Navigator.pop(context);
+                      audioHandler.saveAllStates();
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.playlist_add_rounded),
+                    title: Text(
+                      l10n.add2Queue,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    visualDensity: const VisualDensity(
+                      horizontal: 0,
+                      vertical: -4,
+                    ),
+                    onTap: () {
+                      if (playQueue.isEmpty) {
+                        audioHandler.singlePlay(songList[index]);
+                      } else {
+                        audioHandler.add2Last(songList[index]);
+                      }
+                      Navigator.pop(context);
+                      audioHandler.saveAllStates();
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.add_rounded),
+                    title: Text(
+                      l10n.add2Playlist,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    visualDensity: const VisualDensity(
+                      horizontal: 0,
+                      vertical: -4,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+
+                      showAddPlaylistDialog(context, [song]);
+                    },
+                  ),
+
+                  ListTile(
+                    leading: Icon(Icons.people),
+                    title: Text(
+                      l10n.go2Artist,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    visualDensity: const VisualDensity(
+                      horizontal: 0,
+                      vertical: -4,
+                    ),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final artists = getArtists(getArtist(song));
+                      if (artists.length > 1) {
+                        showArtistEntries(context, artists);
+                      } else {
+                        await Future.delayed(Duration(milliseconds: 250));
+                        layersManager.switchRootLayer('artists');
+                        layersManager.pushDetailIfNeed(
+                          artistAlbumManager.name2Artist[artists[0]],
+                        );
+                      }
+                    },
+                  ),
+
+                  ListTile(
+                    leading: Icon(Icons.album_rounded),
+                    title: Text(
+                      l10n.go2Album,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    visualDensity: const VisualDensity(
+                      horizontal: 0,
+                      vertical: -4,
+                    ),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Future.delayed(Duration(milliseconds: 250));
+                      layersManager.switchRootLayer('albums');
+                      layersManager.pushDetailIfNeed(
+                        artistAlbumManager.name2Album[getAlbum(
+                          songList[index],
+                        )],
+                      );
+                    },
+                  ),
+
+                  ListTile(
+                    leading: Icon(Icons.info_outline_rounded),
+                    title: Text(
+                      l10n.songInfo,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    visualDensity: const VisualDensity(
+                      horizontal: 0,
+                      vertical: -4,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showAnimationDialog(
+                        context: context,
+                        child: SongInfo(song: song),
+                      );
+                    },
+                  ),
+
+                  if (song.sourceType != .navidrome)
+                    ListTile(
+                      leading: Icon(Icons.edit_rounded),
+                      title: Text(
+                        l10n.editMetadata,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      visualDensity: const VisualDensity(
+                        horizontal: 0,
+                        vertical: -4,
+                      ),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        showAnimationDialog(
+                          context: context,
+                          child: EditMetadata(song: song),
+                        );
+                      },
+                    ),
+                  if (playlist != null)
+                    ListTile(
+                      leading: Icon(Icons.delete_rounded),
+                      title: Text(
+                        l10n.delete,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      visualDensity: const VisualDensity(
+                        horizontal: 0,
+                        vertical: -4,
+                      ),
+                      onTap: () async {
+                        if (await showConfirmDialog(context, l10n.delete)) {
+                          playlist!.remove([song]);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
 
     return IconButton(
