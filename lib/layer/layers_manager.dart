@@ -243,7 +243,6 @@ class LayersManager {
 
     await layersManager.updateBackground();
 
-    visibleNotifier.value = false;
     final detailPage = createPage(detailLayer);
     rootKey.currentState?.push(
       DynamicDatailRoute(
@@ -303,6 +302,9 @@ class LayersManager {
         },
       ),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      visibleNotifier.value = false;
+    });
   }
 
   Future<bool> popDetail(String label) async {
@@ -332,8 +334,11 @@ class LayersManager {
       visibleNotifier = settingsVisibleNotifier;
     }
 
-    visibleNotifier.value = true;
     rootKey.currentState?.pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      visibleNotifier.value = true;
+    });
+
     return true;
   }
 
