@@ -35,7 +35,7 @@ extension _AlbumsPanel on _AlbumsLayerState {
               leading: ValueListenableBuilder(
                 valueListenable: iconColor.valueNotifier,
                 builder: (context, value, child) {
-                  return ImageIcon(artistImage, size: 50, color: value);
+                  return ImageIcon(albumImage, size: 50, color: value);
                 },
               ),
               title: Text(
@@ -46,7 +46,7 @@ extension _AlbumsPanel on _AlbumsLayerState {
                 valueListenable: currentAlbumListNotifier,
                 builder: (context, list, child) {
                   return Text(
-                    l10n.artistCount(list.length),
+                    l10n.albumCount(list.length),
                     style: TextStyle(fontSize: 12),
                   );
                 },

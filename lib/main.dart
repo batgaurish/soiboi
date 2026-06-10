@@ -73,7 +73,11 @@ Future<void> main() async {
               displayColor: textColor.value,
             ),
             appBarTheme: AppBarTheme(
-              titleTextStyle: TextStyle(color: textColor.value, fontSize: 24),
+              titleTextStyle: TextStyle(
+                color: textColor.value,
+                fontSize: 24,
+                fontFamily: fontFamilyNotifier.value,
+              ),
               iconTheme: IconThemeData(color: iconColor.value),
             ),
 
