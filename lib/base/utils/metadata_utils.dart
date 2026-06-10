@@ -1,4 +1,5 @@
 import 'package:lpinyin/lpinyin.dart';
+import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:path/path.dart';
 
@@ -100,22 +101,98 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
       break;
     case 3: // Artist Ascending
       songList.sort((a, b) {
-        return compareMixed(getArtist(a), getArtist(b));
+        final tmp = compareMixed(getArtist(a), getArtist(b));
+        if (tmp != 0) {
+          return tmp;
+        }
+        final albumA = artistAlbumManager.name2Album[getAlbum(a)];
+        final albumB = artistAlbumManager.name2Album[getAlbum(b)];
+        if (albumA != albumB) {
+          int aYear = albumA!.year ?? 9999;
+          int bYear = albumB!.year ?? 9999;
+
+          final yearTmp = aYear.compareTo(bYear);
+          if (yearTmp != 0) {
+            return yearTmp;
+          }
+          return albumA.name.compareTo(albumB.name);
+        }
+        final discA = a.disc ?? 9999;
+        final discB = b.disc ?? 9999;
+
+        final discCompare = discA.compareTo(discB);
+        if (discCompare != 0) return discCompare;
+
+        final trackA = a.track ?? 9999;
+        final trackB = b.track ?? 9999;
+
+        return trackA.compareTo(trackB);
       });
       break;
     case 4: // Artist Descending
       songList.sort((a, b) {
-        return compareMixed(getArtist(b), getArtist(a));
+        final tmp = compareMixed(getArtist(b), getArtist(a));
+        if (tmp != 0) {
+          return tmp;
+        }
+        final albumA = artistAlbumManager.name2Album[getAlbum(a)];
+        final albumB = artistAlbumManager.name2Album[getAlbum(b)];
+        if (albumA != albumB) {
+          int aYear = albumA!.year ?? 9999;
+          int bYear = albumB!.year ?? 9999;
+
+          final yearTmp = aYear.compareTo(bYear);
+          if (yearTmp != 0) {
+            return yearTmp;
+          }
+          return albumA.name.compareTo(albumB.name);
+        }
+        final discA = a.disc ?? 9999;
+        final discB = b.disc ?? 9999;
+
+        final discCompare = discA.compareTo(discB);
+        if (discCompare != 0) return discCompare;
+
+        final trackA = a.track ?? 9999;
+        final trackB = b.track ?? 9999;
+
+        return trackA.compareTo(trackB);
       });
       break;
     case 5: // Album Ascending
       songList.sort((a, b) {
-        return compareMixed(getAlbum(a), getAlbum(b));
+        final tmp = compareMixed(getAlbum(a), getAlbum(b));
+        if (tmp != 0) {
+          return tmp;
+        }
+        final discA = a.disc ?? 9999;
+        final discB = b.disc ?? 9999;
+
+        final discCompare = discA.compareTo(discB);
+        if (discCompare != 0) return discCompare;
+
+        final trackA = a.track ?? 9999;
+        final trackB = b.track ?? 9999;
+
+        return trackA.compareTo(trackB);
       });
       break;
     case 6: // Album Descending
       songList.sort((a, b) {
-        return compareMixed(getAlbum(b), getAlbum(a));
+        final tmp = compareMixed(getAlbum(b), getAlbum(a));
+        if (tmp != 0) {
+          return tmp;
+        }
+        final discA = a.disc ?? 9999;
+        final discB = b.disc ?? 9999;
+
+        final discCompare = discA.compareTo(discB);
+        if (discCompare != 0) return discCompare;
+
+        final trackA = a.track ?? 9999;
+        final trackB = b.track ?? 9999;
+
+        return trackA.compareTo(trackB);
       });
       break;
     case 7: // Duration Ascending

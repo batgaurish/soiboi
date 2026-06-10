@@ -57,7 +57,7 @@ class _LicenseLayerState extends State<LicenseLayer> {
         package2Licenses.keys
             .where((e) => e.contains(textController.text))
             .toList()
-          ..sort();
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     selectedPackage = packages.isNotEmpty ? packages.first : null;
     rebuild();
   }
