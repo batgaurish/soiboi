@@ -30,7 +30,11 @@ Widget myNavigator({
                 return ValueListenableBuilder(
                   valueListenable: visibleNotifier,
                   builder: (context, value, child) {
-                    return Opacity(opacity: value ? 1 : 0, child: panelView);
+                    return AnimatedOpacity(
+                      duration: Duration(microseconds: 1),
+                      opacity: value ? 1 : 0,
+                      child: panelView,
+                    );
                   },
                 );
               }

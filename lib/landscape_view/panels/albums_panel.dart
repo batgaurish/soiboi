@@ -39,7 +39,7 @@ extension _AlbumsPanel on _AlbumsLayerState {
                 },
               ),
               title: Text(
-                l10n.artists,
+                l10n.albums,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               subtitle: ValueListenableBuilder(

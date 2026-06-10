@@ -30,6 +30,7 @@ import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/portrait_view/portrait_view.dart';
 
 final layersManager = LayersManager();
 MyAudioMetadata? backgroundSong;
@@ -266,13 +267,16 @@ class LayersManager {
                     }
                   },
                   onHorizontalDragEnd: (details) async {
-                    final bool isFastSwipe =
-                        (details.primaryVelocity ?? 0) > 500;
+                    final velocity = (details.primaryVelocity ?? 0);
                     final bool isOverThreshold =
                         dragDxNotifier.value / MediaQuery.widthOf(context) >
                         0.5;
 
-                    if (isFastSwipe || isOverThreshold) {
+                    if (dragDxNotifier.value == 0 && velocity < -500) {
+                      portraitKey.currentState?.openEndDrawer();
+                    }
+
+                    if (velocity > 500 || isOverThreshold) {
                       layersManager.popDetail(label);
                     } else {
                       draging = false;
