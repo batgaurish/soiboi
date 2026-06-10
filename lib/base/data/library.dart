@@ -427,6 +427,25 @@ class Library {
     );
   }
 
+  Future<void> updateMetadata(MyAudioMetadata song) async {
+    final metadataDB = _getMetadataDB(song.sourceType);
+
+    await (metadataDB.update(
+      metadataDB.metadataItems,
+    )..where((t) => t.id.equals(song.id))).write(
+      MetadataItemsCompanion(
+        title: Value(song.title),
+        artist: Value(song.artist),
+        album: Value(song.album),
+        genre: Value(song.genre),
+        lyrics: Value(song.lyrics),
+        year: Value(song.year),
+        track: Value(song.track),
+        disc: Value(song.disc),
+      ),
+    );
+  }
+
   void shuffle(SourceType sourceType) {
     songListManager.getSongList2(sourceType).shuffle();
     update(sourceType);

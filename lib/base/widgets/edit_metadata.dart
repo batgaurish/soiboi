@@ -6,6 +6,7 @@ import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/audio_handler.dart';
+import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/services/metadata_service.dart';
 import 'package:sylvakru/base/services/webdav_client.dart';
 import 'package:sylvakru/base/services/interaction.dart';
@@ -310,10 +311,8 @@ class _EditMetadataState extends State<EditMetadata> {
 
       if (success) {
         song.modified = DateTime.now();
+        song.cacheExist = false;
         song.cachePath = null;
-
-        final originArtist = getArtist(song);
-        final originAlbum = getAlbum(song);
 
         song.title = writeTitle;
         song.artist = writeArtist;
@@ -328,6 +327,8 @@ class _EditMetadataState extends State<EditMetadata> {
         song.track = writeTrack ?? song.track;
         song.disc = writeDisc ?? song.disc;
 
+        await library.updateMetadata(song);
+
         song.pictureLoaded = false;
         song.pictureExist = false;
         song.coverArtColor = null;
@@ -340,6 +341,8 @@ class _EditMetadataState extends State<EditMetadata> {
           );
           colorManager.updateLyricsPageColors();
         }
+        final originArtist = getArtist(song);
+        final originAlbum = getAlbum(song);
         artistAlbumManager.updateArtistAlbum(song, originArtist, originAlbum);
 
         song.updateNotifier.value++;
