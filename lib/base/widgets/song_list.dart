@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:super_context_menu/super_context_menu.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/audio_handler.dart';

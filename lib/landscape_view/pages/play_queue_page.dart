@@ -6,13 +6,10 @@ import 'package:sylvakru/base/utils/format_duration.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/widgets/buttons.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/playlist_widgets.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/base/services/keyboard.dart';
 import 'package:sylvakru/mini_view/mini_view.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:super_context_menu/super_context_menu.dart';
 
 class PlayQueuePage extends StatefulWidget {
   const PlayQueuePage({super.key});
@@ -192,126 +189,38 @@ class PlayQueuePageState extends State<PlayQueuePage> {
     List<ValueNotifier<bool>> isSelectedList,
   ) {
     final isSelected = isSelectedList[index];
-    final l10n = AppLocalizations.of(context);
 
-    return ContextMenuWidget(
-      desktopMenuWidgetBuilder: CustomDesktopMenuWidgetBuilder(
-        backgroundBaseColor: colorManager.getSpecificBgBaseColor(),
-        backgroundColor: colorManager.getSpecificMenuColor(),
-        iconColor: colorManager.getSpecificIconColor(),
-        textColor: colorManager.getSpecificTextColor(),
-        selectedColor: colorManager.getSpecificSelectedItemColor(),
-        dividerColor: colorManager.getSpecificDividerColor(),
-      ),
+    return PlayQueueItem(
       key: ValueKey(playQueue[index]),
-      child: PlayQueueItem(
-        index: index,
-        isSelected: isSelected,
-        onTap: () async {
-          if (ctrlIsPressed) {
-            isSelected.value = !isSelected.value;
-            continuousSelectBeginIndex = index;
-          } else if (shiftIsPressed) {
-            int left = continuousSelectBeginIndex < index
-                ? continuousSelectBeginIndex
-                : index;
-            int right = continuousSelectBeginIndex > index
-                ? continuousSelectBeginIndex
-                : index;
+      index: index,
+      isSelected: isSelected,
+      onTap: () async {
+        if (ctrlIsPressed) {
+          isSelected.value = !isSelected.value;
+          continuousSelectBeginIndex = index;
+        } else if (shiftIsPressed) {
+          int left = continuousSelectBeginIndex < index
+              ? continuousSelectBeginIndex
+              : index;
+          int right = continuousSelectBeginIndex > index
+              ? continuousSelectBeginIndex
+              : index;
 
-            for (int i = 0; i < isSelectedList.length; i++) {
-              if (i < left || i > right) {
-                isSelectedList[i].value = false;
-              } else {
-                isSelectedList[i].value = true;
-              }
+          for (int i = 0; i < isSelectedList.length; i++) {
+            if (i < left || i > right) {
+              isSelectedList[i].value = false;
+            } else {
+              isSelectedList[i].value = true;
             }
-          } else {
-            // clear select
-            for (var tmp in isSelectedList) {
-              tmp.value = false;
-            }
-            isSelected.value = true;
-            continuousSelectBeginIndex = index;
           }
-        },
-      ),
-      menuProvider: (request) {
-        // select current and clear others if it's not selected
-        if (!isSelected.value) {
+        } else {
+          // clear select
           for (var tmp in isSelectedList) {
             tmp.value = false;
           }
           isSelected.value = true;
           continuousSelectBeginIndex = index;
         }
-        return Menu(
-          children: [
-            MenuAction(
-              title: l10n.add2Playlist,
-              image: MenuImage.icon(Icons.playlist_add_rounded),
-              callback: () {
-                final List<MyAudioMetadata> tmpSongList = [];
-                for (int i = isSelectedList.length - 1; i >= 0; i--) {
-                  if (isSelectedList[i].value) {
-                    tmpSongList.add(playQueue[i]);
-                  }
-                }
-                showAddPlaylistDialog(context, tmpSongList);
-              },
-            ),
-            MenuAction(
-              title: l10n.playNext,
-              image: MenuImage.icon(Icons.navigate_next_rounded),
-              callback: () async {
-                final List<MyAudioMetadata> tmpSongList = [];
-                for (int i = isSelectedList.length - 1; i >= 0; i--) {
-                  if (isSelectedList[i].value) {
-                    tmpSongList.add(playQueue[i]);
-                  }
-                }
-                for (int i = 0; i < tmpSongList.length; i++) {
-                  audioHandler.insert2Next(tmpSongList[i]);
-                }
-                audioHandler.saveAllStates();
-                setState(() {});
-              },
-            ),
-            MenuAction(
-              title: l10n.remove,
-              image: MenuImage.icon(Icons.close_rounded),
-              callback: () async {
-                bool removeCurrent = false;
-                for (int i = isSelectedList.length - 1; i >= 0; i--) {
-                  if (isSelectedList[i].value) {
-                    if (i < audioHandler.currentIndex) {
-                      audioHandler.currentIndex -= 1;
-                    } else if (i == audioHandler.currentIndex) {
-                      removeCurrent = true;
-                      if (audioHandler.currentIndex == playQueue.length - 1) {
-                        audioHandler.currentIndex = 0;
-                      }
-                    }
-                    audioHandler.delete(i);
-                  }
-                }
-
-                setState(() {});
-                if (playQueue.isEmpty) {
-                  await audioHandler.clear();
-                  while (context.mounted && Navigator.canPop(context)) {
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  }
-                } else if (removeCurrent) {
-                  await audioHandler.load();
-                }
-                audioHandler.saveAllStates();
-              },
-            ),
-          ],
-        );
       },
     );
   }

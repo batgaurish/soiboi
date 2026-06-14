@@ -570,203 +570,7 @@ extension _SongListPanel on _SongListState {
     List<MyAudioMetadata> currentSongList,
     List<ValueNotifier<bool>> isSelectedList,
   ) {
-    final l10n = AppLocalizations.of(context);
     final isSelected = isSelectedList[index];
-
-    FutureOr<Menu?> menuProvider(MenuRequest _) async {
-      // select current and clear others if it's not selected
-      if (!isSelected.value) {
-        for (var tmp in isSelectedList) {
-          tmp.value = false;
-        }
-        isSelected.value = true;
-        continuousSelectBeginIndex = index;
-      }
-
-      int selectedCnt = 0;
-
-      for (int i = isSelectedList.length - 1; i >= 0; i--) {
-        if (isSelectedList[i].value) {
-          selectedCnt++;
-        }
-      }
-
-      return Menu(
-        children: [
-          if (selectedCnt == 1 &&
-              reorderable &&
-              textController.text.isEmpty &&
-              sortTypeNotifier.value == 0)
-            MenuAction(
-              title: l10n.move2Top,
-              image: MenuImage.icon(Icons.vertical_align_top_rounded),
-              callback: () async {
-                final item = songList.removeAt(index);
-                songList.insert(0, item);
-
-                if (isLibrary) {
-                  library.update(sourceType);
-                } else if (folder != null) {
-                  folder!.update();
-                } else {
-                  playlist!.update(getSourceTypeBitMask(item.sourceType));
-                }
-              },
-            ),
-          MenuAction(
-            title: l10n.playNow,
-            image: MenuImage.icon(Icons.play_arrow_rounded),
-            callback: () async {
-              MyAudioMetadata? tmp;
-              for (int i = isSelectedList.length - 1; i >= 0; i--) {
-                if (isSelectedList[i].value) {
-                  tmp = currentSongList[i];
-                  audioHandler.insert2Next(tmp);
-                }
-              }
-
-              if (tmp != currentSongNotifier.value) {
-                await audioHandler.skipToNext();
-              }
-              audioHandler.play();
-              audioHandler.saveAllStates();
-            },
-          ),
-          MenuAction(
-            title: l10n.playNext,
-            image: MenuImage.icon(Icons.navigate_next_rounded),
-            callback: () async {
-              bool needPlay = false;
-              if (playQueue.isEmpty) {
-                needPlay = true;
-              }
-              for (int i = isSelectedList.length - 1; i >= 0; i--) {
-                if (isSelectedList[i].value) {
-                  audioHandler.insert2Next(currentSongList[i]);
-                }
-              }
-
-              if (needPlay) {
-                await audioHandler.skipToNext();
-                audioHandler.play();
-              }
-              audioHandler.saveAllStates();
-            },
-          ),
-
-          MenuAction(
-            title: l10n.add2Queue,
-            image: MenuImage.icon(Icons.playlist_add_rounded),
-            callback: () async {
-              bool needPlay = false;
-              if (playQueue.isEmpty) {
-                needPlay = true;
-              }
-              for (int i = 0; i < isSelectedList.length; i++) {
-                if (isSelectedList[i].value) {
-                  audioHandler.add2Last(currentSongList[i]);
-                }
-              }
-
-              if (needPlay) {
-                await audioHandler.skipToNext();
-                audioHandler.play();
-              }
-              audioHandler.saveAllStates();
-            },
-          ),
-
-          MenuAction(
-            title: l10n.add2Playlist,
-            image: MenuImage.icon(Icons.add_rounded),
-            callback: () {
-              final List<MyAudioMetadata> tmpSongList = [];
-              for (int i = isSelectedList.length - 1; i >= 0; i--) {
-                if (isSelectedList[i].value) {
-                  tmpSongList.add(currentSongList[i]);
-                }
-              }
-              showAddPlaylistDialog(context, tmpSongList);
-            },
-          ),
-
-          MenuSeparator(),
-
-          if (selectedCnt == 1)
-            MenuAction(
-              title: l10n.go2Artist,
-              image: MenuImage.icon(Icons.people),
-              callback: () async {
-                final artists = getArtists(getArtist(currentSongList[index]));
-                if (artists.length > 1) {
-                  showArtistEntries(context, artists);
-                } else {
-                  await Future.delayed(Duration(milliseconds: 250));
-                  layersManager.switchRootLayer('artists');
-                  layersManager.pushDetailIfNeed(
-                    artistAlbumManager.name2Artist[artists[0]],
-                  );
-                }
-              },
-            ),
-
-          if (selectedCnt == 1)
-            MenuAction(
-              title: l10n.go2Album,
-              image: MenuImage.icon(Icons.album_rounded),
-              callback: () async {
-                await Future.delayed(Duration(milliseconds: 250));
-                layersManager.switchRootLayer('albums');
-                layersManager.pushDetailIfNeed(
-                  artistAlbumManager.name2Album[getAlbum(
-                    currentSongList[index],
-                  )],
-                );
-              },
-            ),
-
-          if (selectedCnt == 1)
-            MenuAction(
-              title: l10n.songInfo,
-              image: MenuImage.icon(Icons.info_outline_rounded),
-              callback: () {
-                showAnimationDialog(
-                  context: context,
-                  child: SongInfo(song: currentSongList[index]),
-                );
-              },
-            ),
-
-          if (selectedCnt == 1 && sourceType == .local)
-            MenuAction(
-              title: l10n.editMetadata,
-              image: MenuImage.icon(Icons.edit_rounded),
-              callback: () {
-                showAnimationDialog(
-                  context: context,
-                  child: EditMetadata(song: currentSongList[index]),
-                );
-              },
-            ),
-          if (playlist != null)
-            MenuAction(
-              title: l10n.delete,
-              image: MenuImage.icon(Icons.delete_rounded),
-              callback: () async {
-                if (await showConfirmDialog(context, l10n.delete)) {
-                  final List<MyAudioMetadata> tmpSongList = [];
-                  for (int i = isSelectedList.length - 1; i >= 0; i--) {
-                    if (isSelectedList[i].value) {
-                      tmpSongList.add(currentSongList[i]);
-                    }
-                  }
-                  playlist!.remove(tmpSongList);
-                }
-              },
-            ),
-        ],
-      );
-    }
 
     return ListenableBuilder(
       listenable: Listenable.merge([
@@ -777,92 +581,56 @@ extension _SongListPanel on _SongListState {
         menuColor.valueNotifier,
       ]),
       builder: (context, child) {
-        return ContextMenuWidget(
-          iconTheme: IconThemeData(color: iconColor.value),
-          desktopMenuWidgetBuilder: CustomDesktopMenuWidgetBuilder(
-            backgroundBaseColor: backgroundCoverArtColor,
-            backgroundColor: colorManager.getSpecificMenuColor(),
-            iconColor: iconColor.value,
-            textColor: textColor.value,
-            selectedColor: selectedItemColor.value,
-            dividerColor: dividerColor.value,
-          ),
-          previewBuilder: (context, child) {
-            return Material(
-              color: selectedItemColor.value.withAlpha(255),
-              shape: SmoothRectangleBorder(
-                smoothness: 1,
-                borderRadius: .circular(5),
-              ),
-              clipBehavior: .antiAlias,
-              child: child,
-            );
+        return SongListItem(
+          index: index,
+          isSelected: isSelected,
+          currentSongList: currentSongList,
+          isRanking: isRanking,
+          moreButton: isTV ? moreButtonForSong : null,
+          onTap: () async {
+            if (ctrlIsPressed) {
+              isSelected.value = !isSelected.value;
+              continuousSelectBeginIndex = index;
+            } else if (shiftIsPressed) {
+              int left = continuousSelectBeginIndex < index
+                  ? continuousSelectBeginIndex
+                  : index;
+              int right = continuousSelectBeginIndex > index
+                  ? continuousSelectBeginIndex
+                  : index;
+
+              for (int i = 0; i < isSelectedList.length; i++) {
+                if (i < left || i > right) {
+                  isSelectedList[i].value = false;
+                } else {
+                  isSelectedList[i].value = true;
+                }
+              }
+            } else {
+              // clear select
+              for (var tmp in isSelectedList) {
+                tmp.value = false;
+              }
+              isSelected.value = true;
+              continuousSelectBeginIndex = index;
+            }
+
+            if (isMobile || waitForSecondClick) {
+              waitForSecondClick = false;
+              doubleClicktimer?.cancel();
+              audioHandler.currentIndex = index;
+              await audioHandler.setPlayQueue(currentSongList);
+              await audioHandler.load();
+              audioHandler.play();
+            } else {
+              doubleClicktimer = Timer(Duration(milliseconds: 250), () {
+                waitForSecondClick = false;
+              });
+              waitForSecondClick = true;
+            }
           },
-          liftBuilder: (context, child) {
-            return Material(
-              color: selectedItemColor.value.withAlpha(255),
-              shape: SmoothRectangleBorder(
-                smoothness: 1,
-                borderRadius: .circular(5),
-              ),
-              clipBehavior: .antiAlias,
-              child: child,
-            );
-          },
-          menuProvider: menuProvider,
-          child: child!,
         );
       },
-
-      child: SongListItem(
-        index: index,
-        isSelected: isSelected,
-        currentSongList: currentSongList,
-        isRanking: isRanking,
-        moreButton: isTV ? moreButtonForSong : null,
-        onTap: () async {
-          if (ctrlIsPressed) {
-            isSelected.value = !isSelected.value;
-            continuousSelectBeginIndex = index;
-          } else if (shiftIsPressed) {
-            int left = continuousSelectBeginIndex < index
-                ? continuousSelectBeginIndex
-                : index;
-            int right = continuousSelectBeginIndex > index
-                ? continuousSelectBeginIndex
-                : index;
-
-            for (int i = 0; i < isSelectedList.length; i++) {
-              if (i < left || i > right) {
-                isSelectedList[i].value = false;
-              } else {
-                isSelectedList[i].value = true;
-              }
-            }
-          } else {
-            // clear select
-            for (var tmp in isSelectedList) {
-              tmp.value = false;
-            }
-            isSelected.value = true;
-            continuousSelectBeginIndex = index;
-          }
-
-          if (isMobile || waitForSecondClick) {
-            waitForSecondClick = false;
-            doubleClicktimer?.cancel();
-            audioHandler.currentIndex = index;
-            await audioHandler.setPlayQueue(currentSongList);
-            await audioHandler.load();
-            audioHandler.play();
-          } else {
-            doubleClicktimer = Timer(Duration(milliseconds: 250), () {
-              waitForSecondClick = false;
-            });
-            waitForSecondClick = true;
-          }
-        },
-      ),
     );
   }
 

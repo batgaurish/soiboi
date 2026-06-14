@@ -1,10 +1,7 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/base/widgets/playlist_widgets.dart';
@@ -12,7 +9,6 @@ import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:super_context_menu/super_context_menu.dart';
 import 'package:window_manager/window_manager.dart';
 
 FocusNode songsFocusNode = FocusNode();
@@ -236,88 +232,21 @@ class Sidebar extends StatelessWidget {
                     SliverToBoxAdapter(child: SizedBox(height: 10)),
 
                     SliverToBoxAdapter(
-                      child: ContextMenuWidget(
-                        previewBuilder: (context, child) {
-                          return Material(
-                            color: selectedItemColor.value.withAlpha(255),
-                            shape: SmoothRectangleBorder(
-                              smoothness: 1,
-                              borderRadius: .circular(5),
-                            ),
-                            clipBehavior: .antiAlias,
-                            child: child,
-                          );
-                        },
-                        liftBuilder: (context, child) {
-                          return Material(
-                            color: selectedItemColor.value.withAlpha(255),
-                            shape: SmoothRectangleBorder(
-                              smoothness: 1,
-                              borderRadius: .circular(5),
-                            ),
-                            clipBehavior: .antiAlias,
-                            child: child,
-                          );
-                        },
-                        child: sidebarItem(
-                          label: 'playlists',
-                          leading: ImageIcon(playlistsImage, size: 30),
-                          content: l10n.playlists,
-                          contentPadding: EdgeInsets.fromLTRB(16, 0, 8, 0),
+                      child: sidebarItem(
+                        label: 'playlists',
+                        leading: ImageIcon(playlistsImage, size: 30),
+                        content: l10n.playlists,
+                        contentPadding: EdgeInsets.fromLTRB(16, 0, 8, 0),
 
-                          trailing: IconButton(
-                            onPressed: () {
-                              showCreatePlaylistDialog(context);
-                            },
-                            icon: ImageIcon(addImage, size: 20),
-                          ),
-
-                          onTap: () {
-                            layersManager.switchRootLayer('playlists');
+                        trailing: IconButton(
+                          onPressed: () {
+                            showCreatePlaylistDialog(context);
                           },
+                          icon: ImageIcon(addImage, size: 20),
                         ),
-                        menuProvider: (_) {
-                          if (!isMobile) {
-                            return null;
-                          }
-                          return Menu(
-                            children: [
-                              MenuAction(
-                                title: l10n.reorder,
-                                callback: () async {
-                                  showAnimationDialog(
-                                    context: context,
 
-                                    child: OrientationBuilder(
-                                      builder: (context, orientation) {
-                                        final size = MediaQuery.of(
-                                          context,
-                                        ).size;
-                                        final shortSide = size.shortestSide;
-
-                                        bool isPhone = shortSide < 600;
-                                        return SizedBox(
-                                          height: max(350, size.height * 0.7),
-                                          width: isPhone ? 300 : 400,
-                                          child: Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                              10,
-                                              10,
-                                              10,
-                                              0,
-                                            ),
-                                            child: reorderablePlaylistsView(
-                                              context,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          );
+                        onTap: () {
+                          layersManager.switchRootLayer('playlists');
                         },
                       ),
                     ),
@@ -387,94 +316,34 @@ class Sidebar extends StatelessWidget {
         menuColor.valueNotifier,
       ]),
       builder: (context, child) {
-        return ContextMenuWidget(
-          desktopMenuWidgetBuilder: CustomDesktopMenuWidgetBuilder(
-            backgroundBaseColor: backgroundCoverArtColor,
-            backgroundColor: colorManager.getSpecificMenuColor(),
-            iconColor: iconColor.value,
-            textColor: textColor.value,
-            selectedColor: selectedItemColor.value,
-            dividerColor: dividerColor.value,
+        return sidebarItem(
+          label: '_${playlist.name}',
+          leading: ValueListenableBuilder(
+            valueListenable: playlist.songListManager.changeNotifier,
+            builder: (_, _, _) {
+              final coverSong = playlist.getCoverSong();
+              if (coverSong == null) {
+                return CoverArtWidget(size: 30, borderRadius: 3, song: null);
+              }
+              return ValueListenableBuilder(
+                valueListenable: coverSong.updateNotifier,
+                builder: (_, _, _) {
+                  return CoverArtWidget(
+                    size: 30,
+                    borderRadius: 3,
+                    song: coverSong,
+                  );
+                },
+              );
+            },
           ),
-          previewBuilder: (context, child) {
-            return Material(
-              color: selectedItemColor.value.withAlpha(255),
-              shape: SmoothRectangleBorder(
-                smoothness: 1,
-                borderRadius: .circular(5),
-              ),
-              clipBehavior: .antiAlias,
-              child: child,
-            );
-          },
-          liftBuilder: (context, child) {
-            return Material(
-              color: selectedItemColor.value.withAlpha(255),
-              shape: SmoothRectangleBorder(
-                smoothness: 1,
-                borderRadius: .circular(5),
-              ),
-              clipBehavior: .antiAlias,
-              child: child,
-            );
-          },
-          child: child!,
-          menuProvider: (_) {
-            return Menu(
-              children: [
-                MenuAction(
-                  title: index == 0 ? l10n.favorites : playlist.name,
-                  callback: () {},
-                ),
+          content: index == 0 ? l10n.favorites : playlist.name,
 
-                if (playlist.isNotFavorite) MenuSeparator(),
-                if (playlist.isNotFavorite)
-                  MenuAction(
-                    title: l10n.delete,
-                    image: MenuImage.icon(Icons.delete),
-                    callback: () async {
-                      if (await showConfirmDialog(context, l10n.delete)) {
-                        if (closeDrawer != null) {
-                          closeDrawer!.call();
-                          await Future.delayed(Duration(milliseconds: 250));
-                        }
-                        layersManager.removeLayerIfNeed(playlist);
-                        playlistManager.deletePlaylist(playlist);
-                      }
-                    },
-                  ),
-              ],
-            );
+          onTap: () {
+            layersManager.switchRootLayer('_${playlist.name}');
           },
         );
       },
-      child: sidebarItem(
-        label: '_${playlist.name}',
-        leading: ValueListenableBuilder(
-          valueListenable: playlist.songListManager.changeNotifier,
-          builder: (_, _, _) {
-            final coverSong = playlist.getCoverSong();
-            if (coverSong == null) {
-              return CoverArtWidget(size: 30, borderRadius: 3, song: null);
-            }
-            return ValueListenableBuilder(
-              valueListenable: coverSong.updateNotifier,
-              builder: (_, _, _) {
-                return CoverArtWidget(
-                  size: 30,
-                  borderRadius: 3,
-                  song: coverSong,
-                );
-              },
-            );
-          },
-        ),
-        content: index == 0 ? l10n.favorites : playlist.name,
-
-        onTap: () {
-          layersManager.switchRootLayer('_${playlist.name}');
-        },
-      ),
     );
   }
 }

@@ -67,11 +67,6 @@ dependencies:
         url: https://github.com/AfalpHy/window_manager.git
         ref: main
         path: packages/window_manager
-  super_context_menu:
-    git:
-        url: https://github.com/AfalpHy/super_native_extensions
-        ref: main
-        path: super_context_menu
   tray_manager:
     git:
       url: https://github.com/AfalpHy/tray_manager.git
