@@ -362,9 +362,16 @@ void showContextMenu(
   Offset globalPosition,
 ) {
   if (Platform.isIOS) {
-    // TODO
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize) {
+      final Size size = renderBox.size;
+      final Offset position = renderBox.localToGlobal(Offset.zero);
+
+      NativeMenu.showForIOS(items, position, size);
+    }
     return;
   }
+
   if (Platform.isMacOS) {
     NativeMenu.show(items);
     return;
@@ -568,5 +575,38 @@ class NativeMenu {
     });
 
     await _channel.invokeMethod('showNativeMenu', {'items': menuData});
+  }
+
+  static Future<void> showForIOS(
+    List<MenuItem> items,
+    Offset position,
+    Size size,
+  ) async {
+    final menuData = await Future.wait(
+      items.map((item) async {
+        return {
+          'text': item.text,
+          'isDivider': item.isDivider,
+          'iconBytes': item.iconData != null
+              ? await _iconToPng(item.iconData!, size: 24)
+              : null,
+        };
+      }),
+    );
+
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == "onMenuItemSelected") {
+        final int index = call.arguments;
+        items[index].callback?.call();
+      }
+    });
+
+    await _channel.invokeMethod('showNativeMenu', {
+      'items': menuData,
+      'x': position.dx,
+      'y': position.dy,
+      'width': size.width,
+      'height': size.height,
+    });
   }
 }

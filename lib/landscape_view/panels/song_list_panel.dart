@@ -550,126 +550,138 @@ extension _SongListPanel on _SongListState {
         onExit: (event) {
           showPlayButtonNotifier.value = false;
         },
-        child: GestureDetector(
-          child: InkWell(
-            child: ValueListenableBuilder(
-              valueListenable: song.updateNotifier,
-              builder: (_, _, _) {
-                return Row(
-                  children: [
-                    SizedBox(
-                      width: 60,
-                      child: Center(
-                        child: indexOrPlayButton(showPlayButtonNotifier, index),
-                      ),
-                    ),
-
-                    Expanded(flex: 4, child: mainInfo(song)),
-
-                    SizedBox(width: 10),
-
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        getAlbum(song),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-
-                    SizedBox(
-                      width: 80,
-                      child: Center(
-                        child: IconButton(
-                          onPressed: () {
-                            toggleFavoriteState(song);
-                          },
-                          icon: ValueListenableBuilder(
-                            valueListenable: song.isFavoriteNotifier,
-                            builder: (context, value, child) {
-                              return value
-                                  ? Icon(
-                                      Icons.favorite_rounded,
-                                      color: Colors.red,
-                                      size: 20,
-                                    )
-                                  : Icon(Icons.favorite_outline, size: 20);
-                            },
+        child: Builder(
+          builder: (context) {
+            return GestureDetector(
+              child: InkWell(
+                child: ValueListenableBuilder(
+                  valueListenable: song.updateNotifier,
+                  builder: (_, _, _) {
+                    return Row(
+                      children: [
+                        SizedBox(
+                          width: 60,
+                          child: Center(
+                            child: indexOrPlayButton(
+                              showPlayButtonNotifier,
+                              index,
+                            ),
                           ),
                         ),
-                      ),
-                    ),
 
-                    SizedBox(
-                      width: 80,
-                      child: Text(
-                        formatDuration(getDuration(song)),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                        Expanded(flex: 4, child: mainInfo(song)),
 
-                    if (widget.isRanking)
-                      SizedBox(
-                        width: 50,
-                        child: Text(
-                          song.playCount.toString(),
-                          overflow: TextOverflow.ellipsis,
+                        SizedBox(width: 10),
+
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            getAlbum(song),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            onTap: () async {
-              if (ctrlIsPressed) {
-                isSelected.value = !isSelected.value;
-                continuousSelectBeginIndex = index;
-              } else if (shiftIsPressed) {
-                int left = continuousSelectBeginIndex < index
-                    ? continuousSelectBeginIndex
-                    : index;
-                int right = continuousSelectBeginIndex > index
-                    ? continuousSelectBeginIndex
-                    : index;
 
-                for (int i = 0; i < isSelectedList.length; i++) {
-                  if (i < left || i > right) {
-                    isSelectedList[i].value = false;
+                        SizedBox(
+                          width: 80,
+                          child: Center(
+                            child: IconButton(
+                              onPressed: () {
+                                toggleFavoriteState(song);
+                              },
+                              icon: ValueListenableBuilder(
+                                valueListenable: song.isFavoriteNotifier,
+                                builder: (context, value, child) {
+                                  return value
+                                      ? Icon(
+                                          Icons.favorite_rounded,
+                                          color: Colors.red,
+                                          size: 20,
+                                        )
+                                      : Icon(Icons.favorite_outline, size: 20);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(
+                          width: 80,
+                          child: Text(
+                            formatDuration(getDuration(song)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        if (widget.isRanking)
+                          SizedBox(
+                            width: 50,
+                            child: Text(
+                              song.playCount.toString(),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                onTap: () async {
+                  if (ctrlIsPressed) {
+                    isSelected.value = !isSelected.value;
+                    continuousSelectBeginIndex = index;
+                  } else if (shiftIsPressed) {
+                    int left = continuousSelectBeginIndex < index
+                        ? continuousSelectBeginIndex
+                        : index;
+                    int right = continuousSelectBeginIndex > index
+                        ? continuousSelectBeginIndex
+                        : index;
+
+                    for (int i = 0; i < isSelectedList.length; i++) {
+                      if (i < left || i > right) {
+                        isSelectedList[i].value = false;
+                      } else {
+                        isSelectedList[i].value = true;
+                      }
+                    }
                   } else {
-                    isSelectedList[i].value = true;
+                    // clear select
+                    for (var tmp in isSelectedList) {
+                      tmp.value = false;
+                    }
+                    isSelected.value = true;
+                    continuousSelectBeginIndex = index;
                   }
-                }
-              } else {
-                // clear select
-                for (var tmp in isSelectedList) {
-                  tmp.value = false;
-                }
-                isSelected.value = true;
-                continuousSelectBeginIndex = index;
-              }
 
-              if (isMobile || waitForSecondClick) {
-                waitForSecondClick = false;
-                doubleClicktimer?.cancel();
-                audioHandler.currentIndex = index;
-                await audioHandler.setPlayQueue(currentSongList);
-                await audioHandler.load();
-                audioHandler.play();
-              } else {
-                doubleClicktimer = Timer(Duration(milliseconds: 250), () {
-                  waitForSecondClick = false;
-                });
-                waitForSecondClick = true;
-              }
-            },
-            onSecondaryTapUp: (details) {
-              popContextMenu(index, details.globalPosition);
-            },
-          ),
-          onLongPressStart: (details) {
-            if (isMobile) {
-              tryVibrate();
-              popContextMenu(index, details.globalPosition);
-            }
+                  if (isMobile || waitForSecondClick) {
+                    waitForSecondClick = false;
+                    doubleClicktimer?.cancel();
+                    audioHandler.currentIndex = index;
+                    await audioHandler.setPlayQueue(currentSongList);
+                    await audioHandler.load();
+                    audioHandler.play();
+                  } else {
+                    doubleClicktimer = Timer(Duration(milliseconds: 250), () {
+                      waitForSecondClick = false;
+                    });
+                    waitForSecondClick = true;
+                  }
+                },
+                onSecondaryTapUp: (details) {
+                  popContextMenu(context, index, details.globalPosition);
+                },
+              ),
+              onTapDown: (details) {
+                if (Platform.isIOS) {
+                  popContextMenu(context, index, details.globalPosition);
+                }
+              },
+              onLongPressStart: (details) {
+                if (Platform.isAndroid) {
+                  tryVibrate();
+                  popContextMenu(context, index, details.globalPosition);
+                }
+              },
+            );
           },
         ),
       ),
@@ -742,7 +754,7 @@ extension _SongListPanel on _SongListState {
     );
   }
 
-  void popContextMenu(int index, Offset globalPosition) {
+  void popContextMenu(BuildContext context, int index, Offset globalPosition) {
     final currentSongList = currentSongListNotifier.value;
     final isSelected = isSelectedList[index];
     // select current and clear others if it's not selected

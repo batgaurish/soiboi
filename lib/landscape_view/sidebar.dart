@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -123,8 +124,9 @@ class Sidebar extends StatelessWidget {
 
             Expanded(
               child: Scrollbar(
-                thickness: 5,
+                thickness: isMobile ? 0 : 5,
                 controller: _scrollController,
+
                 child: CustomScrollView(
                   primary: false,
                   controller: _scrollController,
@@ -233,72 +235,125 @@ class Sidebar extends StatelessWidget {
                     SliverToBoxAdapter(child: SizedBox(height: 10)),
 
                     SliverToBoxAdapter(
-                      child: GestureDetector(
-                        child: sidebarItem(
-                          label: 'playlists',
-                          leading: ImageIcon(playlistsImage, size: 30),
-                          content: l10n.playlists,
-                          contentPadding: EdgeInsets.fromLTRB(16, 0, 8, 0),
+                      child: Builder(
+                        builder: (context) {
+                          return GestureDetector(
+                            child: sidebarItem(
+                              label: 'playlists',
+                              leading: ImageIcon(playlistsImage, size: 30),
+                              content: l10n.playlists,
+                              contentPadding: EdgeInsets.fromLTRB(16, 0, 8, 0),
 
-                          trailing: IconButton(
-                            onPressed: () {
-                              showCreatePlaylistDialog(context);
-                            },
-                            icon: ImageIcon(addImage, size: 20),
-                          ),
-
-                          onTap: () {
-                            layersManager.switchRootLayer('playlists');
-                          },
-                        ),
-                        onLongPressStart: (details) {
-                          if (isMobile) {
-                            tryVibrate();
-                            showContextMenu(context, [
-                              MenuItem(
-                                text: l10n.reorder,
-                                iconData: Icons.reorder_rounded,
-                                callback: () async {
-                                  showAnimationDialog(
-                                    context: context,
-
-                                    child: OrientationBuilder(
-                                      builder: (context, orientation) {
-                                        final size = MediaQuery.of(
-                                          context,
-                                        ).size;
-                                        final shortSide = size.shortestSide;
-
-                                        bool isPhone = shortSide < 600;
-                                        return SizedBox(
-                                          height: max(350, size.height * 0.7),
-                                          width: isPhone ? 300 : 400,
-                                          child: Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                              10,
-                                              10,
-                                              10,
-                                              0,
-                                            ),
-                                            child: reorderablePlaylistsView(
-                                              context,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  );
+                              trailing: IconButton(
+                                onPressed: () {
+                                  showCreatePlaylistDialog(context);
                                 },
+                                icon: ImageIcon(addImage, size: 20),
                               ),
-                            ], details.globalPosition);
-                          }
+
+                              onTap: () {
+                                layersManager.switchRootLayer('playlists');
+                              },
+                            ),
+                            onTapDown: (details) {
+                              if (Platform.isIOS) {
+                                showContextMenu(context, [
+                                  MenuItem(
+                                    text: l10n.reorder,
+                                    iconData: Icons.reorder_rounded,
+                                    callback: () async {
+                                      showAnimationDialog(
+                                        context: context,
+
+                                        child: OrientationBuilder(
+                                          builder: (context, orientation) {
+                                            final size = MediaQuery.of(
+                                              context,
+                                            ).size;
+                                            final shortSide = size.shortestSide;
+
+                                            bool isPhone = shortSide < 600;
+                                            return SizedBox(
+                                              height: max(
+                                                350,
+                                                size.height * 0.7,
+                                              ),
+                                              width: isPhone ? 300 : 400,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                      10,
+                                                      10,
+                                                      10,
+                                                      0,
+                                                    ),
+                                                child: reorderablePlaylistsView(
+                                                  context,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ], details.globalPosition);
+                              }
+                            },
+                            onLongPressStart: (details) {
+                              if (Platform.isAndroid) {
+                                tryVibrate();
+                                showContextMenu(context, [
+                                  MenuItem(
+                                    text: l10n.reorder,
+                                    iconData: Icons.reorder_rounded,
+                                    callback: () async {
+                                      showAnimationDialog(
+                                        context: context,
+
+                                        child: OrientationBuilder(
+                                          builder: (context, orientation) {
+                                            final size = MediaQuery.of(
+                                              context,
+                                            ).size;
+                                            final shortSide = size.shortestSide;
+
+                                            bool isPhone = shortSide < 600;
+                                            return SizedBox(
+                                              height: max(
+                                                350,
+                                                size.height * 0.7,
+                                              ),
+                                              width: isPhone ? 300 : 400,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                      10,
+                                                      10,
+                                                      10,
+                                                      0,
+                                                    ),
+                                                child: reorderablePlaylistsView(
+                                                  context,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ], details.globalPosition);
+                              }
+                            },
+                          );
                         },
                       ),
                     ),
                     SliverToBoxAdapter(child: SizedBox(height: 10)),
 
                     // keep Favorite at top
-                    SliverToBoxAdapter(child: playlistItem(context, 0)),
+                    SliverToBoxAdapter(child: playlistItem(0)),
 
                     ValueListenableBuilder(
                       valueListenable: playlistManager.updateNotifier,
@@ -320,7 +375,7 @@ class Sidebar extends StatelessWidget {
                               enabled: !isMobile,
                               index: index,
                               key: ValueKey(index),
-                              child: playlistItem(context, index + 1),
+                              child: playlistItem(index + 1),
                             );
                           },
                         );
@@ -348,94 +403,126 @@ class Sidebar extends StatelessWidget {
     );
   }
 
-  Widget playlistItem(BuildContext context, int index) {
-    final l10n = AppLocalizations.of(context);
+  Widget playlistItem(int index) {
     final playlist = playlistManager.getPlaylistByIndex(index);
 
-    return GestureDetector(
-      child: sidebarItem(
-        label: '_${playlist.name}',
-        leading: ValueListenableBuilder(
-          valueListenable: playlist.songListManager.changeNotifier,
-          builder: (_, _, _) {
-            final coverSong = playlist.getCoverSong();
-            if (coverSong == null) {
-              return CoverArtWidget(size: 30, borderRadius: 3, song: null);
-            }
-            return ValueListenableBuilder(
-              valueListenable: coverSong.updateNotifier,
+    return Builder(
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+
+        return GestureDetector(
+          child: sidebarItem(
+            label: '_${playlist.name}',
+            leading: ValueListenableBuilder(
+              valueListenable: playlist.songListManager.changeNotifier,
               builder: (_, _, _) {
-                return CoverArtWidget(
-                  size: 30,
-                  borderRadius: 3,
-                  song: coverSong,
+                final coverSong = playlist.getCoverSong();
+                if (coverSong == null) {
+                  return CoverArtWidget(size: 30, borderRadius: 3, song: null);
+                }
+                return ValueListenableBuilder(
+                  valueListenable: coverSong.updateNotifier,
+                  builder: (_, _, _) {
+                    return CoverArtWidget(
+                      size: 30,
+                      borderRadius: 3,
+                      song: coverSong,
+                    );
+                  },
                 );
               },
-            );
-          },
-        ),
-        content: index == 0 ? l10n.favorites : playlist.name,
+            ),
+            content: index == 0 ? l10n.favorites : playlist.name,
 
-        onTap: () {
-          layersManager.switchRootLayer('_${playlist.name}');
-        },
-      ),
-      onSecondaryTapUp: (details) {
-        if (index == 0) {
-          return;
-        }
-        final menuItems = <MenuItem>[];
-
-        menuItems.add(
-          MenuItem(
-            iconData: Icons.delete,
-            text: l10n.delete,
-            callback: () async {
-              if (await showConfirmDialog(
-                context,
-                "${l10n.delete} ${playlist.name}",
-              )) {
-                if (closeDrawer != null) {
-                  closeDrawer!.call();
-                  await Future.delayed(Duration(milliseconds: 250));
-                }
-                layersManager.removeLayerIfNeed(playlist);
-                playlistManager.deletePlaylist(playlist);
-              }
+            onTap: () {
+              layersManager.switchRootLayer('_${playlist.name}');
             },
           ),
-        );
+          onSecondaryTapUp: (details) {
+            if (index == 0) {
+              return;
+            }
+            final menuItems = <MenuItem>[];
 
-        showContextMenu(context, menuItems, details.globalPosition);
-      },
-      onLongPressStart: (details) {
-        if (isMobile && index > 0) {
-          tryVibrate();
-
-          final menuItems = <MenuItem>[];
-
-          menuItems.add(
-            MenuItem(
-              iconData: Icons.delete,
-              text: l10n.delete,
-              callback: () async {
-                if (await showConfirmDialog(
-                  context,
-                  "${l10n.delete} ${playlist.name}",
-                )) {
-                  if (closeDrawer != null) {
-                    closeDrawer!.call();
-                    await Future.delayed(Duration(milliseconds: 250));
+            menuItems.add(
+              MenuItem(
+                iconData: Icons.delete,
+                text: l10n.delete,
+                callback: () async {
+                  if (await showConfirmDialog(
+                    context,
+                    "${l10n.delete} ${playlist.name}",
+                  )) {
+                    if (closeDrawer != null) {
+                      closeDrawer!.call();
+                      await Future.delayed(Duration(milliseconds: 250));
+                    }
+                    layersManager.removeLayerIfNeed(playlist);
+                    playlistManager.deletePlaylist(playlist);
                   }
-                  layersManager.removeLayerIfNeed(playlist);
-                  playlistManager.deletePlaylist(playlist);
-                }
-              },
-            ),
-          );
+                },
+              ),
+            );
 
-          showContextMenu(context, menuItems, details.globalPosition);
-        }
+            showContextMenu(context, menuItems, details.globalPosition);
+          },
+          onTapDown: (details) {
+            if (Platform.isIOS && index > 0) {
+              final menuItems = <MenuItem>[];
+
+              menuItems.add(
+                MenuItem(
+                  iconData: Icons.delete,
+                  text: l10n.delete,
+                  callback: () async {
+                    if (await showConfirmDialog(
+                      context,
+                      "${l10n.delete} ${playlist.name}",
+                    )) {
+                      if (closeDrawer != null) {
+                        closeDrawer!.call();
+                        await Future.delayed(Duration(milliseconds: 250));
+                      }
+                      layersManager.removeLayerIfNeed(playlist);
+                      playlistManager.deletePlaylist(playlist);
+                    }
+                  },
+                ),
+              );
+
+              showContextMenu(context, menuItems, details.globalPosition);
+            }
+          },
+          onLongPressStart: (details) {
+            if (Platform.isAndroid && index > 0) {
+              tryVibrate();
+
+              final menuItems = <MenuItem>[];
+
+              menuItems.add(
+                MenuItem(
+                  iconData: Icons.delete,
+                  text: l10n.delete,
+                  callback: () async {
+                    if (await showConfirmDialog(
+                      context,
+                      "${l10n.delete} ${playlist.name}",
+                    )) {
+                      if (closeDrawer != null) {
+                        closeDrawer!.call();
+                        await Future.delayed(Duration(milliseconds: 250));
+                      }
+                      layersManager.removeLayerIfNeed(playlist);
+                      playlistManager.deletePlaylist(playlist);
+                    }
+                  },
+                ),
+              );
+
+              showContextMenu(context, menuItems, details.globalPosition);
+            }
+          },
+        );
       },
     );
   }
