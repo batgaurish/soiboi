@@ -101,9 +101,10 @@ Future<Color> computeCoverArtColor(MyAudioMetadata? song) async {
 Future<Color> calculateAverageColor(Uint8List bytes) async {
   final state = WidgetsBinding.instance.lifecycleState;
 
-  if (state != AppLifecycleState.resumed) {
+  if (Platform.isIOS && state != AppLifecycleState.resumed) {
     return _calculateWithImagePackage(bytes);
   }
+
   final codec = await ui.instantiateImageCodec(
     bytes,
     targetWidth: 20,
