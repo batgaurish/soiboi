@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/emby_client.dart';
 import 'package:sylvakru/base/services/navidrome_client.dart';
@@ -72,6 +73,37 @@ Future<Color> computeCoverArtColor(MyAudioMetadata? song) async {
     song?.coverArtColor = Colors.grey;
     return Colors.grey;
   }
+
+  final color = await calculateAverageColor(bytes);
+  song!.coverArtColor = color;
+
+  double r = color.r;
+  double g = color.g;
+  double b = color.b;
+  final luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+  const maxLuminance = 200 / 255.0;
+
+  if (luminance > maxLuminance) {
+    final factor = maxLuminance / luminance;
+
+    song.lowerLuminance = Color.from(
+      alpha: color.a,
+      red: r * factor,
+      green: g * factor,
+      blue: b * factor,
+    );
+  }
+
+  return color;
+}
+
+Future<Color> calculateAverageColor(Uint8List bytes) async {
+  final state = WidgetsBinding.instance.lifecycleState;
+
+  if (state != AppLifecycleState.resumed) {
+    return _calculateWithImagePackage(bytes);
+  }
   final codec = await ui.instantiateImageCodec(
     bytes,
     targetWidth: 20,
@@ -83,21 +115,24 @@ Future<Color> computeCoverArtColor(MyAudioMetadata? song) async {
 
   final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
 
+  image.dispose();
+
   if (byteData == null) {
     return Colors.grey;
   }
 
-  final Uint8List buffer = byteData.buffer.asUint8List();
+  final buffer = byteData.buffer.asUint8List();
 
   double r = 0;
   double g = 0;
   double b = 0;
   int count = 0;
+
   for (int i = 0; i < buffer.length; i += 4) {
-    final int red = buffer[i];
-    final int green = buffer[i + 1];
-    final int blue = buffer[i + 2];
-    final int alpha = buffer[i + 3];
+    final red = buffer[i];
+    final green = buffer[i + 1];
+    final blue = buffer[i + 2];
+    final alpha = buffer[i + 3];
 
     if (alpha == 0) {
       r += 128;
@@ -108,29 +143,62 @@ Future<Color> computeCoverArtColor(MyAudioMetadata? song) async {
       g += green;
       b += blue;
     }
+
     count++;
   }
 
-  if (count == 0) return Colors.grey;
-
-  r /= count;
-  g /= count;
-  b /= count;
-  final color = Color.fromARGB(255, r.toInt(), g.toInt(), b.toInt());
-  song!.coverArtColor = color;
-
-  final luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-  const maxLuminance = 200;
-
-  if (luminance > maxLuminance) {
-    final reduction = luminance.toInt() - maxLuminance;
-
-    song.lowerLuminance = Color.fromARGB(
-      255,
-      (r - reduction).clamp(0, 255).toInt(),
-      (g - reduction).clamp(0, 255).toInt(),
-      (b - reduction).clamp(0, 255).toInt(),
-    );
+  if (count == 0) {
+    return Colors.grey;
   }
-  return color;
+  return Color.fromARGB(
+    255,
+    (r / count).round(),
+    (g / count).round(),
+    (b / count).round(),
+  );
+}
+
+Color _calculateWithImagePackage(Uint8List bytes) {
+  final image = img.decodeImage(bytes);
+
+  if (image == null) {
+    return Colors.grey;
+  }
+
+  final thumb = img.copyResize(
+    image,
+    width: 20,
+    height: 20,
+    interpolation: img.Interpolation.average,
+  );
+
+  double r = 0;
+  double g = 0;
+  double b = 0;
+  int count = 0;
+
+  for (final pixel in thumb) {
+    if (pixel.a == 0) {
+      r += 128;
+      g += 128;
+      b += 128;
+    } else {
+      r += pixel.r;
+      g += pixel.g;
+      b += pixel.b;
+    }
+
+    count++;
+  }
+
+  if (count == 0) {
+    return Colors.grey;
+  }
+
+  return Color.fromARGB(
+    255,
+    (r / count).round(),
+    (g / count).round(),
+    (b / count).round(),
+  );
 }
