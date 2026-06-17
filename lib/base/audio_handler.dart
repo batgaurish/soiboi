@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:media_kit/media_kit.dart';
 import 'package:sylvakru/base/services/emby_client.dart';
 import 'package:sylvakru/base/services/metadata_service.dart';
@@ -509,7 +510,26 @@ class MyAudioHandler extends BaseAudioHandler {
           play: isPlayingNotifier.value,
         );
       } else {
+        String? resource;
+        bool needHeader = false;
         switch (currentSong.sourceType) {
+          case .webdav:
+            needHeader = true;
+            final request = http.Request('HEAD', Uri.parse(currentSong.path!))
+              ..followRedirects = false
+              ..headers.addAll(webdavClient?.headers ?? {});
+
+            final response = await http.Client().send(request);
+
+            if (response.statusCode == 302) {
+              final realLocation = response.headers['location'];
+              if (realLocation != null) {
+                resource = realLocation;
+                needHeader = false;
+              }
+            }
+
+            break;
           case .navidrome:
             currentSong.path ??= navidromeClient!.getStreamUrl(currentSong.id);
             break;
@@ -520,12 +540,12 @@ class MyAudioHandler extends BaseAudioHandler {
             break;
         }
 
+        resource ??= currentSong.path!;
+
         await _player.open(
           Media(
-            currentSong.path!,
-            httpHeaders: currentSong.sourceType == .webdav
-                ? webdavClient?.headers
-                : null,
+            resource,
+            httpHeaders: needHeader ? webdavClient?.headers : null,
           ),
           play: isPlayingNotifier.value,
         );
@@ -535,6 +555,7 @@ class MyAudioHandler extends BaseAudioHandler {
         _playLastSyncTime = DateTime.now();
       }
     } catch (error) {
+      _player.stop();
       logger.output("[${currentSong.title}] $error");
     }
     isLoading = false;
