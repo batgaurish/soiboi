@@ -103,6 +103,7 @@ class History {
     await library.updatePlayCount(song);
 
     rankingSongListManager.getChangeNotifier2(song.sourceType).value++;
+    rankingSongListManager.resetSourceType();
 
     _add2Recently(song);
 
@@ -114,6 +115,7 @@ class History {
     songList.remove(song);
     songList.insert(0, song);
     recentlySongListManager.getChangeNotifier2(song.sourceType).value++;
+    recentlySongListManager.resetSourceType();
   }
 
   void clear() {
