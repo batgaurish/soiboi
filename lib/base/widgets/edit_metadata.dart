@@ -238,7 +238,6 @@ class _EditMetadataState extends State<EditMetadata> {
                   }
 
                   final file = result.files.first;
-
                   _picturePathNotifier.value = file.path;
                 },
                 child: CoverArtWidget(
@@ -311,9 +310,10 @@ class _EditMetadataState extends State<EditMetadata> {
 
       if (success) {
         song.modified = DateTime.now();
-        song.cacheExist = false;
-        song.cachePath = null;
-
+        if (song.cacheExist) {
+          File(song.cachePath!).deleteSync();
+          song.cacheExist = false;
+        }
         song.title = writeTitle;
         song.artist = writeArtist;
         song.album = writeAlbum;
@@ -333,6 +333,8 @@ class _EditMetadataState extends State<EditMetadata> {
         song.pictureExist = false;
         song.coverArtColor = null;
         song.lowerLuminance = null;
+        // clear cache
+        FileImage(File(song.picturePath)).evict();
         await computeCoverArtColor(song);
         if (song == currentSongNotifier.value) {
           currentCoverArtColor = song.coverArtColor!;
