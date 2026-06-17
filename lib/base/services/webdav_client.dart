@@ -29,6 +29,7 @@ class WebDavClient {
   final String password;
 
   late String _cleanBaseUrl;
+  late String _initialPath;
 
   late final Dio dio;
 
@@ -37,23 +38,30 @@ class WebDavClient {
     required this.username,
     required this.password,
   }) {
+    _initialPath = Uri.parse(baseUrl).path;
+    _initialPath = Uri.decodeFull(_initialPath);
+
+    _cleanBaseUrl = baseUrl.substring(0, baseUrl.length - _initialPath.length);
+
+    if (_initialPath.endsWith('/')) {
+      _initialPath = _initialPath.substring(0, _initialPath.length - 1);
+    }
+
     dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl,
+        baseUrl: _cleanBaseUrl,
         connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 10),
         sendTimeout: const Duration(seconds: 10),
       ),
     );
-    _cleanBaseUrl = baseUrl;
 
-    if (_cleanBaseUrl.endsWith('/')) {
-      _cleanBaseUrl = _cleanBaseUrl.substring(0, _cleanBaseUrl.length - 1);
-    }
     _applyAuth();
   }
 
   String get cleanBaseUrl => _cleanBaseUrl;
+
+  String get initialPath => _initialPath;
 
   void _applyAuth() {
     dio.options.headers['authorization'] =
@@ -103,7 +111,10 @@ class WebDavClient {
 
   Future<bool> ping() async {
     final result = await _safeRequest(
-      () => dio.request('/', options: Options(method: 'OPTIONS')),
+      () => dio.request(
+        _initialPath,
+        options: Options(method: 'PROPFIND', headers: {'Depth': '0'}),
+      ),
       (response) {
         final code = response.statusCode ?? 0;
         return code >= 200 && code < 400;
@@ -114,11 +125,10 @@ class WebDavClient {
   }
 
   Future<List<WebDavFile>> list(String remotePath) async {
+    remotePath = initialPath + remotePath;
     if (!remotePath.endsWith('/')) {
       remotePath += '/';
     }
-
-    final baseUriPath = Uri.parse(baseUrl).path.replaceAll(RegExp(r'/$'), '');
 
     final result = await _safeRequest(
       () => dio.request(
@@ -149,15 +159,7 @@ class WebDavClient {
                 .whereType<XmlElement>()
                 .firstWhere((e) => e.name.local == 'href');
 
-            final rawHref = _safeDecodeUri(hrefElement.innerText);
-
-            String href = rawHref;
-            if (baseUriPath.isNotEmpty && href.startsWith(baseUriPath)) {
-              href = href.substring(baseUriPath.length);
-            }
-            if (href.isEmpty) {
-              href = '/';
-            }
+            String href = _safeDecodeUri(hrefElement.innerText);
 
             if (remotePath == href) {
               continue;
@@ -187,7 +189,6 @@ class WebDavClient {
                 : href;
 
             final name = p.basename(cleanPath);
-
             result.add(
               WebDavFile(
                 path: href,

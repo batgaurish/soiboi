@@ -34,7 +34,7 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
     // Keep only directories
     final directories = files
         .where((f) => f.isDirectory)
-        .map((f) => f.path)
+        .map((f) => f.path.substring(webdavClient!.initialPath.length))
         .toList();
     return directories;
   }
