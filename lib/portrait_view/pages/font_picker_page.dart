@@ -74,6 +74,7 @@ extension _FontPickerPage on _FontPickerLayerState {
               l10n.restoreDefault,
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+            visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
             onTap: restoreDefaultAction,
           ),
 
@@ -82,6 +83,7 @@ extension _FontPickerPage on _FontPickerLayerState {
               l10n.addFont,
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+            visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
             onTap: () => addFontAction(context),
           ),
 
@@ -90,6 +92,7 @@ extension _FontPickerPage on _FontPickerLayerState {
               l10n.deleteFont,
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+            visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
             onTap: () => deleteFontAction(context),
           ),
         ],
@@ -128,6 +131,7 @@ extension _FontPickerPage on _FontPickerLayerState {
                     await Future.delayed(Duration(milliseconds: 250));
                     fontFamilyNotifier.value = font;
                     setting.save();
+                    rebuild();
                   }
                 }
               : null,
