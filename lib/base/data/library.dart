@@ -471,14 +471,20 @@ class Library {
     MyAudioMetadata? song = library.id2Song[id];
 
     if (song?.modified != modified) {
+      String realPath = path;
+      Map<String, String>? headers;
       bool isWebdav = path.startsWith('http://') || path.startsWith('https://');
+      if (isWebdav) {
+        final tmpPath = await convertToRealPathIfNeed(path);
+        if (tmpPath == null) {
+          headers = webdavClient?.headers;
+        } else {
+          realPath = tmpPath;
+        }
+      }
       AudioMetadata? tmp;
       try {
-        tmp = await readMetadataAsync(
-          path,
-          false,
-          headers: isWebdav ? webdavClient!.headers : null,
-        );
+        tmp = await readMetadataAsync(realPath, false, headers: headers);
       } catch (e) {
         logger.output("$path: $e");
       }

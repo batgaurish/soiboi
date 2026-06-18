@@ -11,6 +11,7 @@ import 'package:sylvakru/base/services/navidrome_client.dart';
 import 'package:sylvakru/base/services/webdav_client.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/picture_load_scheduler.dart';
+import 'package:sylvakru/base/utils/path.dart';
 
 Future<void> loadPictureSafe(MyAudioMetadata? song) async {
   if (song == null || song.pictureLoaded) {
@@ -28,10 +29,15 @@ Future<void> _loadPicture(MyAudioMetadata song) async {
         bytes = await readPictureAsync(song.path!);
         break;
       case .webdav:
-        bytes = await readPictureAsync(
-          song.path!,
-          headers: webdavClient?.headers,
-        );
+        final tmpPath = await convertToRealPathIfNeed(song.path!);
+        if (tmpPath == null) {
+          bytes = await readPictureAsync(
+            song.path!,
+            headers: webdavClient?.headers,
+          );
+        } else {
+          bytes = await readPictureAsync(tmpPath);
+        }
         break;
       case .navidrome:
         bytes = await navidromeClient!.getPictureBytes(song.id);

@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:media_kit/media_kit.dart';
 import 'package:sylvakru/base/services/emby_client.dart';
 import 'package:sylvakru/base/services/metadata_service.dart';
@@ -13,6 +12,7 @@ import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/lyric.dart';
+import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/lyric_list_view.dart';
 import 'package:sylvakru/base/data/history.dart';
@@ -514,21 +514,12 @@ class MyAudioHandler extends BaseAudioHandler {
         bool needHeader = false;
         switch (currentSong.sourceType) {
           case .webdav:
-            needHeader = true;
-            final request = http.Request('HEAD', Uri.parse(currentSong.path!))
-              ..followRedirects = false
-              ..headers.addAll(webdavClient?.headers ?? {});
-
-            final response = await http.Client().send(request);
-
-            if (response.statusCode == 302) {
-              final realLocation = response.headers['location'];
-              if (realLocation != null) {
-                resource = realLocation;
-                needHeader = false;
-              }
+            final tmpPath = await convertToRealPathIfNeed(currentSong.path!);
+            if (tmpPath == null) {
+              needHeader = true;
+            } else {
+              resource = tmpPath;
             }
-
             break;
           case .navidrome:
             currentSong.path ??= navidromeClient!.getStreamUrl(currentSong.id);

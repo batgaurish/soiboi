@@ -239,26 +239,35 @@ class SettingsList extends StatelessWidget {
                   ),
 
                   for (final sourceType in sourceTypes)
-                    ListTile(
-                      leading: Image(
-                        image: getSourceTypeImage(sourceType),
-                        width: 30,
-                        height: 30,
-                      ),
-                      title: Text(getSourceTypeName(l10n, sourceType)),
-                      onTap: () async {
-                        if (await showConfirmDialog(
-                          context,
-                          l10n.syncLibrary,
-                        )) {
-                          if (Loader.syncing) {
-                            if (context.mounted) {
-                              showCenterMessage(context, l10n.syncingTryLater);
+                    Builder(
+                      builder: (context) {
+                        return ListTile(
+                          leading: Image(
+                            image: getSourceTypeImage(sourceType),
+                            width: 30,
+                            height: 30,
+                          ),
+                          title: Text(getSourceTypeName(l10n, sourceType)),
+                          onTap: () async {
+                            if (await showConfirmDialog(
+                              context,
+                              l10n.syncLibrary,
+                            )) {
+                              if (Loader.syncing) {
+                                if (context.mounted) {
+                                  showCenterMessage(
+                                    context,
+                                    l10n.syncingTryLater,
+                                  );
+                                }
+                                return;
+                              }
+                              await Loader.sync(
+                                getSourceTypeBitMask(sourceType),
+                              );
                             }
-                            return;
-                          }
-                          await Loader.sync(getSourceTypeBitMask(sourceType));
-                        }
+                          },
+                        );
                       },
                     ),
                 ],

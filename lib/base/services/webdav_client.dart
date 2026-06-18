@@ -82,6 +82,7 @@ class WebDavClient {
   }
 
   Future<T?> _safeRequest<T>(
+    String mark,
     Future<Response> Function() request,
     T? Function(Response response) parser,
   ) async {
@@ -90,7 +91,7 @@ class WebDavClient {
       return parser(response);
     } on DioException catch (e) {
       logger.output(
-        '[WebDav] Dio error: ${e.message} '
+        '[WebDav] [$mark] Dio error: ${e.message} '
         '(${e.response?.statusCode})',
       );
 
@@ -100,17 +101,21 @@ class WebDavClient {
 
       return null;
     } catch (e) {
-      logger.output('[WebDav] Unknown error: $e');
+      logger.output('[WebDav] [$mark] Unknown error: $e');
       return null;
     }
   }
 
-  Future<bool> _boolRequest(Future<Response> Function() request) async {
-    return await _safeRequest(request, (_) => true) ?? false;
+  Future<bool> _boolRequest(
+    String mark,
+    Future<Response> Function() request,
+  ) async {
+    return await _safeRequest(mark, request, (_) => true) ?? false;
   }
 
   Future<bool> ping() async {
     final result = await _safeRequest(
+      'ping $_initialPath',
       () => dio.request(
         _initialPath,
         options: Options(method: 'PROPFIND', headers: {'Depth': '0'}),
@@ -131,6 +136,7 @@ class WebDavClient {
     }
 
     final result = await _safeRequest(
+      'list $remotePath',
       () => dio.request(
         remotePath,
         data: '''
@@ -219,7 +225,10 @@ class WebDavClient {
       yield file;
 
       if (recursive && file.isDirectory) {
-        yield* listStream(file.path, recursive: true);
+        yield* listStream(
+          file.path.substring(webdavClient!.initialPath.length),
+          recursive: true,
+        );
       }
     }
   }
@@ -257,6 +266,7 @@ class WebDavClient {
     ProgressCallback? onReceiveProgress,
   }) async {
     return _boolRequest(
+      'download $remotePath',
       () => dio.download(
         remotePath,
         localPath,
@@ -274,6 +284,8 @@ class WebDavClient {
     final length = await file.length();
 
     return _boolRequest(
+      'upload $localPath',
+
       () => dio.put(
         remotePath,
         data: file.openRead(),
@@ -285,12 +297,14 @@ class WebDavClient {
 
   Future<bool> mkdir(String remotePath) async {
     return _boolRequest(
+      'mkdir $remotePath',
+
       () => dio.request(remotePath, options: Options(method: 'MKCOL')),
     );
   }
 
   Future<bool> delete(String remotePath) async {
-    return _boolRequest(() => dio.delete(remotePath));
+    return _boolRequest('delete $remotePath', () => dio.delete(remotePath));
   }
 
   String _buildDestinationUrl(String destination) {
@@ -306,6 +320,7 @@ class WebDavClient {
     required String destination,
   }) async {
     return _boolRequest(
+      'move ${source}to $destination',
       () => dio.request(
         source,
         options: Options(
@@ -321,6 +336,8 @@ class WebDavClient {
     required String destination,
   }) async {
     return _boolRequest(
+      'copy ${source}to $destination',
+
       () => dio.request(
         source,
         options: Options(

@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/library.dart';
+import 'package:sylvakru/base/services/webdav_client.dart';
 
 bool isFileProviderStorePath(String path) {
   return path.contains('File Provider Storage/');
@@ -60,4 +62,22 @@ String getCachesPath(SourceType sourceType) {
 
 String getPicturesPath(SourceType sourceType) {
   return '${appSupportDir.path}/${sourceType.name}/pictures';
+}
+
+final _httpClient = http.Client();
+
+Future<String?> convertToRealPathIfNeed(String path) async {
+  final request = http.Request('HEAD', Uri.parse(path))
+    ..followRedirects = false
+    ..headers.addAll(webdavClient?.headers ?? {});
+
+  final response = await _httpClient.send(request);
+
+  if (response.statusCode == 302) {
+    final realLocation = response.headers['location'];
+    if (realLocation != null) {
+      return realLocation;
+    }
+  }
+  return null;
 }
