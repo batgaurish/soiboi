@@ -53,7 +53,7 @@ extension _FontPickerPanel on _FontPickerLayerState {
               ),
 
               trailing: SizedBox(
-                width: 320,
+                width: 325,
                 child: ValueListenableBuilder(
                   valueListenable: buttonColor.valueNotifier,
 
