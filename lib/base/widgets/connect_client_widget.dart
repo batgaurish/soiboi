@@ -77,9 +77,9 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
             CustomTextField(l10n.username, usernameTmp),
 
             SizedBox(height: 10),
-            CustomTextField(l10n.password, passwordTmp),
+            CustomTextField(l10n.password, passwordTmp, needObscure: true),
 
-            SizedBox(height: isMobile ? 10 : 20),
+            SizedBox(height: isMobile ? 10 : 15),
 
             buttons(),
           ],

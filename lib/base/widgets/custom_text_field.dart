@@ -12,6 +12,7 @@ class CustomTextField extends StatefulWidget {
   final bool onlyNumber;
   final bool compact;
   final bool autoFocus;
+  final bool needObscure;
 
   const CustomTextField(
     this.name,
@@ -21,6 +22,7 @@ class CustomTextField extends StatefulWidget {
     this.onlyNumber = false,
     this.compact = true,
     this.autoFocus = false,
+    this.needObscure = false,
   });
 
   @override
@@ -29,7 +31,7 @@ class CustomTextField extends StatefulWidget {
 
 class _CustomTextFieldState extends State<CustomTextField> {
   FocusNode textFieldNode = FocusNode();
-
+  late bool obscure;
   @override
   void initState() {
     super.initState();
@@ -39,6 +41,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         canFocusNavigatorNotifier.value = !isTyping;
       }
     });
+    obscure = widget.needObscure;
   }
 
   @override
@@ -78,6 +81,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
             maxLines: widget.expand ? null : 1,
             style: TextStyle(fontSize: 12, color: specificTextcolor),
             controller: widget.controller,
+            obscureText: obscure,
+            obscuringCharacter: '●',
             decoration: InputDecoration(
               visualDensity: widget.compact ? .new(vertical: -2.5) : null,
               enabledBorder: OutlineInputBorder(
@@ -86,6 +91,18 @@ class _CustomTextFieldState extends State<CustomTextField> {
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: specificTextcolor, width: 1.5),
               ),
+              suffixIcon: widget.needObscure
+                  ? IconButton(
+                      icon: Icon(
+                        obscure ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          obscure = !obscure;
+                        });
+                      },
+                    )
+                  : null,
               isDense: true,
             ),
           ),
