@@ -81,7 +81,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageMusicFolder => 'Manage Music Folders';
 
   @override
+  String get about => 'About';
+
+  @override
   String get openSourceLicense => 'Open Source License';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
 
   @override
   String get sleepTimer => 'Sleep Timer';

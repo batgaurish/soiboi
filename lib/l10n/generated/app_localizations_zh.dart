@@ -81,7 +81,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get manageMusicFolder => '管理音乐文件夹';
 
   @override
+  String get about => '关于';
+
+  @override
   String get openSourceLicense => '开源许可证';
+
+  @override
+  String get privacyPolicy => '隐私政策';
 
   @override
   String get sleepTimer => '定时关闭';

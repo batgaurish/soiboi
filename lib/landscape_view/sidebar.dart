@@ -50,17 +50,15 @@ class Sidebar extends StatelessWidget {
             },
           );
         },
-        child: InkWell(
-          child: ListTile(
-            leading: leading,
-            title: Text(
-              content,
-              style: TextStyle(fontSize: 15, overflow: TextOverflow.ellipsis),
-            ),
-            contentPadding: contentPadding,
-            visualDensity: const VisualDensity(horizontal: 0, vertical: -3.65),
-            trailing: trailing,
+        child: ListTile(
+          leading: leading,
+          title: Text(
+            content,
+            style: TextStyle(fontSize: 15, overflow: TextOverflow.ellipsis),
           ),
+          contentPadding: contentPadding,
+          visualDensity: const VisualDensity(horizontal: 0, vertical: -3.65),
+          trailing: trailing,
           onTap: () async {
             if (closeDrawer != null) {
               closeDrawer!.call();

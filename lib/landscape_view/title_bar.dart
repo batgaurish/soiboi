@@ -323,7 +323,7 @@ class _TitleBarState extends State<TitleBar> {
                       layersManager.popDetail('albums');
                       layersManager.popDetail('folders');
                       layersManager.popDetail('playlists');
-                      layersManager.popDetail('settings');
+                      while (await layersManager.popDetail('settings')) {}
                     },
                     icon: ImageIcon(miniModeImage),
                   ),

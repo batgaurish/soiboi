@@ -242,11 +242,23 @@ abstract class AppLocalizations {
   /// **'Manage Music Folders'**
   String get manageMusicFolder;
 
+  /// No description provided for @about.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get about;
+
   /// No description provided for @openSourceLicense.
   ///
   /// In en, this message translates to:
   /// **'Open Source License'**
   String get openSourceLicense;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
 
   /// No description provided for @sleepTimer.
   ///

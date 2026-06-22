@@ -12,6 +12,7 @@ import 'package:sylvakru/base/utils/dynamic_datail_route.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/data/history.dart';
 import 'package:sylvakru/landscape_view/sidebar.dart';
+import 'package:sylvakru/layer/about_layer.dart';
 import 'package:sylvakru/layer/albums_layer.dart';
 import 'package:sylvakru/layer/artists_layer.dart';
 import 'package:sylvakru/layer/folders_layer.dart';
@@ -52,6 +53,7 @@ class LayersManager {
 
   // root -> detail
   final Map<Widget, Widget?> detailWidgetMap = {};
+  final Map<Widget, Widget> parentWidgetMap = {};
 
   Widget? topRootLayer;
   Widget? bottomRootLayer;
@@ -232,8 +234,12 @@ class LayersManager {
     } else {
       rootKey = settingsKey;
       visibleNotifier = settingsVisibleNotifier;
-      if (detail == 'license') {
+      if (detail == 'about') {
+        detailLayer = AboutLayer();
+      } else if (detail == 'license') {
+        visibleNotifier = aboutVisibleNotifier;
         detailLayer = LicenseLayer();
+        parentWidgetMap[detailLayer] = detailWidgetMap[rootLayer]!;
       } else {
         detailLayer = FontPickerLayer();
       }
@@ -312,8 +318,8 @@ class LayersManager {
     if (detailWidgetMap[rootLayer] == null) {
       return false;
     }
-    detailWidgetMap[rootLayer] = null;
-    await layersManager.updateBackground();
+
+    final detailLayer = detailWidgetMap.remove(rootLayer);
 
     late GlobalKey<NavigatorState> rootKey;
     late ValueNotifier<bool> visibleNotifier;
@@ -332,7 +338,13 @@ class LayersManager {
     } else {
       rootKey = settingsKey;
       visibleNotifier = settingsVisibleNotifier;
+      if (detailLayer is LicenseLayer) {
+        detailWidgetMap[rootLayer] = parentWidgetMap.remove(detailLayer);
+        visibleNotifier = aboutVisibleNotifier;
+      }
     }
+
+    await layersManager.updateBackground();
 
     rootKey.currentState?.pop();
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -13,7 +13,7 @@ extension _AlbumsPage on _AlbumsLayerState {
         backgroundColor: Colors.transparent,
 
         scrolledUnderElevation: 0,
-        title: Text(l10n.album),
+        title: Text(l10n.albums),
         centerTitle: true,
         actions: [searchField(l10n.searchAlbums), moreButton(context)],
       ),

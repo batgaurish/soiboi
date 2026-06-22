@@ -80,23 +80,11 @@ class SettingsList extends StatelessWidget {
         if (isLandscape) sliverBox(const SizedBox(height: 10)),
 
         sliverBox(
-          paddingIfNeed(
-            isLandscape,
-            ListTile(
-              leading: ImageIcon(infoImage, size: iconSize),
-              title: Text(l10n.openSourceLicense),
-              onTap: () {
-                layersManager.pushDetail('settings', 'license');
-              },
-            ),
-          ),
+          paddingIfNeed(isLandscape, connect2ServerListTile(context, l10n)),
         ),
 
         sliverBox(
           paddingIfNeed(isLandscape, selectMusicFoldersListTile(context, l10n)),
-        ),
-        sliverBox(
-          paddingIfNeed(isLandscape, connect2ServerListTile(context, l10n)),
         ),
 
         sliverBox(paddingIfNeed(isLandscape, syncListTile(context, l10n))),
@@ -137,6 +125,19 @@ class SettingsList extends StatelessWidget {
           sliverBox(
             paddingIfNeed(isLandscape, exportLogListTile(context, l10n)),
           ),
+
+        sliverBox(
+          paddingIfNeed(
+            isLandscape,
+            ListTile(
+              leading: ImageIcon(infoImage, size: iconSize),
+              title: Text(l10n.about),
+              onTap: () {
+                layersManager.pushDetail('settings', 'about');
+              },
+            ),
+          ),
+        ),
 
         if (!isLandscape) sliverBox(const SizedBox(height: 100)),
       ],

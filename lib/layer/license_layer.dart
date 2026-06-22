@@ -6,8 +6,8 @@ import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
+import 'package:sylvakru/layer/about_layer.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/layer/settings_layer.dart';
 import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
 import 'package:sylvakru/portrait_view/my_search_field.dart';
 
@@ -74,7 +74,7 @@ class _LicenseLayerState extends State<LicenseLayer> {
           return pageView(context);
         } else {
           return ValueListenableBuilder(
-            valueListenable: settingsVisibleNotifier,
+            valueListenable: aboutVisibleNotifier,
             builder: (context, value, child) {
               return Opacity(opacity: value ? 0 : 1, child: panelView(context));
             },

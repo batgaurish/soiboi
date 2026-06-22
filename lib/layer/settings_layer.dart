@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/widgets/my_navigator.dart';
 import 'package:sylvakru/base/widgets/settings_list.dart';
+import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
 import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
 
@@ -25,6 +26,8 @@ class SettingsLayer extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
+          title: Text(AppLocalizations.of(context).settings),
+          centerTitle: true,
         ),
         body: SettingsList(iconSize: 30),
       ),

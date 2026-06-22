@@ -21,21 +21,6 @@ extension _LicensePanel on _LicenseLayerState {
   Widget panelContent() {
     return Column(
       children: [
-        ValueListenableBuilder(
-          valueListenable: highlightTextColor.valueNotifier,
-          builder: (context, value, child) {
-            return Text(
-              'Sylvakru',
-              style: .new(fontWeight: .bold, fontSize: 20, color: value),
-            );
-          },
-        ),
-        Text(versionNumber),
-        SizedBox(height: 5),
-        Text('© 2025-2026 AfalpHy'),
-
-        SizedBox(height: 5),
-        Text('Powered by Flutter'),
         SizedBox(height: 10),
         Expanded(
           child: Padding(
