@@ -54,7 +54,7 @@ extension _LicensePage on _LicenseLayerState {
                       collapsedIconColor: iconColor.value,
                       title: Text(pkg, style: .new(color: textColor.value)),
                       children: [
-                        SizedBox(height: 300, child: buildLicenseDetail(pkg)),
+                        SizedBox(height: 500, child: buildLicenseDetail(pkg)),
                       ],
                     );
                   },

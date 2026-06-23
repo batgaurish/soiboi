@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/logger.dart';
@@ -42,6 +43,8 @@ Future<void> main() async {
     await _setupMainWindow();
     await _setupTray();
   }
+
+  _registerLicenses();
 
   await initAudioService();
 
@@ -237,4 +240,44 @@ Future<void> _setupTray() async {
   });
 
   trayManager.addListener(MyTrayListener());
+}
+
+void _registerLicenses() {
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString(
+      'assets/licenses/libmpv-license.txt',
+    );
+
+    yield LicenseEntryWithLineBreaks(
+      ['libmpv'],
+      '''
+This application uses libmpv from the MPV project.
+
+Source code: https://github.com/mpv-player/mpv
+
+--------------------------------------------------------------
+
+$text
+''',
+    );
+  });
+
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString(
+      'assets/licenses/ffmpeg-license.txt',
+    );
+
+    yield LicenseEntryWithLineBreaks(
+      ['FFmpeg'],
+      '''
+This application uses FFmpeg.
+
+Source code: https://github.com/FFmpeg/FFmpeg
+
+--------------------------------------------------------------
+
+$text
+''',
+    );
+  });
 }
