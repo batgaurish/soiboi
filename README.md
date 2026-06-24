@@ -49,7 +49,7 @@ Install Flutter by following the [official Flutter installation guide](https://d
 ### Ubuntu/Debian
 ``` shell
 # Flutter dependencies:
-sudo apt install clang lld cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+sudo apt install clang lld cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
 
 # audio lib
 sudo apt install libmpv-dev

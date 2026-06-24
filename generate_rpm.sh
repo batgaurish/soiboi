@@ -50,7 +50,7 @@ StartupWMClass=com.afalphy.sylvakru
 Terminal=false
 EOL
 
-DEPENDS="glibc >= 2.31, libstdc++, gtk3, libayatana-appindicator3, libdbusmenu-gtk3, mpv-libs"
+DEPENDS="glibc >= 2.31, libstdc++, gtk3, libayatana-appindicator3, libdbusmenu-gtk3, mpv-libs, libsecret"
 
 SPEC_FILE="build/${BINARY_NAME}.spec"
 
