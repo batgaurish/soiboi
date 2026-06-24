@@ -1,5 +1,5 @@
 PODS:
-  - audio_tags_lofty (0.0.4):
+  - audio_tags_lofty (0.0.5):
     - Flutter
   - Flutter (1.0.0)
   - screen_corner_radius (0.0.1):
@@ -19,7 +19,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/screen_corner_radius/ios"
 
 SPEC CHECKSUMS:
-  audio_tags_lofty: 34a8d6f92e388530db0a636955cbb8a60a627639
+  audio_tags_lofty: f410b9cdf814cb4e7399a4d8528e5842d2ce5363
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   screen_corner_radius: 64e0abb3920228a5f91c0680fa890222970025bd
 

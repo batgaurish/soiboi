@@ -94,10 +94,10 @@ packages:
     dependency: "direct main"
     description:
       name: audio_tags_lofty
-      sha256: "13c4ce97b7e9a5b9f9c1636754bd1fdad08b91a8c7015208ae9b55c84fa0a88a"
+      sha256: "39a5e9d13b7f540b36aa737e822db911beb901e564b9da1a1afb6ed2886225f5"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.4"
+    version: "0.0.5"
   auto_size_text:
     dependency: "direct main"
     description:
