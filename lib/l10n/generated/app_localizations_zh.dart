@@ -543,4 +543,40 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get getPermissionFailed => '获取权限失败';
+
+  @override
+  String get premiumFeatures => '高级功能';
+
+  @override
+  String get premiumDescription => '获得更完整的使用体验并支持应用持续开发';
+
+  @override
+  String get unlockPremium => '解锁高级功能';
+
+  @override
+  String get restorePurchase => '恢复购买';
+
+  @override
+  String get whatPremiumContains => '高级功能包含';
+
+  @override
+  String get themeDescription => '支持开启主页面生动模式';
+
+  @override
+  String get fontDescription => '可使用自定义字体';
+
+  @override
+  String get equalizerDescription => '可调节不同频段的音量';
+
+  @override
+  String get futurePremium => '未来高级功能';
+
+  @override
+  String get futurePremiumDescription => '后续新增的高级功能自动解锁';
+
+  @override
+  String get premiumRequiredMessage => '当前功能需要解锁高级功能后才能使用';
+
+  @override
+  String get premiumUnlockHint => '请前往「设置 > 高级功能」进行解锁';
 }

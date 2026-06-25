@@ -25,3 +25,5 @@ enum SourceType { local, webdav, navidrome, emby }
 final ValueNotifier<String?> fontFamilyNotifier = ValueNotifier(null);
 
 final List<String> importedFonts = [];
+
+final isPremiumNotifier = ValueNotifier(true);

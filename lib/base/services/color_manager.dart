@@ -17,7 +17,7 @@ ContrastColorTextTheme contrastColorTheme = ContrastColorGenerator.generate(
 
 final MyColor pageBackgroundColor = MyColor(
   vividModeValue: Color.fromARGB(100, 245, 245, 245),
-  lightModeValue: Colors.grey.shade200,
+  lightModeValue: Colors.grey.shade100,
   darkModeValue: Color.fromARGB(255, 50, 50, 50),
 );
 

@@ -75,7 +75,7 @@ class _AboutLayerState extends State<AboutLayer> {
     final l10n = AppLocalizations.of(context);
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: const BoxConstraints(maxWidth: 500),
       child: ListView(
         padding: EdgeInsets.zero,
         children: [

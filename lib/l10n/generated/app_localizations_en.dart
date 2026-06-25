@@ -543,4 +543,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get getPermissionFailed => 'Get permission failed';
+
+  @override
+  String get premiumFeatures => 'Premium Features';
+
+  @override
+  String get premiumDescription =>
+      'Enjoy the full experience and support ongoing development';
+
+  @override
+  String get unlockPremium => 'Unlock Premium Features';
+
+  @override
+  String get restorePurchase => 'Restore Purchases';
+
+  @override
+  String get whatPremiumContains => 'What\'s Included';
+
+  @override
+  String get themeDescription => 'Unlock Vivid Mode for the Main Page';
+
+  @override
+  String get fontDescription => 'Use custom fonts';
+
+  @override
+  String get equalizerDescription =>
+      'Adjust audio levels across different frequencies';
+
+  @override
+  String get futurePremium => 'Future Premium Features';
+
+  @override
+  String get futurePremiumDescription =>
+      'All future premium features will be unlocked automatically';
+
+  @override
+  String get premiumRequiredMessage =>
+      'This feature requires Premium Features to be unlocked before it can be used';
+
+  @override
+  String get premiumUnlockHint =>
+      'Go to Settings > Premium Features to unlock it';
 }

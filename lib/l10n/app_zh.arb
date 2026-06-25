@@ -172,5 +172,17 @@
   "all": "全部",
   "folderExist": "该文件夹已存在",
   "folderNotSupportedYet": "暂不支持该文件夹",
-  "getPermissionFailed": "获取权限失败"
+  "getPermissionFailed": "获取权限失败",
+  "premiumFeatures": "高级功能",
+  "premiumDescription": "获得更完整的使用体验并支持应用持续开发",
+  "unlockPremium": "解锁高级功能",
+  "restorePurchase": "恢复购买",
+  "whatPremiumContains": "高级功能包含",
+  "themeDescription": "支持开启主页面生动模式",
+  "fontDescription": "可使用自定义字体",
+  "equalizerDescription": "可调节不同频段的音量",
+  "futurePremium": "未来高级功能",
+  "futurePremiumDescription": "后续新增的高级功能自动解锁",
+  "premiumRequiredMessage": "当前功能需要解锁高级功能后才能使用",
+  "premiumUnlockHint": "请前往「设置 > 高级功能」进行解锁"
 }

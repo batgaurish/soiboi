@@ -1141,6 +1141,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get permission failed'**
   String get getPermissionFailed;
+
+  /// No description provided for @premiumFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium Features'**
+  String get premiumFeatures;
+
+  /// No description provided for @premiumDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enjoy the full experience and support ongoing development'**
+  String get premiumDescription;
+
+  /// No description provided for @unlockPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Premium Features'**
+  String get unlockPremium;
+
+  /// No description provided for @restorePurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Purchases'**
+  String get restorePurchase;
+
+  /// No description provided for @whatPremiumContains.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s Included'**
+  String get whatPremiumContains;
+
+  /// No description provided for @themeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Vivid Mode for the Main Page'**
+  String get themeDescription;
+
+  /// No description provided for @fontDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use custom fonts'**
+  String get fontDescription;
+
+  /// No description provided for @equalizerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust audio levels across different frequencies'**
+  String get equalizerDescription;
+
+  /// No description provided for @futurePremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Future Premium Features'**
+  String get futurePremium;
+
+  /// No description provided for @futurePremiumDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'All future premium features will be unlocked automatically'**
+  String get futurePremiumDescription;
+
+  /// No description provided for @premiumRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This feature requires Premium Features to be unlocked before it can be used'**
+  String get premiumRequiredMessage;
+
+  /// No description provided for @premiumUnlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Settings > Premium Features to unlock it'**
+  String get premiumUnlockHint;
 }
 
 class _AppLocalizationsDelegate

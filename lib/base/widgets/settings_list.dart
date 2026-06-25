@@ -56,7 +56,7 @@ class SettingsList extends StatelessWidget {
                       Platform.isAndroid
                           ? 14
                           : Platform.isIOS
-                          ? 13
+                          ? 14
                           : 12,
                     ),
                     style: TextStyle(fontSize: 12),
@@ -78,6 +78,11 @@ class SettingsList extends StatelessWidget {
           ),
 
         if (isLandscape) sliverBox(const SizedBox(height: 10)),
+
+        if (Platform.isIOS)
+          sliverBox(
+            paddingIfNeed(isLandscape, premiumFeaturesListTile(context, l10n)),
+          ),
 
         sliverBox(
           paddingIfNeed(isLandscape, connect2ServerListTile(context, l10n)),
@@ -293,6 +298,16 @@ class SettingsList extends StatelessWidget {
     );
   }
 
+  Widget premiumFeaturesListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(premiumImage, size: iconSize),
+      title: Text(l10n.premiumFeatures),
+      onTap: () {
+        layersManager.pushDetail('settings', 'premium');
+      },
+    );
+  }
+
   Widget connect2ServerListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(serverImage, size: iconSize),
@@ -479,8 +494,21 @@ class SettingsList extends StatelessWidget {
 
       title: Text(l10n.fonts),
       onTap: () {
+        if (!isPremiumNotifier.value) {
+          showPremiumDialog(context);
+          return;
+        }
         layersManager.pushDetail('settings', 'font_picker');
       },
+      trailing: ValueListenableBuilder(
+        valueListenable: isPremiumNotifier,
+        builder: (context, value, child) {
+          if (value) {
+            return SizedBox.shrink();
+          }
+          return Icon(Icons.lock);
+        },
+      ),
     );
   }
 
@@ -619,6 +647,10 @@ class SettingsList extends StatelessWidget {
       leading: ImageIcon(equalizerImage, size: iconSize),
       title: Text(l10n.equalizer),
       onTap: () {
+        if (!isPremiumNotifier.value) {
+          showPremiumDialog(context);
+          return;
+        }
         showAnimationDialog(
           context: context,
           child: OrientationBuilder(
@@ -644,6 +676,15 @@ class SettingsList extends StatelessWidget {
           ),
         );
       },
+      trailing: ValueListenableBuilder(
+        valueListenable: isPremiumNotifier,
+        builder: (context, value, child) {
+          if (value) {
+            return SizedBox.shrink();
+          }
+          return Icon(Icons.lock);
+        },
+      ),
     );
   }
 

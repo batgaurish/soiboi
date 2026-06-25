@@ -221,5 +221,17 @@
   "all": "All",
   "folderExist": "The folder already exist",
   "folderNotSupportedYet": "The folder is not supported yet",
-  "getPermissionFailed": "Get permission failed"
+  "getPermissionFailed": "Get permission failed",
+  "premiumFeatures": "Premium Features",
+  "premiumDescription": "Enjoy the full experience and support ongoing development",
+  "unlockPremium": "Unlock Premium Features",
+  "restorePurchase": "Restore Purchases",
+  "whatPremiumContains": "What's Included",
+  "themeDescription": "Unlock Vivid Mode for the Main Page",
+  "fontDescription": "Use custom fonts",
+  "equalizerDescription": "Adjust audio levels across different frequencies",
+  "futurePremium": "Future Premium Features",
+  "futurePremiumDescription": "All future premium features will be unlocked automatically",
+  "premiumRequiredMessage": "This feature requires Premium Features to be unlocked before it can be used",
+  "premiumUnlockHint": "Go to Settings > Premium Features to unlock it"
 }

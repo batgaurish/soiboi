@@ -17,6 +17,13 @@ class Config {
   );
 
   Future<void> load() async {
+    if (Platform.isIOS) {
+      final isPremiumTmp = await _secureStorage.read(key: 'isPremium');
+      if (isPremiumTmp != 'true') {
+        isPremiumNotifier.value = false;
+      }
+    }
+
     file = File("${appSupportDir.path}/config.json");
     if (!(file.existsSync())) {
       return;
