@@ -584,4 +584,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get premiumUnlockHint =>
       'Go to Settings > Premium Features to unlock it';
+
+  @override
+  String get alreadyPremium => 'Premium features are already unlocked!';
+
+  @override
+  String get pendingPurchase => 'Processing your purchase...';
+
+  @override
+  String get purchaseNotFound => 'No purchase records found';
+
+  @override
+  String get productNotAvailable =>
+      'Product currently unavailable. Please try again later';
+
+  @override
+  String get iapNotAvailable =>
+      'In-App Purchases are not available. Please try again later';
 }

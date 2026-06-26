@@ -619,7 +619,7 @@ Future<void> showPremiumDialog(BuildContext context) async {
     child: Builder(
       builder: (context) {
         return SizedBox(
-          width: 360,
+          width: 300,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: ListenableBuilder(
@@ -647,7 +647,7 @@ Future<void> showPremiumDialog(BuildContext context) async {
                     Text(
                       l10n.premiumRequiredMessage,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         color: colorManager.getSpecificTextColor(),
                       ),
                     ),
@@ -657,7 +657,7 @@ Future<void> showPremiumDialog(BuildContext context) async {
                     Text(
                       l10n.premiumUnlockHint,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         color: colorManager.getSpecificTextColor(),
                       ),
                     ),

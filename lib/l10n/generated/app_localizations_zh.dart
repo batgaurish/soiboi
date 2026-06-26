@@ -579,4 +579,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get premiumUnlockHint => '请前往「设置 > 高级功能」进行解锁';
+
+  @override
+  String get alreadyPremium => '已解锁高级功能';
+
+  @override
+  String get pendingPurchase => '正在处理中...';
+
+  @override
+  String get purchaseNotFound => '未发现购买记录';
+
+  @override
+  String get productNotAvailable => '商品暂不可用, 请稍后再试';
+
+  @override
+  String get iapNotAvailable => '应用内购买功能暂不可用, 请稍后再试';
 }

@@ -1213,6 +1213,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Settings > Premium Features to unlock it'**
   String get premiumUnlockHint;
+
+  /// No description provided for @alreadyPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium features are already unlocked!'**
+  String get alreadyPremium;
+
+  /// No description provided for @pendingPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing your purchase...'**
+  String get pendingPurchase;
+
+  /// No description provided for @purchaseNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No purchase records found'**
+  String get purchaseNotFound;
+
+  /// No description provided for @productNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Product currently unavailable. Please try again later'**
+  String get productNotAvailable;
+
+  /// No description provided for @iapNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'In-App Purchases are not available. Please try again later'**
+  String get iapNotAvailable;
 }
 
 class _AppLocalizationsDelegate

@@ -83,6 +83,10 @@ class Config {
     }
   }
 
+  Future<void> savePremium() async {
+    await _secureStorage.write(key: 'isPremium', value: 'true');
+  }
+
   Future<void> save() async {
     if (webdavClient != null) {
       await _secureStorage.write(

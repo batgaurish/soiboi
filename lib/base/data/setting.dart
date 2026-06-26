@@ -54,6 +54,10 @@ class Setting {
       orElse: () => ThemeType.vivid,
     );
 
+    if (!isPremiumNotifier.value && mainPageThemeNotifier.value == .vivid) {
+      mainPageThemeNotifier.value = .light;
+    }
+
     lyricsPageThemeNotifier.value = ThemeType.values.firstWhere(
       (e) => e.name == json['lyricsPageTheme'],
       orElse: () => ThemeType.vivid,

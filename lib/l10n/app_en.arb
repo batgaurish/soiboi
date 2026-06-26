@@ -233,5 +233,10 @@
   "futurePremium": "Future Premium Features",
   "futurePremiumDescription": "All future premium features will be unlocked automatically",
   "premiumRequiredMessage": "This feature requires Premium Features to be unlocked before it can be used",
-  "premiumUnlockHint": "Go to Settings > Premium Features to unlock it"
+  "premiumUnlockHint": "Go to Settings > Premium Features to unlock it",
+  "alreadyPremium": "Premium features are already unlocked!",
+  "pendingPurchase": "Processing your purchase...",
+  "purchaseNotFound": "No purchase records found",
+  "productNotAvailable": "Product currently unavailable. Please try again later",
+  "iapNotAvailable": "In-App Purchases are not available. Please try again later"
 }

@@ -184,5 +184,10 @@
   "futurePremium": "未来高级功能",
   "futurePremiumDescription": "后续新增的高级功能自动解锁",
   "premiumRequiredMessage": "当前功能需要解锁高级功能后才能使用",
-  "premiumUnlockHint": "请前往「设置 > 高级功能」进行解锁"
+  "premiumUnlockHint": "请前往「设置 > 高级功能」进行解锁",
+  "alreadyPremium": "已解锁高级功能",
+  "pendingPurchase": "正在处理中...",
+  "purchaseNotFound": "未发现购买记录",
+  "productNotAvailable": "商品暂不可用, 请稍后再试",
+  "iapNotAvailable": "应用内购买功能暂不可用, 请稍后再试"
 }

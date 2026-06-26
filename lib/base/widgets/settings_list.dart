@@ -557,11 +557,23 @@ class SettingsList extends StatelessWidget {
                                 ListTile(
                                   title: Text(l10n.vividMode),
                                   onTap: () {
+                                    if (!isPremiumNotifier.value) {
+                                      showPremiumDialog(context);
+                                      return;
+                                    }
                                     mainPageThemeNotifier.value = .vivid;
                                   },
-                                  trailing: value == .vivid
-                                      ? Icon(Icons.check)
-                                      : null,
+                                  trailing: ValueListenableBuilder(
+                                    valueListenable: isPremiumNotifier,
+                                    builder: (context, isPremium, child) {
+                                      if (!isPremium) {
+                                        return Icon(Icons.lock);
+                                      }
+                                      return value == .vivid
+                                          ? Icon(Icons.check)
+                                          : SizedBox.shrink();
+                                    },
+                                  ),
                                 ),
                                 ListTile(
                                   title: Text(l10n.lightMode),

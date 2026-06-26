@@ -3,6 +3,8 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/services/iap_service.dart';
+import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/landscape_view/title_bar.dart';
@@ -10,8 +12,37 @@ import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/settings_layer.dart';
 import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
 
-class PremiumLayer extends StatelessWidget {
+class PremiumLayer extends StatefulWidget {
   const PremiumLayer({super.key});
+
+  @override
+  State<StatefulWidget> createState() => _PremiumLayerState();
+}
+
+class _PremiumLayerState extends State<PremiumLayer> {
+  final IAPService _iapService = IAPService();
+  final Set<String> _productIds = {'com.afalphy.sylvakru.pro_lifetime'};
+  bool isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _iapService.initialize();
+    _iapService.loadProducts(_productIds);
+    _iapService.onMessage = (msg) {
+      showCenterMessage(context, msg);
+    };
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _iapService.l10n = AppLocalizations.of(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    _iapService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +58,7 @@ class PremiumLayer extends StatelessWidget {
           scrolledUnderElevation: 0,
           centerTitle: true,
         ),
-        body: PremiumContent(),
+        body: premiumContent(context),
       );
     }
 
@@ -39,20 +70,15 @@ class PremiumLayer extends StatelessWidget {
           child: Column(
             children: [
               TitleBar(backToRoot: () => layersManager.popDetail('settings')),
-              Expanded(child: PremiumContent()),
+              Expanded(child: premiumContent(context)),
             ],
           ),
         );
       },
     );
   }
-}
 
-class PremiumContent extends StatelessWidget {
-  const PremiumContent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget premiumContent(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 500),
@@ -78,58 +104,95 @@ class PremiumContent extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              GestureDetector(
-                onTap: () {},
-                child: Card(
-                  color: buttonColor.value,
-                  shadowColor: mainPageThemeNotifier.value == .vivid
-                      ? Colors.black12
-                      : mainPageThemeNotifier.value == .dark
-                      ? Colors.white
-                      : null,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: SmoothRectangleBorder(
-                    smoothness: 1,
-                    borderRadius: .circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Center(
-                      child: Text(
-                        l10n.unlockPremium,
-                        style: .new(fontSize: 16, fontWeight: .bold),
+              ValueListenableBuilder(
+                valueListenable: isPremiumNotifier,
+                builder: (context, isPremium, child) {
+                  return Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          if (isPremium | isProcessing) {
+                            return;
+                          }
+                          isProcessing = true;
+                          if (await _iapService.checkAvailability()) {
+                            await _iapService.buyProduct();
+                          }
+                          await Future.delayed(Duration(milliseconds: 500));
+                          isProcessing = false;
+                        },
+                        child: Card(
+                          color: buttonColor.value,
+                          shadowColor: mainPageThemeNotifier.value == .vivid
+                              ? Colors.black.withAlpha(10)
+                              : mainPageThemeNotifier.value == .dark
+                              ? Colors.white
+                              : null,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: SmoothRectangleBorder(
+                            smoothness: 1,
+                            borderRadius: .circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              mainAxisAlignment: .center,
+                              children: [
+                                if (isPremium) ...[
+                                  const Icon(Icons.check_circle, size: 20),
+                                  const SizedBox(width: 8),
+                                ],
+                                Text(
+                                  isPremium
+                                      ? "You are a Premium member!"
+                                      : l10n.unlockPremium,
+                                  style: .new(fontSize: 16, fontWeight: .bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ),
+                      if (!isPremium) ...[
+                        const SizedBox(height: 8),
 
-              const SizedBox(height: 8),
-
-              GestureDetector(
-                onTap: () {},
-                child: Card(
-                  color: buttonColor.value,
-                  shadowColor: mainPageThemeNotifier.value == .vivid
-                      ? Colors.black12
-                      : mainPageThemeNotifier.value == .dark
-                      ? Colors.white
-                      : null,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: SmoothRectangleBorder(
-                    smoothness: 1,
-                    borderRadius: .circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Center(
-                      child: Text(
-                        l10n.restorePurchase,
-                        style: .new(fontSize: 16, fontWeight: .bold),
-                      ),
-                    ),
-                  ),
-                ),
+                        GestureDetector(
+                          onTap: () async {
+                            if (isProcessing) {
+                              return;
+                            }
+                            isProcessing = true;
+                            await _iapService.restorePurchases();
+                            await Future.delayed(Duration(milliseconds: 500));
+                            isProcessing = false;
+                          },
+                          child: Card(
+                            color: buttonColor.value,
+                            shadowColor: mainPageThemeNotifier.value == .vivid
+                                ? Colors.black.withAlpha(10)
+                                : mainPageThemeNotifier.value == .dark
+                                ? Colors.white
+                                : null,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: SmoothRectangleBorder(
+                              smoothness: 1,
+                              borderRadius: .circular(10),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Center(
+                                child: Text(
+                                  l10n.restorePurchase,
+                                  style: .new(fontSize: 16, fontWeight: .bold),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 32),
@@ -164,7 +227,7 @@ class PremiumContent extends StatelessWidget {
                 title: l10n.futurePremium,
                 description: l10n.futurePremiumDescription,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 90),
             ],
           );
         },
@@ -192,7 +255,7 @@ class FeatureCard extends StatelessWidget {
     return Card(
       color: buttonColor.value,
       shadowColor: mainPageThemeNotifier.value == .vivid
-          ? Colors.black12
+          ? Colors.black.withAlpha(10)
           : mainPageThemeNotifier.value == .dark
           ? Colors.white
           : null,
