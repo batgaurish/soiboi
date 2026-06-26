@@ -3,6 +3,7 @@ import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/utils/format_duration.dart';
+import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/widgets/full_width_track_shape.dart';
 
 class SeekBar extends StatefulWidget {
@@ -30,8 +31,7 @@ class SeekBarState extends State<SeekBar> {
   @override
   Widget build(BuildContext context) {
     horizontalPadding = 0;
-    if ((MediaQuery.of(context).orientation == .landscape || !isMobile) &&
-        !widget.isMiniMode) {
+    if ((!isTooNarrow(context) || !isMobile) && !widget.isMiniMode) {
       horizontalPadding = 45;
     }
 

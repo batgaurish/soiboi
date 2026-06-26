@@ -182,7 +182,7 @@ class _FontPickerLayerState extends State<FontPickerLayer> {
 
   @override
   Widget build(BuildContext context) {
-    if (isMobile && isPortrait(context)) {
+    if (isMobile && isTooNarrow(context)) {
       return pageView(context);
     }
 

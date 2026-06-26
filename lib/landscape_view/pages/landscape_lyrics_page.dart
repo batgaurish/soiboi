@@ -69,7 +69,10 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
       builder: (context, currentSong, child) {
         final pageWidth = MediaQuery.widthOf(context);
         final pageHight = MediaQuery.heightOf(context);
-        final coverArtSize = min(pageWidth * 0.3, pageHight * 0.6);
+        final coverArtSize = min(
+          pageWidth * (isMobile ? 0.35 : 0.3),
+          pageHight * 0.6,
+        );
 
         return Material(
           color: Colors.transparent,

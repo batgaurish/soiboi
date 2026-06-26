@@ -257,7 +257,7 @@ class LayersManager {
     rootKey.currentState?.push(
       DynamicDetailRoute(
         pageBuilder: (context, animation, secondaryAnimation) {
-          if (isMobile && isPortrait(context)) {
+          if (isMobile && isTooNarrow(context)) {
             if (Platform.isAndroid) {
               return detailPage;
             }

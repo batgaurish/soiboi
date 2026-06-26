@@ -18,7 +18,7 @@ Widget myNavigator({
       MaterialPage(
         child: Builder(
           builder: (context) {
-            return isMobile && isPortrait(context)
+            return isMobile && isTooNarrow(context)
                 ? pageViewBuilder()
                 : ValueListenableBuilder(
                     valueListenable: visibleNotifier,

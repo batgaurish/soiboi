@@ -28,7 +28,7 @@ class _LyricsPageLayerState extends State<LyricsPageLayer> {
 
   @override
   Widget build(BuildContext context) {
-    if (isMobile && isPortrait(context)) {
+    if (isMobile && isTooNarrow(context)) {
       return PortraitLyricsPage();
     }
     return LandscapeLyricsPage();

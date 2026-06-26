@@ -23,7 +23,7 @@ class DynamicLyricsPageRoute<T> extends PageRouteBuilder<T> {
       curve: Curves.easeInOutCubic,
       reverseCurve: Curves.easeInOutCubic,
     );
-    if (isMobile && isPortrait(context)) {
+    if (isMobile && isTooNarrow(context)) {
       return SlideTransition(
         position: Tween<Offset>(
           begin: Offset(0, 1),

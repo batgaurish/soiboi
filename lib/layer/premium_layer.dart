@@ -46,7 +46,7 @@ class _PremiumLayerState extends State<PremiumLayer> {
 
   @override
   Widget build(BuildContext context) {
-    if (isPortrait(context)) {
+    if (isTooNarrow(context)) {
       return Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(

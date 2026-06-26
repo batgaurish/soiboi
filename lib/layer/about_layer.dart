@@ -25,7 +25,7 @@ class AboutLayer extends StatefulWidget {
 class _AboutLayerState extends State<AboutLayer> {
   @override
   Widget build(BuildContext context) {
-    if (isMobile && isPortrait(context)) {
+    if (isMobile && isTooNarrow(context)) {
       return pageView(context);
     }
 

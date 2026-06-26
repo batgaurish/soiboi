@@ -107,8 +107,7 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         if (miniMode) {
           return MiniView();
         }
-
-        if (isMobile && isPortrait(context)) {
+        if (isMobile && isTooNarrow(context)) {
           SystemChrome.setEnabledSystemUIMode(
             SystemUiMode.manual,
             overlays: SystemUiOverlay.values,

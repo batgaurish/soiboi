@@ -152,156 +152,209 @@ extension _SongListPanel on _SongListState {
                         ),
                         padding: EdgeInsets.all(10),
                       );
-                      return Row(
-                        children: [
-                          if (isMobile) ...[
-                            SizedBox(width: 15),
+                      return Expanded(
+                        child: ListView(
+                          scrollDirection: .horizontal,
+                          children: [
+                            SizedBox(width: 10),
                             ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context, rootNavigator: true).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => SelectableSongListPage(
-                                      songList: songList,
-                                      playlist: playlist,
-                                      folder: folder,
-                                      isRanking: isRanking,
-                                      isRecently: isRecently,
-                                      isLibrary: isLibrary,
-                                      reorderable: reorderable,
-                                    ),
-                                  ),
-                                );
-                              },
-                              style: buttonStyle,
-                              child: Text(l10n.select),
-                            ),
-                          ],
-
-                          if (folder == null)
-                            ValueListenableBuilder(
-                              valueListenable: songListManager.changeNotifier,
-                              builder: (context, value, child) {
-                                if (songListManager.notEmptyCount >= 2) {
-                                  return Row(
-                                    children: [
-                                      SizedBox(width: 15),
-                                      ElevatedButton(
-                                        onPressed: () async {
-                                          widget.switchCallBack!(context);
-                                        },
-                                        style: buttonStyle,
-                                        child: Text(l10n.switch_),
-                                      ),
-                                    ],
-                                  );
+                              onPressed: () async {
+                                if (currentSongListNotifier.value.isEmpty) {
+                                  return;
                                 }
-                                return SizedBox.shrink();
-                              },
-                            ),
-
-                          if (isLibrary &&
-                                  (sourceType == .local ||
-                                      sourceType == .webdav) ||
-                              folder != null) ...[
-                            SizedBox(width: 15),
-                            ElevatedButton(
-                              onPressed: () {
-                                showAnimationDialog(
-                                  context: context,
-                                  child: SizedBox(
-                                    width: 300,
-                                    height: isMobile ? 300 : 280,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Builder(
-                                        builder: (context) {
-                                          return ListView(
-                                            children: [
-                                              ListTile(
-                                                title: Text(l10n.defaultText),
-                                                onTap: () {
-                                                  Navigator.pop(context);
-                                                  sortTypeNotifier.value = 0;
-                                                },
-                                                trailing:
-                                                    sortTypeNotifier.value == 0
-                                                    ? Icon(Icons.check)
-                                                    : null,
-                                              ),
-                                              ListTile(
-                                                title: Text(
-                                                  l10n.modifiedTimeAscending,
-                                                ),
-                                                onTap: () {
-                                                  Navigator.pop(context);
-                                                  sortTypeNotifier.value = 9;
-                                                },
-                                                trailing:
-                                                    sortTypeNotifier.value == 9
-                                                    ? Icon(Icons.check)
-                                                    : null,
-                                              ),
-                                              ListTile(
-                                                title: Text(
-                                                  l10n.modifiedTimedescending,
-                                                ),
-                                                onTap: () {
-                                                  Navigator.pop(context);
-                                                  sortTypeNotifier.value = 10;
-                                                },
-                                                trailing:
-                                                    sortTypeNotifier.value == 10
-                                                    ? Icon(Icons.check)
-                                                    : null,
-                                              ),
-                                              ListTile(
-                                                title: Text(l10n.randomizeTemp),
-                                                onTap: () {
-                                                  Navigator.pop(context);
-                                                  sortTypeNotifier.value = 11;
-                                                },
-                                                trailing:
-                                                    sortTypeNotifier.value == 11
-                                                    ? Icon(Icons.check)
-                                                    : null,
-                                              ),
-                                              ListTile(
-                                                title: Text(
-                                                  l10n.randomizePermanent,
-                                                ),
-                                                onTap: () async {
-                                                  Navigator.pop(context);
-                                                  if (!await showConfirmDialog(
-                                                    context,
-                                                    l10n.cannotBeUndone,
-                                                  )) {
-                                                    return;
-                                                  }
-                                                  sortTypeNotifier.value = 0;
-                                                  if (isLibrary) {
-                                                    library.shuffle(sourceType);
-                                                  } else {
-                                                    folder!.shuffle();
-                                                  }
-                                                },
-                                                trailing:
-                                                    sortTypeNotifier.value == 12
-                                                    ? Icon(Icons.check)
-                                                    : null,
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
+                                audioHandler.currentIndex = 0;
+                                playModeNotifier.value = 0;
+                                await audioHandler.setPlayQueue(
+                                  currentSongListNotifier.value,
                                 );
+                                await audioHandler.load();
+                                audioHandler.play();
                               },
                               style: buttonStyle,
-                              child: Icon(Icons.sort),
+                              child: Text(l10n.playAll),
                             ),
+                            SizedBox(width: 15),
+
+                            ElevatedButton(
+                              onPressed: () async {
+                                if (currentSongListNotifier.value.isEmpty) {
+                                  return;
+                                }
+                                audioHandler.currentIndex = Random().nextInt(
+                                  currentSongListNotifier.value.length,
+                                );
+                                playModeNotifier.value = 1;
+                                await audioHandler.setPlayQueue(
+                                  currentSongListNotifier.value,
+                                );
+                                await audioHandler.load();
+                                audioHandler.play();
+                              },
+                              style: buttonStyle,
+                              child: Text(l10n.shuffle),
+                            ),
+
+                            if (isMobile) ...[
+                              SizedBox(width: 15),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => SelectableSongListPage(
+                                        songList: songList,
+                                        playlist: playlist,
+                                        folder: folder,
+                                        isRanking: isRanking,
+                                        isRecently: isRecently,
+                                        isLibrary: isLibrary,
+                                        reorderable: reorderable,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: buttonStyle,
+                                child: Text(l10n.select),
+                              ),
+                            ],
+
+                            if (folder == null)
+                              ValueListenableBuilder(
+                                valueListenable: songListManager.changeNotifier,
+                                builder: (context, value, child) {
+                                  if (songListManager.notEmptyCount >= 2) {
+                                    return Row(
+                                      children: [
+                                        SizedBox(width: 15),
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            widget.switchCallBack!(context);
+                                          },
+                                          style: buttonStyle,
+                                          child: Text(l10n.switch_),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                  return SizedBox.shrink();
+                                },
+                              ),
+
+                            if (isLibrary &&
+                                    (sourceType == .local ||
+                                        sourceType == .webdav) ||
+                                folder != null) ...[
+                              SizedBox(width: 15),
+                              ElevatedButton(
+                                onPressed: () {
+                                  showAnimationDialog(
+                                    context: context,
+                                    child: SizedBox(
+                                      width: 300,
+                                      height: isMobile ? 300 : 280,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Builder(
+                                          builder: (context) {
+                                            return ListView(
+                                              children: [
+                                                ListTile(
+                                                  title: Text(l10n.defaultText),
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                    sortTypeNotifier.value = 0;
+                                                  },
+                                                  trailing:
+                                                      sortTypeNotifier.value ==
+                                                          0
+                                                      ? Icon(Icons.check)
+                                                      : null,
+                                                ),
+                                                ListTile(
+                                                  title: Text(
+                                                    l10n.modifiedTimeAscending,
+                                                  ),
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                    sortTypeNotifier.value = 9;
+                                                  },
+                                                  trailing:
+                                                      sortTypeNotifier.value ==
+                                                          9
+                                                      ? Icon(Icons.check)
+                                                      : null,
+                                                ),
+                                                ListTile(
+                                                  title: Text(
+                                                    l10n.modifiedTimedescending,
+                                                  ),
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                    sortTypeNotifier.value = 10;
+                                                  },
+                                                  trailing:
+                                                      sortTypeNotifier.value ==
+                                                          10
+                                                      ? Icon(Icons.check)
+                                                      : null,
+                                                ),
+                                                ListTile(
+                                                  title: Text(
+                                                    l10n.randomizeTemp,
+                                                  ),
+                                                  onTap: () {
+                                                    Navigator.pop(context);
+                                                    sortTypeNotifier.value = 11;
+                                                  },
+                                                  trailing:
+                                                      sortTypeNotifier.value ==
+                                                          11
+                                                      ? Icon(Icons.check)
+                                                      : null,
+                                                ),
+                                                ListTile(
+                                                  title: Text(
+                                                    l10n.randomizePermanent,
+                                                  ),
+                                                  onTap: () async {
+                                                    Navigator.pop(context);
+                                                    if (!await showConfirmDialog(
+                                                      context,
+                                                      l10n.cannotBeUndone,
+                                                    )) {
+                                                      return;
+                                                    }
+                                                    sortTypeNotifier.value = 0;
+                                                    if (isLibrary) {
+                                                      library.shuffle(
+                                                        sourceType,
+                                                      );
+                                                    } else {
+                                                      folder!.shuffle();
+                                                    }
+                                                  },
+                                                  trailing:
+                                                      sortTypeNotifier.value ==
+                                                          12
+                                                      ? Icon(Icons.check)
+                                                      : null,
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: buttonStyle,
+                                child: Icon(Icons.sort),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       );
                     },
                   ),
