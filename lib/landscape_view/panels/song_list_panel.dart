@@ -152,7 +152,8 @@ extension _SongListPanel on _SongListState {
                         ),
                         padding: EdgeInsets.all(10),
                       );
-                      return Expanded(
+                      return SizedBox(
+                        height: 40,
                         child: ListView(
                           scrollDirection: .horizontal,
                           children: [
