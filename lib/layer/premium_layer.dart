@@ -21,7 +21,7 @@ class PremiumLayer extends StatefulWidget {
 
 class _PremiumLayerState extends State<PremiumLayer> {
   final IAPService _iapService = IAPService();
-  final Set<String> _productIds = {'com.afalphy.sylvakru.pro_lifetime'};
+  final Set<String> _productIds = {'com.afalphy.sylvakru.premium.lifetime'};
   bool isProcessing = false;
 
   @override
