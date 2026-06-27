@@ -21,7 +21,6 @@ class Setting {
     file = File("${appSupportDir.path}/setting.json");
     if (!(file.existsSync())) {
       save();
-      return;
     }
 
     final content = await file.readAsString();
