@@ -241,14 +241,17 @@ class LayersManager {
       } else if (detail == 'license') {
         visibleNotifier = aboutVisibleNotifier;
         detailLayer = LicenseLayer();
-        parentWidgetMap[detailLayer] = detailWidgetMap[rootLayer]!;
       } else if (detail == 'premium') {
         detailLayer = PremiumLayer();
       } else {
         detailLayer = FontPickerLayer();
       }
     }
-
+    if (detailWidgetMap[rootLayer] == null) {
+      parentWidgetMap[detailLayer] = rootLayer;
+    } else {
+      parentWidgetMap[detailLayer] = detailWidgetMap[rootLayer]!;
+    }
     detailWidgetMap[rootLayer] = detailLayer;
 
     await layersManager.updateBackground();
@@ -318,6 +321,7 @@ class LayersManager {
     }
 
     final detailLayer = detailWidgetMap.remove(rootLayer);
+    final parentLayer = parentWidgetMap.remove(detailLayer);
 
     late GlobalKey<NavigatorState> rootKey;
     late ValueNotifier<bool> visibleNotifier;
@@ -337,7 +341,7 @@ class LayersManager {
       rootKey = settingsKey;
       visibleNotifier = settingsVisibleNotifier;
       if (detailLayer is LicenseLayer) {
-        detailWidgetMap[rootLayer] = parentWidgetMap.remove(detailLayer);
+        detailWidgetMap[rootLayer] = parentLayer;
         visibleNotifier = aboutVisibleNotifier;
       }
     }
@@ -401,9 +405,22 @@ class LayersManager {
     }
 
     Widget displayLayer = topRootLayer!;
-
-    if (detailWidgetMap[topRootLayer] != null) {
-      displayLayer = detailWidgetMap[topRootLayer]!;
+    Widget? tmpLayer = detailWidgetMap[topRootLayer];
+    if (tmpLayer != null) {
+      displayLayer = tmpLayer;
+      while ((tmpLayer = parentWidgetMap[tmpLayer]) != null) {
+        final tmpBackgroundSong = _getBackgroundSong(tmpLayer!);
+        final tmpBackgroundCoverArtColor = await computeCoverArtColor(
+          tmpBackgroundSong,
+        );
+        final layerInfo = layerInfoMap[tmpLayer]!;
+        if (layerInfo.backgroundSong != tmpBackgroundSong ||
+            layerInfo.backgroundCoverArtColor != tmpBackgroundCoverArtColor) {
+          layerInfo.backgroundSong = tmpBackgroundSong;
+          layerInfo.backgroundCoverArtColor = tmpBackgroundCoverArtColor;
+          layerInfo.changeNotifier.value++;
+        }
+      }
     }
 
     backgroundSong = _getBackgroundSong(displayLayer);
