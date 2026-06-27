@@ -30,7 +30,7 @@ class PlaylistManager {
 
   Future<void> initAllPlaylists() async {
     _localFile = File(
-      "${getPlaylistConfigPath(.local)}/particle_music_playlists.json",
+      "${getPlaylistConfigPath(.local)}/sylvakru_playlists.json",
     );
     if (!(_localFile.existsSync())) {
       _localFile.createSync(recursive: true);
@@ -38,18 +38,16 @@ class PlaylistManager {
     }
 
     _webdavFile = File(
-      "${getPlaylistConfigPath(.webdav)}/particle_music_playlists.json",
+      "${getPlaylistConfigPath(.webdav)}/sylvakru_playlists.json",
     );
     initFile(_webdavFile, true);
 
     _navidromeFile = File(
-      "${getPlaylistConfigPath(.navidrome)}/particle_music_playlists.json",
+      "${getPlaylistConfigPath(.navidrome)}/sylvakru_playlists.json",
     );
     initFile(_navidromeFile, true);
 
-    _embyFile = File(
-      "${getPlaylistConfigPath(.emby)}/particle_music_playlists.json",
-    );
+    _embyFile = File("${getPlaylistConfigPath(.emby)}/sylvakru_playlists.json");
     initFile(_embyFile, true);
   }
 

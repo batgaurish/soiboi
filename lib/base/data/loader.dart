@@ -9,6 +9,7 @@ import 'package:sylvakru/base/services/bookmark_service.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/data/history.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/playlist.dart';
@@ -28,6 +29,10 @@ class Loader {
       await Permission.audio.request();
     } else if (Platform.isIOS) {
       await BookmarkService.init();
+      File keepFile = File('${appDocsDir.path}/sylvakru.keep');
+      if (!keepFile.existsSync()) {
+        keepFile.createSync();
+      }
     }
 
     _handleLegacyVersionData();
@@ -122,5 +127,16 @@ class Loader {
   static void _handleLegacyVersionData() {
     File tmp = File('${appSupportDir.path}/version.json');
     tmp.writeAsStringSync(jsonEncode(versionNumber));
+
+    for (final sourceType in SourceType.values) {
+      File tmpPlaylistFile = File(
+        "${getPlaylistConfigPath(sourceType)}/particle_music_playlists.json",
+      );
+      if (tmpPlaylistFile.existsSync()) {
+        tmpPlaylistFile.rename(
+          '${getPlaylistConfigPath(sourceType)}/sylvakru_playlists.json',
+        );
+      }
+    }
   }
 }
