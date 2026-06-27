@@ -28,6 +28,8 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>We need access to your local network to discover and connect to your Navidrome, WebDAV, or Emby media servers.</string>
 

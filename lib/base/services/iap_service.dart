@@ -9,7 +9,7 @@ class IAPService {
   final InAppPurchase _iap = InAppPurchase.instance;
   late StreamSubscription<List<PurchaseDetails>> _subscription;
 
-  Function(String)? onMessage;
+  Function(String, {int? duration})? onMessage;
 
   bool foundAnyRestored = false;
 
@@ -40,19 +40,23 @@ class IAPService {
     return available;
   }
 
-  Future<void> loadProducts(Set<String> productIds) async {
-    final ProductDetailsResponse response = await _iap.queryProductDetails(
-      productIds,
-    );
-
-    products = response.productDetails;
-  }
-
   Future<void> buyProduct() async {
+    onMessage?.call(l10n.connectingToAppStore);
     if (products.isEmpty) {
-      onMessage?.call(l10n.productNotAvailable);
-      return;
+      final ProductDetailsResponse response = await _iap.queryProductDetails({
+        'com.afalphy.sylvakru.premium.lifetime',
+      });
+      if (response.error != null) {
+        logger.output(response.error.toString());
+      } else {
+        products = response.productDetails;
+      }
+      if (products.isEmpty) {
+        onMessage?.call(l10n.productNotAvailable);
+        return;
+      }
     }
+
     try {
       final PurchaseParam purchaseParam = PurchaseParam(
         productDetails: products[0],
@@ -60,12 +64,14 @@ class IAPService {
 
       await _iap.buyNonConsumable(purchaseParam: purchaseParam);
     } catch (e) {
+      onMessage?.call(l10n.iapNotAvailable);
       logger.output('buy product failed $e');
     }
   }
 
   Future<void> restorePurchases() async {
     foundAnyRestored = false;
+    onMessage?.call(l10n.checkingPurchase);
     await _iap.restorePurchases();
     await Future.delayed(const Duration(seconds: 3));
     if (!foundAnyRestored) {
@@ -93,10 +99,10 @@ class IAPService {
         if (purchaseDetails.status == PurchaseStatus.restored) {
           foundAnyRestored = true;
         }
+        _grantAppFeatures(purchaseDetails.productID);
         if (purchaseDetails.pendingCompletePurchase) {
           await _iap.completePurchase(purchaseDetails);
         }
-        _grantAppFeatures(purchaseDetails.productID);
       }
     }
   }

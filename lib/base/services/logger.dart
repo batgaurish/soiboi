@@ -38,6 +38,12 @@ class Logger {
   void export2Directory(String directory) {
     final fileName = basename(_file.path);
     final newPath = join(directory, fileName);
+    if (Platform.isIOS) {
+      final dir = Directory(directory);
+      if (!dir.existsSync()) {
+        dir.createSync();
+      }
+    }
     _file.copySync(newPath);
   }
 }

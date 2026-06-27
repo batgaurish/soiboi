@@ -888,13 +888,20 @@ class SettingsList extends StatelessWidget {
       title: Text(l10n.exportLog),
       onTap: () async {
         String? result;
-
-        result = await FilePicker.getDirectoryPath();
-
-        if (result == null) {
-          return;
+        if (Platform.isAndroid) {
+          result = await FilePicker.getDirectoryPath();
+          if (result == null) {
+            return;
+          }
+          logger.export2Directory(result);
+          if (context.mounted) {
+            showCenterMessage(context, 'Export to $result');
+          }
+        } else {
+          result = '${appDocsDir.path}/logs';
+          logger.export2Directory(result);
+          showCenterMessage(context, 'Export to Sylvakru/logs');
         }
-        logger.export2Directory(result);
       },
     );
   }

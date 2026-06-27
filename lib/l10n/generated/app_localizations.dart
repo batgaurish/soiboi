@@ -1235,7 +1235,7 @@ abstract class AppLocalizations {
   /// No description provided for @productNotAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Product currently unavailable. Please try again later'**
+  /// **'Unable to load product information. Please check your internet connection and try again'**
   String get productNotAvailable;
 
   /// No description provided for @iapNotAvailable.
@@ -1243,6 +1243,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'In-App Purchases are not available. Please try again later'**
   String get iapNotAvailable;
+
+  /// No description provided for @connectingToAppStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to the App Store...'**
+  String get connectingToAppStore;
+
+  /// No description provided for @checkingPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking purchase history...'**
+  String get checkingPurchase;
 }
 
 class _AppLocalizationsDelegate

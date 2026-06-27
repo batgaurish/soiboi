@@ -188,6 +188,8 @@
   "alreadyPremium": "已解锁高级功能",
   "pendingPurchase": "正在处理中...",
   "purchaseNotFound": "未发现购买记录",
-  "productNotAvailable": "商品暂不可用, 请稍后再试",
-  "iapNotAvailable": "应用内购买功能暂不可用, 请稍后再试"
+  "productNotAvailable": "无法获取商品信息，请检查网络连接后重试",
+  "iapNotAvailable": "应用内购买功能暂不可用, 请稍后再试",
+  "connectingToAppStore": "正在连接 App Store...",
+  "checkingPurchase": "正在检查购买记录..."
 }

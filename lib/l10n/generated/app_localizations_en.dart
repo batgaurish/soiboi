@@ -596,9 +596,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get productNotAvailable =>
-      'Product currently unavailable. Please try again later';
+      'Unable to load product information. Please check your internet connection and try again';
 
   @override
   String get iapNotAvailable =>
       'In-App Purchases are not available. Please try again later';
+
+  @override
+  String get connectingToAppStore => 'Connecting to the App Store...';
+
+  @override
+  String get checkingPurchase => 'Checking purchase history...';
 }

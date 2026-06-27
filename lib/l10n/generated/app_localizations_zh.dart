@@ -590,8 +590,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get purchaseNotFound => '未发现购买记录';
 
   @override
-  String get productNotAvailable => '商品暂不可用, 请稍后再试';
+  String get productNotAvailable => '无法获取商品信息，请检查网络连接后重试';
 
   @override
   String get iapNotAvailable => '应用内购买功能暂不可用, 请稍后再试';
+
+  @override
+  String get connectingToAppStore => '正在连接 App Store...';
+
+  @override
+  String get checkingPurchase => '正在检查购买记录...';
 }

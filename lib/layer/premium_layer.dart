@@ -21,16 +21,14 @@ class PremiumLayer extends StatefulWidget {
 
 class _PremiumLayerState extends State<PremiumLayer> {
   final IAPService _iapService = IAPService();
-  final Set<String> _productIds = {'com.afalphy.sylvakru.premium.lifetime'};
   bool isProcessing = false;
 
   @override
   void initState() {
     super.initState();
     _iapService.initialize();
-    _iapService.loadProducts(_productIds);
-    _iapService.onMessage = (msg) {
-      showCenterMessage(context, msg);
+    _iapService.onMessage = (msg, {duration}) {
+      showCenterMessage(context, msg, duration: duration ?? 3000);
     };
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -112,30 +110,31 @@ class _PremiumLayerState extends State<PremiumLayer> {
                   builder: (context, isPremium, child) {
                     return Column(
                       children: [
-                        GestureDetector(
-                          onTap: () async {
-                            if (isPremium | isProcessing) {
-                              return;
-                            }
-                            isProcessing = true;
-                            if (await _iapService.checkAvailability()) {
-                              await _iapService.buyProduct();
-                            }
-                            await Future.delayed(Duration(milliseconds: 500));
-                            isProcessing = false;
-                          },
-                          child: Card(
-                            color: buttonColor.value,
-                            shadowColor: mainPageThemeNotifier.value == .vivid
-                                ? Colors.black.withAlpha(10)
-                                : mainPageThemeNotifier.value == .dark
-                                ? Colors.white
-                                : null,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: SmoothRectangleBorder(
-                              smoothness: 1,
-                              borderRadius: .circular(10),
-                            ),
+                        Card(
+                          color: buttonColor.value,
+                          shadowColor: mainPageThemeNotifier.value == .vivid
+                              ? Colors.black.withAlpha(10)
+                              : mainPageThemeNotifier.value == .dark
+                              ? Colors.white
+                              : null,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: SmoothRectangleBorder(
+                            smoothness: 1,
+                            borderRadius: .circular(10),
+                          ),
+                          clipBehavior: .antiAlias,
+                          child: InkWell(
+                            onTap: () async {
+                              if (isPremium | isProcessing) {
+                                return;
+                              }
+                              isProcessing = true;
+                              if (await _iapService.checkAvailability()) {
+                                await _iapService.buyProduct();
+                              }
+                              await Future.delayed(Duration(milliseconds: 50));
+                              isProcessing = false;
+                            },
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Row(
@@ -162,28 +161,33 @@ class _PremiumLayerState extends State<PremiumLayer> {
                         if (!isPremium) ...[
                           const SizedBox(height: 8),
 
-                          GestureDetector(
-                            onTap: () async {
-                              if (isProcessing) {
-                                return;
-                              }
-                              isProcessing = true;
-                              await _iapService.restorePurchases();
-                              await Future.delayed(Duration(milliseconds: 500));
-                              isProcessing = false;
-                            },
-                            child: Card(
-                              color: buttonColor.value,
-                              shadowColor: mainPageThemeNotifier.value == .vivid
-                                  ? Colors.black.withAlpha(10)
-                                  : mainPageThemeNotifier.value == .dark
-                                  ? Colors.white
-                                  : null,
-                              margin: const EdgeInsets.only(bottom: 12),
-                              shape: SmoothRectangleBorder(
-                                smoothness: 1,
-                                borderRadius: .circular(10),
-                              ),
+                          Card(
+                            color: buttonColor.value,
+                            shadowColor: mainPageThemeNotifier.value == .vivid
+                                ? Colors.black.withAlpha(10)
+                                : mainPageThemeNotifier.value == .dark
+                                ? Colors.white
+                                : null,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: SmoothRectangleBorder(
+                              smoothness: 1,
+                              borderRadius: .circular(10),
+                            ),
+                            clipBehavior: .antiAlias,
+                            child: InkWell(
+                              onTap: () async {
+                                if (isProcessing) {
+                                  return;
+                                }
+                                isProcessing = true;
+                                if (await _iapService.checkAvailability()) {
+                                  await _iapService.restorePurchases();
+                                }
+                                await Future.delayed(
+                                  Duration(milliseconds: 50),
+                                );
+                                isProcessing = false;
+                              },
                               child: Padding(
                                 padding: const EdgeInsets.all(12),
                                 child: Center(

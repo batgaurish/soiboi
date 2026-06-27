@@ -237,6 +237,8 @@
   "alreadyPremium": "Premium features are already unlocked",
   "pendingPurchase": "Processing your purchase...",
   "purchaseNotFound": "No purchase records found",
-  "productNotAvailable": "Product currently unavailable. Please try again later",
-  "iapNotAvailable": "In-App Purchases are not available. Please try again later"
+  "productNotAvailable": "Unable to load product information. Please check your internet connection and try again",
+  "iapNotAvailable": "In-App Purchases are not available. Please try again later",
+  "connectingToAppStore": "Connecting to the App Store...",
+  "checkingPurchase": "Checking purchase history..."
 }
