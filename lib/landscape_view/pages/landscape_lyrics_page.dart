@@ -71,7 +71,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
         final pageHight = MediaQuery.heightOf(context);
         final coverArtSize = min(
           pageWidth * (isMobile ? 0.35 : 0.3),
-          pageHight * (isMobile ? 0.7 : 0.3),
+          pageHight * (isMobile ? 0.7 : 0.6),
         );
 
         return Material(
