@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:sylvakru/base/app.dart';
@@ -125,7 +127,25 @@ class _AboutLayerState extends State<AboutLayer> {
 
           buildTile(icon: Icons.code, title: 'GitHub', onTap: openGitHub),
 
-          Center(child: const Text('© 2025-2026 AfalpHy')),
+          Center(
+            child: const Text(
+              '© 2025-2026 AfalpHy',
+              style: .new(fontWeight: .bold),
+            ),
+          ),
+
+          if (Platform.isIOS && l10n.sylvakru == '森露')
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  launchUrl(Uri.parse('https://beian.miit.gov.cn'));
+                },
+                child: Text(
+                  'ICP备案信息: 闽ICP备2026021691号-2A >',
+                  style: TextStyle(color: textColor.value, fontWeight: .bold),
+                ),
+              ),
+            ),
 
           const SizedBox(height: 20),
         ],
