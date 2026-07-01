@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -36,15 +37,17 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
 
   int _animationDuration = 0;
 
-  final enableAllNotifier = ValueNotifier(false);
+  final enableAllNotifier = ValueNotifier(Platform.isAndroid ? false : true);
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future.delayed(Duration(milliseconds: 500));
-      enableAllNotifier.value = true;
-    });
+    if (Platform.isAndroid) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(Duration(milliseconds: 500));
+        enableAllNotifier.value = true;
+      });
+    }
   }
 
   @override

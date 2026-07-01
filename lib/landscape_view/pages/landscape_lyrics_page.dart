@@ -84,15 +84,17 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                   song: currentSong,
                   color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
                 ),
-                BackdropFilter(
-                  filter: ImageFilter.blur(
-                    sigmaX: pageWidth * 0.03,
-                    sigmaY: pageHight * 0.03,
-                  ),
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.easeInOutCubic,
-                    color: currentCoverArtColor.withAlpha(180),
+                RepaintBoundary(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(
+                      sigmaX: pageWidth * 0.03,
+                      sigmaY: pageHight * 0.03,
+                    ),
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      curve: Curves.easeInOutCubic,
+                      color: currentCoverArtColor.withAlpha(180),
+                    ),
                   ),
                 ),
               ],
@@ -141,9 +143,9 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                       width: pageWidth * 0.45,
                       child: Column(
                         children: [
-                          SizedBox(height: isMobile ? 35 : 75),
+                          SizedBox(height: isMobile ? 25 : 75),
                           if (pageHight < 600)
-                            message(pageWidth * 0.35, pageHight, currentSong),
+                            message(pageWidth * 0.4, pageHight, currentSong),
 
                           Expanded(
                             child: ShaderMask(
@@ -188,11 +190,11 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
 
                           if (pageHight < 600) ...[
                             playControls(
-                              pageWidth * 0.4,
+                              pageWidth * 0.45,
                               pageHight,
                               currentSong,
                             ),
-                            SizedBox(height: 20),
+                            SizedBox(height: 15),
                           ],
                         ],
                       ),
@@ -203,7 +205,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
               ),
 
               Positioned(
-                right: 60,
+                right: pageHight < 600 ? pageWidth * 0.05 : 60,
                 bottom: 100,
                 child: ValueListenableBuilder(
                   valueListenable: immersiveModeNotifier,
@@ -263,45 +265,45 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
     return Column(
       children: [
         SizedBox(height: pageHight * 0.01),
-        SizedBox(
-          width: width - 30,
-
-          height: 36,
-          child: ValueListenableBuilder(
-            valueListenable: lyricsPageHighlightTextColor.valueNotifier,
-            builder: (context, value, child) {
-              return TextScroll(
-                textAlign: .center,
-                getTitle(currentSong),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: value,
-                ),
-                velocity: const .new(pixelsPerSecond: .new(40, 0)),
-                intervalSpaces: 10,
-                pauseBetween: Duration(seconds: 1),
-              );
-            },
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: SizedBox(
+            height: 36,
+            child: ValueListenableBuilder(
+              valueListenable: lyricsPageHighlightTextColor.valueNotifier,
+              builder: (context, value, child) {
+                return TextScroll(
+                  getTitle(currentSong),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: value,
+                  ),
+                  velocity: const .new(pixelsPerSecond: .new(40, 0)),
+                  intervalSpaces: 10,
+                  pauseBetween: Duration(seconds: 1),
+                );
+              },
+            ),
           ),
         ),
 
-        SizedBox(
-          width: width - 30,
-
-          height: 28,
-          child: ValueListenableBuilder(
-            valueListenable: lyricsPageForegroundColor.valueNotifier,
-            builder: (context, value, child) {
-              return TextScroll(
-                textAlign: .center,
-                '${getArtist(currentSong)} - ${getAlbum(currentSong)}',
-                style: TextStyle(fontSize: 14, color: value),
-                velocity: const .new(pixelsPerSecond: .new(40, 0)),
-                intervalSpaces: 10,
-                pauseBetween: Duration(seconds: 1),
-              );
-            },
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: SizedBox(
+            height: 28,
+            child: ValueListenableBuilder(
+              valueListenable: lyricsPageForegroundColor.valueNotifier,
+              builder: (context, value, child) {
+                return TextScroll(
+                  '${getArtist(currentSong)} - ${getAlbum(currentSong)}',
+                  style: TextStyle(fontSize: 14, color: value),
+                  velocity: const .new(pixelsPerSecond: .new(40, 0)),
+                  intervalSpaces: 10,
+                  pauseBetween: Duration(seconds: 1),
+                );
+              },
+            ),
           ),
         ),
 
