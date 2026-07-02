@@ -210,6 +210,7 @@ extension _ArtistsPage on _ArtistsLayerState {
                 final coverSong = artist.getCoverSong();
                 return Hero(
                   tag: coverSong.id + artist.name,
+                  transitionOnUserGestures: true,
                   child: CoverArtWidget(
                     size: 50,
                     borderRadius: 25,
@@ -265,6 +266,7 @@ extension _ArtistsPage on _ArtistsLayerState {
                       final coverSong = artist.getCoverSong();
                       return Hero(
                         tag: coverSong.id + artist.name,
+                        transitionOnUserGestures: true,
                         child: CoverArtWidget(
                           size: coverArtWidth,
                           borderRadius: radius,

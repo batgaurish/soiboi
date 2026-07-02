@@ -40,6 +40,7 @@ extension FoldersPage on FoldersLayer {
                   builder: (_, _) {
                     return Hero(
                       tag: (coverSong?.id ?? '') + folder.id,
+                      transitionOnUserGestures: true,
                       child: CoverArtWidget(
                         size: 50,
                         borderRadius: 5,

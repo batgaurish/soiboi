@@ -43,6 +43,7 @@ extension _PlaylistsPage on _PlaylistsLayerState {
                               ? playlist.songListManager.sourceTypeName
                               : coverSong.id) +
                           playlist.name,
+                      transitionOnUserGestures: true,
                       curve: Curves.easeInOutCubic,
                       flightShuttleBuilder:
                           (

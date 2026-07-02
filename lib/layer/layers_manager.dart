@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -33,7 +32,6 @@ import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/portrait_view/portrait_view.dart';
 
 final layersManager = LayersManager();
 MyAudioMetadata? backgroundSong;
@@ -259,54 +257,13 @@ class LayersManager {
     final detailPage = createPage(detailLayer);
     rootKey.currentState?.push(
       DynamicDetailRoute(
-        pageBuilder: (context, animation, secondaryAnimation) {
+        builder: (context) {
           if (isTooNarrow(context)) {
-            if (Platform.isAndroid) {
-              return detailPage;
-            }
-            bool draging = false;
-            final dragDxNotifier = ValueNotifier(0.0);
-
-            return GestureDetector(
-              onHorizontalDragUpdate: (details) {
-                draging = true;
-
-                dragDxNotifier.value += details.delta.dx;
-                if (dragDxNotifier.value < 0) {
-                  dragDxNotifier.value = 0;
-                }
-              },
-              onHorizontalDragEnd: (details) async {
-                final velocity = (details.primaryVelocity ?? 0);
-                final bool isOverThreshold =
-                    dragDxNotifier.value / MediaQuery.widthOf(context) > 0.5;
-
-                if (dragDxNotifier.value == 0 && velocity < -500) {
-                  portraitKey.currentState?.openEndDrawer();
-                }
-
-                if (velocity > 500 || isOverThreshold) {
-                  layersManager.popDetail(label);
-                } else {
-                  draging = false;
-                  dragDxNotifier.value = 0;
-                }
-              },
-              child: ValueListenableBuilder(
-                valueListenable: dragDxNotifier,
-                builder: (context, value, child) {
-                  return AnimatedContainer(
-                    duration: Duration(milliseconds: draging ? 0 : 250),
-                    curve: Curves.easeOutCubic,
-                    transform: .translationValues(value, 0, 0),
-                    child: detailPage,
-                  );
-                },
-              ),
-            );
+            return detailPage;
           }
           return detailLayer;
         },
+        label: label,
       ),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -314,7 +271,7 @@ class LayersManager {
     });
   }
 
-  Future<bool> popDetail(String label) async {
+  Future<bool> popDetail(String label, {bool executePop = true}) async {
     final rootLayer = getRootLayer(label);
     if (detailWidgetMap[rootLayer] == null) {
       return false;
@@ -348,7 +305,9 @@ class LayersManager {
 
     await layersManager.updateBackground();
 
-    rootKey.currentState?.pop();
+    if ((rootKey.currentState?.canPop() ?? false) && executePop) {
+      rootKey.currentState?.pop();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       visibleNotifier.value = true;
     });
