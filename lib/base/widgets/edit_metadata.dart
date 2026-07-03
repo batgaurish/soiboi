@@ -225,16 +225,15 @@ class _EditMetadataState extends State<EditMetadata> {
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: () async {
-                  final result = await FilePicker.pickFiles(
+                  final result = await FilePicker.pickFile(
                     type: FileType.image,
                   );
 
-                  if (result == null || result.files.isEmpty) {
+                  if (result == null) {
                     return;
                   }
 
-                  final file = result.files.first;
-                  _picturePathNotifier.value = file.path;
+                  _picturePathNotifier.value = result.path;
                 },
                 child: CoverArtWidget(
                   song: song,
