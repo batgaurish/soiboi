@@ -145,7 +145,7 @@ extension _SongListPanel on _SongListState {
                   ListenableBuilder(
                     listenable: Listenable.merge([
                       buttonColor.valueNotifier,
-                      songListManager.changeNotifier,
+                      if (folder == null) songListManager.changeNotifier,
                     ]),
                     builder: (_, _) {
                       final buttonStyle = ElevatedButton.styleFrom(
