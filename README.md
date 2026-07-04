@@ -19,6 +19,16 @@ Currently supports:
 
 > Formerly known as Particle Music.
 
+> [!IMPORTANT]
+> **The iOS version is now available on the Apple App Store!**
+
+## USB Exclusive Mode(Android)
+
+Special thanks to [huya688zdx](https://github.com/huya688zdx) for making USB Exclusive Mode possible.
+
+If you need USB Exclusive Mode, download the dedicated build from the [usb-exclusive-beta](https://github.com/AfalpHy/sylvakru/releases#release-usb-exclusive-beta).
+
+
 ## Supported Formats
 
 | File Format | Metadata Format(s)           |
