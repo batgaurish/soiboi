@@ -3,7 +3,7 @@
 # ---------- CONFIG ----------
 BINARY_NAME="sylvakru"
 APP_NAME="Sylvakru"
-APP_VERSION="3.4.3"
+APP_VERSION="3.4.4"
 MAINTAINER="AfalpHy"
 
 BUNDLE_DIR="build/linux/x64/release/bundle"
