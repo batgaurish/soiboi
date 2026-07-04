@@ -395,6 +395,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connect2Navidrome => 'Connect to Navidrome';
 
   @override
+  String get connect2Subsonic => 'Connect to Subsonic';
+
+  @override
   String get connect2WebDAV => 'Connect to WebDAV';
 
   @override
@@ -607,4 +610,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checkingPurchase => 'Checking purchase history...';
+
+  @override
+  String get noLyrics => 'There are no lyrics';
+
+  @override
+  String get lyricsParseFailed => 'Lyrics parsing failed';
 }

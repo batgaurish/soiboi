@@ -20,7 +20,7 @@ final lyricsPageThemeNotifier = ValueNotifier(ThemeType.vivid);
 
 final ValueNotifier<Locale?> localeNotifier = ValueNotifier(null);
 
-enum SourceType { local, webdav, navidrome, emby }
+enum SourceType { local, webdav, subsonic, navidrome, emby }
 
 final ValueNotifier<String?> fontFamilyNotifier = ValueNotifier(null);
 

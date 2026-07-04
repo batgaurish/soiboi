@@ -123,6 +123,7 @@
   "local": "本地",
   "switch_": "切换",
   "connect2Navidrome": "连接到Navidrome",
+  "connect2Subsonic": "连接到Subsonic",
   "connect2WebDAV": "连接到WebDAV",
   "connect2Emby": "连接到Emby",
   "connect2Server": "连接到服务器",
@@ -191,5 +192,7 @@
   "productNotAvailable": "无法获取商品信息，请检查网络连接后重试",
   "iapNotAvailable": "应用内购买功能暂不可用, 请稍后再试",
   "connectingToAppStore": "正在连接 App Store...",
-  "checkingPurchase": "正在检查购买记录..."
+  "checkingPurchase": "正在检查购买记录...",
+  "noLyrics": "暂无歌词",
+  "lyricsParseFailed": "歌词解析失败"
 }

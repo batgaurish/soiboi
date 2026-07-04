@@ -172,6 +172,7 @@
   "local": "Local",
   "switch_": "Switch",
   "connect2Navidrome": "Connect to Navidrome",
+  "connect2Subsonic": "Connect to Subsonic",
   "connect2WebDAV": "Connect to WebDAV",
   "connect2Emby": "Connect to Emby",
   "connect2Server": "Connect to Server",
@@ -240,5 +241,7 @@
   "productNotAvailable": "Unable to load product information. Please check your internet connection and try again",
   "iapNotAvailable": "In-App Purchases are not available. Please try again later",
   "connectingToAppStore": "Connecting to the App Store...",
-  "checkingPurchase": "Checking purchase history..."
+  "checkingPurchase": "Checking purchase history...",
+  "noLyrics": "There are no lyrics",
+  "lyricsParseFailed": "Lyrics parsing failed"
 }

@@ -91,7 +91,10 @@ class MyAudioMetadata {
   set lyrics(String? value) => _audioMetadata.lyrics = value;
   set duration(Duration? value) => _audioMetadata.duration = value;
 
-  factory MyAudioMetadata.fromNavidromeMap(Map<String, dynamic> song) {
+  factory MyAudioMetadata.fromOpenSonicMap(
+    Map<String, dynamic> song,
+    SourceType sourceType,
+  ) {
     return MyAudioMetadata(
       AudioMetadata(
         format: (song['contentType'] as String?)?.split('audio/').last,
@@ -109,7 +112,7 @@ class MyAudioMetadata {
             ? Duration(seconds: song['duration'])
             : null,
       ),
-      sourceType: .navidrome,
+      sourceType: sourceType,
       id: song['id'],
       playCount: song['playCount'] as int? ?? 0,
       lastPlayed: song['played'] != null

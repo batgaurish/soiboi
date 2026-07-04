@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sylvakru/base/services/emby_client.dart';
 import 'package:sylvakru/base/services/metadata_service.dart';
+import 'package:sylvakru/base/services/subsonic_client.dart';
 import 'package:sylvakru/base/services/webdav_client.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
@@ -520,6 +521,9 @@ class MyAudioHandler extends BaseAudioHandler {
             } else {
               resource = tmpPath;
             }
+            break;
+          case .subsonic:
+            currentSong.path ??= subsonicClient!.getStreamUrl(currentSong.id);
             break;
           case .navidrome:
             currentSong.path ??= navidromeClient!.getStreamUrl(currentSong.id);

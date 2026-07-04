@@ -12,6 +12,7 @@ import 'package:sylvakru/base/extensions/metadata_extension.dart';
 import 'package:sylvakru/base/services/emby_client.dart';
 import 'package:sylvakru/base/services/logger.dart';
 import 'package:sylvakru/base/services/song_list_service.dart';
+import 'package:sylvakru/base/services/subsonic_client.dart';
 import 'package:sylvakru/base/services/webdav_client.dart';
 import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/data/folder.dart';
@@ -26,11 +27,13 @@ final library = Library();
 class Library {
   late File _localSongIdListFile;
   late File _webdavSongIdListFile;
+  late File _subsonicSongIdListFile;
   late File _navidromeSongIdListFile;
   late File _embySongIdListFile;
 
   late MetadataDB _localMetadataDB;
   late MetadataDB _webdavMetadataDB;
+  late MetadataDB _subsonicMetadataDB;
   late MetadataDB _navidromeMetadataDB;
   late MetadataDB _embyMetadataDB;
 
@@ -61,6 +64,11 @@ class Library {
     );
     initFile(_webdavSongIdListFile, true);
 
+    _subsonicSongIdListFile = File(
+      "${appSupportDir.path}/subsonic/song_id_list.json",
+    );
+    initFile(_subsonicSongIdListFile, true);
+
     _navidromeSongIdListFile = File(
       "${appSupportDir.path}/navidrome/song_id_list.json",
     );
@@ -72,6 +80,7 @@ class Library {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     _localMetadataDB = MetadataDB(openMetadataDB('local/metadata.db'));
     _webdavMetadataDB = MetadataDB(openMetadataDB('webdav/metadata.db'));
+    _subsonicMetadataDB = MetadataDB(openMetadataDB('subsonic/metadata.db'));
     _navidromeMetadataDB = MetadataDB(openMetadataDB('navidrome/metadata.db'));
     _embyMetadataDB = MetadataDB(openMetadataDB('emby/metadata.db'));
 
@@ -245,16 +254,14 @@ class Library {
     return null;
   }
 
-  Future<Map<String, MyAudioMetadata>> _loadSongMap(MetadataDB db) async {
-    final rows = await db.select(db.metadataItems).get();
-    return {for (final row in rows) row.id: row.toMetadata()};
-  }
-
   Future<void> _prepare() async {
-    id2Song.addAll(await _loadSongMap(_localMetadataDB));
-    id2Song.addAll(await _loadSongMap(_webdavMetadataDB));
-    id2Song.addAll(await _loadSongMap(_navidromeMetadataDB));
-    id2Song.addAll(await _loadSongMap(_embyMetadataDB));
+    for (final sourceType in SourceType.values) {
+      final db = _getMetadataDB(sourceType);
+      final rows = await db.select(db.metadataItems).get();
+      for (final row in rows) {
+        id2Song.putIfAbsent(row.id, () => row.toMetadata());
+      }
+    }
   }
 
   Future<void> _loadLocal() async {
@@ -269,6 +276,13 @@ class Library {
       await folder.load();
     }
     await loadSongList(_webdavSongIdListFile, songListManager.webdavSongList);
+  }
+
+  Future<void> _loadSubsonic() async {
+    await loadSongList(
+      _subsonicSongIdListFile,
+      songListManager.subsonicSongList,
+    );
   }
 
   Future<void> _loadNavidrome() async {
@@ -286,6 +300,7 @@ class Library {
     await _prepare();
     await _loadLocal();
     await _loadWebdav();
+    await _loadSubsonic();
     await _loadNavidrome();
     await _loadEmby();
 
@@ -317,6 +332,8 @@ class Library {
     final savePath = song.cachePath!;
     if (song.sourceType == .webdav) {
       await webdavClient!.download(remotePath: song.path!, localPath: savePath);
+    } else if (song.sourceType == .subsonic) {
+      await subsonicClient!.downloadSong(songId: song.id, savePath: savePath);
     } else if (song.sourceType == .navidrome) {
       await navidromeClient!.downloadSong(songId: song.id, savePath: savePath);
     } else if (song.sourceType == .emby) {
@@ -368,6 +385,8 @@ class Library {
         return _localSongIdListFile;
       case .webdav:
         return _webdavSongIdListFile;
+      case .subsonic:
+        return _subsonicSongIdListFile;
       case .navidrome:
         return _navidromeSongIdListFile;
       default:
@@ -381,6 +400,8 @@ class Library {
         return _localMetadataDB;
       case .webdav:
         return _webdavMetadataDB;
+      case .subsonic:
+        return _subsonicMetadataDB;
       case .navidrome:
         return _navidromeMetadataDB;
       default:
@@ -614,12 +635,31 @@ class Library {
 
         await pool.close();
         break;
+      case .subsonic:
+        id2Song.removeWhere((id, song) => song.sourceType == sourceType);
+        if (subsonicClient != null) {
+          await for (final batch in subsonicClient!.getSongs()) {
+            for (final map in batch) {
+              MyAudioMetadata song = MyAudioMetadata.fromOpenSonicMap(
+                map,
+                .subsonic,
+              );
+              songListManager.subsonicSongList.add(song);
+              id2Song[song.id] = song;
+            }
+            _syncNotify(sourceType);
+          }
+        }
+        break;
       case .navidrome:
         id2Song.removeWhere((id, song) => song.sourceType == sourceType);
         if (navidromeClient != null) {
           await for (final batch in navidromeClient!.getSongs()) {
             for (final map in batch) {
-              MyAudioMetadata song = MyAudioMetadata.fromNavidromeMap(map);
+              MyAudioMetadata song = MyAudioMetadata.fromOpenSonicMap(
+                map,
+                .navidrome,
+              );
               songListManager.navidromeSongList.add(song);
               id2Song[song.id] = song;
             }
