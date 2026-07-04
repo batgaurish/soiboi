@@ -53,7 +53,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
+    final screenHeight = MediaQuery.heightOf(context);
 
     return GestureDetector(
       onVerticalDragStart: (_) {
@@ -74,7 +74,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
       onVerticalDragEnd: (details) {
         double velocity = details.primaryVelocity ?? 0;
 
-        if (dragOffsetNotifier.value > 0.25 || velocity > 500) {
+        if (dragOffsetNotifier.value * 3 > screenHeight || velocity > 500) {
           Navigator.pop(context);
         } else {
           _animationDuration = 250;
