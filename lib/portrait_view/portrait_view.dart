@@ -43,7 +43,7 @@ class _PortraitViewState extends State<PortraitView>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 400),
     );
 
     _controller.addStatusListener(statusListener);
