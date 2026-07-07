@@ -329,7 +329,10 @@ class _EditMetadataState extends State<EditMetadata> {
         song.coverArtColor = null;
         song.lowerLuminance = null;
         // clear cache
-        FileImage(File(song.picturePath)).evict();
+        final imageCache = PaintingBinding.instance.imageCache;
+        imageCache.clear();
+        imageCache.clearLiveImages();
+
         await computeCoverArtColor(song);
         if (song == currentSongNotifier.value) {
           currentCoverArtColor = song.coverArtColor!;

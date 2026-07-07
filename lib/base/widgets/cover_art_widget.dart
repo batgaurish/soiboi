@@ -39,15 +39,21 @@ class CoverArtWidget extends StatelessWidget {
   }
 
   Widget content(BuildContext context) {
+    final cacheSize = size != null
+        ? (size! * MediaQuery.of(context).devicePixelRatio).toInt()
+        : null;
+
     if (picturePath != null) {
-      return imageWidget(picturePath!);
+      return imageWidget(picturePath!, cacheSize);
     }
     if (song == null) {
       return musicNote();
     }
 
     if (song!.pictureLoaded) {
-      return song!.pictureExist ? imageWidget(song!.picturePath) : musicNote();
+      return song!.pictureExist
+          ? imageWidget(song!.picturePath, cacheSize)
+          : musicNote();
     }
 
     return FutureBuilder(
@@ -60,25 +66,26 @@ class CoverArtWidget extends StatelessWidget {
         if (asyncSnapshot.hasError) {
           return musicNote();
         }
-        return Image.file(
-          File(song!.picturePath),
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return musicNote();
-          },
-        );
+        return imageWidget(song!.picturePath, cacheSize);
       },
     );
   }
 
-  Widget imageWidget(String path) {
-    return Image.file(
-      File(path),
+  Widget imageWidget(String path, int? cacheSize) {
+    final ImageProvider imageProvider = cacheSize != null
+        ? ResizeImage(
+            FileImage(File(path)),
+            width: cacheSize,
+            height: cacheSize,
+          )
+        : FileImage(File(path));
+
+    return Image(
+      image: imageProvider,
       width: size,
       height: size,
       fit: BoxFit.cover,
+      gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) {
         return musicNote();
       },
