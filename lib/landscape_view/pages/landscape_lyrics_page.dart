@@ -131,7 +131,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                           ),
                         ),
                         if (pageHight >= 600) ...[
-                          message(coverArtSize, pageHight, currentSong),
+                          information(coverArtSize, pageHight, currentSong),
                           playControls(coverArtSize, pageHight, currentSong),
                         ],
 
@@ -145,7 +145,11 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                         children: [
                           SizedBox(height: isMobile ? 25 : 75),
                           if (pageHight < 600)
-                            message(pageWidth * 0.4, pageHight, currentSong),
+                            information(
+                              pageWidth * 0.4,
+                              pageHight,
+                              currentSong,
+                            ),
 
                           Expanded(
                             child: ShaderMask(
@@ -261,7 +265,11 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
     );
   }
 
-  Widget message(double width, double pageHight, MyAudioMetadata? currentSong) {
+  Widget information(
+    double width,
+    double pageHight,
+    MyAudioMetadata? currentSong,
+  ) {
     return Column(
       children: [
         SizedBox(height: pageHight * 0.01),
@@ -273,6 +281,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
               valueListenable: lyricsPageHighlightTextColor.valueNotifier,
               builder: (context, value, child) {
                 return TextScroll(
+                  key: UniqueKey(),
                   getTitle(currentSong),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -296,6 +305,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
               valueListenable: lyricsPageForegroundColor.valueNotifier,
               builder: (context, value, child) {
                 return TextScroll(
+                  key: UniqueKey(),
                   '${getArtist(currentSong)} - ${getAlbum(currentSong)}',
                   style: TextStyle(fontSize: 14, color: value),
                   velocity: const .new(pixelsPerSecond: .new(40, 0)),
