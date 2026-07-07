@@ -268,40 +268,42 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
         SizedBox(
           width: width - 30,
           height: 36,
-          child: ValueListenableBuilder(
-            valueListenable: lyricsPageHighlightTextColor.valueNotifier,
-            builder: (context, value, child) {
-              return TextScroll(
-                textAlign: .center,
-                getTitle(currentSong),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: value,
-                ),
-                velocity: const .new(pixelsPerSecond: .new(40, 0)),
-                intervalSpaces: 10,
-                pauseBetween: Duration(seconds: 1),
-              );
-            },
+          child: Center(
+            child: ValueListenableBuilder(
+              valueListenable: lyricsPageHighlightTextColor.valueNotifier,
+              builder: (context, value, child) {
+                return TextScroll(
+                  getTitle(currentSong),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: value,
+                  ),
+                  velocity: const .new(pixelsPerSecond: .new(40, 0)),
+                  intervalSpaces: 10,
+                  pauseBetween: Duration(seconds: 1),
+                );
+              },
+            ),
           ),
         ),
 
         SizedBox(
           width: width - 30,
           height: 28,
-          child: ValueListenableBuilder(
-            valueListenable: lyricsPageForegroundColor.valueNotifier,
-            builder: (context, value, child) {
-              return TextScroll(
-                textAlign: .center,
-                '${getArtist(currentSong)} - ${getAlbum(currentSong)}',
-                style: TextStyle(fontSize: 14, color: value),
-                velocity: const .new(pixelsPerSecond: .new(40, 0)),
-                intervalSpaces: 10,
-                pauseBetween: Duration(seconds: 1),
-              );
-            },
+          child: Center(
+            child: ValueListenableBuilder(
+              valueListenable: lyricsPageForegroundColor.valueNotifier,
+              builder: (context, value, child) {
+                return TextScroll(
+                  '${getArtist(currentSong)} - ${getAlbum(currentSong)}',
+                  style: TextStyle(fontSize: 14, color: value),
+                  velocity: const .new(pixelsPerSecond: .new(40, 0)),
+                  intervalSpaces: 10,
+                  pauseBetween: Duration(seconds: 1),
+                );
+              },
+            ),
           ),
         ),
 
