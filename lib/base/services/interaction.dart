@@ -519,6 +519,10 @@ class NativeMenu {
 
   static final Map<IconData, Uint8List> _iconMap = {};
 
+  static Future<void> init() async {
+    await _channel.invokeMethod('initNativeMenu');
+  }
+
   static Future<void> initIcons() async {
     await _iconToPng(Icons.vertical_align_top_rounded);
     await _iconToPng(Icons.play_arrow_rounded);
