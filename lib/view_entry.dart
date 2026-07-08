@@ -118,7 +118,7 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         if (isTooNarrow(context)) {
           SystemChrome.setEnabledSystemUIMode(
             SystemUiMode.manual,
-            overlays: SystemUiOverlay.values,
+            overlays: [SystemUiOverlay.top],
           );
           return PortraitView();
         }
