@@ -39,21 +39,15 @@ class CoverArtWidget extends StatelessWidget {
   }
 
   Widget content(BuildContext context) {
-    final cacheSize = size != null
-        ? (size! * MediaQuery.of(context).devicePixelRatio).toInt()
-        : null;
-
     if (picturePath != null) {
-      return imageWidget(picturePath!, cacheSize);
+      return imageWidget(picturePath!);
     }
     if (song == null) {
       return musicNote();
     }
 
     if (song!.pictureLoaded) {
-      return song!.pictureExist
-          ? imageWidget(song!.picturePath, cacheSize)
-          : musicNote();
+      return song!.pictureExist ? imageWidget(song!.picturePath) : musicNote();
     }
 
     return FutureBuilder(
@@ -66,18 +60,14 @@ class CoverArtWidget extends StatelessWidget {
         if (asyncSnapshot.hasError) {
           return musicNote();
         }
-        return imageWidget(song!.picturePath, cacheSize);
+        return imageWidget(song!.picturePath);
       },
     );
   }
 
-  Widget imageWidget(String path, int? cacheSize) {
-    final ImageProvider imageProvider = cacheSize != null
-        ? ResizeImage(
-            FileImage(File(path)),
-            width: cacheSize,
-            height: cacheSize,
-          )
+  Widget imageWidget(String path) {
+    final ImageProvider imageProvider = size != null
+        ? ResizeImage(FileImage(File(path)), width: (size! * 4).toInt())
         : FileImage(File(path));
 
     return Image(
