@@ -24,7 +24,6 @@ import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/navidrome_client.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/mini_view/mini_view.dart';
 import 'dart:async';
 
 import 'package:sylvakru/portrait_view/sleep_timer.dart';
@@ -455,7 +454,7 @@ class MyAudioHandler extends BaseAudioHandler {
       colorManager.updateLyricsPageColors();
     }
 
-    if (miniModeNotifier.value) {
+    if (viewModeNotifier.value == .mini) {
       colorManager.updateMiniViewColors();
     }
   }

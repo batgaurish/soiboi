@@ -288,7 +288,7 @@ class _TitleBarState extends State<TitleBar> {
                     onPressed: () async {
                       await windowManager.hide();
                       miniModeSwitching = true;
-                      miniModeNotifier.value = true;
+                      viewModeNotifier.value = .mini;
 
                       await Future.delayed(Duration(milliseconds: 200));
 
