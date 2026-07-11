@@ -8,6 +8,7 @@ import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/widgets/lyric_list_view.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/manage_music_folders.dart';
 
 final exitOnCloseNotifier = ValueNotifier(false);
@@ -23,10 +24,7 @@ class Setting {
       save();
     }
 
-    final content = await file.readAsString();
-
-    final Map<String, dynamic> json =
-        jsonDecode(content) as Map<String, dynamic>;
+    final json = await readJsonMapFile(file);
 
     artistAlbumManager.loadSetting(json);
 
