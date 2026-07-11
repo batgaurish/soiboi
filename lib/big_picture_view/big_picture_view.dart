@@ -187,82 +187,58 @@ class _BigPictureViewState extends State<BigPictureView> {
                           child: Row(
                             mainAxisAlignment: .end,
                             children: [
-                              IconButton(
-                                color: iconColor.value,
-                                onPressed: () async {
-                                  if (!await showConfirmDialog(
-                                    context,
-                                    'Exit big picture mode',
-                                  )) {
-                                    return;
-                                  }
-                                  await Future.delayed(
-                                    Duration(milliseconds: 250),
-                                  );
-                                  viewModeNotifier.value = .normal;
-                                },
-                                icon: ImageIcon(bigPictueModeImage),
-                              ),
-                              if (!isMobile) ...[
-                                ListenableBuilder(
-                                  listenable: Listenable.merge([
-                                    isFullScreenNotifier,
-                                    isMaximizedNotifier,
-                                  ]),
-                                  builder: (context, child) {
-                                    if (isMaximizedNotifier.value) {
-                                      return SizedBox.shrink();
+                              if (!isFullScreenNotifier.value)
+                                IconButton(
+                                  color: iconColor.value,
+                                  onPressed: () async {
+                                    if (!await showConfirmDialog(
+                                      context,
+                                      'Exit big picture mode',
+                                    )) {
+                                      return;
                                     }
-                                    return IconButton(
-                                      onPressed: () async {
-                                        if (isFullScreenNotifier.value) {
-                                          isFullScreenNotifier.value = false;
-                                          await windowManager.setFullScreen(
-                                            false,
-                                          );
-                                        } else {
-                                          isFullScreenNotifier.value = true;
-                                          await windowManager.setFullScreen(
-                                            true,
-                                          );
-                                        }
-                                      },
-                                      icon: ImageIcon(
-                                        isFullScreenNotifier.value
-                                            ? fullscreenExitImage
-                                            : fullscreenImage,
-                                      ),
+                                    await Future.delayed(
+                                      Duration(milliseconds: 250),
                                     );
+                                    viewModeNotifier.value = .normal;
                                   },
+                                  icon: ImageIcon(bigPictueModeImage),
                                 ),
+                              if (!isMobile && !isMaximizedNotifier.value)
+                                IconButton(
+                                  onPressed: () async {
+                                    if (isFullScreenNotifier.value) {
+                                      isFullScreenNotifier.value = false;
+                                      await windowManager.setFullScreen(false);
+                                    } else {
+                                      isFullScreenNotifier.value = true;
+                                      await windowManager.setFullScreen(true);
+                                    }
+                                  },
+                                  icon: ImageIcon(
+                                    isFullScreenNotifier.value
+                                        ? fullscreenExitImage
+                                        : fullscreenImage,
+                                  ),
+                                ),
+                              if (!isMobile && !isFullScreenNotifier.value) ...[
                                 IconButton(
                                   onPressed: () {
                                     windowManager.minimize();
                                   },
                                   icon: ImageIcon(minimizeImage),
                                 ),
-                                ListenableBuilder(
-                                  listenable: Listenable.merge([
-                                    isFullScreenNotifier,
-                                    isMaximizedNotifier,
-                                  ]),
-                                  builder: (context, child) {
-                                    if (isFullScreenNotifier.value) {
-                                      return SizedBox.shrink();
-                                    }
-                                    return IconButton(
-                                      onPressed: () async {
-                                        isMaximizedNotifier.value
-                                            ? windowManager.unmaximize()
-                                            : windowManager.maximize();
-                                      },
-                                      icon: ImageIcon(
-                                        isMaximizedNotifier.value
-                                            ? unmaximizeImage
-                                            : maximizeImage,
-                                      ),
-                                    );
+                                IconButton(
+                                  onPressed: () async {
+                                    isMaximizedNotifier.value
+                                        ? windowManager.unmaximize()
+                                        : windowManager.maximize();
                                   },
+                                  icon: ImageIcon(
+                                    isMaximizedNotifier.value
+                                        ? unmaximizeImage
+                                        : maximizeImage,
+                                  ),
                                 ),
                                 IconButton(
                                   onPressed: () {

@@ -98,7 +98,7 @@ class _TitleBarState extends State<TitleBar> {
             child: Container(),
           ),
 
-          if (viewModeNotifier.value != .bigPicture) Center(child: content()),
+          Center(child: content()),
         ],
       ),
     );
