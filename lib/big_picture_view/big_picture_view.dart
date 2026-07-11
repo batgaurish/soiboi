@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gamepads/flutter_gamepads.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/services/my_window_listener.dart';
 import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
@@ -14,6 +17,7 @@ import 'package:sylvakru/big_picture_view/panels/big_home_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_songs_panel.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
+import 'package:window_manager/window_manager.dart';
 
 class BigPictureView extends StatefulWidget {
   const BigPictureView({super.key});
@@ -72,15 +76,17 @@ class _BigPictureViewState extends State<BigPictureView> {
             final pageWidth = MediaQuery.widthOf(context);
             final pageHight = MediaQuery.heightOf(context);
 
-            return BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: pageWidth * 0.03,
-                sigmaY: pageHight * 0.03,
-              ),
-              child: AnimatedContainer(
-                duration: Duration(milliseconds: 500),
-                curve: Curves.easeInOutCubic,
-                color: currentCoverArtColor.withAlpha(180),
+            return RepaintBoundary(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: pageWidth * 0.03,
+                  sigmaY: pageHight * 0.03,
+                ),
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 500),
+                  curve: Curves.easeInOutCubic,
+                  color: currentCoverArtColor.withAlpha(180),
+                ),
               ),
             );
           },
@@ -109,9 +115,10 @@ class _BigPictureViewState extends State<BigPictureView> {
                     height: 75,
                     child: Row(
                       children: [
-                        Spacer(),
+                        Expanded(flex: 2, child: SizedBox()),
 
                         Expanded(
+                          flex: 3,
                           child: Row(
                             mainAxisAlignment: .center,
                             children: List.generate(tabs.length, (index) {
@@ -175,7 +182,100 @@ class _BigPictureViewState extends State<BigPictureView> {
                             }),
                           ),
                         ),
-                        Spacer(),
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            mainAxisAlignment: .end,
+                            children: [
+                              IconButton(
+                                color: iconColor.value,
+                                onPressed: () async {
+                                  if (!await showConfirmDialog(
+                                    context,
+                                    'Exit big picture mode',
+                                  )) {
+                                    return;
+                                  }
+                                  await Future.delayed(
+                                    Duration(milliseconds: 250),
+                                  );
+                                  viewModeNotifier.value = .normal;
+                                },
+                                icon: ImageIcon(bigPictueModeImage),
+                              ),
+                              if (!isMobile) ...[
+                                ListenableBuilder(
+                                  listenable: Listenable.merge([
+                                    isFullScreenNotifier,
+                                    isMaximizedNotifier,
+                                  ]),
+                                  builder: (context, child) {
+                                    if (isMaximizedNotifier.value) {
+                                      return SizedBox.shrink();
+                                    }
+                                    return IconButton(
+                                      onPressed: () async {
+                                        if (isFullScreenNotifier.value) {
+                                          isFullScreenNotifier.value = false;
+                                          await windowManager.setFullScreen(
+                                            false,
+                                          );
+                                        } else {
+                                          isFullScreenNotifier.value = true;
+                                          await windowManager.setFullScreen(
+                                            true,
+                                          );
+                                        }
+                                      },
+                                      icon: ImageIcon(
+                                        isFullScreenNotifier.value
+                                            ? fullscreenExitImage
+                                            : fullscreenImage,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    windowManager.minimize();
+                                  },
+                                  icon: ImageIcon(minimizeImage),
+                                ),
+                                ListenableBuilder(
+                                  listenable: Listenable.merge([
+                                    isFullScreenNotifier,
+                                    isMaximizedNotifier,
+                                  ]),
+                                  builder: (context, child) {
+                                    if (isFullScreenNotifier.value) {
+                                      return SizedBox.shrink();
+                                    }
+                                    return IconButton(
+                                      onPressed: () async {
+                                        isMaximizedNotifier.value
+                                            ? windowManager.unmaximize()
+                                            : windowManager.maximize();
+                                      },
+                                      icon: ImageIcon(
+                                        isMaximizedNotifier.value
+                                            ? unmaximizeImage
+                                            : maximizeImage,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    windowManager.close();
+                                  },
+                                  icon: ImageIcon(closeImage),
+                                ),
+                              ],
+
+                              SizedBox(width: isMobile ? 10 : 30),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),

@@ -30,4 +30,4 @@ final isPremiumNotifier = ValueNotifier(true);
 
 enum ViewMode { normal, mini, bigPicture }
 
-final viewModeNotifier = ValueNotifier(ViewMode.bigPicture);
+final viewModeNotifier = ValueNotifier(ViewMode.normal);
