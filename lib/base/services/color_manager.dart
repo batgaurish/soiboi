@@ -45,9 +45,9 @@ final MyColor switchColor = MyColor(
 );
 
 final MyColor playBarColor = MyColor(
-  vividModeValue: Color.fromARGB(100, 245, 245, 245),
-  lightModeValue: Colors.white70,
-  darkModeValue: Color.fromARGB(128, 30, 30, 30),
+  vividModeValue: Color.fromARGB(50, 255, 255, 255),
+  lightModeValue: Color.fromARGB(128, 255, 255, 255),
+  darkModeValue: Color.fromARGB(128, 0, 0, 0),
 );
 
 final MyColor panelColor = MyColor(

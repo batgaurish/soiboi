@@ -57,7 +57,7 @@ Future<bool> showConfirmDialog(BuildContext context, String action) async {
       builder: (context) {
         return SizedBox(
           width: 300,
-          height: 180,
+          height: isMobile ? 180 : 170,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: ListenableBuilder(
@@ -74,7 +74,7 @@ Future<bool> showConfirmDialog(BuildContext context, String action) async {
                       child: Text(
                         action,
                         style: TextStyle(
-                          fontSize: 25,
+                          fontSize: 24,
                           fontWeight: .bold,
                           color: colorManager.getSpecificTextColor(),
                           overflow: .ellipsis,

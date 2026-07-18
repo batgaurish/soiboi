@@ -51,79 +51,94 @@ class _BigSongsPanelState extends State<BigSongsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30.0),
-      child: ValueListenableBuilder(
-        valueListenable: currentSongListNotifier,
-        builder: (context, currentSongList, child) {
-          return GridView.builder(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 300,
-              childAspectRatio: 0.8,
-            ),
-            itemCount: currentSongList.length,
-            itemBuilder: (context, index) {
-              final song = currentSongList[index];
-              return ValueListenableBuilder(
-                valueListenable: song.updateNotifier,
-                builder: (_, _, _) {
-                  bool focus = false;
-                  return StatefulBuilder(
-                    builder: (context, setState) {
-                      return Transform.scale(
-                        scale: focus ? 1.0 : 0.9,
-                        child: LayoutBuilder(
-                          builder: (context, constraint) {
-                            return InkWell(
-                              mouseCursor: SystemMouseCursors.click,
-                              focusColor: Colors.transparent,
-                              hoverColor: Colors.transparent,
-                              onFocusChange: (value) {
-                                setState(() {
-                                  focus = value;
-                                });
-                              },
-                              onTap: () async {
-                                audioHandler.currentIndex = index;
-                                await audioHandler.setPlayQueue(
-                                  currentSongList,
-                                );
-                                await audioHandler.load();
-                                audioHandler.play();
-                              },
-                              child: Column(
-                                children: [
-                                  CoverArtWidget(
-                                    size: constraint.maxWidth,
-                                    borderRadius: constraint.maxWidth / 10,
-                                    song: song,
-                                  ),
-                                  ListTile(
-                                    mouseCursor: SystemMouseCursors.click,
-                                    title: Text(
-                                      getTitle(song),
-                                      style: .new(overflow: .ellipsis),
-                                    ),
-                                    subtitle: Text(
-                                      '${getArtist(song)} - ${getAlbum(song)}',
-                                      style: .new(overflow: .ellipsis),
-                                    ),
-                                    visualDensity: .new(vertical: -4),
-                                  ),
-                                ],
+    int crossAxisCount = (MediaQuery.widthOf(context) / 200).toInt();
+    return ValueListenableBuilder(
+      valueListenable: currentSongListNotifier,
+      builder: (context, currentSongList, child) {
+        return GridView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 75),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: currentSongList.length,
+          itemBuilder: (context, index) {
+            final song = currentSongList[index];
+            return ValueListenableBuilder(
+              valueListenable: song.updateNotifier,
+              builder: (_, _, _) {
+                bool focus = false;
+                return StatefulBuilder(
+                  builder: (context, setState) {
+                    return Transform.scale(
+                      scale: focus ? 1.1 : 1,
+                      child: LayoutBuilder(
+                        builder: (context, constraint) {
+                          return Column(
+                            children: [
+                              InkWell(
+                                mouseCursor: SystemMouseCursors.click,
+                                focusColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                splashColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onFocusChange: (value) {
+                                  setState(() {
+                                    focus = value;
+                                  });
+                                },
+                                onTap: () async {
+                                  audioHandler.currentIndex = index;
+                                  await audioHandler.setPlayQueue(
+                                    currentSongList,
+                                  );
+                                  await audioHandler.load();
+                                  audioHandler.play();
+                                },
+                                child: CoverArtWidget(
+                                  size: constraint.maxWidth - 25,
+                                  borderRadius: constraint.maxWidth / 10,
+                                  song: song,
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+                              SizedBox(height: 5),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+                                child: Align(
+                                  alignment: .centerLeft,
+                                  child: Text(
+                                    getTitle(song),
+                                    style: .new(overflow: .ellipsis),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
+
+                                child: Align(
+                                  alignment: .centerLeft,
+                                  child: Text(
+                                    '${getArtist(song)} - ${getAlbum(song)}',
+                                    style: .new(overflow: .ellipsis),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

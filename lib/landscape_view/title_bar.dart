@@ -197,6 +197,26 @@ class _TitleBarState extends State<TitleBar> {
             icon: ImageIcon(settingImage),
           ),
 
+        if (widget.isMainPage)
+          IconButton(
+            onPressed: () async {
+              if (!await showConfirmDialog(context, 'Big picture mode')) {
+                return;
+              }
+              await Future.delayed(Duration(milliseconds: 250));
+              viewModeNotifier.value = .bigPicture;
+
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                layersManager.popDetail('artists');
+                layersManager.popDetail('albums');
+                layersManager.popDetail('folders');
+                layersManager.popDetail('playlists');
+                while (await layersManager.popDetail('settings')) {}
+              });
+            },
+            icon: ImageIcon(bigPictueModeImage),
+          ),
+
         if (!isMobile) windowControls(),
 
         SizedBox(width: isMobile ? 10 : 30),
@@ -281,29 +301,6 @@ class _TitleBarState extends State<TitleBar> {
           builder: (context, _) {
             return Row(
               children: [
-                if (widget.isMainPage)
-                  IconButton(
-                    color: iconColor.value,
-                    onPressed: () async {
-                      if (!await showConfirmDialog(
-                        context,
-                        'Enter big picture mode',
-                      )) {
-                        return;
-                      }
-                      await Future.delayed(Duration(milliseconds: 250));
-                      viewModeNotifier.value = .bigPicture;
-
-                      WidgetsBinding.instance.addPostFrameCallback((_) async {
-                        layersManager.popDetail('artists');
-                        layersManager.popDetail('albums');
-                        layersManager.popDetail('folders');
-                        layersManager.popDetail('playlists');
-                        while (await layersManager.popDetail('settings')) {}
-                      });
-                    },
-                    icon: ImageIcon(bigPictueModeImage),
-                  ),
                 if (widget.isMainPage && !isMaximizedNotifier.value)
                   IconButton(
                     color: iconColor.value,

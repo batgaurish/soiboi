@@ -21,52 +21,84 @@ class _BigHomePanelState extends State<BigHomePanel> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: ListView(
-        children: [
-          Text(l10n.songs, style: .new(fontSize: 20)),
-          _listView((index) {
-            return library.songListManager.getSongList()[index];
-          }, library.songListManager.getSongList().length),
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 75),
+      children: [
+        Transform.translate(
+          offset: Offset(30, 0),
+          child: Text(l10n.songs, style: .new(fontSize: 24, fontWeight: .bold)),
+        ),
+        _listView((index) {
+          return library.songListManager.getSongList()[index];
+        }, library.songListManager.getSongList().length),
 
-          Text(l10n.artists, style: .new(fontSize: 20)),
-          _listView((index) {
-            return artistAlbumManager.artistList[index].getCoverSong();
-          }, artistAlbumManager.artistList.length),
-
-          Text(l10n.albums, style: .new(fontSize: 20)),
-          _listView(
-            (index) => artistAlbumManager.albumList[index].getCoverSong(),
-            artistAlbumManager.albumList.length,
+        Transform.translate(
+          offset: Offset(30, 0),
+          child: Text(
+            l10n.artists,
+            style: .new(fontSize: 24, fontWeight: .bold),
           ),
+        ),
+        _listView((index) {
+          return artistAlbumManager.artistList[index].getCoverSong();
+        }, artistAlbumManager.artistList.length),
 
-          Text(l10n.ranking, style: .new(fontSize: 20)),
-          _listView(
-            (index) => history.rankingSongListManager.getSongList()[index],
-            history.rankingSongListManager.getSongList().length,
+        Transform.translate(
+          offset: Offset(30, 0),
+          child: Text(
+            l10n.albums,
+            style: .new(fontSize: 24, fontWeight: .bold),
           ),
+        ),
+        _listView(
+          (index) => artistAlbumManager.albumList[index].getCoverSong(),
+          artistAlbumManager.albumList.length,
+        ),
 
-          Text(l10n.recently, style: .new(fontSize: 20)),
-          _listView(
-            (index) => history.recentlySongListManager.getSongList()[index],
-            history.recentlySongListManager.getSongList().length,
+        Transform.translate(
+          offset: Offset(30, 0),
+          child: Text(
+            l10n.ranking,
+            style: .new(fontSize: 24, fontWeight: .bold),
           ),
+        ),
+        _listView(
+          (index) => history.rankingSongListManager.getSongList()[index],
+          history.rankingSongListManager.getSongList().length,
+        ),
 
-          Text(l10n.playlists, style: .new(fontSize: 20)),
-          _listView(
-            (index) => playlistManager.playlists[index].getCoverSong(),
-            playlistManager.playlists.length,
+        Transform.translate(
+          offset: Offset(30, 0),
+          child: Text(
+            l10n.recently,
+            style: .new(fontSize: 24, fontWeight: .bold),
           ),
-        ],
-      ),
+        ),
+        _listView(
+          (index) => history.recentlySongListManager.getSongList()[index],
+          history.recentlySongListManager.getSongList().length,
+        ),
+
+        Transform.translate(
+          offset: Offset(30, 0),
+          child: Text(
+            l10n.playlists,
+            style: .new(fontSize: 24, fontWeight: .bold),
+          ),
+        ),
+        _listView(
+          (index) => playlistManager.playlists[index].getCoverSong(),
+          playlistManager.playlists.length,
+        ),
+      ],
     );
   }
 
   Widget _listView(MyAudioMetadata? Function(int) getCoverSong, int count) {
     return SizedBox(
-      height: 300,
+      height: 265,
       child: ListView.separated(
+        padding: EdgeInsets.symmetric(horizontal: 30),
         scrollDirection: .horizontal,
         itemCount: min(20, count),
         separatorBuilder: (context, index) {
@@ -93,9 +125,9 @@ class _BigHomePanelState extends State<BigHomePanel> {
                   onTap: () {},
                   child: Column(
                     children: [
-                      CoverArtWidget(size: 240, borderRadius: 20, song: song),
+                      CoverArtWidget(size: 200, borderRadius: 20, song: song),
                       SizedBox(
-                        width: 240,
+                        width: 200,
                         child: ListTile(
                           mouseCursor: SystemMouseCursors.click,
                           title: Text(

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gamepads/flutter_gamepads.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/asset_images.dart';
@@ -13,6 +14,7 @@ import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/big_picture_view/panels/big_albums_panel.dart';
+import 'package:sylvakru/big_picture_view/panels/big_artists_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_home_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_songs_panel.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
@@ -30,22 +32,27 @@ class _BigPictureViewState extends State<BigPictureView> {
   final _pageController = PageController();
   final _currentIndexNotifier = ValueNotifier(0);
 
-  final pages = const [BigHomePanel(), BigSongsPanel(), BigAlbumsPanel()];
+  final pages = const [
+    BigHomePanel(),
+    BigSongsPanel(),
+    BigArtistsPanel(),
+    BigAlbumsPanel(),
+  ];
 
-  final tabNode = FocusScopeNode();
+  final topNode = FocusScopeNode();
   final pageViewNode = FocusScopeNode();
   final bottomNode = FocusScopeNode();
 
   @override
   void dispose() {
+    topNode.dispose();
+    pageViewNode.dispose();
+    bottomNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final tabs = [l10n.home, l10n.songs, l10n.albums];
-
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -94,106 +101,228 @@ class _BigPictureViewState extends State<BigPictureView> {
 
         Material(
           color: panelColor.value,
-          child: Column(
-            children: [
-              // Selection bar
-              FocusScope(
-                node: tabNode,
-                autofocus: true,
-                child: GamepadInterceptor(
-                  onBeforeIntent: (activator, intent) {
-                    if (intent is DirectionalFocusIntent) {
-                      if (intent.direction == .down) {
-                        pageViewNode.requestFocus();
-                      } else if (intent.direction == .up) {
-                        bottomNode.requestFocus();
-                      }
-                    }
-                    return true;
-                  },
-                  child: SizedBox(
-                    height: 75,
+          child: GamepadInterceptor(
+            onBeforeIntent: (activator, intent) {
+              if (intent is DismissIntent) {
+                topNode.requestFocus();
+              }
+              return true;
+            },
+            child: FocusScope(
+              node: pageViewNode,
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: (value) {
+                  _currentIndexNotifier.value = value;
+                },
+                children: pages,
+              ),
+            ),
+          ),
+        ),
+
+        topBar(context),
+        bottomBar(context),
+      ],
+    );
+  }
+
+  Widget topBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final tabs = [
+      l10n.home,
+      l10n.songs,
+      l10n.artists,
+      l10n.albums,
+      l10n.folders,
+      l10n.ranking,
+      l10n.recently,
+      l10n.playlists,
+      l10n.settings,
+    ];
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+
+      child: FocusScope(
+        node: topNode,
+        child: GamepadInterceptor(
+          onBeforeIntent: (activator, intent) {
+            if (intent is DirectionalFocusIntent) {
+              if (intent.direction == .down) {
+                pageViewNode.requestFocus();
+              } else if (intent.direction == .up) {
+                bottomNode.requestFocus();
+              }
+            }
+            return true;
+          },
+          child: SizedBox(
+            height: 75,
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Material(
+                    color: Colors.transparent,
                     child: Row(
                       children: [
-                        Expanded(flex: 2, child: SizedBox()),
+                        SizedBox(width: 30),
 
-                        Expanded(
-                          flex: 3,
-                          child: Row(
-                            mainAxisAlignment: .center,
-                            children: List.generate(tabs.length, (index) {
-                              bool focus = false;
+                        // Expanded(
+                        //   child: GlassContainer(
+                        //     settings: LiquidGlassSettings(
+                        //       glassColor: playBarColor.value,
+                        //     ),
+                        //     shape: const LiquidRoundedSuperellipse(
+                        //       borderRadius: 30,
+                        //     ),
+                        //     child: TextField(
+                        //       decoration: InputDecoration(
+                        //         prefixIcon: Icon(Icons.search),
+                        //         suffixIcon: IconButton(
+                        //           onPressed: () {},
+                        //           icon: const Icon(Icons.clear),
+                        //           padding: EdgeInsets.zero,
+                        //         ),
+                        //         filled: true,
+                        //         fillColor: Colors.transparent,
+                        //         contentPadding: EdgeInsets.zero,
+                        //         isDense: true,
+                        //         border: OutlineInputBorder(
+                        //           borderSide: BorderSide.none,
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
+                        SizedBox(width: 30),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return GlassContainer(
+                        settings: LiquidGlassSettings(
+                          glassColor: playBarColor.value,
+                        ),
+                        shape: const LiquidRoundedSuperellipse(
+                          borderRadius: 30,
+                        ),
+                        clipBehavior: .antiAlias,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 7.5,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: .center,
+                                children: List.generate(tabs.length, (index) {
+                                  bool focus = false;
 
-                              return ValueListenableBuilder(
-                                valueListenable: _currentIndexNotifier,
-                                builder: (context, value, child) {
-                                  final selected = index == value;
-                                  return StatefulBuilder(
-                                    builder: (context, thisSetState) {
-                                      return AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 200,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          color: selected
-                                              ? focus
-                                                    ? selectedItemColor.value
-                                                          .withAlpha(75)
-                                                    : selectedItemColor.value
-                                                          .withAlpha(50)
-                                              : Colors.transparent,
-                                        ),
-                                        child: TextButton(
-                                          onPressed: () {
-                                            _pageController.animateToPage(
-                                              index,
-                                              duration: const Duration(
-                                                milliseconds: 300,
-                                              ),
-                                              curve: Curves.easeOut,
-                                            );
-                                          },
-                                          onFocusChange: (value) {
-                                            thisSetState(() {
-                                              focus = value;
-                                            });
-                                          },
-                                          child: Text(
-                                            tabs[index],
-                                            style: TextStyle(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.bold,
-                                              color: selected
-                                                  ? textColor.value
-                                                  : textColor.value.withAlpha(
-                                                      128,
-                                                    ),
+                                  return ValueListenableBuilder(
+                                    valueListenable: _currentIndexNotifier,
+                                    builder: (context, value, child) {
+                                      final selected = index == value;
+                                      return StatefulBuilder(
+                                        builder: (context, thisSetState) {
+                                          return Material(
+                                            shape: SmoothRectangleBorder(
+                                              smoothness: 1,
+                                              borderRadius: .circular(25),
                                             ),
-                                          ),
-                                        ),
+                                            color: selected
+                                                ? focus
+                                                      ? selectedItemColor.value
+                                                            .withAlpha(75)
+                                                      : selectedItemColor.value
+                                                            .withAlpha(50)
+                                                : Colors.transparent,
+                                            clipBehavior: .antiAlias,
+                                            child: InkWell(
+                                              mouseCursor:
+                                                  SystemMouseCursors.click,
+                                              onTap: () {
+                                                _pageController.animateToPage(
+                                                  index,
+                                                  duration: const Duration(
+                                                    milliseconds: 300,
+                                                  ),
+                                                  curve: Curves.easeOut,
+                                                );
+                                              },
+                                              onFocusChange: (value) {
+                                                thisSetState(() {
+                                                  focus = value;
+                                                });
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                    ),
+                                                child: Text(
+                                                  tabs[index],
+                                                  style: TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: selected
+                                                        ? textColor.value
+                                                        : textColor.value
+                                                              .withAlpha(128),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       );
                                     },
                                   );
-                                },
-                              );
-                            }),
+                                }),
+                              ),
+                            ),
                           ),
                         ),
-                        Expanded(
-                          flex: 2,
+                      );
+                    },
+                  ),
+                ),
+
+                Expanded(
+                  flex: 1,
+                  child: Row(
+                    mainAxisAlignment: .end,
+
+                    children: [
+                      GlassContainer(
+                        settings: LiquidGlassSettings(
+                          glassColor: playBarColor.value,
+                        ),
+                        shape: const LiquidRoundedSuperellipse(
+                          borderRadius: 30,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10.0),
                           child: Row(
-                            mainAxisAlignment: .end,
                             children: [
                               if (!isFullScreenNotifier.value)
                                 IconButton(
-                                  color: iconColor.value,
                                   onPressed: () async {
                                     if (!await showConfirmDialog(
                                       context,
-                                      'Exit big picture mode',
+                                      'Normal mode',
                                     )) {
                                       return;
                                     }
@@ -247,158 +376,157 @@ class _BigPictureViewState extends State<BigPictureView> {
                                   icon: ImageIcon(closeImage),
                                 ),
                               ],
-
-                              SizedBox(width: isMobile ? 10 : 30),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      SizedBox(width: isMobile ? 10 : 20),
+                    ],
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-              // Pages
+  Widget bottomBar(BuildContext context) {
+    return Positioned(
+      bottom: 20,
+      left: 0,
+      right: 0,
+      child: FocusScope(
+        node: bottomNode,
+        child: GamepadInterceptor(
+          onBeforeIntent: (activator, intent) {
+            if (intent is DirectionalFocusIntent) {
+              if (intent.direction == .down) {
+                topNode.requestFocus();
+              } else if (intent.direction == .up) {
+                pageViewNode.requestFocus();
+              }
+            }
+            return true;
+          },
+          child: Row(
+            mainAxisAlignment: .center,
+            children: [
+              Expanded(flex: 1, child: SizedBox.shrink()),
               Expanded(
-                child: GamepadInterceptor(
-                  onBeforeIntent: (activator, intent) {
-                    if (intent is DismissIntent) {
-                      tabNode.requestFocus();
-                    }
-                    return true;
-                  },
-                  child: FocusScope(
-                    node: pageViewNode,
-                    child: PageView(
-                      controller: _pageController,
-
-                      onPageChanged: (value) {
-                        _currentIndexNotifier.value = value;
-                      },
-                      children: pages,
-                    ),
-                  ),
-                ),
-              ),
-
-              FocusScope(
-                node: bottomNode,
-                child: GamepadInterceptor(
-                  onBeforeIntent: (activator, intent) {
-                    if (intent is DirectionalFocusIntent) {
-                      if (intent.direction == .up) {
-                        pageViewNode.requestFocus();
-                      } else if (intent.direction == .down) {
-                        tabNode.requestFocus();
-                      }
-                    }
-                    return true;
-                  },
-                  child: SizedBox(
-                    height: 75,
-                    child: Row(
-                      children: [
-                        Spacer(),
-
-                        Expanded(
-                          child: ValueListenableBuilder(
-                            valueListenable: currentSongNotifier,
-                            builder: (_, currentSong, _) {
-                              return Theme(
-                                data: Theme.of(context).copyWith(
-                                  highlightColor: Colors.transparent,
-                                  splashColor: Colors.transparent,
-                                  hoverColor: Colors.transparent,
+                flex: 3,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: 700),
+                    child: ValueListenableBuilder(
+                      valueListenable: currentSongNotifier,
+                      builder: (_, currentSong, _) {
+                        return Material(
+                          color: Colors.transparent,
+                          child: ListenableBuilder(
+                            listenable: Listenable.merge([
+                              currentSong?.updateNotifier,
+                            ]),
+                            builder: (context, _) {
+                              return GlassContainer(
+                                height: 50,
+                                settings: LiquidGlassSettings(
+                                  glassColor: playBarColor.value,
                                 ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  shape: SmoothRectangleBorder(
+                                shape: LiquidRoundedSuperellipse(
+                                  borderRadius: 25,
+                                ),
+                                child: InkWell(
+                                  customBorder: SmoothRectangleBorder(
                                     smoothness: 1,
-                                    borderRadius: .all(.circular(10)),
+                                    borderRadius: .circular(25),
                                   ),
-                                  clipBehavior: .antiAlias,
-                                  child: ListenableBuilder(
-                                    listenable: Listenable.merge([
-                                      currentSong?.updateNotifier,
-                                    ]),
-                                    builder: (context, _) {
-                                      return ListTile(
-                                        autofocus: true,
-                                        leading: Hero(
-                                          tag: 'cover',
-                                          flightShuttleBuilder:
-                                              (
-                                                flightContext,
-                                                animation,
-                                                flightDirection,
-                                                fromHeroContext,
-                                                toHeroContext,
-                                              ) => FittedBox(
-                                                child: flightDirection == .push
-                                                    ? toHeroContext.widget
-                                                    : fromHeroContext.widget,
-                                              ),
-                                          child: CoverArtWidget(
-                                            size: 50,
-                                            borderRadius: 5,
-                                            song: currentSong,
-                                          ),
-                                        ),
-                                        title: Text(
-                                          getTitle(currentSong),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        subtitle: currentSong != null
-                                            ? Text(
-                                                "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(fontSize: 13),
-                                              )
-                                            : null,
-                                        onTap: () {
-                                          if (playQueue.isEmpty) {
-                                            return;
-                                          }
-                                          Navigator.of(
-                                            context,
-                                            rootNavigator: true,
-                                          ).push(
-                                            DynamicLyricsPageRoute(
-                                              pageBuilder: (_, _, _) =>
-                                                  GamepadInterceptor(
-                                                    onBeforeIntent:
-                                                        (activator, intent) {
-                                                          if (intent
-                                                              is DismissIntent) {
-                                                            Navigator.of(
-                                                              context,
-                                                            ).maybePop();
-                                                          }
-                                                          return true;
-                                                        },
-                                                    child: LyricsPageLayer(),
-                                                  ),
+                                  onTap: () {
+                                    if (playQueue.isEmpty) {
+                                      return;
+                                    }
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).push(
+                                      DynamicLyricsPageRoute(
+                                        pageBuilder: (_, _, _) =>
+                                            GamepadInterceptor(
+                                              onBeforeIntent:
+                                                  (activator, intent) {
+                                                    if (intent
+                                                        is DismissIntent) {
+                                                      Navigator.of(
+                                                        context,
+                                                      ).maybePop();
+                                                    }
+                                                    return true;
+                                                  },
+                                              child: LyricsPageLayer(),
                                             ),
-                                          );
-                                        },
-                                      );
-                                    },
+                                      ),
+                                    );
+                                  },
+
+                                  child: Row(
+                                    children: [
+                                      SizedBox(width: 30),
+                                      Hero(
+                                        tag: 'cover',
+                                        flightShuttleBuilder:
+                                            (
+                                              flightContext,
+                                              animation,
+                                              flightDirection,
+                                              fromHeroContext,
+                                              toHeroContext,
+                                            ) => FittedBox(
+                                              child: flightDirection == .push
+                                                  ? toHeroContext.widget
+                                                  : fromHeroContext.widget,
+                                            ),
+                                        child: CoverArtWidget(
+                                          size: 35,
+                                          borderRadius: 5,
+                                          song: currentSong,
+                                        ),
+                                      ),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          mainAxisAlignment: .center,
+                                          crossAxisAlignment: .start,
+                                          children: [
+                                            Text(
+                                              getTitle(currentSong),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            Text(
+                                              "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );
                             },
                           ),
-                        ),
-                        Spacer(),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ),
               ),
+              Expanded(flex: 1, child: SizedBox.shrink()),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

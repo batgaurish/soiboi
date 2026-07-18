@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gamepads/flutter_gamepads.dart';
+import 'package:liquid_glass_widgets/liquid_glass_setup.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/services/logger.dart';
@@ -51,6 +52,7 @@ Future<void> main() async {
 
   await Loader.init();
   await Loader.load();
+  await LiquidGlassWidgets.initialize();
   runApp(
     ListenableBuilder(
       listenable: Listenable.merge([
