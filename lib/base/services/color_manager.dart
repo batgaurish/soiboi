@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/utils/contrast_color_generator.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 
 final colorManager = ColorManager();
 
+MyAudioMetadata? backgroundSong;
 Color backgroundCoverArtColor = Colors.grey;
 Color currentCoverArtColor = Colors.grey;
 
@@ -44,8 +44,8 @@ final MyColor switchColor = MyColor(
   darkModeValue: Color.fromARGB(221, 0, 0, 0),
 );
 
-final MyColor playBarColor = MyColor(
-  vividModeValue: Color.fromARGB(50, 255, 255, 255),
+final MyColor glassColor = MyColor(
+  vividModeValue: Color.fromARGB(75, 255, 255, 255),
   lightModeValue: Color.fromARGB(128, 255, 255, 255),
   darkModeValue: Color.fromARGB(128, 0, 0, 0),
 );
@@ -234,7 +234,7 @@ class ColorManager {
       textColor,
       highlightTextColor,
       switchColor,
-      playBarColor,
+      glassColor,
       panelColor,
       sidebarColor,
       bottomColor,
@@ -285,6 +285,15 @@ class ColorManager {
     for (final color in myMiniViewColors) {
       color.updateColor();
     }
+  }
+
+  void updateBigPictureRelatedColors(MyAudioMetadata? song) {
+    backgroundSong = song;
+    backgroundCoverArtColor = song?.coverArtColor ?? Colors.grey;
+    searchFieldColor.updateColor();
+    buttonColor.updateColor();
+    dividerColor.updateColor();
+    selectedItemColor.updateColor();
   }
 
   void updateColors() {

@@ -244,5 +244,6 @@
   "connectingToAppStore": "Connecting to the App Store...",
   "checkingPurchase": "Checking purchase history...",
   "noLyrics": "There are no lyrics",
-  "lyricsParseFailed": "Lyrics parsing failed"
+  "lyricsParseFailed": "Lyrics parsing failed",
+  "switchMode": "Switch Mode"
 }

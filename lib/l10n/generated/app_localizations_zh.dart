@@ -612,4 +612,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lyricsParseFailed => '歌词解析失败';
+
+  @override
+  String get switchMode => '切换模式';
 }

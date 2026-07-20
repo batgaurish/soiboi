@@ -113,6 +113,14 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                         Spacer(),
                         Hero(
                           tag: 'cover',
+                          flightShuttleBuilder:
+                              (
+                                flightContext,
+                                animation,
+                                flightDirection,
+                                fromHeroContext,
+                                toHeroContext,
+                              ) => FittedBox(child: toHeroContext.widget),
                           child: GestureDetector(
                             onVerticalDragEnd: (details) {
                               if (isMobile &&

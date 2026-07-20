@@ -18,6 +18,7 @@ import 'package:sylvakru/base/utils/path.dart';
 import 'package:sylvakru/base/widgets/equalizer.dart';
 import 'package:sylvakru/base/widgets/lyric_list_view.dart';
 import 'package:sylvakru/base/data/history.dart';
+import 'package:sylvakru/big_picture_view/panels/big_single_album_panel.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/base/utils/contrast_color_generator.dart';
 import 'package:sylvakru/base/data/library.dart';
@@ -123,6 +124,12 @@ class MyAudioHandler extends BaseAudioHandler {
 
     currentSongNotifier.addListener(() {
       needPause = false;
+      if (viewModeNotifier.value == .bigPicture) {
+        if (useCurrentSongForBg) {
+          colorManager.updateBigPictureRelatedColors(currentSongNotifier.value);
+        }
+        return;
+      }
       layersManager.updateBackground();
     });
 

@@ -1,12 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/keyboard.dart';
 import 'package:sylvakru/base/services/my_window_listener.dart';
+import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
 import 'package:sylvakru/mini_view/mini_view.dart';
@@ -200,10 +202,17 @@ class _TitleBarState extends State<TitleBar> {
         if (widget.isMainPage)
           IconButton(
             onPressed: () async {
-              if (!await showConfirmDialog(context, 'Big picture mode')) {
+              if (!await showConfirmDialog(
+                context,
+                AppLocalizations.of(context).switchMode,
+              )) {
                 return;
               }
               await Future.delayed(Duration(milliseconds: 250));
+
+              colorManager.updateBigPictureRelatedColors(
+                currentSongNotifier.value,
+              );
               viewModeNotifier.value = .bigPicture;
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {

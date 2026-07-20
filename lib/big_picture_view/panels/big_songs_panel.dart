@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/library.dart';
 import 'package:sylvakru/base/data/song_list_manager.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/utils/my_gird_delegate.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 
 class BigSongsPanel extends StatefulWidget {
@@ -51,15 +52,16 @@ class _BigSongsPanelState extends State<BigSongsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    int crossAxisCount = (MediaQuery.widthOf(context) / 200).toInt();
     return ValueListenableBuilder(
       valueListenable: currentSongListNotifier,
       builder: (context, currentSongList, child) {
         return GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 75),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: 0.85,
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 75),
+          gridDelegate: MyGirdDelegate(
+            maxCrossAxisExtent: 200,
+            crossAxisSpacing: 30,
+            mainAxisSpacing: 10,
+            textExtent: 50,
           ),
           itemCount: currentSongList.length,
           itemBuilder: (context, index) {
@@ -72,64 +74,60 @@ class _BigSongsPanelState extends State<BigSongsPanel> {
                   builder: (context, setState) {
                     return Transform.scale(
                       scale: focus ? 1.1 : 1,
-                      child: LayoutBuilder(
-                        builder: (context, constraint) {
-                          return Column(
-                            children: [
-                              InkWell(
-                                mouseCursor: SystemMouseCursors.click,
-                                focusColor: Colors.transparent,
-                                hoverColor: Colors.transparent,
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                onFocusChange: (value) {
-                                  setState(() {
-                                    focus = value;
-                                  });
-                                },
-                                onTap: () async {
-                                  audioHandler.currentIndex = index;
-                                  await audioHandler.setPlayQueue(
-                                    currentSongList,
-                                  );
-                                  await audioHandler.load();
-                                  audioHandler.play();
-                                },
-                                child: CoverArtWidget(
-                                  size: constraint.maxWidth - 25,
-                                  borderRadius: constraint.maxWidth / 10,
+                      child: Column(
+                        children: [
+                          InkWell(
+                            mouseCursor: SystemMouseCursors.click,
+                            focusColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                            splashColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            onFocusChange: (value) {
+                              setState(() {
+                                focus = value;
+                              });
+                            },
+                            onTap: () {
+                              showOptions(
+                                context: context,
+                                song: song,
+                                includeGoToArtist: true,
+                                includeGoToAlbum: true,
+                              );
+                            },
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return CoverArtWidget(
+                                  size: constraints.maxWidth,
+                                  borderRadius: constraints.maxWidth / 10,
                                   song: song,
-                                ),
+                                );
+                              },
+                            ),
+                          ),
+                          SizedBox(height: 5),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Align(
+                              alignment: .centerLeft,
+                              child: Text(
+                                getTitle(song),
+                                style: .new(overflow: .ellipsis),
                               ),
-                              SizedBox(height: 5),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: Align(
-                                  alignment: .centerLeft,
-                                  child: Text(
-                                    getTitle(song),
-                                    style: .new(overflow: .ellipsis),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
 
-                                child: Align(
-                                  alignment: .centerLeft,
-                                  child: Text(
-                                    '${getArtist(song)} - ${getAlbum(song)}',
-                                    style: .new(overflow: .ellipsis),
-                                  ),
-                                ),
+                            child: Align(
+                              alignment: .centerLeft,
+                              child: Text(
+                                '${getArtist(song)} - ${getAlbum(song)}',
+                                style: .new(overflow: .ellipsis),
                               ),
-                            ],
-                          );
-                        },
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

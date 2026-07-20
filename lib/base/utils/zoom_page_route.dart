@@ -35,7 +35,7 @@ class ZoomPageRoute<T> extends PageRoute<T> {
   }
 
   @override
-  bool get opaque => false;
+  bool get opaque => true;
 
   @override
   bool get barrierDismissible => false;
@@ -50,5 +50,5 @@ class ZoomPageRoute<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 500);
+  Duration get transitionDuration => const Duration(milliseconds: 600);
 }

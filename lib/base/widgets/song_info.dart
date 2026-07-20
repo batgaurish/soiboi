@@ -63,10 +63,14 @@ class _SongInfoState extends State<SongInfo> {
 
                 Row(
                   children: [
-                    CoverArtWidget(
-                      size: isPhone ? 150 : 180,
-                      borderRadius: 10,
-                      song: song,
+                    Focus(
+                      // for scroll
+                      autofocus: true,
+                      child: CoverArtWidget(
+                        size: isPhone ? 150 : 180,
+                        borderRadius: 10,
+                        song: song,
+                      ),
                     ),
                     SizedBox(width: 10),
                     Expanded(

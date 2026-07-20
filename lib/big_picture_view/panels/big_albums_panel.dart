@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gamepads/flutter_gamepads.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/services/metadata_service.dart';
+import 'package:sylvakru/base/utils/my_gird_delegate.dart';
 import 'package:sylvakru/base/utils/zoom_page_route.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/scale_widget.dart';
@@ -59,17 +59,16 @@ class _BigAlbumsPanelState extends State<BigAlbumsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    int crossAxisCount = (MediaQuery.widthOf(context) / 200).toInt();
     return ValueListenableBuilder(
       valueListenable: currentAlbumListNotifier,
       builder: (context, list, child) {
         return GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 75),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 20,
-            mainAxisSpacing: 20,
-            childAspectRatio: 0.9,
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 75),
+          gridDelegate: MyGirdDelegate(
+            maxCrossAxisExtent: 200,
+            crossAxisSpacing: 30,
+            mainAxisSpacing: 10,
+            textExtent: 30,
           ),
           itemCount: list.length,
           itemBuilder: (context, index) {
@@ -82,15 +81,14 @@ class _BigAlbumsPanelState extends State<BigAlbumsPanel> {
                   builder: (_, _, _) {
                     return ScaleWidget(
                       child: LayoutBuilder(
-                        builder: (context, constraint) {
+                        builder: (context, constraints) {
                           return Column(
                             children: [
                               Hero(
                                 tag: 'big${coverSong.id}${list[index].name}',
-
                                 child: CoverArtWidget(
-                                  size: constraint.maxWidth,
-                                  borderRadius: constraint.maxWidth / 10,
+                                  size: constraints.maxWidth,
+                                  borderRadius: constraints.maxWidth * 0.1,
                                   song: coverSong,
                                 ),
                               ),
@@ -126,17 +124,9 @@ class _BigAlbumsPanelState extends State<BigAlbumsPanel> {
                         Navigator.of(context).push(
                           ZoomPageRoute(
                             builder: (context) {
-                              return GamepadInterceptor(
-                                onBeforeIntent: (activator, intent) {
-                                  if (intent is DismissIntent) {
-                                    Navigator.of(context).maybePop();
-                                  }
-                                  return true;
-                                },
-                                child: BigSingleAlbumPanel(
-                                  album: list[index],
-                                  baseColor: baseColor,
-                                ),
+                              return BigSingleAlbumPanel(
+                                album: list[index],
+                                baseColor: baseColor,
                               );
                             },
                           ),

@@ -619,4 +619,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lyricsParseFailed => 'Lyrics parsing failed';
+
+  @override
+  String get switchMode => 'Switch Mode';
 }

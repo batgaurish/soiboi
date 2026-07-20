@@ -195,5 +195,6 @@
   "connectingToAppStore": "正在连接 App Store...",
   "checkingPurchase": "正在检查购买记录...",
   "noLyrics": "暂无歌词",
-  "lyricsParseFailed": "歌词解析失败"
+  "lyricsParseFailed": "歌词解析失败",
+  "switchMode": "切换模式"
 }

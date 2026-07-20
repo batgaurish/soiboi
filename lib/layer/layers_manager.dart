@@ -34,7 +34,6 @@ import 'package:sylvakru/base/data/playlist.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 
 final layersManager = LayersManager();
-MyAudioMetadata? backgroundSong;
 
 class LayerInfo {
   MyAudioMetadata? backgroundSong;

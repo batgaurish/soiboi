@@ -1279,6 +1279,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lyrics parsing failed'**
   String get lyricsParseFailed;
+
+  /// No description provided for @switchMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch Mode'**
+  String get switchMode;
 }
 
 class _AppLocalizationsDelegate

@@ -11,6 +11,7 @@ import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/my_window_listener.dart';
 import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
+import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/big_picture_view/panels/big_albums_panel.dart';
@@ -18,6 +19,7 @@ import 'package:sylvakru/big_picture_view/panels/big_artists_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_home_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_songs_panel.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:sylvakru/layer/layers_manager.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -142,7 +144,7 @@ class _BigPictureViewState extends State<BigPictureView> {
     ];
 
     return Positioned(
-      top: 0,
+      top: isTooNarrow(context) ? 40 : 0,
       left: 0,
       right: 0,
 
@@ -174,7 +176,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                         // Expanded(
                         //   child: GlassContainer(
                         //     settings: LiquidGlassSettings(
-                        //       glassColor: playBarColor.value,
+                        //       glassColor: glassColor.value,
                         //     ),
                         //     shape: const LiquidRoundedSuperellipse(
                         //       borderRadius: 30,
@@ -209,7 +211,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                     builder: (context, constraints) {
                       return GlassContainer(
                         settings: LiquidGlassSettings(
-                          glassColor: playBarColor.value,
+                          glassColor: glassColor.value,
                         ),
                         shape: const LiquidRoundedSuperellipse(
                           borderRadius: 30,
@@ -251,6 +253,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                                                 : Colors.transparent,
                                             clipBehavior: .antiAlias,
                                             child: InkWell(
+                                              autofocus: index == 0,
                                               mouseCursor:
                                                   SystemMouseCursors.click,
                                               onTap: () {
@@ -308,7 +311,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                     children: [
                       GlassContainer(
                         settings: LiquidGlassSettings(
-                          glassColor: playBarColor.value,
+                          glassColor: glassColor.value,
                         ),
                         shape: const LiquidRoundedSuperellipse(
                           borderRadius: 30,
@@ -322,13 +325,14 @@ class _BigPictureViewState extends State<BigPictureView> {
                                   onPressed: () async {
                                     if (!await showConfirmDialog(
                                       context,
-                                      'Normal mode',
+                                      l10n.switchMode,
                                     )) {
                                       return;
                                     }
                                     await Future.delayed(
                                       Duration(milliseconds: 250),
                                     );
+                                    layersManager.updateBackground();
                                     viewModeNotifier.value = .normal;
                                   },
                                   icon: ImageIcon(bigPictueModeImage),
@@ -432,12 +436,13 @@ class _BigPictureViewState extends State<BigPictureView> {
                               return GlassContainer(
                                 height: 50,
                                 settings: LiquidGlassSettings(
-                                  glassColor: playBarColor.value,
+                                  glassColor: glassColor.value,
                                 ),
                                 shape: LiquidRoundedSuperellipse(
                                   borderRadius: 25,
                                 ),
                                 child: InkWell(
+                                  autofocus: true,
                                   customBorder: SmoothRectangleBorder(
                                     smoothness: 1,
                                     borderRadius: .circular(25),
@@ -452,43 +457,19 @@ class _BigPictureViewState extends State<BigPictureView> {
                                     ).push(
                                       DynamicLyricsPageRoute(
                                         pageBuilder: (_, _, _) =>
-                                            GamepadInterceptor(
-                                              onBeforeIntent:
-                                                  (activator, intent) {
-                                                    if (intent
-                                                        is DismissIntent) {
-                                                      Navigator.of(
-                                                        context,
-                                                      ).maybePop();
-                                                    }
-                                                    return true;
-                                                  },
-                                              child: LyricsPageLayer(),
-                                            ),
+                                            LyricsPageLayer(),
                                       ),
                                     );
                                   },
 
                                   child: Row(
                                     children: [
-                                      SizedBox(width: 30),
+                                      SizedBox(width: 25),
                                       Hero(
                                         tag: 'cover',
-                                        flightShuttleBuilder:
-                                            (
-                                              flightContext,
-                                              animation,
-                                              flightDirection,
-                                              fromHeroContext,
-                                              toHeroContext,
-                                            ) => FittedBox(
-                                              child: flightDirection == .push
-                                                  ? toHeroContext.widget
-                                                  : fromHeroContext.widget,
-                                            ),
                                         child: CoverArtWidget(
-                                          size: 35,
-                                          borderRadius: 5,
+                                          size: 40,
+                                          borderRadius: 4,
                                           song: currentSong,
                                         ),
                                       ),

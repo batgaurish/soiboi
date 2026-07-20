@@ -25,12 +25,12 @@ class PlayBar extends StatelessWidget {
         return ListenableBuilder(
           listenable: Listenable.merge([
             layersManager.backgroundChangeNotifier,
-            playBarColor.valueNotifier,
+            glassColor.valueNotifier,
           ]),
           builder: (context, child) {
             return GlassContainer(
               height: 50,
-              settings: LiquidGlassSettings(glassColor: playBarColor.value),
+              settings: LiquidGlassSettings(glassColor: glassColor.value),
               shape: LiquidRoundedSuperellipse(borderRadius: 25),
               clipBehavior: .antiAlias,
               child: child,
@@ -58,11 +58,7 @@ class PlayBar extends StatelessWidget {
                         flightDirection,
                         fromHeroContext,
                         toHeroContext,
-                      ) => FittedBox(
-                        child: flightDirection == .push
-                            ? toHeroContext.widget
-                            : fromHeroContext.widget,
-                      ),
+                      ) => FittedBox(child: toHeroContext.widget),
                   child: CoverArtWidget(
                     size: 35,
                     borderRadius: 3,
