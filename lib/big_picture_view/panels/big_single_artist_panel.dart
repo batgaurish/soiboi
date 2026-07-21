@@ -13,8 +13,11 @@ import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:sylvakru/base/utils/format_duration.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
+import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/big_picture_view/panels/big_single_album_panel.dart';
+import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
 
 class BigSingleArtistPanel extends StatefulWidget {
@@ -31,7 +34,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
   @override
   void initState() {
     useCurrentSongForBgTmp = useCurrentSongForBg;
-    useCurrentSongForBg = false;
+    useCurrentSongForBg = true;
     super.initState();
   }
 
@@ -45,6 +48,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
   Widget build(BuildContext context) {
     final panelWidth = MediaQuery.widthOf(context);
     final panelHeight = MediaQuery.heightOf(context);
+    final l10n = AppLocalizations.of(context);
     return Stack(
       fit: .expand,
       children: [
@@ -93,131 +97,238 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
           backgroundColor: panelColor.value,
           extendBodyBehindAppBar: true,
           resizeToAvoidBottomInset: false,
-          body: CustomScrollView(
-            slivers: [
-              const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          body: Column(
+            children: [
+              SizedBox(height: 100),
+              Row(
+                children: [
+                  SizedBox(width: 40),
+                  Text(
+                    widget.artist.name,
+                    style: .new(
+                      fontWeight: .bold,
+                      fontSize: 24,
+                      overflow: .ellipsis,
+                    ),
+                  ),
+                  Spacer(),
+                  IconButton(
+                    onPressed: () {},
+                    icon: Icon(Icons.play_arrow_rounded),
+                  ),
+                  SizedBox(width: 40),
+                ],
+              ),
+              MyDivider(color: dividerColor, indent: 40, endIndent: 40),
+              Row(
+                children: [
+                  SizedBox(width: 40),
 
-              for (final album in widget.artist.albumList)
-                SliverMainAxisGroup(
+                  Text(
+                    '${getSourceTypeName(l10n, widget.artist.songListManager.sourceTypeNotifier.value)}: ${widget.artist.albumList.length} ${l10n.albums}, ${l10n.songCount(widget.artist.songListManager.getSongList().length)}',
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Expanded(
+                child: CustomScrollView(
                   slivers: [
-                    SliverCrossAxisGroup(
-                      slivers: [
-                        SliverConstrainedCrossAxis(
-                          maxExtent: panelWidth * 0.05,
-                          sliver: SliverToBoxAdapter(child: SizedBox()),
-                        ),
-                        SliverConstrainedCrossAxis(
-                          maxExtent: panelWidth * 0.2,
-                          sliver: SliverToBoxAdapter(
-                            child: CoverArtWidget(
-                              song: album.getCoverSong(),
-                              size: panelWidth * 0.2,
-                              borderRadius: panelWidth * 0.01,
-                            ),
-                          ),
-                        ),
-                        SliverConstrainedCrossAxis(
-                          maxExtent: panelWidth * 0.02,
-                          sliver: SliverToBoxAdapter(child: SizedBox()),
-                        ),
-                        SliverList.builder(
-                          itemCount: album.songListManager.getSongList().length,
-                          itemBuilder: (context, index) {
-                            final song = album.songListManager
-                                .getSongList()[index];
-                            return Material(
-                              color: Colors.transparent,
-                              shape: SmoothRectangleBorder(
-                                smoothness: 1,
-                                borderRadius: .circular(15),
+                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                    for (final album in widget.artist.albumList)
+                      SliverMainAxisGroup(
+                        slivers: [
+                          SliverCrossAxisGroup(
+                            slivers: [
+                              SliverConstrainedCrossAxis(
+                                maxExtent: 40,
+                                sliver: SliverToBoxAdapter(child: SizedBox()),
                               ),
-                              clipBehavior: .antiAlias,
-                              child: InkWell(
-                                mouseCursor: SystemMouseCursors.click,
-                                onTap: () {
-                                  showOptions(
-                                    context: context,
-                                    song: song,
-                                    includeGoToArtist: true,
-                                    includeGoToAlbum: true,
-                                  );
-                                },
-
-                                child: Padding(
-                                  padding: EdgeInsets.only(right: 20.0),
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
-                                        height: 50,
-                                        width: 50,
-                                        child: ValueListenableBuilder(
-                                          valueListenable: currentSongNotifier,
-                                          builder: (context, currentSong, child) {
-                                            return Center(
-                                              child: currentSong == song
-                                                  ? ValueListenableBuilder(
-                                                      valueListenable:
-                                                          isPlayingNotifier,
-                                                      builder:
-                                                          (
-                                                            context,
-                                                            value,
-                                                            child,
-                                                          ) {
-                                                            return ExcludeFocus(
-                                                              child: RiveAnimatedIcon(
-                                                                key: ValueKey(
-                                                                  value,
-                                                                ),
-                                                                riveIcon:
-                                                                    .sound,
-                                                                width: 35,
-                                                                height: 35,
-                                                                loopAnimation:
-                                                                    value,
-                                                              ),
-                                                            );
-                                                          },
-                                                    )
-                                                  : Text('${index + 1}'),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          getTitle(song),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          getArtist(song),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Text(
-                                        formatDuration(getDuration(song)),
-
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
+                              SliverConstrainedCrossAxis(
+                                maxExtent: panelWidth * 0.2,
+                                sliver: SliverToBoxAdapter(
+                                  child: CoverArtWidget(
+                                    song: album.getCoverSong(),
+                                    size: panelWidth * 0.2,
+                                    borderRadius: panelWidth * 0.01,
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                              SliverConstrainedCrossAxis(
+                                maxExtent: panelWidth * 0.02,
+                                sliver: SliverToBoxAdapter(child: SizedBox()),
+                              ),
+                              SliverMainAxisGroup(
+                                slivers: [
+                                  SliverToBoxAdapter(
+                                    child: Row(
+                                      children: [
+                                        SizedBox(width: 20),
+                                        Column(
+                                          crossAxisAlignment: .start,
+                                          children: [
+                                            Text(
+                                              album.name,
+                                              style: .new(
+                                                fontWeight: .bold,
+                                                fontSize: 20,
+                                                overflow: .ellipsis,
+                                              ),
+                                            ),
+                                            if (album.year != null)
+                                              Text(
+                                                album.year.toString(),
+                                                style: .new(
+                                                  overflow: .ellipsis,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        Spacer(),
+                                        IconButton(
+                                          onPressed: () {},
+                                          icon: Icon(Icons.play_arrow_rounded),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SliverToBoxAdapter(
+                                    child: MyDivider(
+                                      color: dividerColor,
+                                      indent: 10,
+                                    ),
+                                  ),
+                                  SliverList.builder(
+                                    itemCount: album.songListManager
+                                        .getSongList()
+                                        .length,
+                                    itemBuilder: (context, index) {
+                                      final song = album.songListManager
+                                          .getSongList()[index];
+                                      final artist = getArtist(song);
 
-                        SliverConstrainedCrossAxis(
-                          maxExtent: 40,
-                          sliver: SliverToBoxAdapter(child: SizedBox()),
-                        ),
-                      ],
-                    ),
-                    SliverToBoxAdapter(child: SizedBox(height: 30)),
+                                      if (!artist.contains(
+                                        widget.artist.name,
+                                      )) {
+                                        return SizedBox.shrink();
+                                      }
+                                      return Material(
+                                        color: Colors.transparent,
+                                        shape: SmoothRectangleBorder(
+                                          smoothness: 1,
+                                          borderRadius: .circular(15),
+                                        ),
+                                        clipBehavior: .antiAlias,
+                                        child: InkWell(
+                                          mouseCursor: SystemMouseCursors.click,
+                                          onTap: () {
+                                            showOptions(
+                                              context: context,
+                                              song: song,
+                                              includeGoToArtist: true,
+                                              includeGoToAlbum: true,
+                                            );
+                                          },
+
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              right: 20.0,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                SizedBox(
+                                                  height: 50,
+                                                  width: 50,
+                                                  child: ValueListenableBuilder(
+                                                    valueListenable:
+                                                        currentSongNotifier,
+                                                    builder: (context, currentSong, child) {
+                                                      return Center(
+                                                        child:
+                                                            currentSong == song
+                                                            ? ValueListenableBuilder(
+                                                                valueListenable:
+                                                                    isPlayingNotifier,
+                                                                builder:
+                                                                    (
+                                                                      context,
+                                                                      value,
+                                                                      child,
+                                                                    ) {
+                                                                      return ExcludeFocus(
+                                                                        child: RiveAnimatedIcon(
+                                                                          key: ValueKey(
+                                                                            value,
+                                                                          ),
+                                                                          riveIcon:
+                                                                              .sound,
+                                                                          width:
+                                                                              35,
+                                                                          height:
+                                                                              35,
+                                                                          loopAnimation:
+                                                                              value,
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                              )
+                                                            : Text(
+                                                                song.track !=
+                                                                        null
+                                                                    ? song.track
+                                                                          .toString()
+                                                                    : '#',
+                                                              ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  child: Text(
+                                                    getTitle(song),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 15),
+                                                Expanded(
+                                                  child: Text(
+                                                    getArtist(song),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 15),
+                                                Text(
+                                                  formatDuration(
+                                                    getDuration(song),
+                                                  ),
+
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+
+                              SliverConstrainedCrossAxis(
+                                maxExtent: 40,
+                                sliver: SliverToBoxAdapter(child: SizedBox()),
+                              ),
+                            ],
+                          ),
+                          SliverToBoxAdapter(child: SizedBox(height: 50)),
+                        ],
+                      ),
                   ],
                 ),
+              ),
             ],
           ),
         ),

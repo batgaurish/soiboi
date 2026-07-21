@@ -166,7 +166,11 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
                                                           );
                                                         },
                                                   )
-                                                : Text('${index + 1}'),
+                                                : Text(
+                                                    song.track != null
+                                                        ? song.track.toString()
+                                                        : '#',
+                                                  ),
                                           ),
                                         ),
                                         Expanded(

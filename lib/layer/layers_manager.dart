@@ -375,7 +375,7 @@ class LayersManager {
   }
 
   Future<void> updateBackground() async {
-    if (topRootLayer == null) {
+    if (topRootLayer == null || viewModeNotifier.value == .bigPicture) {
       return;
     }
 

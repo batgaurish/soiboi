@@ -29,6 +29,7 @@ class ViewEntry extends StatefulWidget {
 class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
   bool systemCanPop = false;
   Timer? _exitTimer;
+  int keyValue = 0;
 
   @override
   void initState() {
@@ -78,11 +79,17 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (Platform.isAndroid && state == AppLifecycleState.resumed) {
-      systemCanPop = false;
-      _exitTimer?.cancel();
-      // rebuild PopScope to allow it to handle pop
-      setState(() {});
+    if (Platform.isAndroid) {
+      if (state == .resumed) {
+        systemCanPop = false;
+        _exitTimer?.cancel();
+        // rebuild PopScope to allow it to handle pop
+        setState(() {
+          keyValue++;
+        });
+      } else if (isTV && state == .paused) {
+        audioHandler.pause();
+      }
     }
   }
 
@@ -93,9 +100,9 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
     }
     return PopScope(
       canPop: false,
-      key: UniqueKey(),
+      key: ValueKey(keyValue),
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop | isTyping) {
+        if (didPop | isTyping | isTV) {
           return;
         }
         if (portraitKey.currentState?.isDrawerOpen ?? false) {

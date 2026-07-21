@@ -32,6 +32,23 @@ Future<void> main() async {
   appSupportDir = await getApplicationSupportDirectory();
   tmpDir = await getTemporaryDirectory();
 
+  if (isTV) {
+    viewModeNotifier.value = .bigPicture;
+  } else {
+    final viewModeFile = File("${appSupportDir.path}/viewMode.json");
+    String viewMode = 'normal';
+    if (viewModeFile.existsSync()) {
+      viewMode = viewModeFile.readAsStringSync();
+    }
+    viewModeNotifier.value = ViewMode.values.firstWhere(
+      (e) => e.name == viewMode,
+      orElse: () => .normal,
+    );
+    viewModeNotifier.addListener(() {
+      viewModeFile.writeAsString(viewModeNotifier.value.name);
+    });
+  }
+
   await logger.init();
   if (isMobile) {
     screenRadius = await ScreenCornerRadius.get();
@@ -42,7 +59,7 @@ Future<void> main() async {
 
     keyboardInit();
 
-    await _setupMainWindow();
+    await _setupWindow();
     await _setupTray();
   }
 
@@ -228,10 +245,10 @@ Future<void> main() async {
   logger.output('App start');
 }
 
-Future<void> _setupMainWindow() async {
+Future<void> _setupWindow() async {
   myWindowListener = MyWindowListener();
   WindowOptions windowOptions = WindowOptions(
-    size: mainSize,
+    size: viewModeNotifier.value == .mini ? miniSize : mainSize,
     center: true,
     backgroundColor: Colors.transparent,
     titleBarStyle: TitleBarStyle.hidden,
@@ -242,28 +259,48 @@ Future<void> _setupMainWindow() async {
     await windowManager.setPreventClose(true);
     await windowManager.show();
     await windowManager.focus();
-    // it's weird on linux: it needs 52 extra pixels, and setMinimumSize should be invoked at last
-    // windows need 16:9 extra pixels
-    await windowManager.setMinimumSize(
-      Platform.isLinux
-          ? Size(1102, 752)
-          : Platform.isWindows
-          ? Size(1050 + 16, 700 + 9)
-          : Size(1050, 700),
-    );
-    if (mainPosition != null) {
-      await windowManager.setPosition(mainPosition!);
+    if (viewModeNotifier.value == .mini) {
+      if (Platform.isWindows) {
+        await windowManager.setMinimumSize(Size(325 + 16, 150 + 9));
+        await windowManager.setMaximumSize(Size(600 + 16, 950 + 9));
+      } else {
+        await windowManager.setMinimumSize(Size(325, 150));
+        await windowManager.setMaximumSize(Size(600, 950));
+      }
+
+      if (miniPosition != null) {
+        await windowManager.setPosition(miniPosition!);
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future.delayed(Duration(milliseconds: 250));
+          miniPosition = await windowManager.getPosition();
+        });
+      }
+      await windowManager.setAlwaysOnTop(true);
     } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await Future.delayed(Duration(milliseconds: 250));
-        mainPosition = await windowManager.getPosition();
-      });
-    }
-    if (mainMaximized) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await Future.delayed(Duration(milliseconds: 500));
-        await windowManager.maximize();
-      });
+      // it's weird on linux: it needs 52 extra pixels, and setMinimumSize should be invoked at last
+      // windows need 16:9 extra pixels
+      await windowManager.setMinimumSize(
+        Platform.isLinux
+            ? Size(1102, 752)
+            : Platform.isWindows
+            ? Size(1050 + 16, 700 + 9)
+            : Size(1050, 700),
+      );
+      if (mainPosition != null) {
+        await windowManager.setPosition(mainPosition!);
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future.delayed(Duration(milliseconds: 250));
+          mainPosition = await windowManager.getPosition();
+        });
+      }
+      if (mainMaximized) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future.delayed(Duration(milliseconds: 500));
+          await windowManager.maximize();
+        });
+      }
     }
   });
   windowManager.addListener(myWindowListener);

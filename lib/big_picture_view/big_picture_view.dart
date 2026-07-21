@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gamepads/flutter_gamepads.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -110,8 +111,17 @@ class _BigPictureViewState extends State<BigPictureView> {
               }
               return true;
             },
-            child: FocusScope(
-              node: pageViewNode,
+            child: KeyboardListener(
+              focusNode: pageViewNode,
+              onKeyEvent: (value) {
+                if (value is KeyUpEvent) {
+                  return;
+                }
+
+                if (value.logicalKey == .goBack) {
+                  topNode.requestFocus();
+                }
+              },
               child: PageView(
                 controller: _pageController,
                 onPageChanged: (value) {
@@ -148,8 +158,18 @@ class _BigPictureViewState extends State<BigPictureView> {
       left: 0,
       right: 0,
 
-      child: FocusScope(
-        node: topNode,
+      child: KeyboardListener(
+        focusNode: topNode,
+        onKeyEvent: (value) {
+          if (value is KeyUpEvent) {
+            return;
+          }
+          if (value.logicalKey == .arrowDown) {
+            pageViewNode.requestFocus();
+          } else if (value.logicalKey == .arrowUp) {
+            bottomNode.requestFocus();
+          }
+        },
         child: GamepadInterceptor(
           onBeforeIntent: (activator, intent) {
             if (intent is DirectionalFocusIntent) {
@@ -305,88 +325,97 @@ class _BigPictureViewState extends State<BigPictureView> {
 
                 Expanded(
                   flex: 1,
-                  child: Row(
-                    mainAxisAlignment: .end,
+                  child: isTV
+                      ? SizedBox.shrink()
+                      : Row(
+                          mainAxisAlignment: .end,
 
-                    children: [
-                      GlassContainer(
-                        settings: LiquidGlassSettings(
-                          glassColor: glassColor.value,
+                          children: [
+                            GlassContainer(
+                              settings: LiquidGlassSettings(
+                                glassColor: glassColor.value,
+                              ),
+                              shape: const LiquidRoundedSuperellipse(
+                                borderRadius: 30,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10.0,
+                                ),
+                                child: Row(
+                                  children: [
+                                    if (!isFullScreenNotifier.value)
+                                      IconButton(
+                                        onPressed: () async {
+                                          if (!await showConfirmDialog(
+                                            context,
+                                            l10n.switchMode,
+                                          )) {
+                                            return;
+                                          }
+                                          await Future.delayed(
+                                            Duration(milliseconds: 250),
+                                          );
+                                          layersManager.updateBackground();
+                                          viewModeNotifier.value = .normal;
+                                        },
+                                        icon: ImageIcon(bigPictueModeImage),
+                                      ),
+                                    if (!isMobile && !isMaximizedNotifier.value)
+                                      IconButton(
+                                        onPressed: () async {
+                                          if (isFullScreenNotifier.value) {
+                                            isFullScreenNotifier.value = false;
+                                            await windowManager.setFullScreen(
+                                              false,
+                                            );
+                                          } else {
+                                            isFullScreenNotifier.value = true;
+                                            await windowManager.setFullScreen(
+                                              true,
+                                            );
+                                          }
+                                        },
+                                        icon: ImageIcon(
+                                          isFullScreenNotifier.value
+                                              ? fullscreenExitImage
+                                              : fullscreenImage,
+                                        ),
+                                      ),
+                                    if (!isMobile &&
+                                        !isFullScreenNotifier.value) ...[
+                                      IconButton(
+                                        onPressed: () {
+                                          windowManager.minimize();
+                                        },
+                                        icon: ImageIcon(minimizeImage),
+                                      ),
+                                      IconButton(
+                                        onPressed: () async {
+                                          isMaximizedNotifier.value
+                                              ? windowManager.unmaximize()
+                                              : windowManager.maximize();
+                                        },
+                                        icon: ImageIcon(
+                                          isMaximizedNotifier.value
+                                              ? unmaximizeImage
+                                              : maximizeImage,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () {
+                                          windowManager.close();
+                                        },
+                                        icon: ImageIcon(closeImage),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: isMobile ? 10 : 20),
+                          ],
                         ),
-                        shape: const LiquidRoundedSuperellipse(
-                          borderRadius: 30,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                          child: Row(
-                            children: [
-                              if (!isFullScreenNotifier.value)
-                                IconButton(
-                                  onPressed: () async {
-                                    if (!await showConfirmDialog(
-                                      context,
-                                      l10n.switchMode,
-                                    )) {
-                                      return;
-                                    }
-                                    await Future.delayed(
-                                      Duration(milliseconds: 250),
-                                    );
-                                    layersManager.updateBackground();
-                                    viewModeNotifier.value = .normal;
-                                  },
-                                  icon: ImageIcon(bigPictueModeImage),
-                                ),
-                              if (!isMobile && !isMaximizedNotifier.value)
-                                IconButton(
-                                  onPressed: () async {
-                                    if (isFullScreenNotifier.value) {
-                                      isFullScreenNotifier.value = false;
-                                      await windowManager.setFullScreen(false);
-                                    } else {
-                                      isFullScreenNotifier.value = true;
-                                      await windowManager.setFullScreen(true);
-                                    }
-                                  },
-                                  icon: ImageIcon(
-                                    isFullScreenNotifier.value
-                                        ? fullscreenExitImage
-                                        : fullscreenImage,
-                                  ),
-                                ),
-                              if (!isMobile && !isFullScreenNotifier.value) ...[
-                                IconButton(
-                                  onPressed: () {
-                                    windowManager.minimize();
-                                  },
-                                  icon: ImageIcon(minimizeImage),
-                                ),
-                                IconButton(
-                                  onPressed: () async {
-                                    isMaximizedNotifier.value
-                                        ? windowManager.unmaximize()
-                                        : windowManager.maximize();
-                                  },
-                                  icon: ImageIcon(
-                                    isMaximizedNotifier.value
-                                        ? unmaximizeImage
-                                        : maximizeImage,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () {
-                                    windowManager.close();
-                                  },
-                                  icon: ImageIcon(closeImage),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: isMobile ? 10 : 20),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -401,8 +430,19 @@ class _BigPictureViewState extends State<BigPictureView> {
       bottom: 20,
       left: 0,
       right: 0,
-      child: FocusScope(
-        node: bottomNode,
+      child: KeyboardListener(
+        focusNode: bottomNode,
+        onKeyEvent: (value) {
+          if (value is KeyUpEvent) {
+            return;
+          }
+
+          if (value.logicalKey == .arrowDown) {
+            topNode.requestFocus();
+          } else if (value.logicalKey == .arrowUp) {
+            pageViewNode.requestFocus();
+          }
+        },
         child: GamepadInterceptor(
           onBeforeIntent: (activator, intent) {
             if (intent is DirectionalFocusIntent) {
