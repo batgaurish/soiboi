@@ -71,10 +71,6 @@ Future<void> main() async {
   await Loader.load();
   await LiquidGlassWidgets.initialize();
 
-  // for gamepad
-  FocusManager.instance.highlightStrategy =
-      FocusHighlightStrategy.alwaysTraditional;
-
   runApp(
     ListenableBuilder(
       listenable: Listenable.merge([
@@ -224,6 +220,9 @@ Future<void> main() async {
               const ScrollIntent(direction: AxisDirection.right),
             },
             onBeforeIntent: (p0, p1) {
+              FocusManager.instance.highlightStrategy =
+                  FocusHighlightStrategy.alwaysTraditional;
+
               if (p1 is DismissIntent) {
                 Navigator.of(context).maybePop();
                 return false;

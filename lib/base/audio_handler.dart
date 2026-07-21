@@ -307,8 +307,8 @@ class MyAudioHandler extends BaseAudioHandler {
   void singlePlay(MyAudioMetadata song) async {
     if (insert2Next(song)) {
       await skipToNext();
-      play();
     }
+    play();
   }
 
   Future<void> setPlayQueue(List<MyAudioMetadata> source) async {

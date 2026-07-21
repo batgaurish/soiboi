@@ -352,11 +352,15 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                   playModeButton(25, iconColor: value),
                   Spacer(),
 
+                  if (isTV) rewindButton(25, iconColor: value),
+
                   skip2PreviousButton(25, iconColor: value),
 
                   playOrPauseButton(35, iconColor: value),
 
                   skip2NextButton(25, iconColor: value),
+
+                  if (isTV) forwardButton(25, iconColor: value),
 
                   Spacer(),
                   showPlayQueueButton(25, iconColor: value),

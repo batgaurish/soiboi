@@ -11,17 +11,16 @@ import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/my_window_listener.dart';
-import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/widgets/big_playbar.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
+import 'package:sylvakru/base/widgets/scale_widget.dart';
 import 'package:sylvakru/big_picture_view/panels/big_albums_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_artists_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_home_panel.dart';
 import 'package:sylvakru/big_picture_view/panels/big_songs_panel.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
 import 'package:window_manager/window_manager.dart';
 
 class BigPictureView extends StatefulWidget {
@@ -251,65 +250,55 @@ class _BigPictureViewState extends State<BigPictureView> {
                               child: Row(
                                 mainAxisAlignment: .center,
                                 children: List.generate(tabs.length, (index) {
-                                  bool focus = false;
-
                                   return ValueListenableBuilder(
                                     valueListenable: _currentIndexNotifier,
                                     builder: (context, value, child) {
-                                      final selected = index == value;
-                                      return StatefulBuilder(
-                                        builder: (context, thisSetState) {
+                                      return ValueListenableBuilder(
+                                        valueListenable:
+                                            selectedItemColor.valueNotifier,
+                                        builder: (context, colorValue, child) {
                                           return Material(
                                             shape: SmoothRectangleBorder(
                                               smoothness: 1,
                                               borderRadius: .circular(25),
                                             ),
-                                            color: selected
-                                                ? focus
-                                                      ? selectedItemColor.value
-                                                            .withAlpha(75)
-                                                      : selectedItemColor.value
-                                                            .withAlpha(50)
+                                            color: index == value
+                                                ? colorValue
                                                 : Colors.transparent,
                                             clipBehavior: .antiAlias,
-                                            child: InkWell(
-                                              autofocus: index == 0,
-                                              mouseCursor:
-                                                  SystemMouseCursors.click,
-                                              onTap: () {
-                                                _pageController.animateToPage(
-                                                  index,
-                                                  duration: const Duration(
-                                                    milliseconds: 300,
-                                                  ),
-                                                  curve: Curves.easeOut,
-                                                );
-                                              },
-                                              onFocusChange: (value) {
-                                                thisSetState(() {
-                                                  focus = value;
-                                                });
-                                              },
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                    ),
-                                                child: Text(
-                                                  tabs[index],
-                                                  style: TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: selected
-                                                        ? textColor.value
-                                                        : textColor.value
-                                                              .withAlpha(128),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
+                                            child: child,
                                           );
                                         },
+                                        child: ScaleWidget(
+                                          onTap: () {
+                                            _pageController.animateToPage(
+                                              index,
+                                              duration: const Duration(
+                                                milliseconds: 300,
+                                              ),
+                                              curve: Curves.easeOut,
+                                            );
+                                          },
+                                          needFocusColor: true,
+                                          autoFocus: index == 0,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 15,
+                                            ),
+                                            child: Text(
+                                              tabs[index],
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: index == value
+                                                    ? textColor.value
+                                                    : textColor.value.withAlpha(
+                                                        128,
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       );
                                     },
                                   );
@@ -458,91 +447,7 @@ class _BigPictureViewState extends State<BigPictureView> {
             mainAxisAlignment: .center,
             children: [
               Expanded(flex: 1, child: SizedBox.shrink()),
-              Expanded(
-                flex: 3,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 700),
-                    child: ValueListenableBuilder(
-                      valueListenable: currentSongNotifier,
-                      builder: (_, currentSong, _) {
-                        return Material(
-                          color: Colors.transparent,
-                          child: ListenableBuilder(
-                            listenable: Listenable.merge([
-                              currentSong?.updateNotifier,
-                            ]),
-                            builder: (context, _) {
-                              return GlassContainer(
-                                height: 50,
-                                settings: LiquidGlassSettings(
-                                  glassColor: glassColor.value,
-                                ),
-                                shape: LiquidRoundedSuperellipse(
-                                  borderRadius: 25,
-                                ),
-                                child: InkWell(
-                                  autofocus: true,
-                                  customBorder: SmoothRectangleBorder(
-                                    smoothness: 1,
-                                    borderRadius: .circular(25),
-                                  ),
-                                  onTap: () {
-                                    if (playQueue.isEmpty) {
-                                      return;
-                                    }
-                                    Navigator.of(
-                                      context,
-                                      rootNavigator: true,
-                                    ).push(
-                                      DynamicLyricsPageRoute(
-                                        pageBuilder: (_, _, _) =>
-                                            LyricsPageLayer(),
-                                      ),
-                                    );
-                                  },
-
-                                  child: Row(
-                                    children: [
-                                      SizedBox(width: 25),
-                                      Hero(
-                                        tag: 'cover',
-                                        child: CoverArtWidget(
-                                          size: 40,
-                                          borderRadius: 4,
-                                          song: currentSong,
-                                        ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisAlignment: .center,
-                                          crossAxisAlignment: .start,
-                                          children: [
-                                            Text(
-                                              getTitle(currentSong),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
+              Expanded(flex: 3, child: Center(child: BigPlaybar())),
               Expanded(flex: 1, child: SizedBox.shrink()),
             ],
           ),

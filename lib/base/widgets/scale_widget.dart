@@ -3,7 +3,15 @@ import 'package:flutter/material.dart';
 class ScaleWidget extends StatefulWidget {
   final Widget child;
   final void Function()? onTap;
-  const ScaleWidget({super.key, required this.child, this.onTap});
+  final bool needFocusColor;
+  final bool autoFocus;
+  const ScaleWidget({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.needFocusColor = false,
+    this.autoFocus = false,
+  });
 
   @override
   State<StatefulWidget> createState() => _ScaleWidgetState();
@@ -19,9 +27,10 @@ class _ScaleWidgetState extends State<ScaleWidget> {
         return Transform.scale(
           scale: value ? 1.1 : 1,
           child: InkWell(
+            autofocus: widget.autoFocus,
             mouseCursor: SystemMouseCursors.click,
             hoverColor: Colors.transparent,
-            focusColor: Colors.transparent,
+            focusColor: widget.needFocusColor ? null : Colors.transparent,
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
             onFocusChange: (value) {

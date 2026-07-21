@@ -12,13 +12,12 @@ import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:sylvakru/base/utils/format_duration.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/widgets/big_playbar.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
 
 bool useCurrentSongForBg = true;
 
@@ -334,86 +333,7 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
               Expanded(flex: 1, child: SizedBox.shrink()),
               Expanded(
                 flex: 3,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 700),
-                    child: ValueListenableBuilder(
-                      valueListenable: currentSongNotifier,
-                      builder: (_, currentSong, _) {
-                        return Material(
-                          color: Colors.transparent,
-                          child: ListenableBuilder(
-                            listenable: Listenable.merge([
-                              currentSong?.updateNotifier,
-                            ]),
-                            builder: (context, _) {
-                              return GlassContainer(
-                                height: 50,
-
-                                shape: LiquidRoundedSuperellipse(
-                                  borderRadius: 25,
-                                ),
-                                child: InkWell(
-                                  focusNode: currentSongNode,
-                                  customBorder: SmoothRectangleBorder(
-                                    smoothness: 1,
-                                    borderRadius: .circular(25),
-                                  ),
-                                  onTap: () {
-                                    if (playQueue.isEmpty) {
-                                      return;
-                                    }
-                                    Navigator.of(
-                                      context,
-                                      rootNavigator: true,
-                                    ).push(
-                                      DynamicLyricsPageRoute(
-                                        pageBuilder: (_, _, _) =>
-                                            LyricsPageLayer(),
-                                      ),
-                                    );
-                                  },
-
-                                  child: Row(
-                                    children: [
-                                      SizedBox(width: 25),
-                                      Hero(
-                                        tag: 'cover',
-                                        child: CoverArtWidget(
-                                          size: 40,
-                                          borderRadius: 4,
-                                          song: currentSong,
-                                        ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisAlignment: .center,
-                                          crossAxisAlignment: .start,
-                                          children: [
-                                            Text(
-                                              getTitle(currentSong),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
+                child: Center(child: BigPlaybar(focusNode: currentSongNode)),
               ),
               Expanded(flex: 1, child: SizedBox.shrink()),
             ],

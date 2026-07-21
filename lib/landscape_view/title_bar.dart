@@ -129,7 +129,8 @@ class _TitleBarState extends State<TitleBar> {
           ValueListenableBuilder(
             valueListenable: isFullScreenNotifier,
             builder: (context, isFullScreen, child) {
-              return isFullScreen | isMobile
+              return (isFullScreen && viewModeNotifier.value != .bigPicture) |
+                      isMobile
                   ? SizedBox.shrink()
                   : ValueListenableBuilder(
                       valueListenable: lyricsPageForegroundColor.valueNotifier,

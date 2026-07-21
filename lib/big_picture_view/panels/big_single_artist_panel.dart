@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -5,20 +6,20 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:rive_animated_icon/rive_animated_icon.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:sylvakru/base/app.dart';
+import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:sylvakru/base/utils/format_duration.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
+import 'package:sylvakru/base/widgets/big_playbar.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
 import 'package:sylvakru/big_picture_view/panels/big_single_album_panel.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
 
 class BigSingleArtistPanel extends StatefulWidget {
   final Artist artist;
@@ -29,7 +30,6 @@ class BigSingleArtistPanel extends StatefulWidget {
 }
 
 class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
-  FocusNode currentSongNode = FocusNode();
   late final bool useCurrentSongForBgTmp;
   @override
   void initState() {
@@ -99,7 +99,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
           resizeToAvoidBottomInset: false,
           body: Column(
             children: [
-              SizedBox(height: 100),
+              SizedBox(height: 70),
               Row(
                 children: [
                   SizedBox(width: 40),
@@ -113,8 +113,38 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                   ),
                   Spacer(),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      audioHandler.currentIndex = Random().nextInt(
+                        widget.artist.songListManager.getSongList().length,
+                      );
+                      playModeNotifier.value = 1;
+                      await audioHandler.setPlayQueue(
+                        widget.artist.songListManager.getSongList(),
+                      );
+                      await audioHandler.load();
+                      audioHandler.play();
+                    },
+                    icon: ImageIcon(shuffleImage),
+                  ),
+                  IconButton(
+                    onPressed: () async {
+                      audioHandler.currentIndex = 0;
+                      playModeNotifier.value = 0;
+                      await audioHandler.setPlayQueue(
+                        widget.artist.songListManager.getSongList(),
+                      );
+                      await audioHandler.load();
+                      audioHandler.play();
+                    },
                     icon: Icon(Icons.play_arrow_rounded),
+                    iconSize: 30,
+                  ),
+                  IconButton(
+                    onPressed: () {},
+                    icon: Transform.scale(
+                      scale: 0.95,
+                      child: ImageIcon(selectImage),
+                    ),
                   ),
                   SizedBox(width: 40),
                 ],
@@ -164,30 +194,73 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                                     child: Row(
                                       children: [
                                         SizedBox(width: 20),
-                                        Column(
-                                          crossAxisAlignment: .start,
-                                          children: [
-                                            Text(
-                                              album.name,
-                                              style: .new(
-                                                fontWeight: .bold,
-                                                fontSize: 20,
-                                                overflow: .ellipsis,
-                                              ),
-                                            ),
-                                            if (album.year != null)
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: .start,
+                                            children: [
                                               Text(
-                                                album.year.toString(),
+                                                album.name,
                                                 style: .new(
+                                                  fontWeight: .bold,
+                                                  fontSize: 20,
                                                   overflow: .ellipsis,
                                                 ),
                                               ),
-                                          ],
+                                              if (album.year != null)
+                                                Text(
+                                                  album.year.toString(),
+                                                  style: .new(
+                                                    overflow: .ellipsis,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
-                                        Spacer(),
                                         IconButton(
-                                          onPressed: () {},
+                                          onPressed: () async {
+                                            final songList = album
+                                                .songListManager
+                                                .getSongList()
+                                                .where(
+                                                  (song) =>
+                                                      getArtist(song).contains(
+                                                        widget.artist.name,
+                                                      ),
+                                                )
+                                                .toList();
+                                            audioHandler.currentIndex = Random()
+                                                .nextInt(songList.length);
+                                            playModeNotifier.value = 1;
+                                            await audioHandler.setPlayQueue(
+                                              songList,
+                                            );
+                                            await audioHandler.load();
+                                            audioHandler.play();
+                                          },
+                                          icon: ImageIcon(shuffleImage),
+                                        ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            final songList = album
+                                                .songListManager
+                                                .getSongList()
+                                                .where(
+                                                  (song) =>
+                                                      getArtist(song).contains(
+                                                        widget.artist.name,
+                                                      ),
+                                                )
+                                                .toList();
+                                            audioHandler.currentIndex = 0;
+                                            playModeNotifier.value = 0;
+                                            await audioHandler.setPlayQueue(
+                                              songList,
+                                            );
+                                            await audioHandler.load();
+                                            audioHandler.play();
+                                          },
                                           icon: Icon(Icons.play_arrow_rounded),
+                                          iconSize: 30,
                                         ),
                                       ],
                                     ),
@@ -357,89 +430,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
             mainAxisAlignment: .center,
             children: [
               Expanded(flex: 1, child: SizedBox.shrink()),
-              Expanded(
-                flex: 3,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 700),
-                    child: ValueListenableBuilder(
-                      valueListenable: currentSongNotifier,
-                      builder: (_, currentSong, _) {
-                        return Material(
-                          color: Colors.transparent,
-                          child: ListenableBuilder(
-                            listenable: Listenable.merge([
-                              currentSong?.updateNotifier,
-                            ]),
-                            builder: (context, _) {
-                              return GlassContainer(
-                                height: 50,
-
-                                shape: LiquidRoundedSuperellipse(
-                                  borderRadius: 25,
-                                ),
-                                child: InkWell(
-                                  focusNode: currentSongNode,
-                                  customBorder: SmoothRectangleBorder(
-                                    smoothness: 1,
-                                    borderRadius: .circular(25),
-                                  ),
-                                  onTap: () {
-                                    if (playQueue.isEmpty) {
-                                      return;
-                                    }
-                                    Navigator.of(
-                                      context,
-                                      rootNavigator: true,
-                                    ).push(
-                                      DynamicLyricsPageRoute(
-                                        pageBuilder: (_, _, _) =>
-                                            LyricsPageLayer(),
-                                      ),
-                                    );
-                                  },
-
-                                  child: Row(
-                                    children: [
-                                      SizedBox(width: 25),
-                                      Hero(
-                                        tag: 'cover',
-                                        child: CoverArtWidget(
-                                          size: 40,
-                                          borderRadius: 4,
-                                          song: currentSong,
-                                        ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisAlignment: .center,
-                                          crossAxisAlignment: .start,
-                                          children: [
-                                            Text(
-                                              getTitle(currentSong),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
+              Expanded(flex: 3, child: Center(child: BigPlaybar())),
               Expanded(flex: 1, child: SizedBox.shrink()),
             ],
           ),

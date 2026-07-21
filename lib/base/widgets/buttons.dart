@@ -202,7 +202,7 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
           } else {
             Navigator.push(
               context,
-              PageRouteBuilder(
+              _NoSecondaryAnimationPageRoute(
                 opaque: false,
                 barrierColor: Colors.black.withAlpha(25),
                 barrierDismissible: true,
@@ -259,4 +259,20 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
       );
     },
   );
+}
+
+class _NoSecondaryAnimationPageRoute<T> extends PageRouteBuilder {
+  _NoSecondaryAnimationPageRoute({
+    required super.pageBuilder,
+    required super.transitionsBuilder,
+    super.opaque,
+    super.barrierColor,
+    super.barrierDismissible,
+  });
+
+  @override
+  DelegatedTransitionBuilder? get delegatedTransition =>
+      (context, animation, secondaryAnimation, allowSnapshotting, child) {
+        return child;
+      };
 }
