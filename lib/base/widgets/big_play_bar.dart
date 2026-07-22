@@ -20,35 +20,38 @@ class BigPlayBar extends StatelessWidget {
       child: ValueListenableBuilder(
         valueListenable: currentSongNotifier,
         builder: (_, currentSong, _) {
-          return Material(
-            color: Colors.transparent,
-            shape: SmoothRectangleBorder(
-              smoothness: 1,
-              borderRadius: .circular(25),
-            ),
-            clipBehavior: .antiAliasWithSaveLayer,
-            child: ListenableBuilder(
-              listenable: Listenable.merge([currentSong?.updateNotifier]),
-              builder: (context, _) {
-                return GlassContainer(
-                  height: 50,
-                  settings: LiquidGlassSettings(glassColor: glassColor.value),
-                  shape: LiquidRoundedSuperellipse(borderRadius: 0),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Row(
-                        children: [
-                          SizedBox(width: constraints.maxWidth > 500 ? 10 : 15),
+          return ListenableBuilder(
+            listenable: Listenable.merge([currentSong?.updateNotifier]),
+            builder: (context, _) {
+              return GlassContainer(
+                height: 50,
+                settings: LiquidGlassSettings(glassColor: glassColor.value),
+                shape: LiquidRoundedSuperellipse(borderRadius: 25),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Row(
+                      children: [
+                        SizedBox(width: constraints.maxWidth > 500 ? 10 : 15),
 
-                          if (constraints.maxWidth > 500) ...[
-                            playModeButton(20),
-                            skip2PreviousButton(20),
-                            playOrPauseButton(30),
-                            skip2NextButton(20),
-                            showPlayQueueButton(20),
-                          ],
+                        if (constraints.maxWidth > 500) ...[
+                          playModeButton(20),
+                          skip2PreviousButton(20),
+                          playOrPauseButton(30),
+                          skip2NextButton(20),
+                          showPlayQueueButton(20),
+                        ],
 
-                          Expanded(
+                        Expanded(
+                          child: Material(
+                            color: Colors.transparent,
+                            shape: SmoothRectangleBorder(
+                              smoothness: 1,
+                              borderRadius: .horizontal(
+                                left: .circular(10),
+                                right: .circular(25),
+                              ),
+                            ),
+                            clipBehavior: .antiAlias,
                             child: InkWell(
                               mouseCursor: SystemMouseCursors.click,
                               focusNode: focusNode,
@@ -93,17 +96,18 @@ class BigPlayBar extends StatelessWidget {
                                       ],
                                     ),
                                   ),
+                                  SizedBox(width: 25),
                                 ],
                               ),
                             ),
                           ),
-                        ],
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              );
+            },
           );
         },
       ),

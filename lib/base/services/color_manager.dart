@@ -74,7 +74,7 @@ final MyColor switchColor = MyColor(
 final MyColor glassColor = MyColor(
   vividModeValue: Color.fromARGB(75, 255, 255, 255),
   lightModeValue: Color.fromARGB(128, 255, 255, 255),
-  darkModeValue: Color.fromARGB(128, 0, 0, 0),
+  darkModeValue: Color.fromARGB(128, 30, 30, 30),
 );
 
 final MyColor panelColor = MyColor(

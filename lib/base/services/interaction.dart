@@ -973,6 +973,7 @@ void showSwitchDialogIfNeed(
       if (sourceType != songListManager.sourceTypeNotifier.value &&
           songListManager.getSongList2(sourceType).isNotEmpty) {
         songListManager.sourceTypeNotifier.value = sourceType;
+        layersManager.updateBackground();
         break;
       }
     }
@@ -1007,6 +1008,7 @@ void showSwitchDialogIfNeed(
                         Navigator.pop(context);
                         await Future.delayed(Duration(milliseconds: 250));
                         songListManager.sourceTypeNotifier.value = sourceType;
+                        layersManager.updateBackground();
                       },
                       trailing:
                           songListManager.sourceTypeNotifier.value == sourceType

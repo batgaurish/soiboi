@@ -426,6 +426,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
               : 25,
           left: 20,
           child: GlassContainer(
+            settings: LiquidGlassSettings(glassColor: glassColor.value),
             shape: LiquidRoundedSuperellipse(borderRadius: 30),
             clipBehavior: .antiAlias,
             child: IconButton(
@@ -446,7 +447,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
             mainAxisAlignment: .center,
             children: [
               Expanded(flex: 1, child: SizedBox.shrink()),
-              Expanded(flex: 3, child: Center(child: BigPlayBar())),
+              Expanded(flex: 8, child: Center(child: BigPlayBar())),
               Expanded(flex: 1, child: SizedBox.shrink()),
             ],
           ),

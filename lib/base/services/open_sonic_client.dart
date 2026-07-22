@@ -120,13 +120,13 @@ abstract class OpenSubsonicClient {
         logger.output(e.response!.data.toString());
       }
 
-      reportNetworkError('$runtimeType', e.message ?? 'network error');
+      reportNetworkError('$runtimeType', 'network error');
 
       return null;
     } catch (e) {
       logger.output('[$runtimeType] $e');
 
-      reportNetworkError('$runtimeType', e.toString());
+      reportNetworkError('$runtimeType', 'network error');
 
       return null;
     }
@@ -257,16 +257,10 @@ abstract class OpenSubsonicClient {
 
         return res.data;
       } catch (e) {
-        retry++;
-
-        logger.output('[$runtimeType] CoverArt: $e');
-
-        await Future.delayed(Duration(milliseconds: retry * 200));
+        logger.output('[$runtimeType] Failed to load cover: $id, Error: $e');
+        break;
       }
     }
-
-    logger.output('[$runtimeType] Failed to load cover: $id');
-
     return null;
   }
 

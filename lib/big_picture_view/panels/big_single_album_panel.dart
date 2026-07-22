@@ -285,6 +285,34 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
         ),
         if (widget.album.year != null)
           Text(widget.album.year.toString(), textAlign: .center),
+
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: .center,
+          children: [
+            Text(
+              getSourceTypeName(
+                AppLocalizations.of(context),
+                songListManager.sourceTypeNotifier.value,
+              ),
+            ),
+            if (songListManager.notEmptyCount > 1) ...[
+              SizedBox(width: 10),
+              GlassContainer(
+                child: TextButton(
+                  onPressed: () {
+                    showSwitchDialogIfNeed(context, songListManager);
+                  },
+                  child: Text(
+                    AppLocalizations.of(context).switch_,
+                    style: .new(color: textColor.value),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        SizedBox(height: 10),
         GamepadInterceptor(
           onBeforeIntent: (activator, intent) {
             if (intent is DirectionalFocusIntent) {
@@ -341,38 +369,6 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
               ),
             ],
           ),
-        ),
-        Row(
-          mainAxisAlignment: .center,
-          children: [
-            Text(
-              getSourceTypeName(
-                AppLocalizations.of(context),
-                songListManager.sourceTypeNotifier.value,
-              ),
-            ),
-            if (songListManager.notEmptyCount > 1) ...[
-              SizedBox(width: 10),
-              ValueListenableBuilder(
-                valueListenable: buttonColor.valueNotifier,
-                builder: (context, value, child) {
-                  return ElevatedButton(
-                    onPressed: () {
-                      showSwitchDialogIfNeed(context, songListManager);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: buttonColor.value,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: EdgeInsets.all(10),
-                    ),
-                    child: Text(AppLocalizations.of(context).switch_),
-                  );
-                },
-              ),
-            ],
-          ],
         ),
       ],
     );

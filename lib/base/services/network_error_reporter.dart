@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 /// Server clients (webdav/subsonic/navidrome/emby) run deep in the data
 /// layer with no BuildContext of their own, so failures can't call
@@ -20,5 +20,7 @@ void reportNetworkError(String sourceLabel, String message) {
   }
   _lastReportTime = now;
   lastNetworkErrorMessage = '$sourceLabel: $message';
-  networkErrorNotifier.value++;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    networkErrorNotifier.value++;
+  });
 }
