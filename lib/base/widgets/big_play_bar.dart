@@ -9,9 +9,9 @@ import 'package:sylvakru/base/widgets/buttons.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/layer/lyrics_page_layer.dart';
 
-class BigPlaybar extends StatelessWidget {
+class BigPlayBar extends StatelessWidget {
   final FocusNode? focusNode;
-  const BigPlaybar({super.key, this.focusNode});
+  const BigPlayBar({super.key, this.focusNode});
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +26,7 @@ class BigPlaybar extends StatelessWidget {
               smoothness: 1,
               borderRadius: .circular(25),
             ),
-            clipBehavior: .antiAlias,
-
+            clipBehavior: .antiAliasWithSaveLayer,
             child: ListenableBuilder(
               listenable: Listenable.merge([currentSong?.updateNotifier]),
               builder: (context, _) {
@@ -39,7 +38,7 @@ class BigPlaybar extends StatelessWidget {
                     builder: (context, constraints) {
                       return Row(
                         children: [
-                          SizedBox(width: constraints.maxWidth > 500 ? 10 : 25),
+                          SizedBox(width: constraints.maxWidth > 500 ? 10 : 15),
 
                           if (constraints.maxWidth > 500) ...[
                             playModeButton(20),
@@ -51,10 +50,8 @@ class BigPlaybar extends StatelessWidget {
 
                           Expanded(
                             child: InkWell(
+                              mouseCursor: SystemMouseCursors.click,
                               focusNode: focusNode,
-                              focusColor: Theme.of(
-                                context,
-                              ).focusColor.withAlpha(75),
 
                               onTap: () {
                                 if (playQueue.isEmpty) {

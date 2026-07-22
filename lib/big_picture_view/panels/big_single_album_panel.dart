@@ -10,13 +10,19 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/asset_images.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
+import 'package:sylvakru/base/data/song_list_manager.dart';
+import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
+import 'package:sylvakru/base/services/metadata_service.dart';
 import 'package:sylvakru/base/utils/format_duration.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/widgets/big_playbar.dart';
+import 'package:sylvakru/base/utils/source_type.dart';
+import 'package:sylvakru/base/utils/zoom_page_route.dart';
+import 'package:sylvakru/base/widgets/big_play_bar.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
+import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 
 bool useCurrentSongForBg = true;
@@ -37,12 +43,29 @@ class BigSingleAlbumPanel extends StatefulWidget {
 class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
   FocusNode currentSongNode = FocusNode();
 
+  List<MyAudioMetadata> currentSongList = [];
+  late final SongListManager songListManager;
+
+  late Color baseColor;
+
+  void updateSongList() async {
+    currentSongList = songListManager.getSongList();
+    baseColor = await computeCoverArtColor(currentSongList.first);
+    setState(() {});
+  }
+
   @override
   void initState() {
     useCurrentSongForBg = false;
+    songListManager = widget.album.songListManager;
+    currentSongList = songListManager.getSongList();
+    baseColor = widget.baseColor;
+    songListManager.sourceTypeNotifier.addListener(updateSongList);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       colorManager.updateBigPictureRelatedColors(widget.album.getCoverSong());
     });
+
     super.initState();
   }
 
@@ -50,6 +73,8 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
   void dispose() {
     currentSongNode.dispose();
     useCurrentSongForBg = true;
+    songListManager.sourceTypeNotifier.removeListener(updateSongList);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       colorManager.updateBigPictureRelatedColors(currentSongNotifier.value);
     });
@@ -59,46 +84,27 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
   @override
   Widget build(BuildContext context) {
     final appWidth = MediaQuery.widthOf(context);
-    final currentSongList = widget.album.songListManager.getSongList();
+    final appHeight = MediaQuery.heightOf(context);
+
     return Stack(
       fit: .expand,
       children: [
-        ListenableBuilder(
-          listenable: Listenable.merge([]),
-          builder: (context, _) {
-            if (mainPageThemeNotifier.value != .vivid) {
-              return SizedBox.shrink();
-            }
-            return CoverArtWidget(
-              song: currentSongList.first,
-              color: widget.baseColor,
-            );
-          },
-        ),
-        ListenableBuilder(
-          listenable: Listenable.merge([]),
-          builder: (context, child) {
-            if (mainPageThemeNotifier.value != .vivid) {
-              return SizedBox.shrink();
-            }
-            final pageWidth = MediaQuery.widthOf(context);
-            final pageHight = MediaQuery.heightOf(context);
-
-            return RepaintBoundary(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: pageWidth * 0.03,
-                  sigmaY: pageHight * 0.03,
-                ),
-                child: AnimatedContainer(
-                  duration: Duration(milliseconds: 500),
-                  curve: Curves.easeInOutCubic,
-                  color: widget.baseColor.withAlpha(180),
-                ),
+        if (mainPageThemeNotifier.value == .vivid) ...[
+          CoverArtWidget(song: currentSongList.first, color: baseColor),
+          RepaintBoundary(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: appWidth * 0.03,
+                sigmaY: appHeight * 0.03,
               ),
-            );
-          },
-        ),
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 500),
+                curve: Curves.easeInOutCubic,
+                color: baseColor.withAlpha(180),
+              ),
+            ),
+          ),
+        ],
 
         Scaffold(
           backgroundColor: panelColor.value,
@@ -106,200 +112,11 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
           resizeToAvoidBottomInset: false,
           body: Row(
             children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    SizedBox(height: 75),
-                    Expanded(
-                      child: ValueListenableBuilder(
-                        valueListenable: currentSongNotifier,
-                        builder: (context, currentSong, child) {
-                          return ListView.builder(
-                            padding: EdgeInsets.symmetric(horizontal: 30),
-                            itemExtent: 50,
-                            itemCount: currentSongList.length,
-                            itemBuilder: (_, index) {
-                              final song = currentSongList[index];
-                              return Material(
-                                color: Colors.transparent,
-                                shape: SmoothRectangleBorder(
-                                  smoothness: 1,
-                                  borderRadius: .circular(15),
-                                ),
-                                clipBehavior: .antiAlias,
-                                child: InkWell(
-                                  mouseCursor: SystemMouseCursors.click,
-                                  onTap: () {
-                                    showOptions(context: context, song: song);
-                                  },
-                                  child: Padding(
-                                    padding: EdgeInsets.only(right: 20.0),
-                                    child: Row(
-                                      children: [
-                                        SizedBox(
-                                          width: 50,
-                                          child: Center(
-                                            child: currentSong == song
-                                                ? ValueListenableBuilder(
-                                                    valueListenable:
-                                                        isPlayingNotifier,
-                                                    builder:
-                                                        (
-                                                          context,
-                                                          value,
-                                                          child,
-                                                        ) {
-                                                          return ExcludeFocus(
-                                                            child:
-                                                                RiveAnimatedIcon(
-                                                                  key: ValueKey(
-                                                                    value,
-                                                                  ),
-                                                                  riveIcon:
-                                                                      .sound,
-                                                                  width: 35,
-                                                                  height: 35,
-                                                                  loopAnimation:
-                                                                      value,
-                                                                ),
-                                                          );
-                                                        },
-                                                  )
-                                                : Text(
-                                                    song.track != null
-                                                        ? song.track.toString()
-                                                        : '#',
-                                                  ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Align(
-                                            alignment: .centerLeft,
-                                            child: Text(
-                                              getTitle(song),
-                                              style: .new(overflow: .ellipsis),
-                                            ),
-                                          ),
-                                        ),
-
-                                        Expanded(
-                                          child: Text(
-                                            getArtist(song),
-                                            style: .new(overflow: .ellipsis),
-                                          ),
-                                        ),
-                                        Text(formatDuration(getDuration(song))),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              Expanded(child: songListView()),
               SizedBox(width: appWidth * 0.02),
               SizedBox(
                 width: appWidth * 0.25,
-                child: ListView(
-                  children: [
-                    SizedBox(height: 120),
-                    Hero(
-                      tag:
-                          'big${widget.album.getCoverSong().id}${widget.album.name}',
-                      flightShuttleBuilder:
-                          (
-                            flightContext,
-                            animation,
-                            flightDirection,
-                            fromHeroContext,
-                            toHeroContext,
-                          ) => FittedBox(child: toHeroContext.widget),
-                      child: CoverArtWidget(
-                        size: appWidth * 0.25,
-                        borderRadius: appWidth * 0.0125,
-                        song: widget.album.getCoverSong(),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      widget.album.name,
-                      textAlign: .center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    GamepadInterceptor(
-                      onBeforeIntent: (activator, intent) {
-                        if (intent is DirectionalFocusIntent) {
-                          if (intent.direction == .up) {
-                            currentSongNode.requestFocus();
-                            return false;
-                          }
-                        }
-                        return true;
-                      },
-                      child: Row(
-                        mainAxisAlignment: .center,
-                        children: [
-                          IconButton(
-                            onPressed: () async {
-                              audioHandler.currentIndex = Random().nextInt(
-                                currentSongList.length,
-                              );
-                              playModeNotifier.value = 1;
-                              await audioHandler.setPlayQueue(currentSongList);
-                              await audioHandler.load();
-                              audioHandler.play();
-                            },
-                            icon: ImageIcon(shuffleImage),
-                            iconSize: 30,
-                          ),
-                          IconButton(
-                            onPressed: () async {
-                              audioHandler.currentIndex = 0;
-                              playModeNotifier.value = 0;
-                              await audioHandler.setPlayQueue(currentSongList);
-                              await audioHandler.load();
-                              audioHandler.play();
-                            },
-                            icon: Icon(Icons.play_circle_fill_rounded),
-                            iconSize: 50,
-                          ),
-                          IconButton(
-                            onPressed: () {},
-                            icon: Transform.scale(
-                              scale: 0.95,
-                              child: ImageIcon(selectImage),
-                            ),
-                            iconSize: 30,
-                          ),
-                        ],
-                      ),
-                    ),
-                    ValueListenableBuilder(
-                      valueListenable: buttonColor.valueNotifier,
-                      builder: (context, value, child) {
-                        return ElevatedButton(
-                          onPressed: () async {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: buttonColor.value,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: EdgeInsets.all(10),
-                          ),
-                          child: Text(AppLocalizations.of(context).switch_),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+                child: coverArtAndControls(appWidth * 0.25),
               ),
 
               SizedBox(width: appWidth * 0.05),
@@ -308,17 +125,28 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
         ),
 
         Positioned(
-          top: isTooNarrow(context) ? 50 : 25,
+          top: isTooNarrow(context)
+              ? 50
+              : isMobile
+              ? 20
+              : 25,
           left: 20,
-          child: GlassContainer(
-            shape: LiquidRoundedSuperellipse(borderRadius: 30),
+          child: Material(
+            color: Colors.transparent,
+            shape: SmoothRectangleBorder(
+              smoothness: 1,
+              borderRadius: .circular(25),
+            ),
             clipBehavior: .antiAlias,
-            child: IconButton(
-              autofocus: true,
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              icon: Icon(Icons.arrow_back_ios_rounded),
+            child: GlassContainer(
+              settings: LiquidGlassSettings(glassColor: glassColor.value),
+              child: IconButton(
+                autofocus: true,
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: Icon(Icons.arrow_back_ios_rounded),
+              ),
             ),
           ),
         ),
@@ -332,12 +160,219 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
             children: [
               Expanded(flex: 1, child: SizedBox.shrink()),
               Expanded(
-                flex: 3,
-                child: Center(child: BigPlaybar(focusNode: currentSongNode)),
+                flex: 8,
+                child: Center(child: BigPlayBar(focusNode: currentSongNode)),
               ),
               Expanded(flex: 1, child: SizedBox.shrink()),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget songListView() {
+    return Column(
+      children: [
+        SizedBox(height: isMobile ? 80 : 75),
+        Expanded(
+          child: ValueListenableBuilder(
+            valueListenable: currentSongNotifier,
+            builder: (context, currentSong, child) {
+              return ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 30),
+                itemExtent: 50,
+                itemCount: currentSongList.length,
+                itemBuilder: (_, index) {
+                  final song = currentSongList[index];
+                  return Material(
+                    color: Colors.transparent,
+                    shape: SmoothRectangleBorder(
+                      smoothness: 1,
+                      borderRadius: .circular(15),
+                    ),
+                    clipBehavior: .antiAlias,
+                    child: InkWell(
+                      mouseCursor: SystemMouseCursors.click,
+                      onTap: () {
+                        showOptions(context: context, song: song);
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 20.0),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 50,
+                              child: Center(
+                                child: currentSong == song
+                                    ? ValueListenableBuilder(
+                                        valueListenable: isPlayingNotifier,
+                                        builder: (context, value, child) {
+                                          return ExcludeFocus(
+                                            child: RiveAnimatedIcon(
+                                              key: ValueKey(value),
+                                              riveIcon: .sound,
+                                              width: 35,
+                                              height: 35,
+                                              loopAnimation: value,
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Text(
+                                        song.track != null
+                                            ? song.track.toString()
+                                            : '#',
+                                      ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Align(
+                                alignment: .centerLeft,
+                                child: Text(
+                                  getTitle(song),
+                                  style: .new(overflow: .ellipsis),
+                                ),
+                              ),
+                            ),
+
+                            Expanded(
+                              child: Text(
+                                getArtist(song),
+                                style: .new(overflow: .ellipsis),
+                              ),
+                            ),
+                            Text(formatDuration(getDuration(song))),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget coverArtAndControls(double width) {
+    return ListView(
+      children: [
+        SizedBox(height: 120),
+        Hero(
+          tag: 'big${currentSongList.first.id}${widget.album.name}',
+          flightShuttleBuilder:
+              (
+                flightContext,
+                animation,
+                flightDirection,
+                fromHeroContext,
+                toHeroContext,
+              ) => FittedBox(child: toHeroContext.widget),
+          child: CoverArtWidget(
+            size: width,
+            borderRadius: width * 0.05,
+            song: currentSongList.first,
+          ),
+        ),
+        SizedBox(height: 10),
+        Text(
+          widget.album.name,
+          textAlign: .center,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        if (widget.album.year != null)
+          Text(widget.album.year.toString(), textAlign: .center),
+        GamepadInterceptor(
+          onBeforeIntent: (activator, intent) {
+            if (intent is DirectionalFocusIntent) {
+              if (intent.direction == .up) {
+                currentSongNode.requestFocus();
+                return false;
+              }
+            }
+            return true;
+          },
+          child: Row(
+            mainAxisAlignment: .center,
+            children: [
+              IconButton(
+                onPressed: () async {
+                  audioHandler.currentIndex = Random().nextInt(
+                    currentSongList.length,
+                  );
+                  playModeNotifier.value = 1;
+                  await audioHandler.setPlayQueue(currentSongList);
+                  await audioHandler.load();
+                  audioHandler.play();
+                },
+                icon: ImageIcon(shuffleImage),
+                iconSize: 30,
+              ),
+              IconButton(
+                onPressed: () async {
+                  audioHandler.currentIndex = 0;
+                  playModeNotifier.value = 0;
+                  await audioHandler.setPlayQueue(currentSongList);
+                  await audioHandler.load();
+                  audioHandler.play();
+                },
+                icon: Icon(Icons.play_circle_fill_rounded),
+                iconSize: 50,
+              ),
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    ZoomPageRoute(
+                      builder: (_) => SelectableSongListPage(
+                        songList: songListManager.getSongList(),
+                        reorderable: false,
+                      ),
+                    ),
+                  );
+                },
+                icon: Transform.scale(
+                  scale: 0.95,
+                  child: ImageIcon(selectImage),
+                ),
+                iconSize: 30,
+              ),
+            ],
+          ),
+        ),
+        Row(
+          mainAxisAlignment: .center,
+          children: [
+            Text(
+              getSourceTypeName(
+                AppLocalizations.of(context),
+                songListManager.sourceTypeNotifier.value,
+              ),
+            ),
+            if (songListManager.notEmptyCount > 1) ...[
+              SizedBox(width: 10),
+              ValueListenableBuilder(
+                valueListenable: buttonColor.valueNotifier,
+                builder: (context, value, child) {
+                  return ElevatedButton(
+                    onPressed: () {
+                      showSwitchDialogIfNeed(context, songListManager);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: buttonColor.value,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.all(10),
+                    ),
+                    child: Text(AppLocalizations.of(context).switch_),
+                  );
+                },
+              ),
+            ],
+          ],
         ),
       ],
     );

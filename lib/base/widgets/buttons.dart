@@ -216,10 +216,7 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
                         builder: (context, value, child) {
                           return Material(
                             elevation: 1,
-                            color: Color.alphaBlend(
-                              colorManager.getSpecificBgColor(),
-                              colorManager.getSpecificBgBaseColor(),
-                            ),
+                            color: Colors.transparent,
                             shape: SmoothRectangleBorder(
                               smoothness: 1,
                               borderRadius: BorderRadius.horizontal(
@@ -227,7 +224,12 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
                               ),
                             ),
                             clipBehavior: Clip.antiAliasWithSaveLayer,
-                            child: SizedBox(
+                            child: AnimatedContainer(
+                              duration: Duration(milliseconds: 250),
+                              color: Color.alphaBlend(
+                                colorManager.getSpecificBgColor(),
+                                colorManager.getSpecificBgBaseColor(),
+                              ),
                               width: max(
                                 350,
                                 MediaQuery.widthOf(context) * 0.2,

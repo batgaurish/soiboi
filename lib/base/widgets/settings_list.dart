@@ -586,6 +586,7 @@ class SettingsList extends StatelessWidget {
                                       return;
                                     }
                                     mainPageThemeNotifier.value = .vivid;
+                                    updateHoverFocusColor();
                                   },
                                   trailing: ValueListenableBuilder(
                                     valueListenable: isPremiumNotifier,
@@ -603,6 +604,7 @@ class SettingsList extends StatelessWidget {
                                   title: Text(l10n.lightMode),
                                   onTap: () {
                                     mainPageThemeNotifier.value = .light;
+                                    updateHoverFocusColor();
                                   },
                                   trailing: value == .light
                                       ? Icon(Icons.check)
@@ -612,6 +614,7 @@ class SettingsList extends StatelessWidget {
                                   title: Text(l10n.darkMode),
                                   onTap: () {
                                     mainPageThemeNotifier.value = .dark;
+                                    updateHoverFocusColor();
                                   },
                                   trailing: value == .dark
                                       ? Icon(Icons.check)

@@ -12,7 +12,7 @@ import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/interaction.dart';
 import 'package:sylvakru/base/services/my_window_listener.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/widgets/big_playbar.dart';
+import 'package:sylvakru/base/widgets/big_play_bar.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/scale_widget.dart';
 import 'package:sylvakru/big_picture_view/panels/big_albums_panel.dart';
@@ -345,8 +345,8 @@ class _BigPictureViewState extends State<BigPictureView> {
                                           await Future.delayed(
                                             Duration(milliseconds: 250),
                                           );
-                                          layersManager.updateBackground();
                                           viewModeNotifier.value = .normal;
+                                          layersManager.updateBackground();
                                         },
                                         icon: ImageIcon(bigPictueModeImage),
                                       ),
@@ -447,7 +447,7 @@ class _BigPictureViewState extends State<BigPictureView> {
             mainAxisAlignment: .center,
             children: [
               Expanded(flex: 1, child: SizedBox.shrink()),
-              Expanded(flex: 3, child: Center(child: BigPlaybar())),
+              Expanded(flex: 8, child: Center(child: BigPlayBar())),
               Expanded(flex: 1, child: SizedBox.shrink()),
             ],
           ),

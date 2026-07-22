@@ -15,9 +15,11 @@ import 'package:sylvakru/base/utils/format_duration.dart';
 import 'package:sylvakru/base/utils/media_query.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
 import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/base/widgets/big_playbar.dart';
+import 'package:sylvakru/base/utils/zoom_page_route.dart';
+import 'package:sylvakru/base/widgets/big_play_bar.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/my_divider.dart';
+import 'package:sylvakru/base/widgets/selectable_song_list_page.dart';
 import 'package:sylvakru/big_picture_view/panels/big_single_album_panel.dart';
 import 'package:sylvakru/l10n/generated/app_localizations.dart';
 
@@ -140,7 +142,17 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                     iconSize: 30,
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        ZoomPageRoute(
+                          builder: (_) => SelectableSongListPage(
+                            songList: widget.artist.songListManager
+                                .getSongList(),
+                            reorderable: false,
+                          ),
+                        ),
+                      );
+                    },
                     icon: Transform.scale(
                       scale: 0.95,
                       child: ImageIcon(selectImage),
@@ -407,7 +419,11 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
         ),
 
         Positioned(
-          top: isTooNarrow(context) ? 50 : 25,
+          top: isTooNarrow(context)
+              ? 50
+              : isMobile
+              ? 20
+              : 25,
           left: 20,
           child: GlassContainer(
             shape: LiquidRoundedSuperellipse(borderRadius: 30),
@@ -430,7 +446,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
             mainAxisAlignment: .center,
             children: [
               Expanded(flex: 1, child: SizedBox.shrink()),
-              Expanded(flex: 3, child: Center(child: BigPlaybar())),
+              Expanded(flex: 3, child: Center(child: BigPlayBar())),
               Expanded(flex: 1, child: SizedBox.shrink()),
             ],
           ),

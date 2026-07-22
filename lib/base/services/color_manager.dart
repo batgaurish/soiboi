@@ -14,6 +14,33 @@ ContrastColorTextTheme contrastColorTheme = ContrastColorGenerator.generate(
   currentCoverArtColor,
 );
 
+final lightHoverFocusColorNotifier = ValueNotifier(false);
+
+void updateHoverFocusColor() {
+  if (displayLyricsPage) {
+    if (lyricsPageThemeNotifier.value == .vivid) {
+      double r = currentCoverArtColor.r;
+      double g = currentCoverArtColor.g;
+      double b = currentCoverArtColor.b;
+      final luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+      lightHoverFocusColorNotifier.value = luminance < 0.5;
+    } else {
+      lightHoverFocusColorNotifier.value =
+          lyricsPageThemeNotifier.value == .dark;
+    }
+  } else if (viewModeNotifier.value == .mini) {
+    double r = currentCoverArtColor.r;
+    double g = currentCoverArtColor.g;
+    double b = currentCoverArtColor.b;
+    final luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+    lightHoverFocusColorNotifier.value = luminance < 0.5;
+  } else {
+    lightHoverFocusColorNotifier.value = mainPageThemeNotifier.value == .dark;
+  }
+}
+
 final MyColor pageBackgroundColor = MyColor(
   vividModeValue: Color.fromARGB(100, 245, 245, 245),
   lightModeValue: Colors.grey.shade100,

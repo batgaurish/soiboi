@@ -77,6 +77,7 @@ Future<void> main() async {
         localeNotifier,
         fontFamilyNotifier,
         mainPageThemeNotifier,
+        lightHoverFocusColorNotifier,
       ]),
       builder: (context, child) {
         return MaterialApp(
@@ -85,10 +86,10 @@ Future<void> main() async {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           title: 'Sylvaklu',
           theme: ThemeData(
-            focusColor: mainPageThemeNotifier.value == .dark
+            focusColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)
                 : Colors.black.withAlpha(20),
-            hoverColor: mainPageThemeNotifier.value == .dark
+            hoverColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)
                 : Colors.black.withAlpha(15),
             textTheme: Theme.of(context).textTheme.apply(

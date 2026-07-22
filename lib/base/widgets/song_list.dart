@@ -58,8 +58,6 @@ class SongList extends StatefulWidget {
 
   final SourceType sourceType;
 
-  final Function(BuildContext)? switchCallBack;
-
   const SongList({
     super.key,
     this.playlist,
@@ -70,7 +68,6 @@ class SongList extends StatefulWidget {
     this.isRecently = false,
     this.isRoot = true,
     this.sourceType = .local,
-    this.switchCallBack,
   });
 
   @override

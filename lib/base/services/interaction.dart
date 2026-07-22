@@ -9,10 +9,12 @@ import 'package:sylvakru/base/app.dart';
 import 'package:sylvakru/base/audio_handler.dart';
 import 'package:sylvakru/base/data/artist_album.dart';
 import 'package:sylvakru/base/data/playlist.dart';
+import 'package:sylvakru/base/data/song_list_manager.dart';
 import 'package:sylvakru/base/my_audio_metadata.dart';
 import 'package:sylvakru/base/services/color_manager.dart';
 import 'package:sylvakru/base/services/metadata_service.dart';
 import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:sylvakru/base/utils/source_type.dart';
 import 'package:sylvakru/base/utils/zoom_page_route.dart';
 import 'package:sylvakru/base/widgets/cover_art_widget.dart';
 import 'package:sylvakru/base/widgets/custom_text_field.dart';
@@ -76,6 +78,7 @@ Future<bool> showConfirmDialog(BuildContext context, String action) async {
                 buttonColor.valueNotifier,
                 lyricsPageForegroundColor.valueNotifier,
                 lyricsPageButtonColor.valueNotifier,
+                miniViewForegroundColor.valueNotifier,
               ]),
               builder: (context, _) {
                 return Column(
@@ -147,7 +150,6 @@ Future<String> getInputTextDialog(BuildContext context, String title) async {
   final l10n = AppLocalizations.of(context);
 
   final controller = TextEditingController();
-  final specificTextcolor = colorManager.getSpecificTextColor();
 
   final result = await showAnimationDialog<String>(
     context: context,
@@ -156,36 +158,49 @@ Future<String> getInputTextDialog(BuildContext context, String title) async {
       height: isMobile ? 220 : 200,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
-        child: Column(
-          children: [
-            Center(
-              child: Text(
-                title,
-                style: TextStyle(fontSize: 25, color: specificTextcolor),
-              ),
-            ),
-            SizedBox(height: 20),
-            CustomTextField(null, controller, compact: false, autoFocus: true),
-            SizedBox(height: 30),
-            Center(
-              child: ListenableBuilder(
-                listenable: Listenable.merge([
-                  buttonColor.valueNotifier,
-                  lyricsPageButtonColor.valueNotifier,
-                ]),
-                builder: (context, _) {
-                  return ElevatedButton(
-                    onPressed: () => Navigator.pop(context, controller.text),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorManager.getSpecificButtonColor(),
-                      foregroundColor: specificTextcolor,
-                    ),
-                    child: Text(l10n.confirm),
-                  );
-                },
-              ),
-            ),
-          ],
+        child: ValueListenableBuilder(
+          valueListenable: lyricsPageForegroundColor.valueNotifier,
+          builder: (context, value, child) {
+            final specificTextcolor = colorManager.getSpecificTextColor();
+            return Column(
+              children: [
+                Center(
+                  child: Text(
+                    title,
+                    style: TextStyle(fontSize: 25, color: specificTextcolor),
+                  ),
+                ),
+                SizedBox(height: 20),
+                CustomTextField(
+                  null,
+                  controller,
+                  compact: false,
+                  autoFocus: true,
+                ),
+                SizedBox(height: 30),
+                Center(
+                  child: ListenableBuilder(
+                    listenable: Listenable.merge([
+                      buttonColor.valueNotifier,
+                      lyricsPageButtonColor.valueNotifier,
+                    ]),
+                    builder: (context, _) {
+                      return ElevatedButton(
+                        onPressed: () =>
+                            Navigator.pop(context, controller.text),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorManager
+                              .getSpecificButtonColor(),
+                          foregroundColor: specificTextcolor,
+                        ),
+                        child: Text(l10n.confirm),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     ),
@@ -720,7 +735,8 @@ void showOptions({
   showAnimationDialog(
     context: context,
     child: SizedBox(
-      width: min(MediaQuery.widthOf(context) / 3, 400),
+      width: max(320, min(MediaQuery.widthOf(context) / 3, 400)),
+
       child: Builder(
         builder: (context) {
           return ConstrainedBox(
@@ -941,6 +957,146 @@ void showOptions({
                 SizedBox(height: 10),
               ],
             ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
+void showSwitchDialogIfNeed(
+  BuildContext context,
+  SongListManager songListManager,
+) {
+  if (songListManager.notEmptyCount == 2) {
+    for (final sourceType in SourceType.values) {
+      if (sourceType != songListManager.sourceTypeNotifier.value &&
+          songListManager.getSongList2(sourceType).isNotEmpty) {
+        songListManager.sourceTypeNotifier.value = sourceType;
+        break;
+      }
+    }
+    return;
+  }
+  showAnimationDialog(
+    context: context,
+    child: SizedBox(
+      width: 300,
+      height: isMobile ? 280 : 260,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Builder(
+          builder: (context) {
+            return ListView(
+              children: [
+                for (final sourceType in SourceType.values)
+                  if (songListManager.getSongList2(sourceType).isNotEmpty)
+                    ListTile(
+                      leading: Image(
+                        image: getSourceTypeImage(sourceType),
+                        height: 30,
+                        width: 30,
+                      ),
+                      title: Text(
+                        getSourceTypeName(
+                          AppLocalizations.of(context),
+                          sourceType,
+                        ),
+                      ),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await Future.delayed(Duration(milliseconds: 250));
+                        songListManager.sourceTypeNotifier.value = sourceType;
+                      },
+                      trailing:
+                          songListManager.sourceTypeNotifier.value == sourceType
+                          ? Icon(Icons.check)
+                          : null,
+                    ),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
+  );
+}
+
+void showPlayQueueItemOptions(
+  BuildContext context,
+  MyAudioMetadata song, {
+  required void Function() playNextCallback,
+  required void Function() removeCallback,
+}) {
+  final l10n = AppLocalizations.of(context);
+  showAnimationDialog(
+    context: context,
+    child: SizedBox(
+      width: 300,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([lyricsPageForegroundColor.valueNotifier]),
+        builder: (context, _) {
+          final iconColor = colorManager.getSpecificIconColor();
+          final textColor = colorManager.getSpecificTextColor();
+
+          return Column(
+            mainAxisSize: .min,
+            children: [
+              SizedBox(height: 10),
+
+              ListTile(
+                leading: Icon(Icons.play_arrow_rounded, color: iconColor),
+                title: Text(l10n.playNow, style: .new(color: textColor)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Future.delayed(Duration(milliseconds: 250));
+
+                  final index = playQueue.indexOf(song);
+                  if (index == audioHandler.currentIndex) {
+                    audioHandler.play();
+                  } else {
+                    audioHandler.currentIndex = index;
+                    await audioHandler.load();
+                    audioHandler.play();
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.navigate_next_rounded, color: iconColor),
+                title: Text(l10n.playNext, style: .new(color: textColor)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Future.delayed(Duration(milliseconds: 250));
+
+                  playNextCallback.call();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.playlist_add_rounded, color: iconColor),
+                title: Text(l10n.add2Playlist, style: .new(color: textColor)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Future.delayed(Duration(milliseconds: 250));
+
+                  if (context.mounted) {
+                    showAddPlaylistDialog(context, [song]);
+                  }
+                },
+              ),
+
+              ListTile(
+                leading: Icon(Icons.close_rounded, color: iconColor),
+                title: Text(l10n.remove, style: .new(color: textColor)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await Future.delayed(Duration(milliseconds: 250));
+
+                  removeCallback.call();
+                },
+              ),
+
+              SizedBox(height: 10),
+            ],
           );
         },
       ),

@@ -237,9 +237,9 @@ extension _SongListPage on _SongListState {
                     horizontal: 0,
                     vertical: -4,
                   ),
-                  onTap: () async {
+                  onTap: () {
                     Navigator.of(context).pop();
-                    widget.switchCallBack!(context);
+                    showSwitchDialogIfNeed(context, songListManager);
                   },
                 );
               },

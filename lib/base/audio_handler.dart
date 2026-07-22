@@ -456,6 +456,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> _setLyricsAndUpdateColors(MyAudioMetadata song) async {
     await setParsedLyrics(song);
     currentCoverArtColor = await computeCoverArtColor(song);
+    updateHoverFocusColor();
     contrastColorTheme = ContrastColorGenerator.generate(currentCoverArtColor);
     if (lyricsPageThemeNotifier.value == .vivid) {
       colorManager.updateLyricsPageColors();
