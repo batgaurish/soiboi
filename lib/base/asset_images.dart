@@ -50,6 +50,7 @@ const AssetImage minimizeImage = AssetImage('assets/images/minimize.png');
 const AssetImage musicNoteImage = AssetImage('assets/images/music_note.png');
 const AssetImage navidromeImage = AssetImage('assets/images/navidrome.png');
 const AssetImage nextButtonImage = AssetImage('assets/images/next_button.png');
+const AssetImage optionImage = AssetImage('assets/images/option.png');
 const AssetImage pauseCircleImage = AssetImage(
   'assets/images/pause_circle.png',
 );

@@ -454,7 +454,35 @@ class _BigPictureViewState extends State<BigPictureView> {
             children: [
               Expanded(flex: 1, child: SizedBox.shrink()),
               Expanded(flex: 8, child: Center(child: BigPlayBar())),
-              Expanded(flex: 1, child: SizedBox.shrink()),
+              Expanded(
+                flex: 1,
+                child: ValueListenableBuilder(
+                  valueListenable: _currentIndexNotifier,
+                  builder: (context, value, child) {
+                    if (value == 0 || value == 4 || value == 8) {
+                      return SizedBox.shrink();
+                    }
+                    return Row(
+                      mainAxisAlignment: .end,
+                      children: [
+                        GlassContainer(
+                          settings: LiquidGlassSettings(
+                            glassColor: glassColor.value,
+                          ),
+                          shape: const LiquidRoundedSuperellipse(
+                            borderRadius: 30,
+                          ),
+                          child: IconButton(
+                            onPressed: () {},
+                            icon: ImageIcon(optionImage),
+                          ),
+                        ),
+                        SizedBox(width: 30),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
