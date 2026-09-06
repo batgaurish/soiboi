@@ -10,6 +10,8 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
@@ -23,6 +25,25 @@ import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+
+/// Makes archived files visible in the library.
+///
+/// Downloads land in the app's own storage, which is not a folder anyone would
+/// ever add by hand — so without this the archive card's promise that files are
+/// "added to your library on this device" is simply false, and Songs still
+/// reads zero after a successful download.
+///
+/// Registered on first use rather than at startup, so someone who never
+/// downloads anything does not get a phantom empty folder in Manage Folders.
+Future<void> syncArchivedToLibrary() async {
+  final ids = library.folderList.map((folder) => folder.id).toList();
+  if (!ids.contains(downloadOutputDir)) {
+    await library.updateFolders([...ids, downloadOutputDir]);
+  }
+  // Synced regardless: the folder may already be registered from an earlier
+  // download, and the new file still has to be picked up.
+  if (!Loader.busy) await Loader.sync();
+}
 
 class DownloadsLayer extends StatefulWidget {
   const DownloadsLayer({super.key});
@@ -90,6 +111,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       } else if (event.isDone) {
         setState(() => _completed.insert(0, url));
         _urlController.clear();
+        await syncArchivedToLibrary();
       }
     }
     if (mounted) setState(() => _busy = false);
@@ -519,6 +541,9 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
       }
       if (mounted) setState(() => _queued.add(track.title));
     }
+    // Once for the batch rather than per track: a library sync walks every
+    // registered folder, and doing that between tracks would dominate the run.
+    if (_queued.isNotEmpty) await syncArchivedToLibrary();
     if (mounted) setState(() => _sending = false);
   }
 
