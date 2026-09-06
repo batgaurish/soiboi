@@ -10,6 +10,7 @@ import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
+import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/bridge_client.dart';
 import 'package:soiboi/base/app.dart';
@@ -171,6 +172,10 @@ class _SettingsListState extends State<SettingsList> {
 
         sliverBox(
           paddingIfNeed(isLandscape, downloadServerListTile(context, l10n)),
+        ),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, listenBrainzListTile(context, l10n)),
         ),
 
         sliverBox(paddingIfNeed(isLandscape, lrclibListTile(l10n))),
@@ -1106,6 +1111,104 @@ class _SettingsListState extends State<SettingsList> {
                             Navigator.of(context).pop();
                           },
                           child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        controller.dispose();
+      },
+    );
+  }
+
+  /// Optional. Without it, Home ranks by local play counts; with it, rankings
+  /// reflect everything you listen to. Stats are public, so no token is needed
+  /// and nothing is sent anywhere -- this only reads.
+  Widget listenBrainzListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: const Icon(Icons.insights_outlined, size: 30),
+      title: const Text('ListenBrainz'),
+      subtitle: ValueListenableBuilder(
+        valueListenable: listenBrainzUserNotifier,
+        builder: (context, value, child) => Text(
+          value.isEmpty ? 'Not connected — using local play counts' : value,
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+      ),
+      onTap: () async {
+        final controller = TextEditingController(
+          text: listenBrainzUserNotifier.value,
+        );
+        String? status;
+        await showAnimationDialog(
+          context: context,
+          child: StatefulBuilder(
+            builder: (context, setDialogState) => SizedBox(
+              width: 340,
+              height: 250,
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ListenBrainz',
+                      style: TextStyle(fontSize: 18, fontWeight: .bold),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Your username ranks Home by everything you listen to, '
+                      'not just this device. Read-only, no token needed.',
+                      style: TextStyle(fontSize: 12, color: textColor.value),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: controller,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'username',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    if (status != null) ...[
+                      const SizedBox(height: 10),
+                      Text(status!, style: const TextStyle(fontSize: 12)),
+                    ],
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            listenBrainzUserNotifier.value = '';
+                            setting.save();
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Disconnect'),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: () async {
+                            final user = controller.text.trim();
+                            if (user.isEmpty) return;
+                            setDialogState(() => status = 'Checking…');
+                            final ok = await verifyListenBrainzUser(user);
+                            if (!ok) {
+                              setDialogState(
+                                () => status = 'No such ListenBrainz user',
+                              );
+                              return;
+                            }
+                            listenBrainzUserNotifier.value = user;
+                            setting.save();
+                            if (context.mounted) Navigator.of(context).pop();
+                          },
+                          child: const Text('Connect'),
                         ),
                       ],
                     ),

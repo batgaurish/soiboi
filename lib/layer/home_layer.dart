@@ -1,28 +1,37 @@
 /// Home: the landing screen.
 ///
 /// Upstream has no home in the standard views — the sidebar drops you straight
-/// into Artists or Songs — so this is new. It exists to put the weekly
-/// discoveries where you actually land, rather than buried behind the Downloads
-/// tab, and to give recently and most played a shelf each.
+/// into Artists or Songs — so this is new, and it is the startup layer.
 ///
-/// Every section is conditional. With no bridge configured and an unplayed
-/// library this screen is empty by design, so it never shows a wall of empty
-/// placeholder cards to someone who just installed the app.
+/// Layout follows the pattern the large streaming apps converged on: familiar
+/// things first (what you were listening to, what just arrived), discovery
+/// below. Every shelf is conditional, so a fresh install with no server and no
+/// play history shows one empty state rather than a wall of placeholders.
+///
+/// Rankings have two sources. Without a ListenBrainz username they come from
+/// local play counts, which needs no network and no account. With one, they
+/// come from ListenBrainz and reflect everything you listen to rather than just
+/// what this device played — and entries you don't own locally are surfaced as
+/// gaps the archival pipeline can fill.
 library;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/history.dart';
+import 'package:soiboi/base/data/home_shelves.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/bridge_client.dart';
 import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/quality_badge.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/downloads_layer.dart';
+import 'package:soiboi/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class HomeLayer extends StatefulWidget {
@@ -34,35 +43,57 @@ class HomeLayer extends StatefulWidget {
 
 class _HomeLayerState extends State<HomeLayer> {
   List<DiscoverPlaylist> _discover = const [];
+  List<LbEntry>? _lbArtists;
+  List<LbEntry>? _lbAlbums;
 
   @override
   void initState() {
     super.initState();
-    _loadDiscover();
-    // Refresh when the server address changes, so configuring it in Settings
-    // makes the shelf appear without a restart.
-    bridgeUrlNotifier.addListener(_loadDiscover);
+    _loadRemote();
+    bridgeUrlNotifier.addListener(_loadRemote);
+    listenBrainzUserNotifier.addListener(_loadRemote);
   }
 
   @override
   void dispose() {
-    bridgeUrlNotifier.removeListener(_loadDiscover);
+    bridgeUrlNotifier.removeListener(_loadRemote);
+    listenBrainzUserNotifier.removeListener(_loadRemote);
     super.dispose();
   }
 
-  Future<void> _loadDiscover() async {
+  Future<void> _loadRemote() async {
+    // Discovery playlists come from the bridge; rankings come straight from
+    // ListenBrainz. Independent sources, so one being down never blanks the
+    // other.
     final client = bridgeClient;
     if (client == null) {
       if (mounted) setState(() => _discover = const []);
+    } else {
+      try {
+        final playlists = await client.discoverPlaylists();
+        if (mounted) setState(() => _discover = playlists);
+      } on BridgeException {
+        // No server, or no ListenBrainz user configured on it. Both ordinary.
+        if (mounted) setState(() => _discover = const []);
+      }
+    }
+
+    if (!listenBrainzConnected) {
+      if (mounted) {
+        setState(() {
+          _lbArtists = null;
+          _lbAlbums = null;
+        });
+      }
       return;
     }
-    try {
-      final playlists = await client.discoverPlaylists();
-      if (mounted) setState(() => _discover = playlists);
-    } on BridgeException {
-      // No server, or no ListenBrainz username configured on it. Both are
-      // ordinary states — the shelf simply doesn't appear.
-      if (mounted) setState(() => _discover = const []);
+    final artists = await topArtistsFromListenBrainz();
+    final albums = await topAlbumsFromListenBrainz();
+    if (mounted) {
+      setState(() {
+        _lbArtists = artists;
+        _lbAlbums = albums;
+      });
     }
   }
 
@@ -73,32 +104,79 @@ class _HomeLayerState extends State<HomeLayer> {
       listenable: Listenable.merge([
         history.recentlyChangeNotifier,
         history.rankingChangeNotifier,
+        artistAlbumManager.updateNotifier,
+        currentSongNotifier,
       ]),
       builder: (context, _) {
-        final recent = history.recentlySongList.take(12).toList();
-        final most = history.rankingSongList.take(12).toList();
-        final empty = _discover.isEmpty && recent.isEmpty && most.isEmpty;
+        final upNext = playNextSongs();
+        final recent = history.recentlySongList.take(shelfLimit).toList();
+        final added = recentlyAddedSongs();
+        final addedAlbums = recentlyAddedAlbums();
+        final favourites = favouriteSongs();
+        final most = history.rankingSongList.take(shelfLimit).toList();
+
+        // ListenBrainz wins when connected and reachable; local rankings are
+        // the fallback, never a blank shelf.
+        final artistEntries = _lbArtists;
+        final albumEntries = _lbAlbums;
+        final localArtists = topArtists();
+        final localAlbums = topAlbums();
+
+        final anything = upNext.isNotEmpty ||
+            recent.isNotEmpty ||
+            added.isNotEmpty ||
+            _discover.isNotEmpty ||
+            favourites.isNotEmpty ||
+            most.isNotEmpty ||
+            localArtists.isNotEmpty ||
+            (artistEntries?.isNotEmpty ?? false);
 
         return CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: SizedBox(height: 18)),
-            if (_discover.isNotEmpty)
-              SliverToBoxAdapter(child: _discoverShelf()),
+
+            if (upNext.isNotEmpty)
+              _sliver(_songShelf('Up next', upNext)),
+
             if (recent.isNotEmpty)
-              SliverToBoxAdapter(
-                child: _songShelf(l10n.recently, recent),
-              ),
-            if (most.isNotEmpty)
-              SliverToBoxAdapter(
-                child: _songShelf(l10n.ranking, most),
-              ),
-            if (empty) SliverFillRemaining(child: _emptyState()),
+              _sliver(_songShelf(l10n.recently, recent)),
+
+            if (added.isNotEmpty)
+              _sliver(_songShelf('Recently added', added)),
+
+            if (_discover.isNotEmpty) _sliver(_discoverShelf()),
+
+            if (favourites.isNotEmpty)
+              _sliver(_songShelf(l10n.favorites, favourites)),
+
+            if (artistEntries != null && artistEntries.isNotEmpty)
+              _sliver(_lbShelf('Top artists', artistEntries, circular: true))
+            else if (localArtists.isNotEmpty)
+              _sliver(_collectionShelf(
+                'Top artists',
+                localArtists,
+                circular: true,
+              )),
+
+            if (albumEntries != null && albumEntries.isNotEmpty)
+              _sliver(_lbShelf('Top albums', albumEntries, circular: false))
+            else if (localAlbums.isNotEmpty)
+              _sliver(_collectionShelf('Top albums', localAlbums)),
+
+            if (addedAlbums.isNotEmpty)
+              _sliver(_collectionShelf('New albums', addedAlbums)),
+
+            if (most.isNotEmpty) _sliver(_songShelf(l10n.ranking, most)),
+
+            if (!anything) SliverFillRemaining(child: _emptyState()),
             const SliverToBoxAdapter(child: SizedBox(height: 90)),
           ],
         );
       },
     );
   }
+
+  Widget _sliver(Widget child) => SliverToBoxAdapter(child: child);
 
   Widget _emptyState() {
     return Center(
@@ -146,60 +224,94 @@ class _HomeLayerState extends State<HomeLayer> {
           if (trailing != null)
             Text(
               trailing,
-              style: TextStyle(fontSize: 12, color: textColor.value),
+              style: TextStyle(fontSize: 11.5, color: textColor.value),
             ),
         ],
       ),
     );
   }
 
-  /// Weekly discovery playlists, straight from the pipeline's discovery engine.
-  Widget _discoverShelf() {
+  Widget _shelf({
+    required String title,
+    String? trailing,
+    required double height,
+    required int count,
+    required Widget Function(BuildContext, int) builder,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Weekly discoveries', trailing: 'From your library'),
+        _sectionHeader(title, trailing: trailing),
         SizedBox(
-          height: 96,
+          height: height,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            itemCount: _discover.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (context, i) {
-              final playlist = _discover[i];
-              return _DiscoverCard(
-                playlist: playlist,
-                index: i,
-                onTap: () => showDiscoverPlaylistSheet(context, playlist),
-              );
-            },
+            itemCount: count,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            itemBuilder: builder,
           ),
         ),
       ],
     );
   }
 
-  Widget _songShelf(String title, List<MyAudioMetadata> songs) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(title),
-        SizedBox(
-          height: 186,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            itemCount: songs.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, i) => _SongCard(
-              song: songs[i],
-              index: i,
-              onTap: () => audioHandler.singlePlay(songs[i]),
-            ),
-          ),
-        ),
-      ],
+  Widget _discoverShelf() => _shelf(
+    title: 'Weekly discoveries',
+    trailing: 'From your listening',
+    height: 96,
+    count: _discover.length,
+    builder: (context, i) => _DiscoverCard(
+      playlist: _discover[i],
+      index: i,
+      onTap: () => showDiscoverPlaylistSheet(context, _discover[i]),
+    ),
+  );
+
+  Widget _songShelf(String title, List<MyAudioMetadata> songs) => _shelf(
+    title: title,
+    height: 186,
+    count: songs.length,
+    builder: (context, i) => _SongCard(
+      song: songs[i],
+      index: i,
+      onTap: () => audioHandler.singlePlay(songs[i]),
+    ),
+  );
+
+  /// Local artists or albums, ranked by plays on this device.
+  Widget _collectionShelf(
+    String title,
+    List<ArtistAlbumBase> items, {
+    bool circular = false,
+  }) => _shelf(
+    title: title,
+    height: circular ? 170 : 176,
+    count: items.length,
+    builder: (context, i) => _CollectionCard(
+      item: items[i],
+      index: i,
+      circular: circular,
+    ),
+  );
+
+  /// ListenBrainz rankings. Entries missing from the library are dimmed and
+  /// marked, because "you listen to this and don't own it" is exactly the gap
+  /// the archival pipeline exists to close.
+  Widget _lbShelf(String title, List<LbEntry> entries, {required bool circular}) {
+    final missing = entries.where((e) => !e.isInLibrary).length;
+    return _shelf(
+      title: title,
+      trailing: missing == 0
+          ? 'From ListenBrainz'
+          : '$missing not in your library',
+      height: circular ? 170 : 176,
+      count: entries.length,
+      builder: (context, i) => _LbCard(
+        entry: entries[i],
+        index: i,
+        circular: circular,
+      ),
     );
   }
 }
@@ -218,15 +330,13 @@ class _StaggeredIn extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: motion.medium + motion.staggerStep * index,
-      curve: Interval(
-        // Later cards start later, which is what reads as a cascade.
-        (index * 0.06).clamp(0.0, 0.6),
-        1,
-        curve: motion.enterExit,
-      ),
+      curve: Interval((index * 0.06).clamp(0.0, 0.6), 1, curve: motion.enterExit),
       builder: (context, t, child) => Opacity(
         opacity: t,
-        child: Transform.translate(offset: Offset(0, (1 - t) * 14), child: child),
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 14),
+          child: child,
+        ),
       ),
       child: child,
     );
@@ -346,12 +456,168 @@ class _SongCard extends StatelessWidget {
                 style: TextStyle(fontSize: 11, color: textColor.value),
               ),
               const SizedBox(height: 4),
-              // Quality is visible here too — the point of the archive is
-              // knowing which copy you have, wherever a track is shown.
               QualityBadge(song),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A local artist or album.
+class _CollectionCard extends StatelessWidget {
+  const _CollectionCard({
+    required this.item,
+    required this.index,
+    this.circular = false,
+  });
+  final ArtistAlbumBase item;
+  final int index;
+  final bool circular;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StaggeredIn(
+      index: index,
+      child: SizedBox(
+        width: 124,
+        child: InkWell(
+          onTap: () {
+            layersManager.switchRootLayer(item.isArtist ? 'artists' : 'albums');
+          },
+          borderRadius: BorderRadius.circular(
+            circular ? 62 : 10 * activeFlavour.cornerScale,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CoverArtWidget(
+                size: 124,
+                // Artists read as circles by long-standing convention; albums
+                // stay square because that is what a sleeve is.
+                borderRadius: circular ? 62 : 12 * activeFlavour.cornerScale,
+                picture: item.picture,
+                elevation: 3,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: circular ? TextAlign.center : TextAlign.start,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: highlightTextColor.value,
+                ),
+              ),
+              Text(
+                '${item.songList.length} tracks',
+                maxLines: 1,
+                style: TextStyle(fontSize: 11, color: textColor.value),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A ListenBrainz-ranked artist or album, which may or may not be in the
+/// library.
+class _LbCard extends StatelessWidget {
+  const _LbCard({
+    required this.entry,
+    required this.index,
+    required this.circular,
+  });
+  final LbEntry entry;
+  final int index;
+  final bool circular;
+
+  @override
+  Widget build(BuildContext context) {
+    final owned = entry.isInLibrary;
+    final radius = circular ? 62.0 : 12 * activeFlavour.cornerScale;
+
+    return _StaggeredIn(
+      index: index,
+      child: Opacity(
+        // Not owning something is information, not an error — dim rather than
+        // hide, so the gap stays visible.
+        opacity: owned ? 1 : 0.55,
+        child: SizedBox(
+          width: 124,
+          child: InkWell(
+            onTap: owned
+                ? () => layersManager.switchRootLayer(
+                      entry.localArtist != null ? 'artists' : 'albums',
+                    )
+                : null,
+            borderRadius: BorderRadius.circular(radius),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _artwork(radius, owned),
+                const SizedBox(height: 8),
+                Text(
+                  entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: highlightTextColor.value,
+                  ),
+                ),
+                Text(
+                  owned
+                      ? '${entry.listenCount} plays'
+                      : 'Not in library',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: textColor.value),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _artwork(double radius, bool owned) {
+    final localPicture = entry.localArtist?.picture ?? entry.localAlbum?.picture;
+    if (localPicture != null) {
+      return CoverArtWidget(
+        size: 124,
+        borderRadius: radius,
+        picture: localPicture,
+        elevation: 3,
+      );
+    }
+    // Fall back to Cover Art Archive when we don't own it locally.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        width: 124,
+        height: 124,
+        color: buttonColor.value,
+        child: entry.artworkUrl == null
+            ? Icon(
+                circular ? Icons.person_outline : Icons.album_outlined,
+                color: textColor.value,
+              )
+            : Image.network(
+                entry.artworkUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Icon(
+                  circular ? Icons.person_outline : Icons.album_outlined,
+                  color: textColor.value,
+                ),
+              ),
       ),
     );
   }
