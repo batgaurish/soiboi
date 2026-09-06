@@ -207,3 +207,105 @@ Future<bool> verifyListenBrainzUser(String user) async {
     return false;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Discovery playlists
+//
+// These used to come from the self-hosted bridge, which proxied ListenBrainz
+// with a stored token. Both endpoints turn out to be public -- the playlists
+// are marked public and need only a username -- so the app fetches them
+// directly and the server is no longer involved in discovery at all.
+// ---------------------------------------------------------------------------
+
+/// A ListenBrainz-generated playlist ("Weekly Exploration", "Daily Jams"…).
+class LbPlaylist {
+  LbPlaylist({required this.mbid, required this.title, this.lastModified});
+
+  final String mbid;
+  final String title;
+  final String? lastModified;
+}
+
+/// One track in a discovery playlist, before Apple resolution.
+class LbTrack {
+  LbTrack({required this.title, required this.artist, this.recordingMbid});
+
+  final String title;
+  final String artist;
+  final String? recordingMbid;
+}
+
+/// Playlists ListenBrainz generated for the configured user.
+///
+/// Returns an empty list when no username is set, rather than throwing: not
+/// being connected is an ordinary state, and the shelf simply does not appear.
+Future<List<LbPlaylist>> discoveryPlaylists() async {
+  final user = listenBrainzUserNotifier.value.trim();
+  if (user.isEmpty) return const [];
+  try {
+    final uri = Uri.https(_host, '/1/user/$user/playlists/createdfor');
+    final resp = await http.get(uri).timeout(_timeout);
+    if (resp.statusCode != 200) return const [];
+    final body = jsonDecode(utf8.decode(resp.bodyBytes));
+    final entries = (body is Map ? body['playlists'] : null) as List?;
+    if (entries == null) return const [];
+
+    final playlists = <LbPlaylist>[];
+    for (final entry in entries) {
+      final playlist = (entry is Map ? entry['playlist'] : null) as Map?;
+      if (playlist == null) continue;
+      final identifier = playlist['identifier'] as String?;
+      if (identifier == null) continue;
+      playlists.add(
+        LbPlaylist(
+          // The identifier is a full URL; the mbid is its last path segment.
+          mbid: identifier.replaceAll(RegExp(r'/$'), '').split('/').last,
+          title: playlist['title'] as String? ?? 'Untitled',
+          lastModified: (playlist['date'] ?? playlist['last_modified_at'])
+              as String?,
+        ),
+      );
+    }
+    return playlists;
+  } on TimeoutException {
+    return const [];
+  } catch (e) {
+    logger.output('listenbrainz playlists: $e');
+    return const [];
+  }
+}
+
+/// Tracks in a discovery playlist. Artist and title only -- Apple resolution
+/// happens separately, since it is a per-track network call and only needed
+/// when the user actually opens a playlist.
+Future<List<LbTrack>> discoveryTracks(String mbid) async {
+  try {
+    final uri = Uri.https(_host, '/1/playlist/$mbid');
+    final resp = await http.get(uri).timeout(const Duration(seconds: 25));
+    if (resp.statusCode != 200) return const [];
+    final body = jsonDecode(utf8.decode(resp.bodyBytes));
+    final playlist = (body is Map ? body['playlist'] : null) as Map?;
+    final entries = playlist?['track'] as List?;
+    if (entries == null) return const [];
+
+    return entries.whereType<Map>().map((entry) {
+      final identifiers = entry['identifier'];
+      String? mbid;
+      if (identifiers is List && identifiers.isNotEmpty) {
+        mbid = identifiers.first.toString().split('/').last;
+      } else if (identifiers is String) {
+        mbid = identifiers.split('/').last;
+      }
+      return LbTrack(
+        title: entry['title'] as String? ?? '',
+        artist: entry['creator'] as String? ?? '',
+        recordingMbid: mbid,
+      );
+    }).where((t) => t.title.isNotEmpty && t.artist.isNotEmpty).toList();
+  } on TimeoutException {
+    return const [];
+  } catch (e) {
+    logger.output('listenbrainz playlist tracks: $e');
+    return const [];
+  }
+}

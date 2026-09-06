@@ -250,6 +250,13 @@ class AndroidPipelineRunner extends PipelineRunner {
 PipelineRunner buildPipelineRunner() =>
     Platform.isAndroid ? AndroidPipelineRunner() : DesktopPipelineRunner();
 
+/// Where archived files land.
+///
+/// Defaults to a Soiboi folder beside the app's data rather than the user's
+/// music library, so a failed or partial download never scatters junk through
+/// a curated collection. Configurable once the library-folder work lands.
+String downloadOutputDir = '';
+
 /// Shared instance and its probed capabilities.
 final pipelineRunner = buildPipelineRunner();
 final pipelineCapabilitiesNotifier = ValueNotifier<PipelineCapabilities?>(null);

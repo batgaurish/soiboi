@@ -1,22 +1,25 @@
-/// Downloads screen: add an Apple Music playlist, watch it archive, and browse
-/// the weekly discovery playlists the pipeline generates.
+/// Downloads: archive Apple Music into the local library.
 ///
-/// This is the one screen that requires the download-bridge service. Everything
-/// else in the app works offline against local files, so this page has to
-/// degrade gracefully when the bridge is unreachable — which, for a service
-/// living on someone's home server behind Tailscale, is a normal state rather
-/// than an error.
+/// Everything runs on this device. There is no server, no Docker and no LAN
+/// dependency — the archival pipeline is bundled inside the app and invoked
+/// through [pipelineRunner], and discovery comes straight from ListenBrainz.
+///
+/// Two things gate downloading, and the screen reports each separately so a
+/// failure is legible rather than a generic error: an Apple Music session
+/// (cookies), and a working pipeline runtime for this platform.
 library;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/services/bridge_client.dart';
-import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/preview_player.dart';
+import 'package:soiboi/base/services/cookie_store.dart';
+import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/listenbrainz_service.dart';
+import 'package:soiboi/base/services/pipeline_runner.dart';
+import 'package:soiboi/base/services/preview_player.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/motion.dart';
-import 'package:soiboi/base/widgets/my_divider.dart';
+import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class DownloadsLayer extends StatefulWidget {
@@ -28,136 +31,102 @@ class DownloadsLayer extends StatefulWidget {
 
 class _DownloadsLayerState extends State<DownloadsLayer> {
   final _urlController = TextEditingController();
-  List<String> _playlists = const [];
-  List<DiscoverPlaylist> _discover = const [];
-  bool _loadingPlaylists = false;
+  List<LbPlaylist> _discover = const [];
+
+  /// Progress for the download in flight, if any.
+  int _progress = 0;
+  String _status = '';
+  bool _busy = false;
+  String? _error;
+  final List<String> _completed = [];
 
   @override
   void initState() {
     super.initState();
-    startPolling();
-    _loadLists();
+    _load();
+    listenBrainzUserNotifier.addListener(_load);
+    // Probe once so the screen can explain itself before anything is attempted.
+    refreshPipelineCapabilities();
   }
 
   @override
   void dispose() {
-    stopPolling();
+    listenBrainzUserNotifier.removeListener(_load);
     _urlController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadLists() async {
-    final client = bridgeClient;
-    if (client == null) return;
-    setState(() => _loadingPlaylists = true);
-    try {
-      final playlists = await client.playlists();
-      if (mounted) setState(() => _playlists = playlists);
-    } on BridgeException {
-      // The banner already reports connection trouble; no second complaint.
-    }
-    try {
-      final discover = await client.discoverPlaylists();
-      if (mounted) setState(() => _discover = discover);
-    } on BridgeException {
-      // Discovery needs a ListenBrainz username configured server-side. Its
-      // absence is a normal setup state, not a failure worth shouting about.
-    }
-    if (mounted) setState(() => _loadingPlaylists = false);
+  Future<void> _load() async {
+    final playlists = await discoveryPlaylists();
+    if (mounted) setState(() => _discover = playlists);
   }
 
-  Future<void> _addPlaylist() async {
+  Future<void> _archiveUrl() async {
     final url = _urlController.text.trim();
-    if (url.isEmpty) return;
-    final ok = await runBridgeAction((c) async {
-      final updated = await c.addPlaylist(url);
-      if (mounted) setState(() => _playlists = updated);
+    if (url.isEmpty || _busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+      _progress = 0;
+      _status = 'Starting';
     });
-    if (ok) _urlController.clear();
+
+    await for (final event in pipelineRunner.run('download', {
+      'url': url,
+      'cookies_path': cookiesPath,
+      'output_dir': downloadOutputDir,
+    })) {
+      if (!mounted) return;
+      if (event.isProgress) {
+        setState(() {
+          _progress = event.progress;
+          _status = event.status;
+        });
+      } else if (event.isError) {
+        setState(() => _error = event.message);
+      } else if (event.isDone) {
+        setState(() => _completed.insert(0, url));
+        _urlController.clear();
+      }
+    }
+    if (mounted) setState(() => _busy = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: bridgeUrlNotifier,
-      builder: (context, url, _) {
-        if (url.trim().isEmpty) return _notConfigured();
-        return ListenableBuilder(
-          listenable: Listenable.merge([
-            bridgeStatsNotifier,
-            bridgeErrorNotifier,
-            bridgeLoadingNotifier,
-          ]),
-          builder: (context, _) => _content(context),
-        );
-      },
-    );
-  }
-
-  Widget _notConfigured() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off_rounded, size: 44, color: textColor.value),
-            const SizedBox(height: 14),
-            Text(
-              'No download server',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: highlightTextColor.value,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Downloading needs the archival service running on your own '
-              'machine. Add its address in Settings to archive Apple Music '
-              'playlists from here.\n\nYour local library plays without it.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: textColor.value),
-            ),
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        signedInNotifier,
+        pipelineCapabilitiesNotifier,
+      ]),
+      builder: (context, _) => RefreshIndicator(
+        onRefresh: () async {
+          await refreshPipelineCapabilities();
+          await _load();
+        },
+        child: CustomScrollView(
+          slivers: [
+            if (_error != null)
+              SliverToBoxAdapter(child: _banner(_error!, isError: true)),
+            SliverToBoxAdapter(child: _readinessCard()),
+            SliverToBoxAdapter(child: _archiveCard()),
+            if (_busy) SliverToBoxAdapter(child: _progressCard()),
+            if (_completed.isNotEmpty)
+              SliverToBoxAdapter(child: _completedCard()),
+            if (_discover.isNotEmpty) SliverToBoxAdapter(child: _discoverCard()),
+            const SliverToBoxAdapter(child: SizedBox(height: 90)),
           ],
         ),
       ),
     );
   }
 
-  Widget _content(BuildContext context) {
-    final stats = bridgeStatsNotifier.value;
-    final error = bridgeErrorNotifier.value;
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await refreshStats();
-        await _loadLists();
-      },
-      child: CustomScrollView(
-        slivers: [
-          if (error != null) SliverToBoxAdapter(child: _errorBanner(error)),
-          SliverToBoxAdapter(child: _addPlaylistCard()),
-          if (_playlists.isNotEmpty)
-            SliverToBoxAdapter(child: _playlistsCard()),
-          if (stats != null && stats.activeTasks.isNotEmpty)
-            SliverToBoxAdapter(child: _activeCard(stats)),
-          if (stats != null) SliverToBoxAdapter(child: _queueCard(stats)),
-          if (_discover.isNotEmpty)
-            SliverToBoxAdapter(child: _discoverCard()),
-          const SliverToBoxAdapter(child: SizedBox(height: 90)),
-        ],
-      ),
-    );
-  }
-
   Widget _card({required String title, required Widget child, Widget? action}) {
-    final radius = 12.0 * activeFlavour.cornerScale;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       child: SmoothClipRRect(
         smoothness: 1,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(12 * activeFlavour.cornerScale),
         child: Container(
           color: menuColor.value,
           padding: const EdgeInsets.all(16),
@@ -188,31 +157,30 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     );
   }
 
-  Widget _errorBanner(String error) {
+  Widget _banner(String text, {bool isError = false}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
       child: SmoothClipRRect(
         smoothness: 1,
         borderRadius: BorderRadius.circular(10 * activeFlavour.cornerScale),
         child: Container(
-          color: Colors.red.withValues(alpha: 0.14),
+          color: (isError ? Colors.red : seekBarColor.value).withValues(
+            alpha: 0.14,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           child: Row(
             children: [
-              const Icon(Icons.error_outline, size: 18, color: Colors.red),
+              Icon(
+                isError ? Icons.error_outline : Icons.info_outline,
+                size: 18,
+                color: isError ? Colors.red : seekBarColor.value,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  error,
+                  text,
                   style: TextStyle(fontSize: 13, color: textColor.value),
                 ),
-              ),
-              TextButton(
-                onPressed: () {
-                  refreshStats();
-                  _loadLists();
-                },
-                child: const Text('Retry'),
               ),
             ],
           ),
@@ -221,9 +189,91 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     );
   }
 
-  Widget _addPlaylistCard() {
+  /// The two prerequisites, reported separately.
+  ///
+  /// Collapsing these into one "not ready" message would hide which of the two
+  /// is actually wrong, and they have completely different fixes.
+  Widget _readinessCard() {
+    final caps = pipelineCapabilitiesNotifier.value;
+    final signedIn = signedInNotifier.value;
+    final runtimeOk = caps?.canDownload ?? false;
+    if (signedIn && runtimeOk) return const SizedBox.shrink();
+
     return _card(
-      title: 'Archive an Apple Music playlist',
+      title: 'Before you can archive',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _requirement(
+            ok: signedIn,
+            label: 'Apple Music account',
+            detail: signedIn ? 'Signed in' : 'Sign in to download',
+            action: signedIn
+                ? null
+                : () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AppleSignInLayer(),
+                      ),
+                    );
+                    await refreshSessionState();
+                  },
+          ),
+          const SizedBox(height: 10),
+          _requirement(
+            ok: runtimeOk,
+            label: 'Download engine',
+            detail: caps?.summary ?? 'Checking…',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _requirement({
+    required bool ok,
+    required String label,
+    required String detail,
+    VoidCallback? action,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          ok ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+          size: 18,
+          color: ok ? seekBarColor.value : textColor.value,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: highlightTextColor.value,
+                ),
+              ),
+              Text(
+                detail,
+                style: TextStyle(fontSize: 11.5, color: textColor.value),
+              ),
+            ],
+          ),
+        ),
+        if (action != null)
+          TextButton(onPressed: action, child: const Text('Sign in')),
+      ],
+    );
+  }
+
+  Widget _archiveCard() {
+    final ready =
+        signedInNotifier.value &&
+        (pipelineCapabilitiesNotifier.value?.canDownload ?? false);
+    return _card(
+      title: 'Archive from Apple Music',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -232,10 +282,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               Expanded(
                 child: TextField(
                   controller: _urlController,
-                  onSubmitted: (_) => _addPlaylist(),
+                  enabled: ready && !_busy,
+                  onSubmitted: (_) => _archiveUrl(),
                   style: TextStyle(fontSize: 14, color: textColor.value),
                   decoration: InputDecoration(
-                    hintText: 'https://music.apple.com/…/playlist/…',
+                    hintText: 'https://music.apple.com/…',
                     isDense: true,
                     filled: true,
                     fillColor: searchFieldColor.value,
@@ -249,13 +300,16 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                 ),
               ),
               const SizedBox(width: 10),
-              FilledButton(onPressed: _addPlaylist, child: const Text('Add')),
+              FilledButton(
+                onPressed: ready && !_busy ? _archiveUrl : null,
+                child: const Text('Archive'),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            'Added playlists are archived on the next run. Files land in your '
-            'library and sync to this device.',
+            'Songs, albums or playlists. Files are downloaded, tagged and '
+            'added to your library on this device.',
             style: TextStyle(fontSize: 12, color: textColor.value),
           ),
         ],
@@ -263,143 +317,68 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     );
   }
 
-  Widget _playlistsCard() {
+  Widget _progressCard() {
     return _card(
-      title: _loadingPlaylists
-          ? 'Tracked playlists…'
-          : 'Tracked playlists (${_playlists.length})',
-      action: FilledButton.tonal(
-        onPressed: () => runBridgeAction((c) => c.startWorkflow()),
-        child: const Text('Run now'),
+      title: 'Downloading',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: TweenAnimationBuilder<double>(
+              // Progress arrives in discrete stage jumps, so easing between
+              // them reads as motion rather than stutter.
+              tween: Tween(end: _progress / 100),
+              duration: activeMotion.medium,
+              curve: activeMotion.standard,
+              builder: (context, value, _) => LinearProgressIndicator(
+                value: value,
+                minHeight: 4,
+                backgroundColor: buttonColor.value,
+                color: seekBarColor.value,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _status,
+            style: TextStyle(fontSize: 11.5, color: textColor.value),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _completedCard() {
+    return _card(
+      title: 'Archived this session (${_completed.length})',
       child: Column(
         children: [
-          for (final url in _playlists)
+          for (final url in _completed.take(8))
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(
                 children: [
+                  Icon(
+                    Icons.check_rounded,
+                    size: 15,
+                    color: seekBarColor.value,
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       url,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12.5, color: textColor.value),
-                    ),
-                  ),
-                  IconButton(
-                    iconSize: 18,
-                    tooltip: 'Stop tracking',
-                    onPressed: () => runBridgeAction((c) async {
-                      final updated = await c.removePlaylist(url);
-                      if (mounted) setState(() => _playlists = updated);
-                    }),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _activeCard(BridgeStats stats) {
-    return _card(
-      title: 'Downloading now',
-      child: Column(
-        children: [
-          for (final task in stats.activeTasks)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 7),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.query,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      color: highlightTextColor.value,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: TweenAnimationBuilder<double>(
-                      // Progress arrives in discrete server-side jumps; easing
-                      // between them reads as motion rather than stutter.
-                      tween: Tween(end: task.progress / 100),
-                      duration: activeMotion.medium,
-                      curve: activeMotion.standard,
-                      builder: (context, value, _) => LinearProgressIndicator(
-                        value: task.indeterminate ? null : value,
-                        minHeight: 4,
-                        backgroundColor: buttonColor.value,
-                        color: seekBarColor.value,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textColor.value,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    task.status,
-                    style: TextStyle(fontSize: 11.5, color: textColor.value),
-                  ),
                 ],
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _queueCard(BridgeStats stats) {
-    return _card(
-      title: 'Queue',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _stat('Queued', '${stats.queuedTasksTotal}'),
-              _stat('Incoming', '${stats.incomingQueueTotal}'),
-              _stat('Done this run', '${stats.sessionCount}'),
-              _stat('Skipped', '${stats.skipped}'),
-            ],
-          ),
-          if (stats.taggerRunning || stats.discoveryRunning) ...[
-            const SizedBox(height: 12),
-            MyDivider(thickness: 0.5, height: 0.5, color: dividerColor),
-            const SizedBox(height: 10),
-            Text(
-              [
-                if (stats.taggerRunning) 'Tagging metadata',
-                if (stats.discoveryRunning) 'Resolving discoveries',
-              ].join(' · '),
-              style: TextStyle(fontSize: 12, color: textColor.value),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(String label, String value) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 21,
-              fontWeight: FontWeight.w600,
-              color: highlightTextColor.value,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          Text(label, style: TextStyle(fontSize: 11, color: textColor.value)),
         ],
       ),
     );
@@ -410,20 +389,16 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       title: 'Weekly discoveries',
       child: Column(
         children: [
-          for (final playlist in _discover)
+          for (final playlist in _discover.take(8))
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
               title: Text(
                 playlist.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 13.5, color: textColor.value),
               ),
-              subtitle: playlist.lastModified == null
-                  ? null
-                  : Text(
-                      playlist.lastModified!,
-                      style: TextStyle(fontSize: 11, color: textColor.value),
-                    ),
               trailing: const Icon(Icons.chevron_right_rounded, size: 20),
               onTap: () => showDiscoverPlaylistSheet(context, playlist),
             ),
@@ -433,17 +408,14 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   }
 }
 
-/// Opens a playlist's resolved tracks and offers to archive them.
+/// Opens a discovery playlist: resolved tracks, previews, and archiving.
 ///
-/// Resolution hits Apple's catalog once per track server-side, so this can take
-/// most of a minute on a long playlist — hence the explicit loading state
-/// rather than a spinner that looks stuck.
 /// Uses the app's own [showAnimationDialog] rather than showModalBottomSheet.
 /// The layer system nests navigators per root layer, and a raw modal sheet
 /// silently fails to find one from inside a layer.
 Future<void> showDiscoverPlaylistSheet(
   BuildContext context,
-  DiscoverPlaylist playlist,
+  LbPlaylist playlist,
 ) {
   return showAnimationDialog(
     context: context,
@@ -457,41 +429,25 @@ Future<void> showDiscoverPlaylistSheet(
 
 class _DiscoverPlaylistSheet extends StatefulWidget {
   const _DiscoverPlaylistSheet({required this.playlist});
-  final DiscoverPlaylist playlist;
+  final LbPlaylist playlist;
 
   @override
   State<_DiscoverPlaylistSheet> createState() => _DiscoverPlaylistSheetState();
 }
 
 class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
-  List<DiscoverTrack>? _tracks;
+  List<DiscoveryTrack>? _tracks;
   String? _error;
   bool _sending = false;
 
-  /// Titles already queued from this sheet, so the row can show it landed
-  /// rather than letting you queue the same track repeatedly.
+  /// Titles already queued from this sheet, so a row can show it landed rather
+  /// than letting the same track be queued repeatedly.
   final Set<String> _queued = {};
 
   @override
   void initState() {
     super.initState();
     _load();
-  }
-
-  Future<void> _load() async {
-    final client = bridgeClient;
-    if (client == null) return;
-    final cached = cachedTracks(widget.playlist.mbid);
-    if (cached != null) {
-      setState(() => _tracks = cached);
-      return;
-    }
-    try {
-      final tracks = await client.discoverTracks(widget.playlist.mbid);
-      if (mounted) setState(() => _tracks = tracks);
-    } on BridgeException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    }
   }
 
   @override
@@ -501,11 +457,54 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     super.dispose();
   }
 
+  Future<void> _load() async {
+    final cached = cachedDiscoveryTracks(widget.playlist.mbid);
+    // A card may have resolved only its first four covers, so a cached list
+    // shorter than the playlist still needs a full resolve.
+    if (cached != null && cached.length > 4) {
+      setState(() => _tracks = cached);
+      return;
+    }
+    final tracks = await resolveDiscoveryTracks(widget.playlist.mbid);
+    if (!mounted) return;
+    if (tracks == null) {
+      setState(() => _error = 'Could not load this playlist');
+      return;
+    }
+    setState(() => _tracks = tracks);
+  }
+
+  /// Archives [tracks] through the on-device pipeline, one at a time.
+  ///
+  /// The pipeline downloads a single URL per call, so a playlist is a loop.
+  /// Sequential rather than parallel on purpose: Apple rate-limits, and the
+  /// original pipeline's cooldowns exist for good reason.
+  Future<void> _archive(List<DiscoveryTrack> tracks) async {
+    setState(() => _sending = true);
+    for (final track in tracks) {
+      if (!mounted) return;
+      final url = track.appleUrl;
+      if (url == null) continue;
+      await for (final event in pipelineRunner.run('download', {
+        'url': url,
+        'cookies_path': cookiesPath,
+        'output_dir': downloadOutputDir,
+      })) {
+        if (event.isError) {
+          if (mounted) setState(() => _error = event.message);
+          break;
+        }
+      }
+      if (mounted) setState(() => _queued.add(track.title));
+    }
+    if (mounted) setState(() => _sending = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tracks = _tracks;
-    // Only resolved tracks can actually be fetched; the rest are shown with
-    // their warning so the gap is visible rather than a silent no-op.
+    // Only resolved tracks can be fetched; the rest are shown with their
+    // warning so the gap is visible rather than a silent no-op.
     final downloadable = tracks?.where((t) => t.isResolved).toList() ?? const [];
 
     return SafeArea(
@@ -517,8 +516,10 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
           children: [
             Text(
               widget.playlist.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: highlightTextColor.value,
               ),
@@ -549,6 +550,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                   itemCount: tracks.length,
                   itemBuilder: (context, i) {
                     final track = tracks[i];
+                    final key = '${track.artist}|${track.title}';
                     return ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
@@ -590,14 +592,11 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Audition before archiving. Apple supplies a 30s
-                          // clip for most catalogue tracks.
                           if (track.previewUrl != null &&
                               track.previewUrl!.isNotEmpty)
                             ValueListenableBuilder(
                               valueListenable: previewingKeyNotifier,
                               builder: (context, playing, child) {
-                                final key = '${track.artist} — ${track.title}';
                                 final active = playing == key;
                                 return IconButton(
                                   iconSize: 19,
@@ -614,24 +613,14 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                                 );
                               },
                             ),
-                          // Archive just this one, rather than the whole list.
                           if (track.isResolved)
                             IconButton(
                               iconSize: 18,
                               visualDensity: VisualDensity.compact,
                               tooltip: 'Archive this track',
-                              onPressed: _queued.contains(track.title)
+                              onPressed: _sending || _queued.contains(track.title)
                                   ? null
-                                  : () async {
-                                      final ok = await runBridgeAction(
-                                        (c) => c.downloadTracks([track]),
-                                      );
-                                      if (ok && mounted) {
-                                        setState(
-                                          () => _queued.add(track.title),
-                                        );
-                                      }
-                                    },
+                                  : () => _archive([track]),
                               icon: Icon(
                                 _queued.contains(track.title)
                                     ? Icons.check_rounded
@@ -654,27 +643,17 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                     child: Text(
                       downloadable.length == tracks.length
                           ? '${tracks.length} tracks'
-                          : '${downloadable.length} of ${tracks.length} '
-                                'matched',
+                          : '${downloadable.length} of ${tracks.length} matched',
                       style: TextStyle(fontSize: 12, color: textColor.value),
                     ),
                   ),
                   FilledButton(
                     onPressed: downloadable.isEmpty || _sending
                         ? null
-                        : () async {
-                            final navigator = Navigator.of(context);
-                            setState(() => _sending = true);
-                            final ok = await runBridgeAction(
-                              (c) => c.downloadTracks(downloadable),
-                            );
-                            if (!mounted) return;
-                            setState(() => _sending = false);
-                            if (ok) navigator.pop();
-                          },
+                        : () => _archive(downloadable),
                     child: Text(
                       _sending
-                          ? 'Queuing…'
+                          ? 'Archiving…'
                           : 'Archive ${downloadable.length}',
                     ),
                   ),
