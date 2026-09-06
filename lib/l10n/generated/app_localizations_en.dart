@@ -209,7 +209,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get duration => 'Duration';
 
   @override
-  String get times => 'Times';
+  String get times => 'Play Count';
 
   @override
   String get loop => 'Loop';
@@ -239,10 +239,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editMetadata => 'Edit Metadata';
 
   @override
-  String get add2Playlist => 'Add to a Playlist';
+  String get add2Playlist => 'Add to Playlist';
 
   @override
-  String get added2Playlist => 'Added to a playlist';
+  String get added2Playlist => 'Added to playlist';
 
   @override
   String get selectAll => 'Select All';
@@ -272,7 +272,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unknown => 'Unknown';
 
   @override
-  String get updateMedata => 'Update Metadata';
+  String get updateMetadata => 'Update Metadata';
 
   @override
   String get defaultText => 'Default';
@@ -302,7 +302,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get durationDescending => 'Duration Descending';
 
   @override
-  String get selectSortingType => 'Select sorting type';
+  String get selectSortingType => 'Sort by';
 
   @override
   String get loadingFolder => 'Loading Folder';
@@ -314,10 +314,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingNavidrome => 'Loading Navidrome';
 
   @override
-  String get canNotUpdate => 'Can not update the song that is playing';
+  String get canNotUpdate => 'Can\'t edit a track while it\'s playing';
 
   @override
-  String get updateSuccessfully => 'Update Successfully';
+  String get updateSuccessfully => 'Updated successfully';
 
   @override
   String get updateFailed => 'Update failed';
@@ -353,13 +353,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hide => 'Hide';
 
   @override
-  String get checkUpdate => 'Check Update';
+  String get checkUpdate => 'Check for Updates';
 
   @override
-  String get go2Download => 'Go to Download';
+  String get go2Download => 'Open Downloads';
 
   @override
-  String get alreadyLatest => 'Already on the latest version';
+  String get alreadyLatest => 'You\'re on the latest version';
 
   @override
   String get theme => 'Theme';
@@ -464,19 +464,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get normal => 'Normal';
 
   @override
-  String get randomizeTemp => 'Randomize(Temporary)';
+  String get randomizeTemp => 'Shuffle once';
 
   @override
-  String get randomizePermanent => 'Randomize(Permanent)';
+  String get randomizePermanent => 'Shuffle and save order';
 
   @override
   String get modifiedTimeAscending => 'Modified Time Ascending';
 
   @override
-  String get modifiedTimedescending => 'Modified Time Descending';
+  String get modifiedTimeDescending => 'Modified Time Descending';
 
   @override
-  String get cannotBeUndone => 'Cannot be Undone';
+  String get cannotBeUndone => 'This can\'t be undone';
 
   @override
   String get clearCache => 'Clear Cache';
@@ -518,19 +518,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncLibrary => 'Synchronize Library';
 
   @override
-  String get syncingTryLater => 'Syncing library, try again later';
+  String get syncingTryLater => 'Library is syncing — try again in a moment';
 
   @override
   String get all => 'All';
 
   @override
-  String get folderExist => 'The folder already exist';
+  String get folderExist => 'This folder is already added';
 
   @override
-  String get folderNotSupportedYet => 'The folder is not supported yet';
+  String get folderNotSupportedYet => 'This folder type isn\'t supported yet';
 
   @override
-  String get getPermissionFailed => 'Get permission failed';
+  String get getPermissionFailed => 'Permission denied';
 
   @override
   String get premiumFeatures => 'Premium Features';
@@ -566,8 +566,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'All future premium features will be unlocked automatically';
 
   @override
-  String get premiumRequiredMessage =>
-      'This feature requires Premium Features to be unlocked before it can be used';
+  String get premiumRequiredMessage => 'Unlock Premium to use this';
 
   @override
   String get premiumUnlockHint =>
@@ -597,7 +596,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checkingPurchase => 'Checking purchase history...';
 
   @override
-  String get noLyrics => 'There are no lyrics';
+  String get noLyrics => 'No lyrics found';
 
   @override
   String get lyricsParseFailed => 'Lyrics parsing failed';
@@ -641,7 +640,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get offset => 'Offset';
 
   @override
-  String get getStart => 'Get Start';
+  String get getStart => 'Get Started';
 
   @override
   String get immersiveWideLayout => 'Immersive for Wide Layout';

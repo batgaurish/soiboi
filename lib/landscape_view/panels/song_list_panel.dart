@@ -281,7 +281,7 @@ extension _SongListPanel on _SongListState {
                                                 ),
                                                 ListTile(
                                                   title: Text(
-                                                    l10n.modifiedTimedescending,
+                                                    l10n.modifiedTimeDescending,
                                                   ),
                                                   onTap: () {
                                                     Navigator.pop(context);

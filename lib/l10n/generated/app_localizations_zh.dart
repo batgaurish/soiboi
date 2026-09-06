@@ -272,7 +272,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unknown => '未知';
 
   @override
-  String get updateMedata => '更新元数据';
+  String get updateMetadata => '更新元数据';
 
   @override
   String get defaultText => '默认';
@@ -473,7 +473,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modifiedTimeAscending => '修改时间升序';
 
   @override
-  String get modifiedTimedescending => '修改时间降序';
+  String get modifiedTimeDescending => '修改时间降序';
 
   @override
   String get cannotBeUndone => '不可撤销';
