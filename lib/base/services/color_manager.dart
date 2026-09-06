@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/utils/contrast_color_generator.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
 
@@ -36,54 +37,63 @@ final MyColor pageBackgroundColor = MyColor(
   vividModeValue: Color.fromARGB(100, 245, 245, 245),
   lightModeValue: Colors.grey.shade100,
   darkModeValue: Color.fromARGB(255, 50, 50, 50),
+  token: ColorToken.pageBackground,
 );
 
 final MyColor iconColor = MyColor(
   vividModeValue: Colors.black,
   lightModeValue: Colors.black,
   darkModeValue: Colors.grey.shade400,
+  token: ColorToken.icon,
 );
 
 final MyColor textColor = MyColor(
   vividModeValue: Colors.grey.shade900,
   lightModeValue: Colors.grey.shade900,
   darkModeValue: Colors.grey.shade400,
+  token: ColorToken.text,
 );
 
 final MyColor highlightTextColor = MyColor(
   vividModeValue: Colors.black,
   lightModeValue: Colors.black,
   darkModeValue: Color.fromARGB(255, 230, 230, 230),
+  token: ColorToken.highlightText,
 );
 
 final MyColor switchColor = MyColor(
   vividModeValue: Colors.black87,
   lightModeValue: Colors.black87,
   darkModeValue: Color.fromARGB(221, 0, 0, 0),
+  token: ColorToken.switchTrack,
 );
 
 final MyColor glassColor = MyColor(
   vividModeValue: Color.fromARGB(75, 255, 255, 255),
   lightModeValue: Color.fromARGB(128, 255, 255, 255),
   darkModeValue: Color.fromARGB(128, 30, 30, 30),
+  token: ColorToken.glass,
 );
 
 final MyColor panelColor = MyColor(
   vividModeValue: Color.fromARGB(100, 245, 245, 245),
   lightModeValue: Colors.white,
   darkModeValue: Color.fromARGB(255, 50, 50, 50),
+  token: ColorToken.panel,
 );
 
 final MyColor sidebarColor = MyColor(
   vividModeValue: Color.fromARGB(100, 238, 238, 238),
   lightModeValue: Colors.grey.shade50,
   darkModeValue: Color.fromARGB(255, 55, 55, 55),
+  token: ColorToken.sidebar,
 );
 
 final MyColor bottomColor = MyColor(
   vividModeValue: Color.fromARGB(100, 250, 250, 250),
   lightModeValue: Colors.grey.shade100,
   darkModeValue: Color.fromARGB(255, 60, 60, 60),
+  token: ColorToken.bottom,
 );
 
 final MyColor searchFieldColor = MyColor(
@@ -94,6 +104,7 @@ final MyColor searchFieldColor = MyColor(
   },
   lightModeValue: Colors.grey.shade200,
   darkModeValue: Colors.grey.shade700,
+  token: ColorToken.searchField,
 );
 
 final MyColor buttonColor = MyColor(
@@ -104,6 +115,7 @@ final MyColor buttonColor = MyColor(
   },
   lightModeValue: Colors.grey.shade200,
   darkModeValue: Colors.grey.shade700,
+  token: ColorToken.button,
 );
 
 final MyColor dividerColor = MyColor(
@@ -112,6 +124,7 @@ final MyColor dividerColor = MyColor(
   },
   lightModeValue: Colors.grey,
   darkModeValue: Colors.grey.shade700,
+  token: ColorToken.divider,
 );
 
 final MyColor selectedItemColor = MyColor(
@@ -122,24 +135,28 @@ final MyColor selectedItemColor = MyColor(
   },
   lightModeValue: Colors.grey.shade200,
   darkModeValue: Colors.grey.shade700,
+  token: ColorToken.selectedItem,
 );
 
 final MyColor menuColor = MyColor(
   vividModeValue: Colors.white54,
   lightModeValue: Colors.grey.shade50,
   darkModeValue: Colors.grey.shade800,
+  token: ColorToken.menu,
 );
 
 final MyColor seekBarColor = MyColor(
   vividModeValue: Colors.black,
   lightModeValue: Colors.black,
   darkModeValue: Colors.grey.shade400,
+  token: ColorToken.seekBar,
 );
 
 final MyColor volumeBarColor = MyColor(
   vividModeValue: Colors.black,
   lightModeValue: Colors.black,
   darkModeValue: Colors.grey.shade400,
+  token: ColorToken.volumeBar,
 );
 
 final MyColor lyricsPageBackgroundColor = MyColor(
@@ -147,6 +164,7 @@ final MyColor lyricsPageBackgroundColor = MyColor(
   lightModeValue: Colors.grey.shade200,
   darkModeValue: Color.fromARGB(255, 50, 50, 50),
   pageType: 1,
+  token: ColorToken.lyricsBackground,
 );
 
 final MyColor lyricsPageForegroundColor = MyColor(
@@ -156,6 +174,7 @@ final MyColor lyricsPageForegroundColor = MyColor(
   lightModeValue: Colors.grey.shade900,
   darkModeValue: Colors.grey.shade300,
   pageType: 1,
+  token: ColorToken.lyricsForeground,
 );
 
 final MyColor lyricsPageHighlightTextColor = MyColor(
@@ -165,6 +184,7 @@ final MyColor lyricsPageHighlightTextColor = MyColor(
   lightModeValue: Colors.black,
   darkModeValue: Colors.grey.shade200,
   pageType: 1,
+  token: ColorToken.lyricsHighlightText,
 );
 
 final MyColor lyricsPageButtonColor = MyColor(
@@ -174,6 +194,7 @@ final MyColor lyricsPageButtonColor = MyColor(
   lightModeValue: Colors.white70,
   darkModeValue: Colors.grey.shade700,
   pageType: 1,
+  token: ColorToken.lyricsButton,
 );
 
 final MyColor lyricsPageDividerColor = MyColor(
@@ -183,6 +204,7 @@ final MyColor lyricsPageDividerColor = MyColor(
   lightModeValue: Colors.grey,
   darkModeValue: Colors.grey.shade700,
   pageType: 1,
+  token: ColorToken.lyricsDivider,
 );
 
 final MyColor lyricsPageSelectedItemColor = MyColor(
@@ -192,6 +214,7 @@ final MyColor lyricsPageSelectedItemColor = MyColor(
   lightModeValue: Colors.white,
   darkModeValue: Colors.grey.shade700,
   pageType: 1,
+  token: ColorToken.lyricsSelectedItem,
 );
 
 final MyColor lyricsPageMenuColor = MyColor(
@@ -199,6 +222,7 @@ final MyColor lyricsPageMenuColor = MyColor(
   lightModeValue: Colors.grey.shade50,
   darkModeValue: Colors.grey.shade800,
   pageType: 1,
+  token: ColorToken.lyricsMenu,
 );
 
 final MyColor miniViewForegroundColor = MyColor(
@@ -206,6 +230,7 @@ final MyColor miniViewForegroundColor = MyColor(
     return contrastColorTheme.regular;
   },
   pageType: 2,
+  token: ColorToken.miniForeground,
 );
 
 final MyColor miniViewHighlightTextColor = MyColor(
@@ -214,6 +239,7 @@ final MyColor miniViewHighlightTextColor = MyColor(
   },
 
   pageType: 2,
+  token: ColorToken.miniHighlightText,
 );
 
 final MyColor miniViewButtonColor = MyColor(
@@ -221,6 +247,7 @@ final MyColor miniViewButtonColor = MyColor(
     return contrastColorTheme.regular.withAlpha(50);
   },
   pageType: 2,
+  token: ColorToken.miniButton,
 );
 
 final MyColor miniViewDividerColor = MyColor(
@@ -228,6 +255,7 @@ final MyColor miniViewDividerColor = MyColor(
     return contrastColorTheme.regular;
   },
   pageType: 2,
+  token: ColorToken.miniDivider,
 );
 
 final MyColor miniViewSelectedItemColor = MyColor(
@@ -236,11 +264,13 @@ final MyColor miniViewSelectedItemColor = MyColor(
   },
 
   pageType: 2,
+  token: ColorToken.miniSelectedItem,
 );
 
 final MyColor miniViewMenuColor = MyColor(
   vividModeValue: Colors.white10,
   pageType: 2,
+  token: ColorToken.miniMenu,
 );
 
 class ColorManager {
@@ -440,6 +470,11 @@ class MyColor {
   // main: 0, lyrics: 1, mini mode: 2
   final int pageType;
 
+  /// Semantic name used to look this colour up in the active flavour's palette.
+  /// Null means "no flavour ever overrides me" — the upstream values below are
+  /// then the only source.
+  final ColorToken? token;
+
   ValueNotifier<Color> valueNotifier = ValueNotifier(Colors.transparent);
 
   MyColor({
@@ -448,6 +483,7 @@ class MyColor {
     this.lightModeValue = Colors.transparent,
     this.darkModeValue = Colors.transparent,
     this.pageType = 0,
+    this.token,
   });
 
   void updateColor() {
@@ -461,13 +497,17 @@ class MyColor {
         : lyricsPageThemeNotifier.value;
     switch (themeType) {
       case .vivid:
+        // Vivid derives from artwork, so a flavour palette has nothing to say
+        // about it. Left exactly as upstream wrote it.
         valueNotifier.value = vividModeValue ?? getVividValue!.call();
         break;
       case .light:
-        valueNotifier.value = lightModeValue;
+        valueNotifier.value =
+            flavourColor(token, isDark: false) ?? lightModeValue;
         break;
       default:
-        valueNotifier.value = darkModeValue;
+        valueNotifier.value =
+            flavourColor(token, isDark: true) ?? darkModeValue;
     }
   }
 

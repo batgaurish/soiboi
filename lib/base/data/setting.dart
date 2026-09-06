@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/app.dart';
@@ -77,6 +78,11 @@ class Setting {
       fontFamilyNotifier.value = json['fontFamily'] as String?;
     }
 
+    flavourNotifier.value = Flavour.values.firstWhere(
+      (e) => e.name == json['flavour'],
+      orElse: () => Flavour.expressive,
+    );
+
     mainPageThemeNotifier.value = ThemeType.values.firstWhere(
       (e) => e.name == json['mainPageTheme'],
       orElse: () => ThemeType.vivid,
@@ -125,6 +131,7 @@ class Setting {
 
         'fontFamily': fontFamilyNotifier.value,
 
+        'flavour': flavourNotifier.value.name,
         'mainPageTheme': mainPageThemeNotifier.value.name,
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
