@@ -8,6 +8,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/services/emby_client.dart';
@@ -128,6 +129,8 @@ class _SettingsListState extends State<SettingsList> {
         sliverBox(
           paddingIfNeed(isLandscape, cleanCacheListTile(context, l10n)),
         ),
+
+        sliverBox(paddingIfNeed(isLandscape, flavourListTile(context, l10n))),
 
         sliverBox(paddingIfNeed(isLandscape, themeListTile(context, l10n))),
 
@@ -615,6 +618,70 @@ class _SettingsListState extends State<SettingsList> {
           return Icon(Icons.lock);
         },
       ),
+    );
+  }
+
+  void _updateFlavour() {
+    setting.save();
+    colorManager.updateColors();
+  }
+
+  /// Flavour picker. Distinct from the Theme tile, which controls
+  /// light/dark/vivid — flavour is *which* visual identity, brightness is how
+  /// light it is, and the two compose.
+  Widget flavourListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(themeImage, size: iconSize),
+      title: const Text('Flavour'),
+      subtitle: ValueListenableBuilder(
+        valueListenable: flavourNotifier,
+        builder: (context, value, child) => Text(
+          value.label,
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+      ),
+      onTap: () async {
+        flavourNotifier.addListener(_updateFlavour);
+        await showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 300,
+            height: 290,
+            child: Padding(
+              padding: const EdgeInsets.all(15.0),
+              child: ValueListenableBuilder(
+                valueListenable: flavourNotifier,
+                builder: (context, value, child) {
+                  return Column(
+                    children: [
+                      const Text(
+                        'Flavour',
+                        style: TextStyle(fontSize: 18, fontWeight: .bold),
+                      ),
+                      for (final flavour in Flavour.values)
+                        ListTile(
+                          title: Text(flavour.label),
+                          subtitle: Text(
+                            flavour.blurb,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          onTap: () {
+                            flavourNotifier.value = flavour;
+                            updateHoverFocusColor();
+                          },
+                          trailing: value == flavour
+                              ? const Icon(Icons.check)
+                              : null,
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        flavourNotifier.removeListener(_updateFlavour);
+      },
     );
   }
 
