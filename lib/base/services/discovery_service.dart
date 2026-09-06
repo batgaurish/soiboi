@@ -58,14 +58,28 @@ final Set<String> _inFlight = {};
 
 List<DiscoveryTrack>? cachedDiscoveryTracks(String mbid) => _resolved[mbid];
 
+/// How many Apple lookups run at once.
+///
+/// Resolution is one HTTP round trip per track and a weekly playlist holds
+/// fifty, so doing them one at a time took over a minute — during which the
+/// sheet showed the card's four-cover preview and looked like a playlist with
+/// four songs in it. Six is enough to make that a few seconds without
+/// hammering a public API nobody is paying for.
+const _resolveConcurrency = 6;
+
 /// Playlist tracks with Apple resolution applied.
 ///
 /// [limit] bounds how many tracks are resolved, because each costs a request.
 /// A card asking for four covers should not trigger fifty lookups.
+///
+/// [onProgress] is called as each batch lands, with the tracks resolved so far
+/// and the playlist's true length. Without it a long playlist looks stalled:
+/// the count in the sheet is whatever the card cached until everything is done.
 Future<List<DiscoveryTrack>?> resolveDiscoveryTracks(
   String mbid, {
   int? limit,
   String storefront = 'us',
+  void Function(List<DiscoveryTrack> resolved, int total)? onProgress,
 }) async {
   final cached = _resolved[mbid];
   final full = _rawTracks[mbid]?.length;
@@ -90,25 +104,33 @@ Future<List<DiscoveryTrack>?> resolveDiscoveryTracks(
 
     final slice = limit == null ? raw : raw.take(limit).toList();
     final resolved = <DiscoveryTrack>[];
-    for (final track in slice) {
-      final match = await resolveAppleTrack(
-        track.artist,
-        track.title,
-        storefront: storefront,
-      );
-      resolved.add(
-        DiscoveryTrack(
-          title: track.title,
-          artist: track.artist,
-          album: match?.album,
-          artwork: match?.artwork,
-          previewUrl: match?.previewUrl,
-          appleUrl: match?.url,
-          warning: match == null
-              ? 'Could not match to Apple Music catalog'
-              : null,
-        ),
-      );
+
+    // Chunked rather than a worker pool: a chunk keeps playlist order without
+    // any index bookkeeping, and order is what the user sees.
+    for (var start = 0; start < slice.length; start += _resolveConcurrency) {
+      final chunk = slice.skip(start).take(_resolveConcurrency);
+      final matches = await Future.wait([
+        for (final track in chunk)
+          resolveAppleTrack(track.artist, track.title, storefront: storefront),
+      ]);
+      var i = 0;
+      for (final track in chunk) {
+        final match = matches[i++];
+        resolved.add(
+          DiscoveryTrack(
+            title: track.title,
+            artist: track.artist,
+            album: match?.album,
+            artwork: match?.artwork,
+            previewUrl: match?.previewUrl,
+            appleUrl: match?.url,
+            warning: match == null
+                ? 'Could not match to Apple Music catalog'
+                : null,
+          ),
+        );
+      }
+      onProgress?.call(List.unmodifiable(resolved), slice.length);
     }
 
     // Keep the longer result: a later full resolve should not be replaced by an
