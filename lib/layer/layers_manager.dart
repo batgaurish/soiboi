@@ -28,6 +28,7 @@ import 'package:soiboi/layer/single_artist_layer.dart';
 import 'package:soiboi/layer/single_folder_layer.dart';
 import 'package:soiboi/layer/single_playlist_layer.dart';
 import 'package:soiboi/layer/songs_layer.dart';
+import 'package:soiboi/layer/downloads_layer.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
@@ -136,6 +137,8 @@ class LayersManager {
         return RecentlyLayer(key: GlobalKey());
       } else if (label == 'playlists') {
         return PlaylistsLayer(key: GlobalKey());
+      } else if (label == 'downloads') {
+        return DownloadsLayer(key: GlobalKey());
       } else if (label == 'settings') {
         return SettingsLayer(key: GlobalKey());
       } else {
