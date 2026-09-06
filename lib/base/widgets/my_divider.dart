@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:soiboi/base/services/color_manager.dart';
 
 class MyDivider extends StatelessWidget {
   final MyColor color;

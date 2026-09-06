@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 class DynamicLyricsPageRoute<T> extends PageRouteBuilder<T> {
   DynamicLyricsPageRoute({required super.pageBuilder});

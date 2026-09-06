@@ -98,11 +98,11 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
-  /// No description provided for @sylvakru.
+  /// No description provided for @soiboi.
   ///
   /// In en, this message translates to:
-  /// **'Sylvakru'**
-  String get sylvakru;
+  /// **'Soiboi'**
+  String get soiboi;
 
   /// No description provided for @title.
   ///

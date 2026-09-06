@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/asset_images.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/asset_images.dart';
 
 double? _volumeTmp;
 

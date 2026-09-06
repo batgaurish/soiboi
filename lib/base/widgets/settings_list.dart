@@ -4,34 +4,34 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:http/http.dart' as http;
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/config.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/emby_client.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/navidrome_client.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/system_ui_service.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/base/widgets/connect_client_widget.dart';
-import 'package:sylvakru/base/widgets/equalizer.dart';
-import 'package:sylvakru/base/widgets/my_divider.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/widgets/manage_music_folders.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/layer/premium_layer.dart';
-import 'package:sylvakru/portrait_view/portrait_view.dart';
-import 'package:sylvakru/portrait_view/sleep_timer.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/data/config.dart';
+import 'package:soiboi/base/data/playlist.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/services/emby_client.dart';
+import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/navidrome_client.dart';
+import 'package:soiboi/base/services/stream_client.dart';
+import 'package:soiboi/base/services/system_ui_service.dart';
+import 'package:soiboi/base/utils/common_utils.dart';
+import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/utils/source_type.dart';
+import 'package:soiboi/base/widgets/connect_client_widget.dart';
+import 'package:soiboi/base/widgets/equalizer.dart';
+import 'package:soiboi/base/widgets/my_divider.dart';
+import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/widgets/manage_music_folders.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/layer/premium_layer.dart';
+import 'package:soiboi/portrait_view/portrait_view.dart';
+import 'package:soiboi/portrait_view/sleep_timer.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -887,7 +887,7 @@ class _SettingsListState extends State<SettingsList> {
       title: Text(l10n.checkUpdate),
       onTap: () async {
         final url = Uri.parse(
-          'https://api.github.com/repos/AfalpHy/sylvakru/releases/latest',
+          'https://api.github.com/repos/AfalpHy/soiboi/releases/latest',
         );
 
         try {
@@ -958,7 +958,7 @@ class _SettingsListState extends State<SettingsList> {
                                 ElevatedButton(
                                   onPressed: () => launchUrl(
                                     Uri.parse(
-                                      "https://github.com/AfalpHy/sylvakru/releases/latest",
+                                      "https://github.com/AfalpHy/soiboi/releases/latest",
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -1046,7 +1046,7 @@ class _SettingsListState extends State<SettingsList> {
                                 } else {
                                   result = '${appDocsDir.path}/logs';
                                   logger.export2Directory(result);
-                                  showCenterMessage('Export to Sylvakru/logs');
+                                  showCenterMessage('Export to Soiboi/logs');
                                 }
                               },
                               child: Text(l10n.exportLog),

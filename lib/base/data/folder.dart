@@ -3,15 +3,15 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/bookmark_service.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
-import 'package:sylvakru/base/widgets/manage_music_folders.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/bookmark_service.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/utils/path.dart';
+import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/webdav_client.dart';
+import 'package:soiboi/base/widgets/manage_music_folders.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:path/path.dart';
 
 final Set<String> _loftySupportedExts = {
@@ -67,9 +67,9 @@ class Folder {
     String path = id;
 
     if (!isWebdav && Platform.isIOS) {
-      if (id.startsWith('Sylvakru')) {
+      if (id.startsWith('Soiboi')) {
         path =
-            '${appDocsDir.parent.path}/${id.replaceFirst('Sylvakru', 'Documents')}';
+            '${appDocsDir.parent.path}/${id.replaceFirst('Soiboi', 'Documents')}';
       } else {
         path = await BookmarkService.getUrlById(id) ?? '';
         setIOSFileProviderStorageIfNeed(path);
@@ -83,9 +83,9 @@ class Folder {
     String path = id;
 
     if (!isWebdav && Platform.isIOS) {
-      if (id.startsWith('Sylvakru')) {
+      if (id.startsWith('Soiboi')) {
         path =
-            '${appDocsDir.parent.path}/${id.replaceFirst('Sylvakru', 'Documents')}';
+            '${appDocsDir.parent.path}/${id.replaceFirst('Soiboi', 'Documents')}';
       } else {
         path = iosFileProviderStorage! + id;
         if (!await BookmarkService.saveDirectoryAndActive(id, path)) {

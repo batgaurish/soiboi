@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # ---------- CONFIG ----------
-BINARY_NAME="sylvakru"
-APP_NAME="Sylvakru"
+BINARY_NAME="soiboi"
+APP_NAME="Soiboi"
 APP_VERSION="4.1.0"
-MAINTAINER="AfalpHy <736353503@qq.com>"
+MAINTAINER="batgaurish"
 
 BUNDLE_DIR="build/linux/x64/release/bundle"
 
@@ -46,7 +46,7 @@ Exec=$BINARY_NAME
 Icon=$BINARY_NAME
 Type=Application
 Categories=Utility;
-StartupWMClass=com.afalphy.sylvakru
+StartupWMClass=com.batgaurish.soiboi
 Terminal=false
 EOL
 
@@ -60,7 +60,7 @@ Version:        $APP_VERSION
 Release:        1
 Summary:        $APP_NAME Desktop Application
 License:        Proprietary
-URL:            https://github.com/AfalpHy/sylvakru
+URL:            https://github.com/AfalpHy/soiboi
 BuildArch:      x86_64
 
 Requires:       $DEPENDS

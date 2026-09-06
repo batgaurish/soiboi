@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/big_picture_view/panels/big_song_list_with_cover_base_panel.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/data/playlist.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/big_picture_view/panels/big_song_list_with_cover_base_panel.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 
 class BigSinglePlaylistPanel extends BigSongListWithCoverBasePanel {
   final Playlist playlist;

@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:lpinyin/lpinyin.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/services/stream_client.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/layer/layers_manager.dart';
 
 ArtistAlbumManager artistAlbumManager = ArtistAlbumManager();
 

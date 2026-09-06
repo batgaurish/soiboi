@@ -5,29 +5,29 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/base/services/my_window_listener.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/services/play_queue_logic.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/taskbar_service.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/lyric.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/base/widgets/equalizer.dart';
-import 'package:sylvakru/base/widgets/lyric_list_view.dart';
-import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/utils/contrast_color_generator.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/services/my_window_listener.dart';
+import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/services/play_queue_logic.dart';
+import 'package:soiboi/base/services/stream_client.dart';
+import 'package:soiboi/base/services/taskbar_service.dart';
+import 'package:soiboi/base/services/webdav_client.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/lyric.dart';
+import 'package:soiboi/base/utils/path.dart';
+import 'package:soiboi/base/widgets/equalizer.dart';
+import 'package:soiboi/base/widgets/lyric_list_view.dart';
+import 'package:soiboi/base/data/history.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/utils/contrast_color_generator.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'dart:async';
 
-import 'package:sylvakru/portrait_view/sleep_timer.dart';
+import 'package:soiboi/portrait_view/sleep_timer.dart';
 
 late AudioSession _session;
 
@@ -35,7 +35,7 @@ late MyAudioHandler audioHandler;
 
 List<MyAudioMetadata> playQueue = [];
 String? playQueueForStreamId;
-const String playQueueForStreamName = '_sylvakru_play_queue_';
+const String playQueueForStreamName = '_soiboi_play_queue_';
 
 final ValueNotifier<MyAudioMetadata?> currentSongNotifier = ValueNotifier(null);
 final isPlayingNotifier = ValueNotifier(false);
@@ -50,8 +50,8 @@ Future<void> initAudioService() async {
     builder: () => MyAudioHandler(),
 
     config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.afalphy.sylvakru',
-      androidNotificationChannelName: 'Sylvakru',
+      androidNotificationChannelId: 'com.batgaurish.soiboi',
+      androidNotificationChannelName: 'Soiboi',
       androidNotificationOngoing: true,
     ),
   );

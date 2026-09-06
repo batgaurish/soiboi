@@ -3,15 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/stream_client.dart';
+import 'package:soiboi/base/utils/path.dart';
+import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
 
 final playlistManager = PlaylistManager();
 
@@ -34,7 +34,7 @@ class PlaylistManager {
     updateNotifier.value++;
 
     _playlistsFile = File(
-      "${getPlaylistConfigPath(sourceType)}/sylvakru_playlists.json",
+      "${getPlaylistConfigPath(sourceType)}/soiboi_playlists.json",
     );
     initFile(_playlistsFile, true);
 

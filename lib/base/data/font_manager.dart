@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/utils/path.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/utils/path.dart';
 
 final fontManager = FontManager();
 

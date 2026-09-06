@@ -1,12 +1,12 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/widgets/collection_list.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/widgets/collection_list.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/asset_images.dart';
 
 final GlobalKey<NavigatorState> artistsKey = GlobalKey();
 final artistsVisibleNotifier = ValueNotifier(true);

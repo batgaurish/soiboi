@@ -5,19 +5,19 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gamepads/flutter_gamepads.dart';
 import 'package:liquid_glass_widgets/liquid_glass_setup.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/keyboard.dart';
-import 'package:sylvakru/base/services/my_tray_listener.dart';
-import 'package:sylvakru/base/services/my_window_listener.dart';
-import 'package:sylvakru/base/services/single_instance.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/l10n/generated/app_localizations_en.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/custom_page_transition_builder.dart';
-import 'package:sylvakru/view_entry.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/keyboard.dart';
+import 'package:soiboi/base/services/my_tray_listener.dart';
+import 'package:soiboi/base/services/my_window_listener.dart';
+import 'package:soiboi/base/services/single_instance.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/l10n/generated/app_localizations_en.dart';
+import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/portrait_view/custom_page_transition_builder.dart';
+import 'package:soiboi/view_entry.dart';
 import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:screen_corner_radius/screen_corner_radius.dart';
@@ -103,7 +103,7 @@ Future<void> main() async {
             ...GlobalMaterialLocalizations.delegates,
           ],
           navigatorKey: globalNavigatorKey,
-          title: 'Sylvakru',
+          title: 'Soiboi',
           theme: ThemeData(
             focusColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)

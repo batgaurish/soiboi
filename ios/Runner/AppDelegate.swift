@@ -20,7 +20,7 @@ import UIKit
     let registrar = self.registrar(forPlugin: "NativeBridge")
 
     let bookmarkChannel = FlutterMethodChannel(
-      name: "com.afalphy.bookmark_manager",
+      name: "com.batgaurish.soiboi.bookmark_manager",
       binaryMessenger: registrar!.messenger())
 
     bookmarkChannel.setMethodCallHandler({
@@ -81,7 +81,7 @@ import UIKit
     })
 
     let menuChannel = FlutterMethodChannel(
-      name: "com.afalphy.menu",
+      name: "com.batgaurish.soiboi.menu",
       binaryMessenger: registrar!.messenger())
     self.menuChannel = menuChannel
 

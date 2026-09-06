@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/base/data/setting.dart';
-import 'package:sylvakru/base/utils/zoom_page_route.dart';
-import 'package:sylvakru/big_picture_view/panels/big_collection_list_panel.dart';
-import 'package:sylvakru/big_picture_view/panels/big_single_artist_panel.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/utils/zoom_page_route.dart';
+import 'package:soiboi/big_picture_view/panels/big_collection_list_panel.dart';
+import 'package:soiboi/big_picture_view/panels/big_single_artist_panel.dart';
 
 class BigArtistsPanel extends BigCollectionListPanel {
   const BigArtistsPanel({super.key});

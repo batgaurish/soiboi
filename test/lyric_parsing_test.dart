@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sylvakru/base/services/lyric.dart';
+import 'package:soiboi/base/services/lyric.dart';
 
 const _noLyrics = 'no lyrics';
 const _parseFailed = 'parse failed';

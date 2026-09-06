@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # ---------- CONFIG ----------
-BINARY_NAME="sylvakru"
-APP_NAME="Sylvakru"
+BINARY_NAME="soiboi"
+APP_NAME="Soiboi"
 APP_VERSION="4.1.0"
-MAINTAINER="AfalpHy"
+MAINTAINER="batgaurish"
 
 BUNDLE_DIR="build/linux/x64/release/bundle"
 
@@ -75,7 +75,7 @@ Exec=$BINARY_NAME
 Icon=$BINARY_NAME
 Type=Application
 Categories=Utility;
-StartupWMClass=com.afalphy.sylvakru
+StartupWMClass=com.batgaurish.soiboi
 Terminal=false
 EOL
 

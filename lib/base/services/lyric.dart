@@ -2,13 +2,13 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:charset/charset.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/l10n/generated/app_localizations_en.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/stream_client.dart';
+import 'package:soiboi/base/services/webdav_client.dart';
+import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/l10n/generated/app_localizations_en.dart';
 
 class LyricToken {
   final Duration start;
@@ -111,7 +111,7 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
 
       late File lrcFile;
       if (sourceType == .webdav) {
-        lrcFile = File('${tmpDir.path}/sylvakru_lyric');
+        lrcFile = File('${tmpDir.path}/soiboi_lyric');
         await webdavClient?.download(remotePath: path, localPath: lrcFile.path);
       } else {
         lrcFile = File(path);

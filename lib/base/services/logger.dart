@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:sylvakru/base/app.dart';
+import 'package:soiboi/base/app.dart';
 import 'package:path/path.dart';
 
 final logger = Logger();

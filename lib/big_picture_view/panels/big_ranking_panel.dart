@@ -1,13 +1,13 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/utils/zoom_page_route.dart';
-import 'package:sylvakru/big_picture_view/panels/big_collection_list_panel.dart';
-import 'package:sylvakru/big_picture_view/panels/big_single_album_panel.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/history.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/utils/zoom_page_route.dart';
+import 'package:soiboi/big_picture_view/panels/big_collection_list_panel.dart';
+import 'package:soiboi/big_picture_view/panels/big_single_album_panel.dart';
 
-import 'package:sylvakru/big_picture_view/panels/big_song_list_base_panel.dart';
+import 'package:soiboi/big_picture_view/panels/big_song_list_base_panel.dart';
 
 class BigRankingPanel extends StatelessWidget {
   const BigRankingPanel({super.key});

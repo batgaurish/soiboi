@@ -1,15 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/widgets/play_queue_sheet.dart';
-import 'package:sylvakru/base/utils/dynamic_lyrics_page_route.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/cover_art_widget.dart';
+import 'package:soiboi/base/widgets/play_queue_sheet.dart';
+import 'package:soiboi/base/utils/dynamic_lyrics_page_route.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/layer/lyrics_page_layer.dart';
+import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:text_scroll/text_scroll.dart';
 
 class PlayBar extends StatelessWidget {

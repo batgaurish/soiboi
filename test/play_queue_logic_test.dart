@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/play_queue_logic.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/play_queue_logic.dart';
 
 MyAudioMetadata song(String id) {
   return MyAudioMetadata(AudioMetadata(title: id), id: id);
@@ -15,7 +15,7 @@ void main() {
   // cached cover art file; it only needs to exist, not actually contain
   // anything relevant to these tests.
   setUpAll(() {
-    appSupportDir = Directory.systemTemp.createTempSync('sylvakru_test');
+    appSupportDir = Directory.systemTemp.createTempSync('soiboi_test');
   });
 
   group('PlayQueueLogic.insert2Next', () {
