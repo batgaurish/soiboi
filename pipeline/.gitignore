@@ -1,4 +1,3 @@
 # Built per-machine by tools/build_pipeline.sh -- never committed.
-.venv/
 __pycache__/
 *.pyc

@@ -15,7 +15,7 @@ import 'package:soiboi/base/services/pipeline_runner.dart';
 /// checkout without the venv built still passes.
 void main() {
   final root = p.join(Directory.current.path, 'pipeline');
-  final python = p.join(root, '.venv', 'bin', 'python');
+  final python = p.join(Directory.current.path, '.pipeline-venv', 'bin', 'python');
   final available =
       File(python).existsSync() &&
       Directory(p.join(root, 'soiboi_pipeline')).existsSync();
