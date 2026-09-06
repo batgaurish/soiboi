@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/utils/contrast_color_generator.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
 
@@ -502,12 +503,15 @@ class MyColor {
         valueNotifier.value = vividModeValue ?? getVividValue!.call();
         break;
       case .light:
-        valueNotifier.value =
-            flavourColor(token, isDark: false) ?? lightModeValue;
+        // Resolution order: system palette, then flavour, then upstream.
+        valueNotifier.value = dynamicColor(token, isDark: false) ??
+            flavourColor(token, isDark: false) ??
+            lightModeValue;
         break;
       default:
-        valueNotifier.value =
-            flavourColor(token, isDark: true) ?? darkModeValue;
+        valueNotifier.value = dynamicColor(token, isDark: true) ??
+            flavourColor(token, isDark: true) ??
+            darkModeValue;
     }
   }
 

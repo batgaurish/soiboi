@@ -158,7 +158,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
         smoothness: 1,
         borderRadius: BorderRadius.circular(radius),
         child: Container(
-          color: panelColor.value,
+          color: menuColor.value,
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

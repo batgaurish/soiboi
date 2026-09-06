@@ -161,6 +161,19 @@ class Sidebar extends StatelessWidget {
                   slivers: [
                     SliverToBoxAdapter(
                       child: sidebarItem(
+                        label: 'home',
+
+                        leading: Icon(Icons.home_outlined, size: 30),
+                        content: l10n.home,
+
+                        onTap: () {
+                          layersManager.switchRootLayer('home');
+                        },
+                      ),
+                    ),
+
+                    SliverToBoxAdapter(
+                      child: sidebarItem(
                         label: 'artists',
                         leading: ImageIcon(artistImage, size: 30),
                         content: l10n.artists,
