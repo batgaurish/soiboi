@@ -35,6 +35,35 @@ import 'package:soiboi/base/services/logger.dart';
 /// account info (500)". Observed on a real four-month-old export.
 const _requiredCookies = {'media-user-token', 'myacinfo'};
 
+/// Cookies the downloader looks up by name *and* exact domain.
+///
+/// gamdl finds media-user-token with `cookie.domain == ".music.apple.com"`, an
+/// exact string comparison with no subdomain matching. A cookie stored under
+/// .apple.com is therefore invisible to it even though it would be sent to
+/// music.apple.com by any correct HTTP client -- and the failure surfaces as
+/// "cookie not found ... make sure you are logged in with an active
+/// subscription", which points the user at their Apple account rather than at
+/// the real problem.
+///
+/// So the domain matters, not just the name. This is also where Apple actually
+/// sets it, so pinning it here is accurate rather than a workaround.
+const _hostScopedCookies = {'media-user-token': '.music.apple.com'};
+
+/// The domain a captured cookie must be stored under.
+///
+/// Android's CookieManager does not report the real domain, so the writer has
+/// to choose one. Anything host-scoped gets its true domain; everything else
+/// gets .apple.com, which covers every host the download touches.
+String domainForCookie(String name) =>
+    _hostScopedCookies[name] ?? '.apple.com';
+
+bool _hasWithRequiredDomain(Iterable<Cookie> cookies, String name) {
+  final required = _hostScopedCookies[name];
+  return cookies.any(
+    (c) => c.name == name && (required == null || c.domain == required),
+  );
+}
+
 /// Domains worth keeping. A browser export contains cookies for everything the
 /// user has ever visited, and shipping unrelated sites' cookies into a file the
 /// downloader reads would be careless.
@@ -142,11 +171,11 @@ bool _isRelevant(Cookie cookie) {
 /// Apple Music needs, rather than writing a file that will fail later.
 Future<bool> saveCookies(List<Cookie> cookies) async {
   final relevant = cookies.where(_isRelevant).toList();
-  final names = relevant.map((c) => c.name).toSet();
-  if (!_requiredCookies.every(names.contains)) {
-    logger.output(
-      'cookies: rejected, missing ${_requiredCookies.difference(names)}',
-    );
+  final missing = _requiredCookies
+      .where((name) => !_hasWithRequiredDomain(relevant, name))
+      .toSet();
+  if (missing.isNotEmpty) {
+    logger.output('cookies: rejected, missing $missing');
     return false;
   }
 
@@ -207,14 +236,51 @@ Future<List<Cookie>> loadCookies() async {
 /// A present file is not the same as a valid session. Every required cookie
 /// must be present and unexpired, so a stale export prompts a fresh sign-in
 /// instead of letting downloads fail with an opaque server error.
+/// Corrects cookies stored under the wrong domain by an earlier build.
+///
+/// Sessions captured before [_hostScopedCookies] existed put media-user-token
+/// on .apple.com, where gamdl cannot see it. The cookie itself is still valid,
+/// so rewriting the domain restores the session instead of making the user sign
+/// in again for a bookkeeping mistake that was ours.
+Future<List<Cookie>> _migrateDomains(List<Cookie> cookies) async {
+  final corrected = <Cookie>[];
+  var changed = false;
+  for (final cookie in cookies) {
+    final required = _hostScopedCookies[cookie.name];
+    if (required == null || cookie.domain == required) {
+      corrected.add(cookie);
+      continue;
+    }
+    changed = true;
+    corrected.add(
+      Cookie(
+        domain: required,
+        includeSubdomains: cookie.includeSubdomains,
+        name: cookie.name,
+        value: cookie.value,
+        path: cookie.path,
+        secure: cookie.secure,
+        expires: cookie.expires,
+      ),
+    );
+  }
+  if (!changed) return cookies;
+  logger.output('cookies: migrated host-scoped domains');
+  await saveCookies(corrected);
+  return corrected;
+}
+
 Future<void> refreshSessionState() async {
-  final cookies = await loadCookies();
+  final cookies = await _migrateDomains(await loadCookies());
   final required = cookies
       .where((c) => _requiredCookies.contains(c.name))
       .toList();
 
-  final present = required.map((c) => c.name).toSet();
-  final complete = _requiredCookies.every(present.contains);
+  // Checked the same way the downloader checks, domain included, so the app
+  // never reports "Signed in" for a session gamdl will reject.
+  final complete = _requiredCookies.every(
+    (name) => _hasWithRequiredDomain(required, name),
+  );
   final valid = complete && !required.any((c) => c.isExpired);
   signedInNotifier.value = valid;
 
