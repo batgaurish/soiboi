@@ -1,16 +1,16 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/iap_service.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/landscape_view/title_bar.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/layer/settings_layer.dart';
-import 'package:sylvakru/portrait_view/custom_appbar_leading.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/services/iap_service.dart';
+import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/landscape_view/title_bar.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/layer/settings_layer.dart';
+import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 
 final trialRemainingMinNotifier = ValueNotifier(-1);
 

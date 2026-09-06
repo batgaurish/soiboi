@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/landscape_view/sidebar.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/play_bar.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/landscape_view/sidebar.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/portrait_view/play_bar.dart';
 
 final GlobalKey<ScaffoldState> portraitKey = GlobalKey();
 bool isDrawerOpen = false;

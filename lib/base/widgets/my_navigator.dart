@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 Widget myNavigator({
   required Key key,

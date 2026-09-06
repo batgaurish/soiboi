@@ -1,4 +1,4 @@
-import 'package:sylvakru/base/audio_handler.dart';
+import 'package:soiboi/base/audio_handler.dart';
 import 'package:windows_taskbar/windows_taskbar.dart';
 
 void setupTaskbar() async {

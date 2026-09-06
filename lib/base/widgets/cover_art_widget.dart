@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/asset_images.dart';
+import 'package:soiboi/base/asset_images.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:sylvakru/base/services/picture_load_scheduler.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
+import 'package:soiboi/base/services/picture_load_scheduler.dart';
+import 'package:soiboi/base/services/picture_service.dart';
 
 class CoverArtWidget extends StatelessWidget {
   final double? size;

@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/widgets/my_switch.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/base/widgets/my_sheet.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/widgets/my_switch.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/widgets/my_sheet.dart';
+import 'package:soiboi/layer/lyrics_page_layer.dart';
 
 ValueNotifier<bool> sleepTimerOnNotifier = ValueNotifier(false);
 ValueNotifier<int> remainTimesNotifier = ValueNotifier(0);

@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/services/color_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class MySheet extends StatelessWidget {

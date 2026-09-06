@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
+import 'package:soiboi/base/app.dart';
 
 class ZoomPageRoute<T> extends PageRoute<T> {
   ZoomPageRoute({required this.builder});

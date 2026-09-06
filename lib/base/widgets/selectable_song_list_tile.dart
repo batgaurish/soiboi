@@ -1,10 +1,10 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/widgets/cover_art_widget.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/widgets/cover_art_widget.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/utils/metadata_utils.dart';
 
 class SelectableSongListTile extends StatelessWidget {
   final int index;

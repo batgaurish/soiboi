@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:sylvakru/base/services/single_instance.dart';
+import 'package:soiboi/base/services/single_instance.dart';
 import 'package:window_manager/window_manager.dart';
 
 bool _exited = false;

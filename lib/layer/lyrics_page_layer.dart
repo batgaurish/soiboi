@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/utils/media_query.dart';
-import 'package:sylvakru/landscape_view/pages/landscape_lyrics_page.dart';
-import 'package:sylvakru/portrait_view/pages/portrait_lyrics_page.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/landscape_view/pages/landscape_lyrics_page.dart';
+import 'package:soiboi/portrait_view/pages/portrait_lyrics_page.dart';
 
 bool displayLyricsPage = false;
 

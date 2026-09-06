@@ -5,12 +5,12 @@ import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:crypto/crypto.dart';
 import 'package:lpinyin/lpinyin.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/services/lyric.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/utils/metadata_utils.dart';
-import 'package:sylvakru/base/utils/path.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/services/lyric.dart';
+import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/utils/path.dart';
 
 class MyAudioMetadata {
   final String id;

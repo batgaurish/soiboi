@@ -1,18 +1,18 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/config.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/loader.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/services/emby_client.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/navidrome_client.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
-import 'package:sylvakru/base/services/webdav_client.dart';
-import 'package:sylvakru/base/utils/source_type.dart';
-import 'package:sylvakru/base/widgets/custom_text_field.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/config.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/services/emby_client.dart';
+import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/navidrome_client.dart';
+import 'package:soiboi/base/services/stream_client.dart';
+import 'package:soiboi/base/services/webdav_client.dart';
+import 'package:soiboi/base/utils/source_type.dart';
+import 'package:soiboi/base/widgets/custom_text_field.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 
 class ConnectClientWidget extends StatefulWidget {
   final SourceType sourceType;

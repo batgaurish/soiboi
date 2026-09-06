@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/utils/contrast_color_generator.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/utils/contrast_color_generator.dart';
+import 'package:soiboi/layer/lyrics_page_layer.dart';
 
 final colorManager = ColorManager();
 

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:sylvakru/base/services/picture_service.dart';
+import 'package:soiboi/base/services/picture_service.dart';
 
 PictureLoadScheduler pictureLoadScheduler = PictureLoadScheduler();
 

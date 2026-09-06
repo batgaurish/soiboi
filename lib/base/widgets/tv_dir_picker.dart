@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 
 class TvDirPicker extends StatefulWidget {
   const TvDirPicker({super.key});

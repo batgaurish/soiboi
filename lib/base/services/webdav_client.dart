@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:sylvakru/base/services/logger.dart';
+import 'package:soiboi/base/services/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:xml/xml.dart';
 

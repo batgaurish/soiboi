@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
-import 'package:sylvakru/portrait_view/portrait_view.dart';
+import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/portrait_view/portrait_view.dart';
 
 Widget customAppBarLeading(BuildContext context, {String label = ''}) {
   return ValueListenableBuilder(

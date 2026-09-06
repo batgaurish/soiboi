@@ -4,12 +4,12 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/services/interaction.dart';
-import 'package:sylvakru/base/services/logger.dart';
-import 'package:sylvakru/base/services/stream_client.dart';
+import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/data/playlist.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/stream_client.dart';
 
 class NavidromeClient extends StreamClient {
   NavidromeClient({
@@ -43,7 +43,7 @@ class NavidromeClient extends StreamClient {
       't': token,
       's': salt,
       'v': '1.16.1',
-      'c': 'Sylvakru',
+      'c': 'Soiboi',
       'f': 'json',
     };
   }

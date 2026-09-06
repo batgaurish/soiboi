@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/services/logger.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/services/logger.dart';
 import 'package:window_manager/window_manager.dart';
 
 class SingleInstance {
@@ -11,12 +11,12 @@ class SingleInstance {
   static Future<void> start() async {
     logger.output('Single instance init');
 
-    final lockFile = File('${appSupportDir.path}/sylvakru.lock');
+    final lockFile = File('${appSupportDir.path}/soiboi.lock');
     if (!lockFile.existsSync()) {
       lockFile.createSync();
     }
 
-    final portFile = File('${appSupportDir.path}/sylvakru.port');
+    final portFile = File('${appSupportDir.path}/soiboi.port');
     if (!portFile.existsSync()) {
       portFile.createSync();
     }

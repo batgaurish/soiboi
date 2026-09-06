@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/widgets/full_width_track_shape.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/widgets/full_width_track_shape.dart';
 
 class VolumeBar extends StatelessWidget {
   final Color activeColor;

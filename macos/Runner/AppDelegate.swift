@@ -32,7 +32,7 @@ class AppDelegate: FlutterAppDelegate {
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
 
     menuChannel = FlutterMethodChannel(
-      name: "com.afalphy.menu",
+      name: "com.batgaurish.soiboi.menu",
       binaryMessenger: controller!.engine.binaryMessenger
     )
 

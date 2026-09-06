@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/data/playlist.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
 
 StreamClient? streamClient;
 

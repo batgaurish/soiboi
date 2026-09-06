@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/asset_images.dart';
-import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/base/widgets/collection_list.dart';
-import 'package:sylvakru/base/widgets/song_list.dart';
-import 'package:sylvakru/l10n/generated/app_localizations.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/data/history.dart';
+import 'package:soiboi/base/widgets/collection_list.dart';
+import 'package:soiboi/base/widgets/song_list.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/layer/layers_manager.dart';
 
 final GlobalKey<NavigatorState> recentlyKey = GlobalKey();
 final recentlyVisibleNotifier = ValueNotifier(true);

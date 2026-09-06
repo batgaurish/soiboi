@@ -2,23 +2,23 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/data/config.dart';
-import 'package:sylvakru/base/data/artist_album.dart';
-import 'package:sylvakru/base/data/font_manager.dart';
-import 'package:sylvakru/base/services/bookmark_service.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/history.dart';
-import 'package:sylvakru/base/services/color_manager.dart';
-import 'package:sylvakru/base/data/library.dart';
-import 'package:sylvakru/base/data/playlist.dart';
-import 'package:sylvakru/base/data/setting.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/data/config.dart';
+import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/data/font_manager.dart';
+import 'package:soiboi/base/services/bookmark_service.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/history.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/playlist.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sylvakru/base/services/picture_load_scheduler.dart';
-import 'package:sylvakru/base/services/picture_service.dart';
-import 'package:sylvakru/base/utils/common_utils.dart';
-import 'package:sylvakru/base/utils/path.dart';
-import 'package:sylvakru/layer/layers_manager.dart';
+import 'package:soiboi/base/services/picture_load_scheduler.dart';
+import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/utils/common_utils.dart';
+import 'package:soiboi/base/utils/path.dart';
+import 'package:soiboi/layer/layers_manager.dart';
 
 bool firstLaunch = true;
 
@@ -35,7 +35,7 @@ class Loader {
       await Permission.audio.request();
     } else if (Platform.isIOS) {
       await BookmarkService.init();
-      File keepFile = File('${appDocsDir.path}/sylvakru.keep');
+      File keepFile = File('${appDocsDir.path}/soiboi.keep');
       if (!keepFile.existsSync()) {
         keepFile.createSync();
       }
@@ -148,7 +148,7 @@ class Loader {
       firstLaunch = false;
       if (compareVersion('4.0.1', jsonDecode(tmp.readAsStringSync())) > 0) {
         File playlistsFile = File(
-          "${getPlaylistConfigPath(.local)}/sylvakru_playlists.json",
+          "${getPlaylistConfigPath(.local)}/soiboi_playlists.json",
         );
         if (playlistsFile.existsSync()) {
           final content = playlistsFile.readAsStringSync();
@@ -159,7 +159,7 @@ class Loader {
         }
 
         playlistsFile = File(
-          "${getPlaylistConfigPath(.webdav)}/sylvakru_playlists.json",
+          "${getPlaylistConfigPath(.webdav)}/soiboi_playlists.json",
         );
         if (playlistsFile.existsSync()) {
           final content = playlistsFile.readAsStringSync();

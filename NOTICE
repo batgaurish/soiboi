@@ -1,0 +1,32 @@
+Soiboi
+Copyright 2026 batgaurish
+
+This product includes software developed as part of the Sylvakru project.
+
+  Sylvakru
+  Copyright 2025-2026 AfalpHy
+  https://github.com/AfalpHy/sylvakru
+  Licensed under the Apache License, Version 2.0
+
+Soiboi is a derivative work of Sylvakru, retaining its Apache License 2.0
+terms. The original copyright notice is preserved in LICENSE.
+
+Significant changes made in Soiboi relative to upstream Sylvakru:
+
+  - Rebranded application identity (package name, application id, display
+    name, packaging metadata, platform method-channel identifiers).
+  - Added an integration with a self-hosted download pipeline service
+    (download_bridge), providing an in-app flow for archiving Apple Music
+    playlists to the local library.
+  - Added a discovery view surfacing weekly generated playlists from that
+    service.
+  - Added synced-lyrics retrieval from LRCLIB, complementing the existing
+    local .lrc and server-provided lyrics sources.
+  - Reworked the colour system into a multi-flavour theme token model,
+    replacing the fixed light/dark/vivid colour modes.
+  - Surfaced per-track codec and quality information (e.g. ALAC, AAC 320)
+    throughout the library and player interfaces.
+  - Copy-editing pass over the English UI strings.
+
+The full modification history is preserved in this repository's git history,
+which retains all upstream Sylvakru commits.

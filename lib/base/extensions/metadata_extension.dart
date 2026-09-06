@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 import 'package:drift/drift.dart';
-import 'package:sylvakru/base/app.dart';
-import 'package:sylvakru/base/data/database.dart';
-import 'package:sylvakru/base/my_audio_metadata.dart';
-import 'package:sylvakru/base/utils/path.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/database.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/utils/path.dart';
 
 extension MetadataItemMapper on MetadataItem {
   MyAudioMetadata toMetadata() {

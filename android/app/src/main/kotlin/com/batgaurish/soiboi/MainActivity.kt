@@ -1,4 +1,4 @@
-package com.afalphy.sylvakru
+package com.batgaurish.soiboi
 
 import com.ryanheise.audioservice.AudioServiceActivity
 

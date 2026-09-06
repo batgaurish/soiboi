@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
-import 'package:sylvakru/base/audio_handler.dart';
-import 'package:sylvakru/base/services/my_window_listener.dart';
-import 'package:sylvakru/layer/lyrics_page_layer.dart';
+import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/services/my_window_listener.dart';
+import 'package:soiboi/layer/lyrics_page_layer.dart';
 import 'package:window_manager/window_manager.dart';
 
 bool isTyping = false;
