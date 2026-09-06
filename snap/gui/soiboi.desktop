@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Soiboi
+Comment=Offline music player with Apple Music archival
+Exec=soiboi
+Icon=${SNAP}/meta/gui/soiboi.png
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;
+Keywords=music;player;audio;offline;library;
