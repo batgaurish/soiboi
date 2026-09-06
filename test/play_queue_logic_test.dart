@@ -7,7 +7,10 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/play_queue_logic.dart';
 
 MyAudioMetadata song(String id) {
-  return MyAudioMetadata(AudioMetadata(title: id), id: id);
+  // A path is required, not optional: the constructor dereferences it to
+  // derive the cover-art cache key for any non-streaming source. It never has
+  // to exist on disk for these tests.
+  return MyAudioMetadata(AudioMetadata(title: id), id: id, path: '/tmp/$id.m4a');
 }
 
 void main() {
