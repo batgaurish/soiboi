@@ -89,6 +89,16 @@ Duration parseTime(RegExpMatch m) {
 bool _isBlank(List<String> lines) =>
     lines.isEmpty || lines.every((l) => l.trim().isEmpty);
 
+/// Whether any line carries an [mm:ss] stamp, i.e. these are synced lyrics.
+///
+/// Distinguishing "has lyrics" from "has *synced* lyrics" is the whole point:
+/// a downloaded track always arrives with Apple's plain words embedded, and
+/// only the timestamped kind can follow playback.
+final _timestampPattern = RegExp(r'[\[<]\d{1,3}:\d{2}([.:]\d{2,3})?[\]>]');
+
+bool _hasTimestamps(List<String> lines) =>
+    lines.any((line) => _timestampPattern.hasMatch(line));
+
 Future<void> setParsedLyrics(MyAudioMetadata song) async {
   if (song.parsedLyrics != null) {
     return;
@@ -144,23 +154,44 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
     }
   }
 
-  // Last resort: ask LRCLIB. Only when nothing local turned up, so an existing
-  // sidecar or embedded lyric always wins and the network is never touched for
-  // a track we can already satisfy.
-  if (lrclibEnabledNotifier.value && _isBlank(lines)) {
+  // Ask LRCLIB when we have nothing, *or* when what we have is untimed.
+  //
+  // The second case is the one that matters in practice and was previously
+  // missed: gamdl embeds Apple's plain lyrics into the tags, so a downloaded
+  // track always arrives with unsynced words. Treating "has lyrics" as "done"
+  // meant those tracks could never gain synced lyrics, which is precisely what
+  // LRCLIB exists to provide. A local *synced* lyric still wins outright and
+  // costs no request.
+  final localIsSynced = _hasTimestamps(lines);
+  if (lrclibEnabledNotifier.value && !localIsSynced) {
     final fetched = await fetchFromLrclib(
       title: song.title,
       artist: song.artist,
       album: song.album,
       duration: song.duration,
     );
-    final best = fetched?.best;
-    if (best != null) {
-      lines = best.split(RegExp(r'[\n]'));
+
+    // Only upgrade for genuinely synced lyrics. Swapping our local plain text
+    // for LRCLIB's plain text gains nothing and risks trading a correct lyric
+    // for a mismatched one.
+    final synced = fetched?.synced;
+    final hasSynced = synced != null && synced.trim().isNotEmpty;
+
+    if (hasSynced) {
+      lines = synced.split(RegExp(r'[\n]'));
       // Cache beside the audio file so this is a one-time cost and the track
-      // keeps its lyrics with no connection.
+      // keeps its synced lyrics with no connection.
       if (sourceType == .local && song.path != null) {
-        unawaited(cacheSidecar(song.path!, best));
+        unawaited(cacheSidecar(song.path!, synced));
+      }
+    } else if (_isBlank(lines)) {
+      // Nothing local at all, so even unsynced words are an improvement.
+      final best = fetched?.best;
+      if (best != null) {
+        lines = best.split(RegExp(r'[\n]'));
+        if (sourceType == .local && song.path != null) {
+          unawaited(cacheSidecar(song.path!, best));
+        }
       }
     }
   }
