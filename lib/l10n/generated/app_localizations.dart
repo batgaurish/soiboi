@@ -473,7 +473,7 @@ abstract class AppLocalizations {
   /// No description provided for @times.
   ///
   /// In en, this message translates to:
-  /// **'Times'**
+  /// **'Play Count'**
   String get times;
 
   /// No description provided for @loop.
@@ -533,13 +533,13 @@ abstract class AppLocalizations {
   /// No description provided for @add2Playlist.
   ///
   /// In en, this message translates to:
-  /// **'Add to a Playlist'**
+  /// **'Add to Playlist'**
   String get add2Playlist;
 
   /// No description provided for @added2Playlist.
   ///
   /// In en, this message translates to:
-  /// **'Added to a playlist'**
+  /// **'Added to playlist'**
   String get added2Playlist;
 
   /// No description provided for @selectAll.
@@ -596,11 +596,11 @@ abstract class AppLocalizations {
   /// **'Unknown'**
   String get unknown;
 
-  /// No description provided for @updateMedata.
+  /// No description provided for @updateMetadata.
   ///
   /// In en, this message translates to:
   /// **'Update Metadata'**
-  String get updateMedata;
+  String get updateMetadata;
 
   /// No description provided for @defaultText.
   ///
@@ -659,7 +659,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectSortingType.
   ///
   /// In en, this message translates to:
-  /// **'Select sorting type'**
+  /// **'Sort by'**
   String get selectSortingType;
 
   /// No description provided for @loadingFolder.
@@ -683,13 +683,13 @@ abstract class AppLocalizations {
   /// No description provided for @canNotUpdate.
   ///
   /// In en, this message translates to:
-  /// **'Can not update the song that is playing'**
+  /// **'Can\'t edit a track while it\'s playing'**
   String get canNotUpdate;
 
   /// No description provided for @updateSuccessfully.
   ///
   /// In en, this message translates to:
-  /// **'Update Successfully'**
+  /// **'Updated successfully'**
   String get updateSuccessfully;
 
   /// No description provided for @updateFailed.
@@ -761,19 +761,19 @@ abstract class AppLocalizations {
   /// No description provided for @checkUpdate.
   ///
   /// In en, this message translates to:
-  /// **'Check Update'**
+  /// **'Check for Updates'**
   String get checkUpdate;
 
   /// No description provided for @go2Download.
   ///
   /// In en, this message translates to:
-  /// **'Go to Download'**
+  /// **'Open Downloads'**
   String get go2Download;
 
   /// No description provided for @alreadyLatest.
   ///
   /// In en, this message translates to:
-  /// **'Already on the latest version'**
+  /// **'You\'re on the latest version'**
   String get alreadyLatest;
 
   /// No description provided for @theme.
@@ -983,13 +983,13 @@ abstract class AppLocalizations {
   /// No description provided for @randomizeTemp.
   ///
   /// In en, this message translates to:
-  /// **'Randomize(Temporary)'**
+  /// **'Shuffle once'**
   String get randomizeTemp;
 
   /// No description provided for @randomizePermanent.
   ///
   /// In en, this message translates to:
-  /// **'Randomize(Permanent)'**
+  /// **'Shuffle and save order'**
   String get randomizePermanent;
 
   /// No description provided for @modifiedTimeAscending.
@@ -998,16 +998,16 @@ abstract class AppLocalizations {
   /// **'Modified Time Ascending'**
   String get modifiedTimeAscending;
 
-  /// No description provided for @modifiedTimedescending.
+  /// No description provided for @modifiedTimeDescending.
   ///
   /// In en, this message translates to:
   /// **'Modified Time Descending'**
-  String get modifiedTimedescending;
+  String get modifiedTimeDescending;
 
   /// No description provided for @cannotBeUndone.
   ///
   /// In en, this message translates to:
-  /// **'Cannot be Undone'**
+  /// **'This can\'t be undone'**
   String get cannotBeUndone;
 
   /// No description provided for @clearCache.
@@ -1091,7 +1091,7 @@ abstract class AppLocalizations {
   /// No description provided for @syncingTryLater.
   ///
   /// In en, this message translates to:
-  /// **'Syncing library, try again later'**
+  /// **'Library is syncing — try again in a moment'**
   String get syncingTryLater;
 
   /// No description provided for @all.
@@ -1103,19 +1103,19 @@ abstract class AppLocalizations {
   /// No description provided for @folderExist.
   ///
   /// In en, this message translates to:
-  /// **'The folder already exist'**
+  /// **'This folder is already added'**
   String get folderExist;
 
   /// No description provided for @folderNotSupportedYet.
   ///
   /// In en, this message translates to:
-  /// **'The folder is not supported yet'**
+  /// **'This folder type isn\'t supported yet'**
   String get folderNotSupportedYet;
 
   /// No description provided for @getPermissionFailed.
   ///
   /// In en, this message translates to:
-  /// **'Get permission failed'**
+  /// **'Permission denied'**
   String get getPermissionFailed;
 
   /// No description provided for @premiumFeatures.
@@ -1181,7 +1181,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumRequiredMessage.
   ///
   /// In en, this message translates to:
-  /// **'This feature requires Premium Features to be unlocked before it can be used'**
+  /// **'Unlock Premium to use this'**
   String get premiumRequiredMessage;
 
   /// No description provided for @premiumUnlockHint.
@@ -1235,7 +1235,7 @@ abstract class AppLocalizations {
   /// No description provided for @noLyrics.
   ///
   /// In en, this message translates to:
-  /// **'There are no lyrics'**
+  /// **'No lyrics found'**
   String get noLyrics;
 
   /// No description provided for @lyricsParseFailed.
@@ -1319,7 +1319,7 @@ abstract class AppLocalizations {
   /// No description provided for @getStart.
   ///
   /// In en, this message translates to:
-  /// **'Get Start'**
+  /// **'Get Started'**
   String get getStart;
 
   /// No description provided for @immersiveWideLayout.

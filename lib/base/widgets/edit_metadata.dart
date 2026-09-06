@@ -254,7 +254,7 @@ class _EditMetadataState extends State<EditMetadata> {
   ) async {
     final l10n = AppLocalizations.of(context);
 
-    if (await showConfirmDialog(context, l10n.updateMedata)) {
+    if (await showConfirmDialog(context, l10n.updateMetadata)) {
       if (Platform.isAndroid) {
         if (await Permission.manageExternalStorage.request() == .denied) {
           if (context.mounted) {

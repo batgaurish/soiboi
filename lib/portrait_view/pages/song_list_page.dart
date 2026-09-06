@@ -153,7 +153,7 @@ extension _SongListPage on _SongListState {
                     ];
                     if (isLibrary && (isNotStreamSource) || folder != null) {
                       orderText.add(l10n.modifiedTimeAscending);
-                      orderText.add(l10n.modifiedTimedescending);
+                      orderText.add(l10n.modifiedTimeDescending);
                       orderText.add(l10n.randomizeTemp);
                       orderText.add(l10n.randomizePermanent);
                     }
