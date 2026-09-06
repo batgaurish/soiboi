@@ -45,4 +45,7 @@ app.*.map.json
 /android/app/release
 
 .vscode
-*.pfx.pipeline-venv/
+*.pfx
+.pipeline-venv/
+build/android-native/
+android/pip-repo/

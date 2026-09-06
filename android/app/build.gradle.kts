@@ -80,35 +80,20 @@ chaquopy {
         // it only has to be linked against the matching Chaquopy libpython.
         version = "3.12"
 
-        // Chaquopy needs a matching host interpreter to resolve pip
-        // requirements at build time. Arch ships 3.12/3.14, so this points at
-        // a uv-managed 3.10 rather than requiring a system package.
+        // Chaquopy resolves pip requirements at build time using a host
+        // interpreter of the same version, which must therefore be 3.12 --
+        // overridable for systems whose python3.12 is not on PATH.
         buildPython(System.getenv("CHAQUOPY_PYTHON") ?: "python3.12")
 
         pip {
-            // gamdl's pure-Python dependency tree. gamdl itself is not here:
-            // its _ammuxer extension is Rust with no Android wheel on PyPI, so
-            // it is supplied separately as a locally built wheel.
-            install("mutagen>=1.47.0")
-            install("httpx>=0.28.1")
-            install("httpx-retries>=0.4.6")
-            install("m3u8>=6.0.0")
-            // NOT YET RESOLVED: pywidevine's dependency chain does not
-            // install under Chaquopy. pywidevine 1.9 needs pycryptodome
-            // >=3.23 (Chaquopy tops out at 3.21); pinning 1.8.0 pulls pymp4,
-            // whose 1.3+ releases hard-pin construct==2.8.8, and neither that
-            // construct nor pymp4 1.2.0 has a build available here.
-            //
-            // Downloading therefore cannot work on Android until this is
-            // sorted -- most likely by vendoring a patched pymp4, or building
-            // the wheels against Chaquopy directly. The capabilities probe
-            // reports pywidevine as missing, so the UI says so rather than
-            // failing at download time.
-            install("yt-dlp>=2025.10.22")
-            install("click>=8.3.0")
-            install("colorama>=0.4.6")
-            install("structlog>=25.5.0")
-            install("async-lru>=2.0.5")
+            // Three packages come from a locally built repository rather than
+            // PyPI, because none of them installs here as published. See
+            // tools/build_android_wheels.py for what each repair is and why.
+            options("--find-links", "${project.projectDir}/../pip-repo")
+
+            // gamdl pulls the rest of the tree (mutagen, yt-dlp, httpx, m3u8,
+            // click, pywidevine...) through its own dependency metadata.
+            install("gamdl==3.8.5")
         }
     }
 
