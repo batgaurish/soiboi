@@ -68,7 +68,16 @@ Future<List<DiscoveryTrack>?> resolveDiscoveryTracks(
   String storefront = 'us',
 }) async {
   final cached = _resolved[mbid];
-  if (cached != null && (limit == null || cached.length >= limit)) {
+  final full = _rawTracks[mbid]?.length;
+
+  // A card prefetches only four covers, so a four-entry cache is a *partial*
+  // result, not the playlist. Returning it for an unlimited request is what
+  // made a fifty-track playlist open showing four tracks: the sheet asked for
+  // everything and got the card's preview back.
+  final cacheIsComplete =
+      cached != null && (full == null || cached.length >= full);
+  if (cached != null &&
+      (limit == null ? cacheIsComplete : cached.length >= limit)) {
     return cached;
   }
   if (_inFlight.contains(mbid)) return cached;

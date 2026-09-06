@@ -340,7 +340,15 @@ class _StaggeredIn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final motion = motionFor(context);
+    // Deliberately does NOT read MediaQuery. motionFor() would register an
+    // inherited-widget dependency from every card in every shelf, and those
+    // cards are created and destroyed constantly as the shelves rebuild --
+    // which is what tripped Flutter's '_dependents.isEmpty' assertion when a
+    // ListenBrainz fetch swapped the shelf contents mid-animation.
+    //
+    // Reduced-motion is honoured through the flavour's own stagger setting
+    // instead, which needs no context.
+    final motion = activeMotion;
     if (motion.staggerStep == Duration.zero) return child;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
