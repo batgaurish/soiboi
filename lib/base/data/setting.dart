@@ -25,6 +25,10 @@ final playlistsUseLargePictureNotifier = ValueNotifier(true);
 
 final exitOnCloseNotifier = ValueNotifier(false);
 
+/// Fetch missing lyrics from LRCLIB. On by default: the pipeline already writes
+/// sidecars at archive time, so this only fires for tracks it had nothing for.
+final lrclibEnabledNotifier = ValueNotifier(true);
+
 final setting = Setting();
 
 class Setting {
@@ -103,6 +107,9 @@ class Setting {
         json['lyricsFontSizeOffset'] as double? ??
         lyricsFontSizeOffsetNotifier.value;
 
+    lrclibEnabledNotifier.value =
+        json['lrclibEnabled'] as bool? ?? true;
+
     exitOnCloseNotifier.value =
         json['exitOnClose'] as bool? ?? exitOnCloseNotifier.value;
 
@@ -136,6 +143,7 @@ class Setting {
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
+        'lrclibEnabled': lrclibEnabledNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
 
         'recursiveScan': recursiveScanNotifier.value,

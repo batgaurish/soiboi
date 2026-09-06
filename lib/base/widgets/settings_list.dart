@@ -162,6 +162,8 @@ class _SettingsListState extends State<SettingsList> {
             paddingIfNeed(isLandscape, immersiveWideLayoutListTile(l10n)),
           ),
 
+        sliverBox(paddingIfNeed(isLandscape, lrclibListTile(l10n))),
+
         sliverBox(paddingIfNeed(isLandscape, autoPlayOnStartupListTile(l10n))),
 
         if (!isMobile)
@@ -901,6 +903,28 @@ class _SettingsListState extends State<SettingsList> {
                 setting.save();
               },
             );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Network lyric lookup. Off means the app never reaches out for lyrics --
+  /// worth having as a switch since everything else here works offline.
+  Widget lrclibListTile(AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(lyricsImage, size: iconSize),
+      title: const Text('Fetch lyrics from LRCLIB'),
+      subtitle: Text(
+        'Only for tracks with no local lyrics',
+        style: TextStyle(fontSize: 12, color: textColor.value),
+      ),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: lrclibEnabledNotifier,
+          onToggleCallBack: () {
+            setting.save();
           },
         ),
       ),
