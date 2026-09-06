@@ -35,6 +35,38 @@ BridgeClient? get bridgeClient =>
 const _activeInterval = Duration(seconds: 2);
 const _idleInterval = Duration(seconds: 10);
 
+/// Resolved track lists, keyed by playlist mbid.
+///
+/// Resolving a playlist hits Apple's catalog once per track server-side and can
+/// take most of a minute, so it is cached for the session. Home needs these for
+/// the artwork grid on each card, and the detail sheet reuses the same entry —
+/// which is why opening a playlist you've already seen is instant.
+final Map<String, List<DiscoverTrack>> _trackCache = {};
+final Set<String> _inFlight = {};
+
+/// Cached tracks for [mbid], or null if not fetched yet.
+List<DiscoverTrack>? cachedTracks(String mbid) => _trackCache[mbid];
+
+/// Fetches and caches, de-duplicating concurrent requests for the same
+/// playlist. Returns null on failure, leaving the cache untouched.
+Future<List<DiscoverTrack>?> fetchTracksCached(String mbid) async {
+  final cached = _trackCache[mbid];
+  if (cached != null) return cached;
+  if (_inFlight.contains(mbid)) return null;
+  final client = bridgeClient;
+  if (client == null) return null;
+  _inFlight.add(mbid);
+  try {
+    final tracks = await client.discoverTracks(mbid);
+    _trackCache[mbid] = tracks;
+    return tracks;
+  } on BridgeException {
+    return null;
+  } finally {
+    _inFlight.remove(mbid);
+  }
+}
+
 Timer? _timer;
 int _viewers = 0;
 

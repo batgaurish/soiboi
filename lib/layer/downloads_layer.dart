@@ -12,6 +12,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/bridge_client.dart';
 import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/services/preview_player.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/motion.dart';
@@ -467,6 +468,10 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
   String? _error;
   bool _sending = false;
 
+  /// Titles already queued from this sheet, so the row can show it landed
+  /// rather than letting you queue the same track repeatedly.
+  final Set<String> _queued = {};
+
   @override
   void initState() {
     super.initState();
@@ -476,12 +481,24 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
   Future<void> _load() async {
     final client = bridgeClient;
     if (client == null) return;
+    final cached = cachedTracks(widget.playlist.mbid);
+    if (cached != null) {
+      setState(() => _tracks = cached);
+      return;
+    }
     try {
       final tracks = await client.discoverTracks(widget.playlist.mbid);
       if (mounted) setState(() => _tracks = tracks);
     } on BridgeException catch (e) {
       if (mounted) setState(() => _error = e.message);
     }
+  }
+
+  @override
+  void dispose() {
+    // A preview must not outlive the sheet that started it.
+    stopPreview();
+    super.dispose();
   }
 
   @override
@@ -569,6 +586,62 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                               ? textColor.value
                               : Colors.orange,
                         ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Audition before archiving. Apple supplies a 30s
+                          // clip for most catalogue tracks.
+                          if (track.previewUrl != null &&
+                              track.previewUrl!.isNotEmpty)
+                            ValueListenableBuilder(
+                              valueListenable: previewingKeyNotifier,
+                              builder: (context, playing, child) {
+                                final key = '${track.artist} — ${track.title}';
+                                final active = playing == key;
+                                return IconButton(
+                                  iconSize: 19,
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: active ? 'Stop' : 'Preview',
+                                  onPressed: () =>
+                                      togglePreview(key, track.previewUrl),
+                                  icon: Icon(
+                                    active
+                                        ? Icons.stop_circle_outlined
+                                        : Icons.play_circle_outline,
+                                    color: active ? seekBarColor.value : null,
+                                  ),
+                                );
+                              },
+                            ),
+                          // Archive just this one, rather than the whole list.
+                          if (track.isResolved)
+                            IconButton(
+                              iconSize: 18,
+                              visualDensity: VisualDensity.compact,
+                              tooltip: 'Archive this track',
+                              onPressed: _queued.contains(track.title)
+                                  ? null
+                                  : () async {
+                                      final ok = await runBridgeAction(
+                                        (c) => c.downloadTracks([track]),
+                                      );
+                                      if (ok && mounted) {
+                                        setState(
+                                          () => _queued.add(track.title),
+                                        );
+                                      }
+                                    },
+                              icon: Icon(
+                                _queued.contains(track.title)
+                                    ? Icons.check_rounded
+                                    : Icons.download_outlined,
+                                color: _queued.contains(track.title)
+                                    ? seekBarColor.value
+                                    : null,
+                              ),
+                            ),
+                        ],
                       ),
                     );
                   },
