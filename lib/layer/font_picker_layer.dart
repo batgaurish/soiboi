@@ -11,6 +11,7 @@ import 'package:soiboi/base/data/font_manager.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/system_fonts.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/widgets/my_divider.dart';
 import 'package:soiboi/base/widgets/my_sheet.dart';
@@ -54,6 +55,12 @@ class _FontPickerLayerState extends State<FontPickerLayer> {
     super.dispose();
   }
 
+  /// Rebuilds the list of offerable fonts.
+  ///
+  /// Imported fonts are synchronous — they are already registered. System
+  /// fonts are not: enumerating them means reading font files, so the list is
+  /// shown with whatever is ready and filled in when the scan returns, rather
+  /// than blocking the screen behind it.
   void reloadAllFonts() {
     allFonts.clear();
     allFonts.addAll(importedFonts);
@@ -61,6 +68,30 @@ class _FontPickerLayerState extends State<FontPickerLayer> {
       allFonts.addAll(JustFontScan.scan().map((e) => e.name).toList());
     }
     update();
+
+    // Linux and Android are not covered by JustFontScan; see system_fonts.dart.
+    scanSystemFonts().then((families) {
+      if (!mounted) return;
+      for (final family in families) {
+        if (!allFonts.contains(family)) allFonts.add(family);
+      }
+      update();
+    });
+  }
+
+  /// Registers [font] with Flutter if this platform needs the file loaded.
+  ///
+  /// Called as each row is built, so only fonts actually on screen are read.
+  /// Android ships over two hundred font files; loading them all to fill a
+  /// list nobody scrolls to the end of would be pure waste, and Skia there
+  /// cannot resolve a family by name without the file (see system_fonts.dart).
+  void ensureLoadedForPreview(String? font) {
+    if (font == null) return;
+    ensureSystemFontLoaded(font).then((becameUsable) {
+      // Only a font that just became usable is worth a rebuild; the call is
+      // made for every row on every build and almost always changes nothing.
+      if (becameUsable && mounted) setState(() {});
+    });
   }
 
   void update() {
@@ -75,6 +106,7 @@ class _FontPickerLayerState extends State<FontPickerLayer> {
     if (await showConfirmDialog(context, l10n.restoreDefault)) {
       await Future.delayed(Duration(milliseconds: 250));
       fontFamilyNotifier.value = null;
+      fontFamilyFileNotifier.value = null;
       setting.save();
       setState(() {});
     }

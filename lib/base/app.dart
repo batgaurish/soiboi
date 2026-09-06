@@ -33,6 +33,12 @@ bool isNotStreamSource = !isStreamSource;
 
 final ValueNotifier<String?> fontFamilyNotifier = ValueNotifier(null);
 
+/// The file [fontFamilyNotifier]'s family was read from, on platforms that
+/// need it registered before Skia will resolve the name. Null for fonts the
+/// platform resolves by itself, and for imported fonts, which FontManager
+/// already re-registers at startup.
+final ValueNotifier<String?> fontFamilyFileNotifier = ValueNotifier(null);
+
 final List<String> importedFonts = [];
 
 final isPremiumNotifier = ValueNotifier(true);

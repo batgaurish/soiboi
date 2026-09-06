@@ -82,6 +82,7 @@ class Setting {
 
     if (isPremiumNotifier.value) {
       fontFamilyNotifier.value = json['fontFamily'] as String?;
+      fontFamilyFileNotifier.value = json['fontFamilyFile'] as String?;
     }
 
     flavourNotifier.value = Flavour.values.firstWhere(
@@ -151,6 +152,7 @@ class Setting {
         'autoPlayOnStartup': autoPlayOnStartupNotifier.value,
 
         'fontFamily': fontFamilyNotifier.value,
+        'fontFamilyFile': fontFamilyFileNotifier.value,
 
         'flavour': flavourNotifier.value.name,
         'mainPageTheme': mainPageThemeNotifier.value.name,

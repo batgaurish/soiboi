@@ -149,6 +149,9 @@ extension _FontPickerPanel on _FontPickerLayerState {
                     if (await showConfirmDialog(context, l10n.setFont)) {
                       await Future.delayed(Duration(milliseconds: 250));
                       fontFamilyNotifier.value = font;
+                      // Remembered so it can be registered again next launch;
+                      // null for fonts the platform resolves by name.
+                      fontFamilyFileNotifier.value = systemFontFile(font);
                       setting.save();
                       rebuild();
                     }
@@ -164,6 +167,8 @@ extension _FontPickerPanel on _FontPickerLayerState {
   }
 
   Widget oneFontPreview(String title, String? font) {
+    ensureLoadedForPreview(font);
+
     return Column(
       children: [
         Text(title, style: TextStyle(fontFamily: font, fontSize: 16)),
