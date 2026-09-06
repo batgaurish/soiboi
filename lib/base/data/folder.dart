@@ -7,6 +7,7 @@ import 'package:soiboi/base/services/bookmark_service.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/utils/path.dart';
 import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
 import 'package:soiboi/base/widgets/manage_music_folders.dart';
 import 'package:soiboi/layer/layers_manager.dart';
@@ -50,6 +51,16 @@ class Folder {
   final changeNotifier = ValueNotifier(0);
 
   bool canModify = false;
+
+  /// Whether this folder is scanned into subdirectories.
+  ///
+  /// Normally the user's choice, which defaults to off. The archive folder is
+  /// the exception: the downloader writes `Artist/Album/NN Title.m4a`, a layout
+  /// this app chose, so a flat scan of it finds nothing at all and every
+  /// download stays invisible. Recursion there is not a preference to respect
+  /// but a fact about the folder's contents.
+  bool get scanRecursively =>
+      recursiveScanNotifier.value || id == downloadOutputDir;
 
   Folder(this.id, this.path, {this.isWebdav = false}) {
     if (!isWebdav) {
@@ -101,7 +112,7 @@ class Folder {
     if (isWebdav) {
       await for (final file in webdavClient!.listStream(
         path,
-        recursive: recursiveScanNotifier.value,
+        recursive: scanRecursively,
       )) {
         if (!file.isDirectory) {
           final ext = extension(file.path).toLowerCase();
@@ -114,7 +125,7 @@ class Folder {
       }
     } else {
       await for (final file in _dir!.list(
-        recursive: recursiveScanNotifier.value,
+        recursive: scanRecursively,
       )) {
         if (file is File) {
           final ext = extension(file.path).toLowerCase();
