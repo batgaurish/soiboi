@@ -26,6 +26,10 @@ echo "==> building pipeline environment in $VENV"
 # for this platform.
 "$VENV/bin/pip" install --quiet gamdl
 
+# For pipeline/tests. Not shipped -- the packaging scripts copy the runtime
+# environment, and pytest is not part of it.
+"$VENV/bin/pip" install --quiet pytest
+
 echo "==> verifying"
 PYTHONPATH="$PIPELINE" "$VENV/bin/python" -m soiboi_pipeline capabilities
 

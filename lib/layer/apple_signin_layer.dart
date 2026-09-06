@@ -55,7 +55,10 @@ Future<bool> _harvest() async {
         // involved (music, itunes, amp-api, idmsa). Broadening scope is safe
         // here because the file is local, is filtered to Apple domains, and is
         // only ever read by our own downloader.
-        domain: '.apple.com',
+        //
+        // The exception is media-user-token: gamdl looks it up by exact
+        // domain, so .apple.com makes it invisible. See _hostScopedCookies.
+        domain: store.domainForCookie(cookie.name),
         includeSubdomains: true,
         name: cookie.name,
         value: value,

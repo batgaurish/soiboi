@@ -318,6 +318,15 @@ PipelineRunner buildPipelineRunner() =>
 /// a curated collection. Configurable once the library-folder work lands.
 String downloadOutputDir = '';
 
+/// Scratch space for in-progress downloads.
+///
+/// gamdl defaults its temp directory to the process working directory, which
+/// is not writable on Android and is wherever the user happened to launch the
+/// binary on desktop -- so it is always passed explicitly. Kept out of
+/// [downloadOutputDir] so half-written files are never picked up by a library
+/// scan.
+String downloadTempDir = '';
+
 /// Shared instance and its probed capabilities.
 final pipelineRunner = buildPipelineRunner();
 final pipelineCapabilitiesNotifier = ValueNotifier<PipelineCapabilities?>(null);

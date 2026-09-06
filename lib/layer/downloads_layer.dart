@@ -77,6 +77,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       'url': url,
       'cookies_path': cookiesPath,
       'output_dir': downloadOutputDir,
+      'temp_dir': downloadTempDir,
     })) {
       if (!mounted) return;
       if (event.isProgress) {
@@ -509,6 +510,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
         'url': url,
         'cookies_path': cookiesPath,
         'output_dir': downloadOutputDir,
+        'temp_dir': downloadTempDir,
       })) {
         if (event.isError) {
           if (mounted) setState(() => _error = event.message);

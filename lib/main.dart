@@ -81,6 +81,7 @@ Future<void> main() async {
 
   // Know whether we have a usable Apple session before any UI asks.
   downloadOutputDir = '${appSupportDir.path}/Downloads';
+  downloadTempDir = '${appSupportDir.path}/download-temp';
 
   unawaited(refreshSessionState());
 
