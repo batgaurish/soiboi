@@ -209,6 +209,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get duration => 'Duration';
 
   @override
+  String get quality => 'Quality';
+
+  @override
   String get times => 'Play Count';
 
   @override

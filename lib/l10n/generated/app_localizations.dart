@@ -470,6 +470,12 @@ abstract class AppLocalizations {
   /// **'Duration'**
   String get duration;
 
+  /// No description provided for @quality.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality'**
+  String get quality;
+
   /// No description provided for @times.
   ///
   /// In en, this message translates to:
