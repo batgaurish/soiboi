@@ -6,6 +6,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
+import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/widgets/lyric_list_view.dart';
@@ -118,6 +119,9 @@ class Setting {
       await loadMatugenPalette();
     }
 
+    listenBrainzUserNotifier.value =
+        json['listenBrainzUser'] as String? ?? '';
+
     bridgeUrlNotifier.value = json['bridgeUrl'] as String? ?? '';
 
     lrclibEnabledNotifier.value =
@@ -158,6 +162,7 @@ class Setting {
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
         'dynamicColorEnabled': dynamicColorEnabledNotifier.value,
         'matugenPath': matugenPathNotifier.value,
+        'listenBrainzUser': listenBrainzUserNotifier.value,
         'bridgeUrl': bridgeUrlNotifier.value,
         'lrclibEnabled': lrclibEnabledNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
