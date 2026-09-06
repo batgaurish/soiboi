@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
@@ -7,6 +8,8 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
 import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/lrclib_service.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/l10n/generated/app_localizations_en.dart';
 
@@ -78,6 +81,10 @@ Duration parseTime(RegExpMatch m) {
   return Duration(minutes: min, seconds: sec, milliseconds: ms);
 }
 
+/// True when nothing usable came back from the local sources.
+bool _isBlank(List<String> lines) =>
+    lines.isEmpty || lines.every((l) => l.trim().isEmpty);
+
 Future<void> setParsedLyrics(MyAudioMetadata song) async {
   if (song.parsedLyrics != null) {
     return;
@@ -132,6 +139,28 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
       lines = song.lyrics!.split(RegExp(r'[\n]'));
     }
   }
+
+  // Last resort: ask LRCLIB. Only when nothing local turned up, so an existing
+  // sidecar or embedded lyric always wins and the network is never touched for
+  // a track we can already satisfy.
+  if (lrclibEnabledNotifier.value && _isBlank(lines)) {
+    final fetched = await fetchFromLrclib(
+      title: song.title,
+      artist: song.artist,
+      album: song.album,
+      duration: song.duration,
+    );
+    final best = fetched?.best;
+    if (best != null) {
+      lines = best.split(RegExp(r'[\n]'));
+      // Cache beside the audio file so this is a one-time cost and the track
+      // keeps its lyrics with no connection.
+      if (sourceType == .local && song.path != null) {
+        unawaited(cacheSidecar(song.path!, best));
+      }
+    }
+  }
+
   applyLrcParsing(
     result,
     lines,
