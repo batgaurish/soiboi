@@ -27,32 +27,51 @@ const _appleMusicUrl = 'https://music.apple.com/us/browse';
 /// "done" URL to watch for, between 2FA, passkeys and regional redirects.
 Future<bool> _harvest() async {
   final manager = CookieManager.instance();
-  final collected = <store.Cookie>[];
+
+  // Deduplicated by name: the URLs below overlap, and the same cookie coming
+  // back three times would be written three times.
+  final byName = <String, store.Cookie>{};
 
   for (final url in const [
     'https://music.apple.com',
     'https://apple.com',
     'https://idmsa.apple.com',
+    'https://buy.itunes.apple.com',
   ]) {
     final cookies = await manager.getCookies(url: WebUri(url));
     for (final cookie in cookies) {
-      collected.add(
-        store.Cookie(
-          domain: cookie.domain ?? Uri.parse(url).host,
-          name: cookie.name,
-          value: cookie.value.toString(),
-          path: cookie.path ?? '/',
-          secure: cookie.isSecure ?? true,
-          httpOnly: cookie.isHttpOnly ?? false,
-          expires: cookie.expiresDate == null
-              ? null
-              : DateTime.fromMillisecondsSinceEpoch(cookie.expiresDate!),
-        ),
+      final value = cookie.value.toString();
+      if (cookie.name.isEmpty || value.isEmpty) continue;
+      byName[cookie.name] = store.Cookie(
+        // Android's CookieManager.getCookie() returns only "name=value" pairs
+        // — the plugin explicitly reports null for domain, expiry, secure and
+        // httpOnly. So none of those can be read back, and guessing the domain
+        // from the URL we happened to query is wrong: myacinfo is set on
+        // .apple.com, and labelling it music.apple.com means gamdl never sends
+        // it to buy.itunes.apple.com. Downloads would then fail with an opaque
+        // account error while the app claimed to be signed in.
+        //
+        // Writing everything to .apple.com with subdomains covers every host
+        // involved (music, itunes, amp-api, idmsa). Broadening scope is safe
+        // here because the file is local, is filtered to Apple domains, and is
+        // only ever read by our own downloader.
+        domain: '.apple.com',
+        includeSubdomains: true,
+        name: cookie.name,
+        value: value,
+        path: '/',
+        secure: true,
+        // Written as a session cookie, since the real expiry is unknowable
+        // here. The store treats a null expiry as "not expired" rather than
+        // 1970, so this does not read as instantly stale.
+        expires: cookie.expiresDate == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(cookie.expiresDate!),
       );
     }
   }
 
-  return store.saveCookies(collected);
+  return store.saveCookies(byName.values.toList());
 }
 
 class AppleSignInLayer extends StatefulWidget {

@@ -87,7 +87,7 @@ dependencies:
   flutter_secure_storage: ^11.0.0
   # Android sign-in: Apple's own login page in a WebView, so the app never
   # handles a password. No Linux support, hence the cookies.txt import there.
-  flutter_inappwebview: ^6.1.5
+  flutter_inappwebview: ^6.2.0-beta.3
   in_app_purchase: ^3.3.0
   text_scroll: ^0.2.1
   flutter_gamepads: ^0.1.11+4
