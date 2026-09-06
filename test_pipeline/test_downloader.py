@@ -2,12 +2,15 @@
 
 Both cases here are regressions that shipped: neither raised, neither logged,
 and both left the UI showing a green tick for a download that never happened.
-Run with: PYTHONPATH=pipeline .pipeline-venv/bin/python -m pytest pipeline/tests
+Kept outside pipeline/ because Chaquopy packages that directory verbatim
+into the APK, and test code has no business shipping to a phone.
+
+Run with: .pipeline-venv/bin/python -m pytest test_pipeline
 """
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 
 from soiboi_pipeline import downloader  # noqa: E402
 
