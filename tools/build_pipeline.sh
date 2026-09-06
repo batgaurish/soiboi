@@ -11,7 +11,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PIPELINE="$ROOT/pipeline"
-VENV="$PIPELINE/.venv"
+# Beside the package, not inside it: Chaquopy copies pipeline/ verbatim
+# into the APK, and a virtualenv in there fails the Android build.
+VENV="$ROOT/.pipeline-venv"
 
 PYTHON="${PYTHON:-python3}"
 

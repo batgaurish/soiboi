@@ -85,3 +85,34 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def handle_json(command, payload_json, emit_callable=None):
+    """JSON-in, JSON-out entry point for the Android bridge.
+
+    Chaquopy marshals Java strings cleanly but not nested dicts, so both sides
+    exchange JSON text. [emit_callable] is a Java object whose __call__ takes a
+    JSON string; progress is pushed through it as it happens rather than
+    accumulating until the download finishes.
+    """
+    try:
+        payload = json.loads(payload_json) if payload_json else {}
+    except (TypeError, json.JSONDecodeError) as exc:
+        return json.dumps(
+            {"event": "error", "code": "bad_json", "message": str(exc)}
+        )
+
+    def emit(event):
+        if emit_callable is None:
+            return
+        try:
+            emit_callable(json.dumps(event))
+        except Exception:
+            # A UI-side failure must never abort a download in progress.
+            pass
+
+    try:
+        result = handle(command, payload, emit=emit)
+    except Exception as exc:  # never let an exception cross the JNI boundary
+        result = {"event": "error", "code": "pipeline", "message": str(exc)}
+    return json.dumps(result)

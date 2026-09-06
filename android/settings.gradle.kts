@@ -21,6 +21,10 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "9.0.1" apply false
     id("org.jetbrains.kotlin.android") version "2.3.20" apply false
+    // Embeds CPython so the archival pipeline runs on-device. Android cannot
+    // spawn a Python binary, so the same soiboi_pipeline package the desktop
+    // build shells out to is loaded in-process here.
+    id("com.chaquo.python") version "17.0.0" apply false
 }
 
 include(":app")

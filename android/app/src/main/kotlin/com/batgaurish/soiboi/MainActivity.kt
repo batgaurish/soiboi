@@ -8,9 +8,18 @@ import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
 import org.flame_engine.gamepads_android.GamepadsCompatibleActivity
 
 class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
+
+    /// Registers the bridge to the bundled Python pipeline. Done here rather
+    /// than lazily so the channel exists before any Dart code asks for it.
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        PipelineChannel(flutterEngine, applicationContext)
+    }
+
     var keyListener: ((KeyEvent) -> Boolean)? = null
     var motionListener: ((MotionEvent) -> Boolean)? = null
 

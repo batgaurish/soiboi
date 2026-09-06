@@ -18,6 +18,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:soiboi/base/services/logger.dart';
@@ -143,8 +144,16 @@ class DesktopPipelineRunner extends PipelineRunner {
     if (_pythonOverride != null) return _pythonOverride;
     final root = _root;
     if (root == null) return null;
-    final bundled = p.join(root, '.venv', 'bin', 'python');
-    return File(bundled).existsSync() ? bundled : null;
+    // The venv deliberately lives *beside* the package rather than inside it:
+    // Chaquopy copies the whole pipeline directory into the APK as Python
+    // sources, and a desktop virtualenv in there breaks that build.
+    for (final candidate in [
+      p.join(p.dirname(root), '.pipeline-venv', 'bin', 'python'),
+      p.join(root, '..', '.pipeline-venv', 'bin', 'python'),
+    ]) {
+      if (File(candidate).existsSync()) return candidate;
+    }
+    return null;
   }
 
   @override
@@ -229,21 +238,73 @@ class DesktopPipelineRunner extends PipelineRunner {
   }
 }
 
-/// Android: call the same module in-process via Chaquopy.
+/// Android: the same module, in-process via Chaquopy.
 ///
-/// Deliberately unimplemented rather than faked. Android cannot spawn a Python
-/// binary, so this needs a platform channel into Chaquopy; returning plausible
-/// events here would make the UI look functional while nothing downloaded.
+/// Android cannot spawn a Python binary, so instead of a subprocess this calls
+/// through a platform channel into an embedded interpreter. The Python it runs
+/// is byte-for-byte the package the desktop transport executes.
+///
+/// Progress arrives on a separate EventChannel rather than the method reply,
+/// because a download takes minutes and the UI must not wait for it.
 class AndroidPipelineRunner extends PipelineRunner {
+  static const _method = MethodChannel('com.batgaurish.soiboi/pipeline');
+  static const _events = EventChannel('com.batgaurish.soiboi/pipeline_events');
+
   @override
   Stream<PipelineEvent> run(String command, [Map<String, dynamic>? payload]) {
-    return Stream.value(
-      PipelineEvent({
-        'event': 'error',
-        'code': 'not_implemented',
-        'message': 'On-device downloading is not wired up on Android yet',
-      }),
-    );
+    final controller = StreamController<PipelineEvent>();
+
+    // Subscribe before invoking, or early progress is missed.
+    final subscription = _events.receiveBroadcastStream().listen((data) {
+      if (data is! String) return;
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map<String, dynamic>) {
+          controller.add(PipelineEvent(decoded));
+        }
+      } catch (_) {
+        // Malformed progress is not worth failing a download over.
+      }
+    }, onError: (Object _) {});
+
+    _method
+        .invokeMethod<String>('run', {
+          'command': command,
+          'payload': jsonEncode(payload ?? const {}),
+        })
+        .then((response) {
+          if (response != null) {
+            try {
+              final decoded = jsonDecode(response);
+              if (decoded is Map<String, dynamic>) {
+                controller.add(PipelineEvent(decoded));
+              }
+            } catch (e) {
+              controller.add(
+                PipelineEvent({
+                  'event': 'error',
+                  'code': 'bad_response',
+                  'message': '$e',
+                }),
+              );
+            }
+          }
+        })
+        .catchError((Object e) {
+          controller.add(
+            PipelineEvent({
+              'event': 'error',
+              'code': 'channel',
+              'message': '$e',
+            }),
+          );
+        })
+        .whenComplete(() {
+          subscription.cancel();
+          controller.close();
+        });
+
+    return controller.stream;
   }
 }
 
