@@ -18,6 +18,8 @@ import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/preview_player.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:smooth_corner/smooth_corner.dart';
@@ -94,7 +96,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
+    final body = ListenableBuilder(
       listenable: Listenable.merge([
         signedInNotifier,
         pipelineCapabilitiesNotifier,
@@ -118,6 +120,25 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           ],
         ),
       ),
+    );
+
+    // Same reason as Home: on a narrow layout the drawer is the only way out,
+    // and this screen has no portrait wrapper to supply a menu button. Built
+    // outside the ListenableBuilder so the tree shape never changes.
+    if (!isTooNarrow(context)) return body;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: customAppBarLeading(context),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text('Downloads'),
+        centerTitle: true,
+      ),
+      body: body,
     );
   }
 
@@ -458,12 +479,11 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
   }
 
   Future<void> _load() async {
+    // Show whatever the card already resolved so the sheet is not blank while
+    // the rest arrives, then always ask for the full list.
     final cached = cachedDiscoveryTracks(widget.playlist.mbid);
-    // A card may have resolved only its first four covers, so a cached list
-    // shorter than the playlist still needs a full resolve.
-    if (cached != null && cached.length > 4) {
+    if (cached != null && cached.isNotEmpty) {
       setState(() => _tracks = cached);
-      return;
     }
     final tracks = await resolveDiscoveryTracks(widget.playlist.mbid);
     if (!mounted) return;

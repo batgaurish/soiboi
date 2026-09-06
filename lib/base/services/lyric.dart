@@ -71,6 +71,10 @@ class LyricLine {
 
 class ParsedLyrics {
   bool isKaraoke = false;
+
+  /// False when the lyrics carry no timestamps. Consumers that scroll to the
+  /// current line must not try to follow playback in that case.
+  bool isSynced = true;
   List<LyricLine> lines = [];
 }
 
@@ -239,7 +243,28 @@ void applyLrcParsing(
     }
   }
   if (result.lines.isEmpty) {
-    result.lines.add(LyricLine(Duration.zero, parseFailedMessage, []));
+    // Nothing carried a [mm:ss] timestamp. That is not a parse failure -- it is
+    // ordinary unsynced lyrics, which is what most embedded tags and many
+    // LRCLIB entries contain. Showing them untimed is far better than telling
+    // someone parsing failed while the words sit right there in the file.
+    final plain = lines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        // Drop LRC metadata headers like [ar:...] and [by:...], which are not
+        // lyrics and would read as noise at the top.
+        .where((line) => !RegExp(r'^\[[a-z]+:').hasMatch(line))
+        .toList();
+
+    if (plain.isEmpty) {
+      result.lines.add(LyricLine(Duration.zero, parseFailedMessage, []));
+      return;
+    }
+
+    result.isSynced = false;
+    for (final line in plain) {
+      result.lines.add(LyricLine(Duration.zero, line, []));
+    }
+    return;
   } else {
     if (result.lines.last.tokens.last.end == null) {
       result.lines.last.tokens.last.end = songDuration;
