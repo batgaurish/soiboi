@@ -10,11 +10,14 @@ original bridge this infers stages from its log output. That means progress is
 indicative rather than precise, and the UI should treat it as such: the stage
 label is the honest signal, the number is a comfort.
 """
+import asyncio
+import contextlib
 import io
+import multiprocessing
 import os
+import queue
 import re
 import sys
-import contextlib
 
 # Ordered stage markers. The first pattern to appear in a log line wins, so
 # order matters: later stages are checked first to avoid an early keyword
@@ -31,6 +34,15 @@ _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 # Leading log furniture: "[ERROR 00:41:00] [URL 1/1] ". Stripped so the UI
 # shows gamdl's explanation and not its progress counters.
 _LOG_PREFIX = re.compile(r"^(?:\[[^\]]*\]\s*)+")
+
+# A log line always opens with a bracketed level, so anything else following an
+# error is the traceback gamdl prints for it.
+_LOG_LINE = re.compile(r"^\[")
+
+# The last line of a traceback: "ValueError: something went wrong". This is the
+# only part worth showing -- gamdl's own error text is a generic
+# 'Error downloading "<title>"' that says nothing about the cause.
+_EXCEPTION_LINE = re.compile(r"^([A-Za-z_][\w.]*(?:Error|Exception|Exit)\w*): (.+)$")
 
 _STAGES = [
     (re.compile(r"tagging|writing tags", re.I), 88, "Tagging"),
@@ -56,13 +68,19 @@ class _StreamTap(io.TextIOBase):
     report nothing until it finished.
     """
 
-    def __init__(self, emit):
+    def __init__(self, emit, log=None):
         self._emit = emit
+        # Everything that passes through is mirrored here. gamdl's own
+        # --log-file only records what its logger emits; the traceback that
+        # explains a failure is printed separately, and so is anything yt-dlp
+        # writes. Without mirroring, a failure on a phone leaves no trace.
+        self._log = log
         self._buffer = ""
         self._last_progress = 0
         # Not "errors": io.TextIOBase already defines that as a read-only
         # attribute, and assigning to it raises.
         self.failures = []
+        self._in_traceback = False
 
     def write(self, text):
         if not text:
@@ -83,10 +101,30 @@ class _StreamTap(io.TextIOBase):
 
     def _handle(self, line):
         line = _ANSI.sub("", line)
+        if self._log is not None:
+            try:
+                self._log.write(line + "\n")
+                self._log.flush()
+            except Exception:
+                # Logging must never be the reason a download fails.
+                self._log = None
+
+        if self._in_traceback:
+            if _LOG_LINE.match(line):
+                self._in_traceback = False
+            else:
+                match = _EXCEPTION_LINE.match(line)
+                # Later frames replace earlier ones: the last exception in a
+                # chain is the one that actually stopped the download.
+                if match and self.failures:
+                    self.failures[-1] = f"{self.failures[-1]}: {match.group(2)}"
+                return
+
         if _ERROR_LINE.search(line):
             # Keep the message, not the log furniture, so the UI can show
             # gamdl's own explanation rather than "download failed".
             self.failures.append(_LOG_PREFIX.sub("", line).strip() or line)
+            self._in_traceback = True
             return
         stage = _stage_for(line)
         if not stage:
@@ -103,6 +141,66 @@ class _StreamTap(io.TextIOBase):
 
     def flush(self):
         pass
+
+
+def _multiprocessing_works():
+    """Whether multiprocessing.Queue can actually be constructed here.
+
+    Android has no POSIX named semaphores, so creating one raises
+    "This platform lacks a functioning sem_open implementation". Probing is
+    better than checking for Android by name: the same limitation applies
+    anywhere sem_open is missing, and a future Android that gains it would
+    keep working without a code change.
+    """
+    try:
+        multiprocessing.get_context().Queue().close()
+        return True
+    except Exception:
+        return False
+
+
+def _patch_ytdlp_to_run_in_thread():
+    """Run gamdl's yt-dlp step in a thread rather than a child process.
+
+    gamdl isolates yt-dlp in a subprocess and collects the result through a
+    multiprocessing.Queue. Neither is possible on Android, so every download
+    failed at the first byte with an OSError about sem_open -- reported to the
+    user only as 'Error downloading "<title>"'.
+
+    The worker gamdl runs there is a plain function: it writes a file and puts
+    a result on a queue, with no shared state and no reliance on being in
+    another process. Running it in a thread with a plain queue is therefore
+    equivalent in everything except crash isolation -- and there is nothing to
+    isolate on Android, where a hard crash in yt-dlp would take the embedded
+    interpreter down either way.
+
+    Returns True if the patch was applied.
+    """
+    try:
+        from gamdl.downloader import base as gamdl_base
+
+        async def _download_ytdlp_async(self, stream_url, download_path):
+            result_queue = queue.Queue()
+            await asyncio.to_thread(
+                gamdl_base._download_ytdlp_process,
+                stream_url,
+                download_path,
+                self.silent,
+                result_queue,
+            )
+            try:
+                status, error_repr, error_traceback = result_queue.get_nowait()
+            except queue.Empty:
+                return
+            if status == "error":
+                raise RuntimeError(f"yt-dlp failed: {error_repr}\n{error_traceback}")
+
+        gamdl_base.AppleMusicBaseDownloader._download_ytdlp_async = (
+            _download_ytdlp_async
+        )
+        return True
+    except Exception:
+        return False
 
 
 def _capture_gamdl_logging(tap):
@@ -137,6 +235,7 @@ def download(
     cookies_path,
     output_dir,
     temp_dir=None,
+    log_path=None,
     codec="aac",
     emit=None,
     wvd_path=None,
@@ -168,6 +267,15 @@ def download(
     temp_dir = temp_dir or os.path.join(output_dir, ".temp")
     os.makedirs(temp_dir, exist_ok=True)
 
+    # A log on disk, written by the stream tap. The app has no console on
+    # either platform, and gamdl's summary line ('Error downloading
+    # "<title>"') omits the exception that explains it -- so without this a
+    # failed download is undiagnosable on a phone. gamdl's own --log-file is
+    # deliberately not used: it would duplicate every line the tap already
+    # mirrors, and it never sees the traceback.
+    log_path = log_path or os.path.join(temp_dir, "gamdl.log")
+    os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
+
     args = [
         "-n",  # no interactive prompts
         "-o", output_dir,
@@ -187,7 +295,6 @@ def download(
 
     emit({"event": "progress", "progress": 8, "status": "Starting"})
 
-    tap = _StreamTap(emit)
     try:
         from gamdl.cli.cli import main as gamdl_main
     except Exception as exc:
@@ -195,6 +302,26 @@ def download(
             "event": "error",
             "message": f"Downloader unavailable: {exc}",
             "code": "no_gamdl",
+        }
+
+    try:
+        log = open(log_path, "a", encoding="utf-8")
+    except OSError:
+        log = None
+
+    tap = _StreamTap(emit, log=log)
+
+    if not _multiprocessing_works() and not _patch_ytdlp_to_run_in_thread():
+        if log is not None:
+            log.close()
+        return {
+            "event": "error",
+            "message": (
+                "This device cannot run the downloader: it has no working "
+                "multiprocessing support and the in-thread fallback could not "
+                "be applied."
+            ),
+            "code": "no_multiprocessing",
         }
 
     if not _capture_gamdl_logging(tap):
@@ -220,6 +347,9 @@ def download(
             }
     except Exception as exc:
         return {"event": "error", "message": str(exc), "code": "gamdl_error"}
+    finally:
+        if log is not None:
+            log.close()
 
     if tap.failures:
         return {
@@ -229,4 +359,4 @@ def download(
         }
 
     emit({"event": "progress", "progress": 100, "status": "Done"})
-    return {"event": "done", "output_dir": output_dir}
+    return {"event": "done", "output_dir": output_dir, "log_path": log_path}

@@ -54,6 +54,7 @@ def handle(command, payload=None, emit=None):
             cookies_path=payload["cookies_path"],
             output_dir=payload["output_dir"],
             temp_dir=payload.get("temp_dir"),
+            log_path=payload.get("log_path"),
             codec=payload.get("codec", "aac"),
             wvd_path=payload.get("wvd_path"),
             use_wrapper=bool(payload.get("use_wrapper")),

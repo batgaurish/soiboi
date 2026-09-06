@@ -72,3 +72,38 @@ def pytest_skip_if_missing():
         import pytest
 
         pytest.skip("gamdl not installed in this environment")
+
+
+def test_traceback_detail_is_appended_to_the_error():
+    """gamdl's error text alone is useless.
+
+    It logs 'Error downloading "<title>"' and prints the exception on the
+    following lines, so without them the UI can only say that something went
+    wrong with a track the user already knew they had asked for.
+    """
+    tap, _ = _tap()
+    tap.write('[ERROR 00:00:01] [Track 1/1] Error downloading "One More Time"\n')
+    tap.write("Traceback (most recent call last):\n")
+    tap.write('  File "gamdl/downloader/song.py", line 110, in download\n')
+    tap.write("RuntimeError: no suitable stream found\n")
+    tap.write("[INFO 00:00:02] Finished with 1 error(s)\n")
+    assert tap.failures == [
+        'Error downloading "One More Time": no suitable stream found'
+    ]
+
+
+def test_ytdlp_patch_replaces_the_multiprocessing_path():
+    """Android has no sem_open, so gamdl's subprocess step cannot run there.
+
+    Guards the patch against a gamdl refactor: if the worker or the class is
+    renamed the patch silently stops applying, and every Android download
+    fails again with an OSError the user cannot act on.
+    """
+    pytest_skip_if_missing()
+    assert downloader._patch_ytdlp_to_run_in_thread() is True
+
+    from gamdl.downloader.base import AppleMusicBaseDownloader
+
+    patched = AppleMusicBaseDownloader._download_ytdlp_async
+    assert patched.__name__ == "_download_ytdlp_async"
+    assert "multiprocessing" not in patched.__code__.co_names
