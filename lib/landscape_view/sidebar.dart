@@ -210,6 +210,19 @@ class Sidebar extends StatelessWidget {
                       ),
                     ),
 
+                    SliverToBoxAdapter(
+                      child: sidebarItem(
+                        label: 'downloads',
+
+                        leading: Icon(Icons.cloud_download_outlined, size: 30),
+                        content: l10n.downloads,
+
+                        onTap: () {
+                          layersManager.switchRootLayer('downloads');
+                        },
+                      ),
+                    ),
+
                     SliverToBoxAdapter(child: SizedBox(height: 5)),
                     SliverToBoxAdapter(
                       child: MyDivider(

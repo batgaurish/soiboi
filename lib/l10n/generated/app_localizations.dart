@@ -200,6 +200,12 @@ abstract class AppLocalizations {
   /// **'Songs'**
   String get songs;
 
+  /// No description provided for @downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get downloads;
+
   /// No description provided for @home.
   ///
   /// In en, this message translates to:

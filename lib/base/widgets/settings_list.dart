@@ -9,6 +9,8 @@ import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/services/bridge_service.dart';
+import 'package:soiboi/base/services/bridge_client.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/services/emby_client.dart';
@@ -161,6 +163,10 @@ class _SettingsListState extends State<SettingsList> {
           sliverBox(
             paddingIfNeed(isLandscape, immersiveWideLayoutListTile(l10n)),
           ),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, downloadServerListTile(context, l10n)),
+        ),
 
         sliverBox(paddingIfNeed(isLandscape, lrclibListTile(l10n))),
 
@@ -911,6 +917,97 @@ class _SettingsListState extends State<SettingsList> {
 
   /// Network lyric lookup. Off means the app never reaches out for lyrics --
   /// worth having as a switch since everything else here works offline.
+  /// Address of the self-hosted archival service. Empty is a valid, supported
+  /// state -- the player is fully usable without it.
+  Widget downloadServerListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: const Icon(Icons.cloud_download_outlined, size: 30),
+      title: const Text('Download server'),
+      subtitle: ValueListenableBuilder(
+        valueListenable: bridgeUrlNotifier,
+        builder: (context, value, child) => Text(
+          value.isEmpty ? 'Not configured' : value,
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+      ),
+      onTap: () async {
+        final controller = TextEditingController(text: bridgeUrlNotifier.value);
+        String? status;
+        await showAnimationDialog(
+          context: context,
+          child: StatefulBuilder(
+            builder: (context, setDialogState) => SizedBox(
+              width: 330,
+              height: 240,
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Download server',
+                      style: TextStyle(fontSize: 18, fontWeight: .bold),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Address of your archival service, on your LAN or over '
+                      'Tailscale.',
+                      style: TextStyle(fontSize: 12, color: textColor.value),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: controller,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: '192.168.1.10:5006',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    if (status != null) ...[
+                      const SizedBox(height: 10),
+                      Text(status!, style: const TextStyle(fontSize: 12)),
+                    ],
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            setDialogState(() => status = 'Checking…');
+                            final ok = await BridgeClient(
+                              controller.text,
+                            ).ping();
+                            setDialogState(
+                              () => status = ok
+                                  ? 'Connected'
+                                  : 'No response from that address',
+                            );
+                          },
+                          child: const Text('Test'),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: () {
+                            bridgeUrlNotifier.value = controller.text.trim();
+                            setting.save();
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        controller.dispose();
+      },
+    );
+  }
+
   Widget lrclibListTile(AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(lyricsImage, size: iconSize),

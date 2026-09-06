@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/app.dart';
@@ -107,6 +108,8 @@ class Setting {
         json['lyricsFontSizeOffset'] as double? ??
         lyricsFontSizeOffsetNotifier.value;
 
+    bridgeUrlNotifier.value = json['bridgeUrl'] as String? ?? '';
+
     lrclibEnabledNotifier.value =
         json['lrclibEnabled'] as bool? ?? true;
 
@@ -143,6 +146,7 @@ class Setting {
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
+        'bridgeUrl': bridgeUrlNotifier.value,
         'lrclibEnabled': lrclibEnabledNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
 
