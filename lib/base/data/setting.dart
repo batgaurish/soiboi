@@ -113,10 +113,14 @@ class Setting {
     dynamicColorEnabledNotifier.value =
         json['dynamicColorEnabled'] as bool? ?? false;
     matugenPathNotifier.value = json['matugenPath'] as String? ?? '';
+    matugenSchemeNotifier.value =
+        json['matugenScheme'] as String? ?? matugenSchemeNotifier.value;
     if (dynamicColorEnabledNotifier.value) {
-      // Load before the first colour resolution so startup paints correctly
-      // rather than flashing the flavour palette first.
-      await loadMatugenPalette();
+      // Loaded before the first colour resolution so startup paints correctly
+      // rather than flashing the flavour palette first. Auto rather than the
+      // file alone: the wallpaper may have changed since, and a user with no
+      // matugen template at all should still get colours.
+      await autoLoadDynamicPalette();
     }
 
     listenBrainzUserNotifier.value =
@@ -161,6 +165,7 @@ class Setting {
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
         'dynamicColorEnabled': dynamicColorEnabledNotifier.value,
         'matugenPath': matugenPathNotifier.value,
+        'matugenScheme': matugenSchemeNotifier.value,
         'listenBrainzUser': listenBrainzUserNotifier.value,
         'lrclibEnabled': lrclibEnabledNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
