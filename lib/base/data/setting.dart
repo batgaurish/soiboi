@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/widgets/lyric_list_view.dart';
@@ -108,6 +109,15 @@ class Setting {
         json['lyricsFontSizeOffset'] as double? ??
         lyricsFontSizeOffsetNotifier.value;
 
+    dynamicColorEnabledNotifier.value =
+        json['dynamicColorEnabled'] as bool? ?? false;
+    matugenPathNotifier.value = json['matugenPath'] as String? ?? '';
+    if (dynamicColorEnabledNotifier.value) {
+      // Load before the first colour resolution so startup paints correctly
+      // rather than flashing the flavour palette first.
+      await loadMatugenPalette();
+    }
+
     bridgeUrlNotifier.value = json['bridgeUrl'] as String? ?? '';
 
     lrclibEnabledNotifier.value =
@@ -146,6 +156,8 @@ class Setting {
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
+        'dynamicColorEnabled': dynamicColorEnabledNotifier.value,
+        'matugenPath': matugenPathNotifier.value,
         'bridgeUrl': bridgeUrlNotifier.value,
         'lrclibEnabled': lrclibEnabledNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,

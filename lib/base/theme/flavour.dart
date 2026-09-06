@@ -146,6 +146,7 @@ const _expressive = FlavourSpec(
   },
   dark: {
     ColorToken.pageBackground: Color(0xFF17130F),
+    // NB: `panel` is the main content pane beside the sidebar, not a card.
     ColorToken.panel: Color(0xFF221C17),
     ColorToken.sidebar: Color(0xFF1D1813),
     ColorToken.bottom: Color(0xFF221C17),
@@ -153,10 +154,11 @@ const _expressive = FlavourSpec(
     ColorToken.highlightText: Color(0xFFFDF7F2),
     ColorToken.icon: Color(0xFFC4B5A6),
     ColorToken.divider: Color(0xFF33291F),
-    ColorToken.button: Color(0xFF2E2620),
+    ColorToken.button: Color(0xFF352C24),
     ColorToken.selectedItem: Color(0xFF322A4A),
     ColorToken.searchField: Color(0xFF2A231C),
-    ColorToken.menu: Color(0xFF262019),
+    // Also the card surface: a clear step above the content pane.
+    ColorToken.menu: Color(0xFF322A22),
     ColorToken.seekBar: Color(0xFFF5B944),
     ColorToken.volumeBar: Color(0xFFA79BD6),
     ColorToken.switchTrack: Color(0xFFA79BD6),
