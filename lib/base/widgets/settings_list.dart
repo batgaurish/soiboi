@@ -718,8 +718,11 @@ class _SettingsListState extends State<SettingsList> {
             !enabled
                 ? 'Use the flavour palette'
                 : loaded
-                ? 'Matched to your wallpaper via matugen'
-                : 'No matugen colours found — tap to set the path',
+                // Says where the colours actually came from: with two routes
+                // (an existing matugen setup's file, or generating from the
+                // wallpaper) "it worked" is not enough to debug from.
+                ? dynamicColorSourceDescription ?? 'Matched via matugen'
+                : 'No matugen colours found — tap to set up',
             style: TextStyle(fontSize: 12, color: textColor.value),
           );
         },
@@ -736,7 +739,10 @@ class _SettingsListState extends State<SettingsList> {
           child: StatefulBuilder(
             builder: (context, setDialogState) => SizedBox(
               width: 360,
-              height: 250,
+              // Taller than it looks it needs: the scheme row and the
+              // optional-path field both wrap on narrow displays, and a
+              // Column in a fixed box overflows rather than scrolling.
+              height: 340,
               child: Padding(
                 padding: const EdgeInsets.all(18.0),
                 child: Column(
@@ -748,17 +754,70 @@ class _SettingsListState extends State<SettingsList> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Reads a matugen colour scheme so Soiboi matches the '
-                      'rest of your desktop.',
+                      'Matches the rest of your desktop. Reads an existing '
+                      'matugen scheme if you have one, otherwise generates '
+                      'one from your wallpaper.',
                       style: TextStyle(fontSize: 12, color: textColor.value),
                     ),
                     const SizedBox(height: 12),
+                    // The scheme only applies when Soiboi generates the
+                    // colours itself; a file written by someone else's
+                    // matugen config was already built with their choice.
+                    Row(
+                      children: [
+                        const Text('Scheme', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: matugenSchemeNotifier.value,
+                            // Both are needed. The default menu paints on the
+                            // ambient Material canvas, which this app never
+                            // sets, so it comes out white — and the app's own
+                            // near-white text on it is unreadable.
+                            dropdownColor: menuColor.value,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textColor.value,
+                            ),
+                            items: [
+                              for (final scheme in matugenSchemes)
+                                DropdownMenuItem(
+                                  value: scheme,
+                                  child: Text(schemeLabel(scheme)),
+                                ),
+                            ],
+                            onChanged: (scheme) async {
+                              if (scheme == null) return;
+                              matugenSchemeNotifier.value = scheme;
+                              final ok = await generateMatugenPalette();
+                              setDialogState(() {
+                                status = ok
+                                    ? 'Generated a ${schemeLabel(scheme)} '
+                                          'scheme from your wallpaper'
+                                    : 'Could not generate — is matugen '
+                                          'installed?';
+                              });
+                              if (ok) {
+                                dynamicColorSourceDescription =
+                                    '${schemeLabel(scheme)} from your wallpaper';
+                                dynamicColorEnabledNotifier.value = true;
+                                setting.save();
+                                colorManager.updateColors();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: controller,
                       style: const TextStyle(fontSize: 12),
                       decoration: const InputDecoration(
                         isDense: true,
                         border: OutlineInputBorder(),
+                        labelText: 'matugen JSON (optional)',
                       ),
                     ),
                     if (status != null) ...[
@@ -783,10 +842,14 @@ class _SettingsListState extends State<SettingsList> {
                         FilledButton(
                           onPressed: () async {
                             matugenPathNotifier.value = controller.text.trim();
-                            final ok = await loadMatugenPalette();
+                            // Falls back to generating, so an empty or wrong
+                            // path is not a dead end.
+                            final ok = await autoLoadDynamicPalette();
                             if (!ok) {
                               setDialogState(
-                                () => status = 'No colours found at that path',
+                                () => status =
+                                    'No colours found, and matugen could not '
+                                    'generate any from your wallpaper',
                               );
                               return;
                             }
