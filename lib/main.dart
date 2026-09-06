@@ -25,6 +25,7 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'base/audio_handler.dart';
+import 'package:soiboi/base/services/cookie_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,6 +77,9 @@ Future<void> main() async {
   } else if (viewModeNotifier.value != .bigPicture && !firstLaunch) {
     layersManager.switchRootLayer('home');
   }
+
+  // Know whether we have a usable Apple session before any UI asks.
+  unawaited(refreshSessionState());
 
   runApp(
     ListenableBuilder(

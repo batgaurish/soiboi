@@ -11,6 +11,8 @@ import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
+import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
+import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:soiboi/base/services/bridge_service.dart';
 import 'package:soiboi/base/services/bridge_client.dart';
 import 'package:soiboi/base/app.dart';
@@ -169,6 +171,10 @@ class _SettingsListState extends State<SettingsList> {
           sliverBox(
             paddingIfNeed(isLandscape, immersiveWideLayoutListTile(l10n)),
           ),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, appleAccountListTile(context, l10n)),
+        ),
 
         sliverBox(
           paddingIfNeed(isLandscape, downloadServerListTile(context, l10n)),
@@ -1036,6 +1042,51 @@ class _SettingsListState extends State<SettingsList> {
   /// worth having as a switch since everything else here works offline.
   /// Address of the self-hosted archival service. Empty is a valid, supported
   /// state -- the player is fully usable without it.
+  /// Apple Music session. Required for downloading; the player itself works
+  /// without it.
+  Widget appleAccountListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: const Icon(Icons.account_circle_outlined, size: 30),
+      title: const Text('Apple Music account'),
+      subtitle: ListenableBuilder(
+        listenable: Listenable.merge([
+          cookie_store.signedInNotifier,
+          cookie_store.sessionExpiryNotifier,
+        ]),
+        builder: (context, child) {
+          final signedIn = cookie_store.signedInNotifier.value;
+          final expiry = cookie_store.sessionExpiryNotifier.value;
+          final detail = signedIn && expiry != null
+              ? 'Signed in · expires ${expiry.toLocal().toString().split(' ').first}'
+              : signedIn
+              ? 'Signed in'
+              : 'Not signed in — needed to download';
+          return Text(
+            detail,
+            style: TextStyle(fontSize: 12, color: textColor.value),
+          );
+        },
+      ),
+      trailing: ValueListenableBuilder(
+        valueListenable: cookie_store.signedInNotifier,
+        builder: (context, signedIn, child) => signedIn
+            ? TextButton(
+                onPressed: () async {
+                  await cookie_store.signOut();
+                },
+                child: const Text('Sign out'),
+              )
+            : const Icon(Icons.chevron_right_rounded),
+      ),
+      onTap: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AppleSignInLayer()),
+        );
+        await cookie_store.refreshSessionState();
+      },
+    );
+  }
+
   Widget downloadServerListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.cloud_download_outlined, size: 30),
