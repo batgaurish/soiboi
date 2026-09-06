@@ -21,8 +21,7 @@ import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/base/data/home_shelves.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
-import 'package:soiboi/base/services/bridge_client.dart';
-import 'package:soiboi/base/services/bridge_service.dart';
+import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/theme/flavour.dart';
@@ -32,6 +31,8 @@ import 'package:soiboi/base/widgets/quality_badge.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/downloads_layer.dart';
 import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class HomeLayer extends StatefulWidget {
@@ -42,7 +43,7 @@ class HomeLayer extends StatefulWidget {
 }
 
 class _HomeLayerState extends State<HomeLayer> {
-  List<DiscoverPlaylist> _discover = const [];
+  List<LbPlaylist> _discover = const [];
   List<LbEntry>? _lbArtists;
   List<LbEntry>? _lbAlbums;
 
@@ -50,33 +51,21 @@ class _HomeLayerState extends State<HomeLayer> {
   void initState() {
     super.initState();
     _loadRemote();
-    bridgeUrlNotifier.addListener(_loadRemote);
     listenBrainzUserNotifier.addListener(_loadRemote);
   }
 
   @override
   void dispose() {
-    bridgeUrlNotifier.removeListener(_loadRemote);
     listenBrainzUserNotifier.removeListener(_loadRemote);
     super.dispose();
   }
 
   Future<void> _loadRemote() async {
-    // Discovery playlists come from the bridge; rankings come straight from
-    // ListenBrainz. Independent sources, so one being down never blanks the
-    // other.
-    final client = bridgeClient;
-    if (client == null) {
-      if (mounted) setState(() => _discover = const []);
-    } else {
-      try {
-        final playlists = await client.discoverPlaylists();
-        if (mounted) setState(() => _discover = playlists);
-      } on BridgeException {
-        // No server, or no ListenBrainz user configured on it. Both ordinary.
-        if (mounted) setState(() => _discover = const []);
-      }
-    }
+    // Discovery playlists come straight from ListenBrainz now. They are public
+    // and need only a username, so no server is involved and this works on a
+    // device with nothing else configured.
+    final playlists = await discoveryPlaylists();
+    if (mounted) setState(() => _discover = playlists);
 
     if (!listenBrainzConnected) {
       if (mounted) {
@@ -100,7 +89,14 @@ class _HomeLayerState extends State<HomeLayer> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return ListenableBuilder(
+
+    // The Scaffold is deliberately built *outside* the ListenableBuilder.
+    // Returning either a bare scroll view or a Scaffold from inside the
+    // builder changed the tree's shape on every notification, which tripped
+    // Flutter's '_dependents.isEmpty' assertion when an element with
+    // registered dependents was torn down mid-rebuild. Keeping the shape
+    // fixed and rebuilding only the content avoids that entirely.
+    final body = ListenableBuilder(
       listenable: Listenable.merge([
         history.recentlyChangeNotifier,
         history.rankingChangeNotifier,
@@ -173,6 +169,25 @@ class _HomeLayerState extends State<HomeLayer> {
           ],
         );
       },
+    );
+
+    // On a narrow layout the drawer is the only navigation, and every other
+    // page gets its menu button from its own portrait wrapper. Without one
+    // here, Home was a dead end with no way to reach anything else.
+    if (!isTooNarrow(context)) return body;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: customAppBarLeading(context),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(l10n.home),
+        centerTitle: true,
+      ),
+      body: body,
     );
   }
 
@@ -354,7 +369,7 @@ class _DiscoverCard extends StatefulWidget {
     required this.index,
     required this.onTap,
   });
-  final DiscoverPlaylist playlist;
+  final LbPlaylist playlist;
   final int index;
   final VoidCallback onTap;
 
@@ -363,17 +378,22 @@ class _DiscoverCard extends StatefulWidget {
 }
 
 class _DiscoverCardState extends State<_DiscoverCard> {
-  List<DiscoverTrack>? _tracks;
+  List<DiscoveryTrack>? _tracks;
+  int? _total;
 
   @override
   void initState() {
     super.initState();
-    _tracks = cachedTracks(widget.playlist.mbid);
-    if (_tracks == null) _prefetch();
+    _tracks = cachedDiscoveryTracks(widget.playlist.mbid);
+    _prefetch();
   }
 
   Future<void> _prefetch() async {
-    final tracks = await fetchTracksCached(widget.playlist.mbid);
+    // Only the first four covers are needed for the mosaic, and each costs an
+    // Apple lookup -- resolving all fifty here would be fifty requests per card.
+    final total = await discoveryTrackCount(widget.playlist.mbid);
+    if (mounted) setState(() => _total = total);
+    final tracks = await resolveDiscoveryTracks(widget.playlist.mbid, limit: 4);
     if (mounted && tracks != null) setState(() => _tracks = tracks);
   }
 
@@ -429,9 +449,9 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                           ),
                           const SizedBox(height: 5),
                           Text(
-                            _tracks == null
+                            _total == null
                                 ? 'Loading…'
-                                : '${_tracks!.length} tracks',
+                                : '$_total tracks',
                             style: TextStyle(
                               fontSize: 11,
                               color: textColor.value,
