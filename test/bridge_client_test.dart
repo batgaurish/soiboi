@@ -113,9 +113,12 @@ void main() {
 
   group('BridgeClient address handling', () {
     test('a bare host:port is assumed to be http', () async {
-      // Users will type "192.168.1.10:5006" or a Tailscale name, not a URL.
-      final client = BridgeClient('192.168.1.10:5006');
-      expect(await client.ping(), isFalse); // nothing listening; must not throw
+      // Users type "192.168.1.10:5006" or a Tailscale name, not a URL. The
+      // address here is TEST-NET-1 (RFC 5737), reserved for documentation and
+      // guaranteed not to route, so this test can never reach a real host --
+      // least of all somebody's live download bridge.
+      final client = BridgeClient('192.0.2.1:5006');
+      expect(await client.ping(), isFalse); // must fail closed, not throw
     });
 
     test('an empty address fails fast instead of hanging', () async {

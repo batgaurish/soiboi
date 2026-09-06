@@ -343,7 +343,12 @@ class _StaggeredIn extends StatelessWidget {
   }
 }
 
-class _DiscoverCard extends StatelessWidget {
+/// A discovery playlist, with a 2x2 mosaic of its first four tracks' artwork.
+///
+/// The mosaic needs the resolved track list, which is slow to fetch, so it
+/// arrives asynchronously and the card shows a placeholder until then. Results
+/// are cached for the session, so this cost is paid once.
+class _DiscoverCard extends StatefulWidget {
   const _DiscoverCard({
     required this.playlist,
     required this.index,
@@ -354,58 +359,148 @@ class _DiscoverCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_DiscoverCard> createState() => _DiscoverCardState();
+}
+
+class _DiscoverCardState extends State<_DiscoverCard> {
+  List<DiscoverTrack>? _tracks;
+
+  @override
+  void initState() {
+    super.initState();
+    _tracks = cachedTracks(widget.playlist.mbid);
+    if (_tracks == null) _prefetch();
+  }
+
+  Future<void> _prefetch() async {
+    final tracks = await fetchTracksCached(widget.playlist.mbid);
+    if (mounted && tracks != null) setState(() => _tracks = tracks);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final radius = 14 * activeFlavour.cornerScale;
     return _StaggeredIn(
-      index: index,
+      index: widget.index,
       child: SmoothClipRRect(
         smoothness: 1,
-        borderRadius: BorderRadius.circular(14 * activeFlavour.cornerScale),
+        borderRadius: BorderRadius.circular(radius),
         child: Material(
           color: menuColor.value,
           child: InkWell(
-            onTap: onTap,
-            child: Container(
-              width: 208,
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+            onTap: widget.onTap,
+            child: SizedBox(
+              width: 230,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_outlined,
-                        size: 15,
-                        color: seekBarColor.value,
+                  _mosaic(),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
                       ),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Text(
-                          playlist.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: highlightTextColor.value,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.auto_awesome_outlined,
+                                size: 13,
+                                color: seekBarColor.value,
+                              ),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  widget.playlist.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.2,
+                                    color: highlightTextColor.value,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 5),
+                          Text(
+                            _tracks == null
+                                ? 'Loading…'
+                                : '${_tracks!.length} tracks',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: textColor.value,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  if (playlist.lastModified != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      playlist.lastModified!,
-                      style: TextStyle(fontSize: 11, color: textColor.value),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _mosaic() {
+    const side = 92.0;
+    final tracks = _tracks;
+    final art = tracks
+            ?.map((t) => t.artwork)
+            .where((a) => a != null && a.isNotEmpty)
+            .take(4)
+            .toList() ??
+        const <String?>[];
+
+    if (art.isEmpty) {
+      return Container(
+        width: side,
+        height: side,
+        color: buttonColor.value,
+        child: Icon(
+          Icons.queue_music_rounded,
+          size: 26,
+          color: textColor.value,
+        ),
+      );
+    }
+
+    // Fewer than four covers: fill the square with what we have rather than
+    // leaving holes in the grid.
+    if (art.length < 4) {
+      return _tile(art.first, side);
+    }
+    return SizedBox(
+      width: side,
+      height: side,
+      child: Column(
+        children: [
+          Row(children: [_tile(art[0], side / 2), _tile(art[1], side / 2)]),
+          Row(children: [_tile(art[2], side / 2), _tile(art[3], side / 2)]),
+        ],
+      ),
+    );
+  }
+
+  Widget _tile(String? url, double size) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: url == null
+          ? Container(color: buttonColor.value)
+          : Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(color: buttonColor.value),
+            ),
     );
   }
 }
