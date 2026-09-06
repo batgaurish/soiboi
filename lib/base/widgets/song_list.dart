@@ -11,6 +11,7 @@ import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/widgets/quality_badge.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/picture_service.dart';

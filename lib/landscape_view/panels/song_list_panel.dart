@@ -463,6 +463,14 @@ extension _SongListPanel on _SongListState {
           ),
 
           SizedBox(
+            width: 78,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Text(l10n.quality, overflow: TextOverflow.ellipsis),
+            ),
+          ),
+
+          SizedBox(
             width: 60,
             child: Icon(Icons.star_outline_rounded, size: 22),
           ),
@@ -579,6 +587,14 @@ extension _SongListPanel on _SongListState {
                           child: Text(
                             getAlbum(song),
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        SizedBox(
+                          width: 78,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: QualityBadge(song),
                           ),
                         ),
 

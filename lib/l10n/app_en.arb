@@ -110,6 +110,7 @@
   "favorited": "Favorited",
   "favorites": "Favorites",
   "duration": "Duration",
+  "quality": "Quality",
   "times": "Play Count",
   "loop": "Loop",
   "shuffle": "Shuffle",

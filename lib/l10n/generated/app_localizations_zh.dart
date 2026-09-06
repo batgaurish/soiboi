@@ -209,6 +209,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get duration => '时长';
 
   @override
+  String get quality => '音质';
+
+  @override
   String get times => '次数';
 
   @override
