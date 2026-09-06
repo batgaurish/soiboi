@@ -192,6 +192,7 @@ icons_launcher:
       enable: true
       adaptive_background_image: "app_icons/background.png"
       adaptive_foreground_image: "app_icons/android.png"
+      adaptive_monochrome_image: "app_icons/monochrome.png"
     macos:
       enable: true
     linux:
