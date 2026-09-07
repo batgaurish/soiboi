@@ -10,9 +10,8 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/setting.dart';
-import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/services/archive_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
@@ -26,25 +25,6 @@ import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-
-/// Makes archived files visible in the library.
-///
-/// Downloads land in the app's own storage, which is not a folder anyone would
-/// ever add by hand — so without this the archive card's promise that files are
-/// "added to your library on this device" is simply false, and Songs still
-/// reads zero after a successful download.
-///
-/// Registered on first use rather than at startup, so someone who never
-/// downloads anything does not get a phantom empty folder in Manage Folders.
-Future<void> syncArchivedToLibrary() async {
-  final ids = library.folderList.map((folder) => folder.id).toList();
-  if (!ids.contains(downloadOutputDir)) {
-    await library.updateFolders([...ids, downloadOutputDir]);
-  }
-  // Synced regardless: the folder may already be registered from an earlier
-  // download, and the new file still has to be picked up.
-  if (!Loader.busy) await Loader.sync();
-}
 
 class DownloadsLayer extends StatefulWidget {
   const DownloadsLayer({super.key});
@@ -97,25 +77,23 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       _status = 'Starting';
     });
 
-    await for (final event in pipelineRunner.run('download', {
-      'url': url,
-      'cookies_path': cookiesPath,
-      'output_dir': downloadOutputDir,
-      'temp_dir': downloadTempDir,
-    })) {
-      if (!mounted) return;
-      if (event.isProgress) {
+    final error = await archiveUrl(
+      url,
+      onProgress: (progress, status) {
+        if (!mounted) return;
         setState(() {
-          _progress = event.progress;
-          _status = event.status;
+          _progress = progress;
+          _status = status;
         });
-      } else if (event.isError) {
-        setState(() => _error = event.message);
-      } else if (event.isDone) {
-        setState(() => _completed.insert(0, url));
-        _urlController.clear();
-        await syncArchivedToLibrary();
-      }
+      },
+    );
+    if (!mounted) return;
+    if (error != null) {
+      setState(() => _error = error);
+    } else {
+      setState(() => _completed.insert(0, url));
+      _urlController.clear();
+      await syncArchivedToLibrary();
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -618,17 +596,8 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
       if (!mounted) return;
       final url = track.appleUrl;
       if (url == null) continue;
-      await for (final event in pipelineRunner.run('download', {
-        'url': url,
-        'cookies_path': cookiesPath,
-        'output_dir': downloadOutputDir,
-        'temp_dir': downloadTempDir,
-      })) {
-        if (event.isError) {
-          if (mounted) setState(() => _error = event.message);
-          break;
-        }
-      }
+      final error = await archiveUrl(url);
+      if (error != null && mounted) setState(() => _error = error);
       if (mounted) {
         setState(() {
           _queued.add(track.title);
