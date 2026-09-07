@@ -45,7 +45,7 @@ replacement for it.
 | 2 | Rebrand: README/repo/pubspec to "streaming-to-offline archival" | **Done, committed** |
 | 3 | QOL: library/playlist backup & restore | **Done, committed, verified live** |
 | 4 | Bug 2 + `library_match_service.dart` extraction | **Done, committed, verified live** |
-| 5 | Smart playlist templates | Not started |
+| 5 | Smart playlist templates | **Done, committed, verified live** |
 | 6 | Auto-generated mood playlists on Home | Not started |
 | 7 | QOL: download queue / resumable downloads / storage cleanup | Not started |
 | 8 | Auto-update checker + installer (Android + Linux) | Not started (partial infra already exists, see note below) |
@@ -53,9 +53,22 @@ replacement for it.
 | 10 | Global search shell | Not started |
 | 11 | Android dynamic color | Not started |
 
-All commits through Phase 4 are pushed to `origin/main`.
+All commits through Phase 5 are pushed to `origin/main`.
 
-### Where to pick up: Phase 5 (smart playlist templates)
+### Where to pick up: Phase 6 (auto-generated mood playlists on Home)
+
+Phase 5 (smart playlist templates) is done and verified live on the
+emulator. `lib/base/data/smart_playlist_templates.dart` ships a const list
+of five templates (Energy, Sleep, Workout, Dance party, Chill); the picker
+seeds `_SmartPlaylistEditor` via a new `initial` param (distinct from
+`existing`, so template-seeded playlists still read as "new"). `SmartPlaylist`
+now has a `const` constructor so the template list stays const. 81 tests, analyzer clean.
+
+Phase 6 builds directly on Phase 4's matcher and the rule model — read the
+plan file's Phase 6 section. Its rule-builder ideas and the ephemeral,
+library-gated auto-mood shelf are exactly what the template `SmartRule`s
+already express, so the shared pieces (evaluate-as-pure-function,
+`SmartPlaylistView`) already exist.
 
 Phase 4 (the local/catalog matcher + per-track ownership in the catalog
 sheets) is done and verified live on the emulator. Its
