@@ -153,8 +153,13 @@ class Playlist {
 
   bool canModify = true;
 
-  Playlist({required this.name, this.id}) {
-    if (isNotStreamSource) {
+  /// [fileBacked] false keeps the playlist entirely in memory.
+  ///
+  /// Smart playlists are defined by rules, not by a stored list of songs, so
+  /// giving them a file would leave an empty json on disk per playlist and a
+  /// second source of truth to drift from the rules.
+  Playlist({required this.name, this.id, bool fileBacked = true}) {
+    if (isNotStreamSource && fileBacked) {
       songListFile = File("${getPlaylistConfigPath(sourceType)}/$name.json");
       initFile(songListFile!, true);
     }
