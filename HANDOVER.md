@@ -44,7 +44,7 @@ replacement for it.
 | 1 | Bug 1: Weekly Exploration race (stuck at 4/50 tracks) | **Done, committed, verified live** |
 | 2 | Rebrand: README/repo/pubspec to "streaming-to-offline archival" | **Done, committed** |
 | 3 | QOL: library/playlist backup & restore | **Done, committed, verified live** |
-| 4 | Bug 2 + `library_match_service.dart` extraction | **In progress — see below** |
+| 4 | Bug 2 + `library_match_service.dart` extraction | **Done, committed, verified live** |
 | 5 | Smart playlist templates | Not started |
 | 6 | Auto-generated mood playlists on Home | Not started |
 | 7 | QOL: download queue / resumable downloads / storage cleanup | Not started |
@@ -53,71 +53,44 @@ replacement for it.
 | 10 | Global search shell | Not started |
 | 11 | Android dynamic color | Not started |
 
-All commits through Phase 3 are pushed to `origin/main`. **Phase 4 is
-uncommitted, mid-flight, in the working tree right now.**
+All commits through Phase 4 are pushed to `origin/main`.
 
-### Phase 4 exact state (pick up here)
+### Where to pick up: Phase 5 (smart playlist templates)
 
-Goal: fix "an album/artist partially in the local library shows as entirely
-'Not in library'" and extract the local/catalog name-matching logic into a
-shared service, since later phases (6, 10) need it too.
+Phase 4 (the local/catalog matcher + per-track ownership in the catalog
+sheets) is done and verified live on the emulator. Its
+`lib/base/services/library_match_service.dart`
+(`normaliseForMatch`/`matchArtist`/`matchAlbum`/`matchSong`) is the
+primitive Phases 6, 9 and 10 were waiting for. Next is **Phase 5** — read
+the plan file's Phase 5 section; it builds on `smart_playlist.dart`'s
+existing rule store and the acoustic fields the bliss work added.
 
-**Done:**
-- `lib/base/services/library_match_service.dart` created — `normaliseForMatch`,
-  `matchArtist`, `matchAlbum`, `matchSong` (the last is new; album/artist
-  matching was moved here from `listenbrainz_service.dart`'s old private
-  `_normalise`/`_matchArtist`/`_matchAlbum`, deleted from there).
-- `lib/base/services/listenbrainz_service.dart` updated to call the extracted
-  functions. Pure refactor, `LbEntry.isInLibrary` unchanged in behavior.
-- `lib/layer/catalog_sheet.dart`'s `_CatalogAlbumSheetState`:
-  - `_load()` now also resolves `_localAlbum = matchAlbum(widget.album)`.
-  - New `_localCopyOf(AppleTrack)` helper calls `matchSong(...)`.
-  - `_trackRow` now renders three visually distinct things: an **owned**
-    track (checkmark trailing icon, "In your library" subtitle, not
-    selectable/long-press-able, dimmed title color) vs a normal catalog row
-    (unchanged from before).
-  - The "archive everything"/"select all" default set is now `archivable`
-    (tracks with no local copy), not all tracks — so a partially-owned
-    album's bulk-archive action no longer tries to re-download owned tracks.
-  - Footer hides entirely if `archivable.isEmpty` (fully-owned album via this
-    sheet — nothing left to do but browse).
+Phase 4 decisions and observations worth knowing:
 
-**Not done yet (do these next, in this order):**
-
-1. **`_CatalogArtistSheet`** (same file, bottom half) needs the analogous
-   per-album treatment: each album row in the discography list should show
-   owned/partial/missing, not nothing. Around line 460-500, the
-   `ListView.builder` inside `_CatalogArtistSheetState.build`. Natural
-   approach: for each `AppleAlbum`, call `matchAlbum(album.title)` to see if
-   it's locally known at all, and optionally compare `album.trackCount`
-   against the matched `Album.totalCount` for a partial signal — re-check
-   the plan file's Phase 4 section for the exact intended shape before
-   overbuilding; a simple owned/not-owned per row may be enough for v1.
-
-2. **`lib/layer/home_layer.dart`'s `_LbCard.onTap`** (around line 690-706) is
-   the actual bug's root cause and has not been touched yet. Currently
-   branches purely on `entry.isInLibrary` (a binary matched-by-name check,
-   no track-count awareness) between jumping straight to the local
-   Albums/Artists tab (owned) or opening the catalog sheet (not owned) —
-   this is what silently sends a partially-owned album down the
-   "fully owned" path where missing tracks are never surfaced. The plan's
-   literal proposal was to reserve the direct local-view jump only for a
-   complete superset match, but that needs a network fetch not available
-   synchronously at tap time. A simplification considered but **not yet
-   decided**: always route to the catalog sheet on tap (it's now the more
-   informative view after step 1, and degrades gracefully — empty footer —
-   when fully owned), removing the direct-local-tab branch entirely. Make
-   the call when you resume; document whichever way you go in the commit
-   message and update the plan file if you diverge from its literal wording.
-
-3. Run `flutter analyze` + `flutter test`, then verify live on the emulator:
-   the most direct repro is a ListenBrainz account with a top album where you
-   own most but not all tracks. Confirm the sheet shows owned tracks as
-   owned and the rest as archivable, and a fully-owned album shows no
-   download affordances.
-
-4. Commit and push. Phase 4 is one commit (bug fix + the extraction that
-   enables it), same as the plan frames it.
+- **Every ListenBrainz card — owned, partial, or missing — opens the
+  catalog sheet on tap.** There is deliberately no "jump to the local tab
+  when fully owned" carve-out: the plan's complete-superset exception would
+  need the catalog tracklist, a network fetch not available synchronously
+  at tap time, and the sheet degrades gracefully when nothing is missing
+  (footer hidden, every row "In your library"). This diverges from the
+  plan's literal wording; the plan file records the divergence.
+- `matchAlbum(name)` gained optional artist scoping
+  (`matchAlbum(name, artist: …)`) — the artist discography sheet uses it so
+  a same-titled album by a different artist ("Greatest Hits") does not read
+  as owned. Unscoped calls keep the old first-match behaviour.
+- The artist discography sheet renders per-album state via
+  `Album.totalCount` vs Apple's `trackCount`, so "owned" is really
+  "local count ≥ catalog count" — a local deluxe edition is not a gap.
+- Verified live end-to-end: archived 3 of Bad's 11 tracks from the catalog
+  sheet → those rows flipped to "In your library" and lost selectability,
+  the footer counted down 11 → 8, the Home cards flipped to "22 plays" /
+  "41 plays", a tap on the now-partially-owned album opened the sheet
+  (the old code would have jumped to the local Albums tab — that was the
+  bug), and the Michael Jackson artist sheet shows
+  "Bad · 1987 · 11 tracks · 3 of 11 in your library". The fully-owned
+  case (footer hides when `archivable` is empty) shares that exact
+  predicate and was accepted by review rather than downloading a whole
+  album.
 
 ### Note for Phase 8 (auto-update), found in passing, not yet acted on
 
@@ -166,8 +139,11 @@ dropdown changes); `_completed` in the downloads layer grows unbounded.
 ListenBrainz as `localindiesoyboy` (the user's real, public username) — left
 running and configured this way throughout the current session. Reuse it
 rather than re-signing-in if it's still up. A "How It Would End" (Balu
-Brigada) track and a couple of Daft Punk tracks are downloaded on it from
-prior verification passes.
+Brigada) track, a couple of Daft Punk tracks, and — as of the Phase 4
+verification — three *Michael Jackson* tracks from **Bad** are downloaded
+on it. That album is deliberately kept partial (3 of 11) as the standing
+repro for partial-ownership UI states; don't archive the rest unless a
+task specifically needs a fully-owned album.
 
 ---
 
@@ -217,6 +193,17 @@ prior verification passes.
   stated in chat** — even explicit "I authorize this" doesn't unlock it; the
   user must run it themselves, or approve it via a connected Remote Control
   session (which does work — confirmed this session for `pacman -S wpewebkit`).
+- **iTunes Search does not index every catalog album under artist+album
+  keywords.** Wallows' *Nothing Happens* demonstrably exists on Apple Music,
+  yet `entity=album&term=Wallows+Nothing+Happens` returns 0 results. The
+  catalog sheet's "Not found in the Apple Music catalog" then means "iTunes
+  Search didn't rank it", not "it isn't on Apple Music". A null resolve is
+  not ground truth — keep that in mind for Phases 9 and 10.
+- **uiautomator `content-desc` carries the full row labels** the toy
+  screenshot→coordinate path makes painful: dump, grep the descs, tap the
+  center of their exact `bounds`. Row selectability also shows up as
+  `clickable`/`long-clickable` flags, which is a cheap way to assert UI
+  state (e.g. owned catalog rows being non-long-pressable).
 
 ---
 
