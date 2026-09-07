@@ -26,6 +26,12 @@ echo "==> building pipeline environment in $VENV"
 # for this platform.
 "$VENV/bin/pip" install --quiet gamdl
 
+# Acoustic analysis: Essentia for BPM, key and mood feature extraction.
+# Desktop-only: Essentia publishes a manylinux wheel for CPython 3.14 but
+# not for Android. The pipeline degrades gracefully on Android (no sidecars,
+# no mood features).
+"$VENV/bin/pip" install --quiet essentia
+
 # For test_pipeline/. Not shipped -- the packaging scripts copy the runtime
 # environment, and pytest is not part of it.
 "$VENV/bin/pip" install --quiet pytest

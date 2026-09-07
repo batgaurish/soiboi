@@ -26,7 +26,6 @@ REQUIRED_MODULES = [
     "click",
 ]
 
-
 def _probe(module_name):
     try:
         module = importlib.import_module(module_name)
@@ -60,9 +59,26 @@ def is_android():
     return "ANDROID_ROOT" in os.environ or "ANDROID_DATA" in os.environ
 
 
+def probe_acoustic():
+    """Whether mood/feature analysis is available on this device.
+
+    Essentia publishes manylinux and macOS wheels but not Android builds, so a
+    track downloaded on the phone gets no mood features. Surfacing this in the
+    capabilities lets the UI say "mood analysis available on desktop" rather
+    than silently never producing a sidecar.
+    """
+    try:
+        from . import acoustic
+
+        return {"available": acoustic.ESSENTIA_AVAILABLE}
+    except Exception as exc:
+        return {"available": False, "error": str(exc)}
+
+
 def capabilities():
     modules = {name: _probe(name) for name in REQUIRED_MODULES}
     muxer = probe_native_muxer()
+    acoustic = probe_acoustic()
     missing = [name for name, info in modules.items() if not info["available"]]
 
     return {
@@ -72,6 +88,7 @@ def capabilities():
         "android": is_android(),
         "modules": modules,
         "native_muxer": muxer,
+        "acoustic_analysis": acoustic,
         "missing": missing,
         # Downloading needs both the orchestration code and the native engine;
         # either alone is useless.
