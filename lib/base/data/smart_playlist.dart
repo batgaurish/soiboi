@@ -204,6 +204,7 @@ enum SmartSort {
   year('Year'),
   energy('Energy'),
   danceable('Danceable'),
+  relaxed('Relaxed'),
   random('Shuffled');
 
   const SmartSort(this.label);
@@ -320,6 +321,8 @@ class SmartPlaylist {
       SmartSort.energy => (a.energy ?? -1).compareTo(b.energy ?? -1),
       SmartSort.danceable =>
           (a.danceable ?? -1).compareTo(b.danceable ?? -1),
+      SmartSort.relaxed =>
+          (a.relaxed ?? -1).compareTo(b.relaxed ?? -1),
       SmartSort.random => 0,
     };
     songs.sort((a, b) => descending ? compare(b, a) : compare(a, b));
