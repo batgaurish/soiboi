@@ -54,7 +54,7 @@ class DiscoveryTrack {
 
 final Map<String, List<LbTrack>> _rawTracks = {};
 final Map<String, List<DiscoveryTrack>> _resolved = {};
-final Set<String> _inFlight = {};
+final Map<String, Future<List<DiscoveryTrack>?>> _inFlight = {};
 
 List<DiscoveryTrack>? cachedDiscoveryTracks(String mbid) => _resolved[mbid];
 
@@ -87,62 +87,96 @@ Future<List<DiscoveryTrack>?> resolveDiscoveryTracks(
   // A card prefetches only four covers, so a four-entry cache is a *partial*
   // result, not the playlist. Returning it for an unlimited request is what
   // made a fifty-track playlist open showing four tracks: the sheet asked for
-  // everything and got the card's preview back.
+  // everything and got the card's preview back. The true length must be
+  // known before a cache can be called complete -- treating "we haven't
+  // fetched the playlist yet" as "the four-track preview is everything" was
+  // the same bug wearing a different hat.
   final cacheIsComplete =
-      cached != null && (full == null || cached.length >= full);
+      cached != null && full != null && cached.length >= full;
   if (cached != null &&
       (limit == null ? cacheIsComplete : cached.length >= limit)) {
     return cached;
   }
-  if (_inFlight.contains(mbid)) return cached;
-  _inFlight.add(mbid);
 
+  // A second caller (e.g. the sheet, wanting everything, while the card's
+  // four-track prefetch is still running) must wait for that work and then
+  // re-check the cache with its *own* limit -- not be handed a snapshot of
+  // whatever `_resolved[mbid]` happens to hold right now. Recursing after
+  // the wait costs nothing extra: the cache check above short-circuits if
+  // the finished work already satisfies this caller.
+  final inFlight = _inFlight[mbid];
+  if (inFlight != null) {
+    await inFlight;
+    return resolveDiscoveryTracks(
+      mbid,
+      limit: limit,
+      storefront: storefront,
+      onProgress: onProgress,
+    );
+  }
+
+  final future = _resolveAndCache(
+    mbid,
+    limit: limit,
+    storefront: storefront,
+    onProgress: onProgress,
+  );
+  _inFlight[mbid] = future;
   try {
-    final raw = _rawTracks[mbid] ?? await discoveryTracks(mbid);
-    if (raw.isEmpty) return null;
-    _rawTracks[mbid] = raw;
-
-    final slice = limit == null ? raw : raw.take(limit).toList();
-    final resolved = <DiscoveryTrack>[];
-
-    // Chunked rather than a worker pool: a chunk keeps playlist order without
-    // any index bookkeeping, and order is what the user sees.
-    for (var start = 0; start < slice.length; start += _resolveConcurrency) {
-      final chunk = slice.skip(start).take(_resolveConcurrency);
-      final matches = await Future.wait([
-        for (final track in chunk)
-          resolveAppleTrack(track.artist, track.title, storefront: storefront),
-      ]);
-      var i = 0;
-      for (final track in chunk) {
-        final match = matches[i++];
-        resolved.add(
-          DiscoveryTrack(
-            title: track.title,
-            artist: track.artist,
-            album: match?.album,
-            artwork: match?.artwork,
-            previewUrl: match?.previewUrl,
-            appleUrl: match?.url,
-            warning: match == null
-                ? 'Could not match to Apple Music catalog'
-                : null,
-          ),
-        );
-      }
-      onProgress?.call(List.unmodifiable(resolved), slice.length);
-    }
-
-    // Keep the longer result: a later full resolve should not be replaced by an
-    // earlier four-track preview.
-    final existing = _resolved[mbid];
-    if (existing == null || resolved.length > existing.length) {
-      _resolved[mbid] = resolved;
-    }
-    return _resolved[mbid];
+    return await future;
   } finally {
     _inFlight.remove(mbid);
   }
+}
+
+Future<List<DiscoveryTrack>?> _resolveAndCache(
+  String mbid, {
+  int? limit,
+  required String storefront,
+  void Function(List<DiscoveryTrack> resolved, int total)? onProgress,
+}) async {
+  final raw = _rawTracks[mbid] ?? await discoveryTracks(mbid);
+  if (raw.isEmpty) return null;
+  _rawTracks[mbid] = raw;
+
+  final slice = limit == null ? raw : raw.take(limit).toList();
+  final resolved = <DiscoveryTrack>[];
+
+  // Chunked rather than a worker pool: a chunk keeps playlist order without
+  // any index bookkeeping, and order is what the user sees.
+  for (var start = 0; start < slice.length; start += _resolveConcurrency) {
+    final chunk = slice.skip(start).take(_resolveConcurrency);
+    final matches = await Future.wait([
+      for (final track in chunk)
+        resolveAppleTrack(track.artist, track.title, storefront: storefront),
+    ]);
+    var i = 0;
+    for (final track in chunk) {
+      final match = matches[i++];
+      resolved.add(
+        DiscoveryTrack(
+          title: track.title,
+          artist: track.artist,
+          album: match?.album,
+          artwork: match?.artwork,
+          previewUrl: match?.previewUrl,
+          appleUrl: match?.url,
+          warning: match == null
+              ? 'Could not match to Apple Music catalog'
+              : null,
+        ),
+      );
+    }
+    onProgress?.call(List.unmodifiable(resolved), slice.length);
+  }
+
+  // Keep the longer result: a later full resolve should not be replaced by an
+  // earlier four-track preview.
+  final existing = _resolved[mbid];
+  if (existing == null || resolved.length > existing.length) {
+    _resolved[mbid] = resolved;
+  }
+  return _resolved[mbid];
 }
 
 /// How many tracks a playlist has, without resolving any of them.
