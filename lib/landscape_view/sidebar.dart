@@ -236,6 +236,19 @@ class Sidebar extends StatelessWidget {
                       ),
                     ),
 
+                    SliverToBoxAdapter(
+                      child: sidebarItem(
+                        label: 'smart',
+
+                        leading: Icon(Icons.auto_awesome_outlined, size: 30),
+                        content: 'Smart playlists',
+
+                        onTap: () {
+                          layersManager.switchRootLayer('smart');
+                        },
+                      ),
+                    ),
+
                     SliverToBoxAdapter(child: SizedBox(height: 5)),
                     SliverToBoxAdapter(
                       child: MyDivider(

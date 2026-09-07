@@ -11,6 +11,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/services/system_fonts.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/data/setting.dart';
@@ -50,6 +51,7 @@ class Loader {
     colorManager.updateColors();
 
     await fontManager.loadFonts();
+    await smartPlaylists.load();
 
     // Imported fonts are handled above. A system font chosen on a platform
     // that cannot resolve it by name has to be registered from its file again
