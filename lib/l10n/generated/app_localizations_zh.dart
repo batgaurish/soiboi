@@ -488,6 +488,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clearCache => '清除缓存';
 
   @override
+  String get backupLibrary => '备份库';
+
+  @override
+  String get restoreLibrary => '恢复库';
+
+  @override
+  String backupSaved(String path) {
+    return '备份已保存到 $path';
+  }
+
+  @override
+  String get backupFailed => '备份失败';
+
+  @override
+  String get restoreDone => '已恢复。请重新添加音乐文件夹，然后重启应用。';
+
+  @override
   String get tapAgain => '再按一次退出';
 
   @override

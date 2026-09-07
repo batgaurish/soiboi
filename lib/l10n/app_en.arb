@@ -203,6 +203,18 @@
   "modifiedTimeDescending": "Modified Time Descending",
   "cannotBeUndone": "This can't be undone",
   "clearCache": "Clear Cache",
+  "backupLibrary": "Back Up Library",
+  "restoreLibrary": "Restore Library",
+  "backupSaved": "Backup saved to {path}",
+  "@backupSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "backupFailed": "Backup failed",
+  "restoreDone": "Restored. Re-add your music folders, then restart the app.",
   "tapAgain": "Tap Again to Exit",
   "close": "Close",
   "fonts": "Fonts",

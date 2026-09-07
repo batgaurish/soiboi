@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:http/http.dart' as http;
 import 'package:soiboi/base/audio_handler.dart';
+import 'package:soiboi/base/data/backup_service.dart';
 import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/services/color_manager.dart';
@@ -179,6 +180,14 @@ class _SettingsListState extends State<SettingsList> {
         ),
 
         sliverBox(paddingIfNeed(isLandscape, lrclibListTile(l10n))),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, backupLibraryListTile(context, l10n)),
+        ),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, restoreLibraryListTile(context, l10n)),
+        ),
 
         sliverBox(paddingIfNeed(isLandscape, autoPlayOnStartupListTile(l10n))),
 
@@ -1409,6 +1418,48 @@ class _SettingsListState extends State<SettingsList> {
               'Failed to fetch GitHub release:$e',
               duration: 5000,
             );
+          }
+        }
+      },
+    );
+  }
+
+  Widget backupLibraryListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(exportLogImage, size: iconSize),
+      title: Text(l10n.backupLibrary),
+      onTap: () async {
+        try {
+          final path = await exportBackupToFile();
+          if (context.mounted && path != null) {
+            showCenterMessage(l10n.backupSaved(path));
+          }
+        } catch (e) {
+          if (context.mounted) {
+            showCenterMessage('${l10n.backupFailed}: $e', duration: 5000);
+          }
+        }
+      },
+    );
+  }
+
+  Widget restoreLibraryListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: ImageIcon(reloadImage, size: iconSize),
+      title: Text(l10n.restoreLibrary),
+      onTap: () async {
+        if (!await showConfirmDialog(context, l10n.restoreLibrary)) return;
+        try {
+          final restored = await importBackupFromFile();
+          if (!context.mounted || !restored) return;
+          showCenterMessage(l10n.restoreDone, duration: 5000);
+        } on InvalidBackupException catch (e) {
+          if (context.mounted) {
+            showCenterMessage(e.message, duration: 5000);
+          }
+        } catch (e) {
+          if (context.mounted) {
+            showCenterMessage('${l10n.backupFailed}: $e', duration: 5000);
           }
         }
       },

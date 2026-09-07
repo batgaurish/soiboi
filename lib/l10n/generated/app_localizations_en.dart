@@ -488,6 +488,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearCache => 'Clear Cache';
 
   @override
+  String get backupLibrary => 'Back Up Library';
+
+  @override
+  String get restoreLibrary => 'Restore Library';
+
+  @override
+  String backupSaved(String path) {
+    return 'Backup saved to $path';
+  }
+
+  @override
+  String get backupFailed => 'Backup failed';
+
+  @override
+  String get restoreDone =>
+      'Restored. Re-add your music folders, then restart the app.';
+
+  @override
   String get tapAgain => 'Tap Again to Exit';
 
   @override
