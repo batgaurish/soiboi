@@ -1,0 +1,13 @@
+[package]
+name = "bliss_compare"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "bliss_analyze"
+path = "src/main.rs"
+
+[dependencies]
+bliss-audio = { version = "0.13", default-features = false, features = ["symphonia-aac", "symphonia-isomp4"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
