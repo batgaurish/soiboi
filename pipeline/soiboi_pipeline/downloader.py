@@ -360,12 +360,12 @@ def download(
 
     # Analyse the downloaded file(s) for mood features. A sidecar is written
     # next to each audio file so the Dart side can read it during a library
-    # scan. This is the desktop path: essentia has a manylinux wheel for
-    # Python 3.14 but not for Android, where this degrades to a no-op.
+    # scan. Runs on both platforms -- bliss-audio's native extension is
+    # cross-compiled for Android the same way as gamdl's muxer.
     try:
         from . import acoustic
 
-        if acoustic.ESSENTIA_AVAILABLE:
+        if acoustic.ANALYSIS_AVAILABLE:
             acoustic.analyze_directory(output_dir, emit=emit)
     except Exception:
         # Analysis is a bonus, not a gate: a download that succeeded must

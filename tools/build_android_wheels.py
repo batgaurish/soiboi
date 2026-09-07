@@ -1,22 +1,32 @@
 """Builds the local wheel repository the Android build installs from.
 
-Three packages cannot be installed from PyPI as-is under Chaquopy, and each
+Four packages cannot be installed from PyPI as-is under Chaquopy, and each
 needs a different repair:
 
-  gamdl      published only as platform wheels whose native `_ammuxer`
-             extension has no Android build. We repackage it once per ABI,
-             embedding the extension cross-compiled by
-             tools/build_android_muxer.sh, so Chaquopy's pip resolves the
-             right one per architecture and the module imports normally.
+  gamdl         published only as platform wheels whose native `_ammuxer`
+                extension has no Android build. We repackage it once per
+                ABI, embedding the extension cross-compiled by
+                tools/build_android_muxer.sh, so Chaquopy's pip resolves the
+                right one per architecture and the module imports normally.
 
-  pywidevine pins pycryptodome>=3.23, but Chaquopy's native-wheel repository
-             tops out at 3.21. pywidevine only uses AES/RSA/CMAC/SHA APIs that
-             have been stable for years, so the pin is relaxed rather than
-             cross-compiling a newer pycryptodome.
+  bliss_analyze not published at all -- it's our own PyO3 wrapper crate
+                (pipeline/native/bliss_analyze) for mood analysis. Packaged
+                the same way as `_ammuxer`: one wheel per ABI, each holding
+                just the extension cross-compiled by
+                tools/build_android_bliss.sh, imported as a bare
+                `_bliss_analyze` module (no enclosing package, unlike
+                gamdl's `_ammuxer`, since it has no Python wrapper to sit
+                alongside).
 
-  construct  pinned exactly at 2.8.8 by pymp4, and that release predates
-             wheels entirely. It is pure Python, so building a wheel from the
-             sdist is enough.
+  pywidevine    pins pycryptodome>=3.23, but Chaquopy's native-wheel
+                repository tops out at 3.21. pywidevine only uses
+                AES/RSA/CMAC/SHA APIs that have been stable for years, so
+                the pin is relaxed rather than cross-compiling a newer
+                pycryptodome.
+
+  construct     pinned exactly at 2.8.8 by pymp4, and that release predates
+                wheels entirely. It is pure Python, so building a wheel from
+                the sdist is enough.
 
 Everything else in the tree resolves normally from PyPI or Chaquopy's own
 repository. Run via tools/build_android_pipeline.sh.
@@ -36,6 +46,7 @@ import zipfile
 from pathlib import Path
 
 GAMDL_VERSION = "3.8.5"
+BLISS_ANALYZE_VERSION = "0.1.0"  # must match pipeline/native/bliss_analyze/Cargo.toml
 # Chaquopy tags its own native wheels android_21_<abi>, so ours must match for
 # pip to consider them compatible. 21 is the tag, not a minSdk claim.
 ANDROID_ABIS = {"arm64-v8a": "android_21_arm64_v8a", "x86_64": "android_21_x86_64"}
@@ -151,6 +162,30 @@ def build_gamdl(work, out_dir, native_dir):
                     tag=f"{PYTHON_TAG}-{platform_tag}")
 
 
+def build_bliss_analyze(out_dir, native_dir):
+    """Package the cross-compiled bliss-audio extension, one wheel per ABI.
+
+    Unlike gamdl there's no surrounding pure-Python package -- the wheel is
+    just the `.so` at its root, importable as a bare `_bliss_analyze` module.
+    """
+    metadata = (
+        "Metadata-Version: 2.1\n"
+        f"Name: bliss-analyze\nVersion: {BLISS_ANALYZE_VERSION}\n"
+        "Summary: bliss-audio mood analysis (Android repackage, jniLibs extension)\n"
+        "Requires-Python: >=3.10\n"
+    ).encode()
+
+    for abi, platform_tag in ANDROID_ABIS.items():
+        so = native_dir / abi / "_bliss_analyze.so"
+        if not so.exists():
+            raise SystemExit(
+                f"missing {so}; run tools/build_android_bliss.sh first"
+            )
+        files = {"_bliss_analyze.so": so.read_bytes()}
+        write_wheel(out_dir, "bliss_analyze", BLISS_ANALYZE_VERSION, files,
+                    metadata, tag=f"{PYTHON_TAG}-{platform_tag}")
+
+
 def build_pywidevine(work, out_dir):
     """Copy the published wheel through, relaxing the pycryptodome pin."""
     run(sys.executable, "-m", "pip", "download",
@@ -189,7 +224,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, help="local wheel repository")
     parser.add_argument("--native", required=True,
-                        help="directory of per-ABI _ammuxer.so builds")
+                        help="directory of per-ABI _ammuxer.so and _bliss_analyze.so builds")
     parser.add_argument("--work", default=None, help="scratch directory")
     args = parser.parse_args()
 
@@ -202,6 +237,7 @@ def main():
 
     print("==> building local wheel repository")
     build_gamdl(work, out_dir, Path(args.native))
+    build_bliss_analyze(out_dir, Path(args.native))
     build_pywidevine(work, out_dir)
     build_construct(work, out_dir)
 

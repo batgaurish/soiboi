@@ -1,41 +1,58 @@
-"""Acoustic analysis: BPM, key and mood, computed from the audio file.
+"""Acoustic analysis: BPM and mood, computed from the audio file.
 
 Ported from the reference ``acoustic_analyzer.py`` in the Apple Music archival
-frontend, with two changes for the on-device pipeline:
+frontend, with changes for the on-device pipeline:
 
   * **Per-file sidecars** instead of a per-directory index. The pipeline
     downloads one file at a time and writes a sidecar next to it, so the Dart
     side can read it during a metadata scan without parsing a shared JSON file
     that may be mid-write from another download.
 
-  * **Essentia is optional.** On Android there is no manylinux wheel, so
-    importing this module must not fail. Every caller degrades to "no
-    features" when essentia is absent, and a track downloaded on the phone
-    simply gets no mood data until it is analysed on a desktop.
+  * **bliss-audio, not Essentia.** Essentia has no Android build, so mood
+    analysis only ever ran on desktop. A 220-track comparison (see
+    ``docs/bliss-vs-essentia-220.jsonl`` and ``docs/report.py``) found bliss
+    viable on Android (pure Rust, cross-compiles the same way as gamdl's
+    native muxer), 8x faster, and a fix for a real bug in the old brightness
+    calculation (see below) -- at the cost of BPM disagreeing with Essentia on
+    about a quarter of tracks, mostly genuine octave/metrical-ratio ambiguity
+    rather than noise. Decided: use bliss on both platforms so a mood rule
+    means the same thing regardless of which device did the download.
+
+  * **The native extension is optional**, same posture as Essentia had: every
+    caller degrades to "no features" when ``_bliss_analyze`` fails to import
+    (e.g. the Android build for this ABI hasn't been produced yet).
 
 The mood heuristics are labelled ``source: local`` to distinguish them from
-trained classifiers. AcousticBrainz used Essentia's pretrained SVM models for
-mood; without them these are directional estimates from loudness, onset rate,
-spectral centroid and tempo. They cover the whole library and are
-directionally sound, but a trained model would be better. Swapping in
-Essentia's pretrained mood models needs only ``_mood_estimates`` to change.
+trained classifiers -- they are directional estimates from bliss's spectral
+and rhythmic features, not a pretrained model. Unlike the Essentia version,
+bliss has no onset-rate output, so these formulas use zero-crossing rate and
+spectral flatness as the busyness/noisiness signal instead. They were ported
+without ground truth for the mood axes themselves (the 220-track comparison
+validated BPM and spectral centroid, not energy/danceable) -- directionally
+reasonable, not verified accurate.
+
+Brightness now uses bliss's whole-track spectral centroid. The Essentia
+version read a single ~0.74s window near the start of the track and
+correlated at r=0.086 against a true whole-track mean -- it was measuring
+noise. This is a straightforward improvement, not a behaviour change to
+preserve.
 """
 
 import json
 import os
 import time
 
-# Essentia is an optional dependency: the pipeline must still import and
-# run without it, and every caller degrades to "no features" when it is
-# absent.
+# The native extension is a top-level module (like gamdl's `_ammuxer`
+# pattern, but not nested in a package -- bliss's build has no reason to
+# be), installed by maturin on desktop and by a small standalone wheel on
+# Android. Optional: the pipeline must still import and run without it, and
+# every caller degrades to "no features" when it is absent (e.g. this
+# platform/ABI has no compiled build yet).
 try:
-    import essentia
-    essentia.log.warningActive = False
-    essentia.log.infoActive = False
-    import essentia.standard as es
-    ESSENTIA_AVAILABLE = True
+    import _bliss_analyze
+    ANALYSIS_AVAILABLE = True
 except Exception:
-    ESSENTIA_AVAILABLE = False
+    ANALYSIS_AVAILABLE = False
 
 SIDECAR_SUFFIX = ".soiboi-acoustic.json"
 SIDECAR_VERSION = 1
@@ -85,71 +102,73 @@ def has_sidecar(audio_path):
 def analyze_file(path):
     """Acoustic features for one audio file, or ``None`` if it cannot be
     analysed.
-
-    Returns the same feature names the reference implementation produces, so
-    the two sources are interchangeable to callers.
     """
-    if not ESSENTIA_AVAILABLE:
+    if not ANALYSIS_AVAILABLE:
         return None
     try:
-        audio = es.MonoLoader(filename=path, sampleRate=44100)()
-        if len(audio) < 44100:  # under a second: not worth trusting
+        raw = _bliss_analyze.analyze(path)
+        bpm = raw.get("bpm")
+        if bpm is None:
             return None
 
-        bpm, _beats, beat_confidence, _, _ = es.RhythmExtractor2013(
-            method="multifeature"
-        )(audio)
-        key, scale, key_strength = es.KeyExtractor()(audio)
-
         features = {
-            "bpm": round(float(bpm), 1),
-            "bpm_confidence": round(float(beat_confidence), 2),
-            "key": f"{key} {scale}",
-            "key_strength": round(float(key_strength), 2),
+            "bpm": round(bpm, 1),
             "source": "local",
         }
-        features.update(_mood_estimates(audio, float(bpm)))
+        features.update(_mood_estimates(raw))
         return features
     except Exception:
         return None
 
 
-def _mood_estimates(audio, bpm):
-    """Mood axes derived from signal statistics.
+def _mood_estimates(raw):
+    """Mood axes derived from bliss's spectral and rhythmic features.
 
-    These are heuristics over loudness, spectral brightness, onset density
-    and tempo -- not the trained classifiers AcousticBrainz used. They are
-    labelled ``source: local`` precisely so the difference stays visible: the
-    numbers are directionally sound and cover the whole library, but a trained
-    model would be better. Swapping in Essentia's pretrained mood models is
-    the obvious upgrade and needs only this function to change.
+    These are heuristics, not the trained classifiers AcousticBrainz used --
+    labelled ``source: local`` so the difference stays visible. bliss has no
+    onset-rate equivalent (the Essentia version's energy/danceable signal),
+    so zero-crossing rate and spectral flatness stand in as the
+    busyness/noisiness proxy: a higher ZCR means more percussive or
+    distorted content, and higher flatness means a more noise-like spectrum
+    (tonal, harmonic music -- most dance music -- sits at the low end).
+
+    Directionally reasonable, not accuracy-verified: the 220-track comparison
+    against Essentia validated BPM and spectral centroid, not these derived
+    axes.
     """
-    try:
-        loudness = float(es.Loudness()(audio))
-        onset_rate = float(es.OnsetRate()(audio)[1])
-        centroid = float(es.Centroid(range=22050)(es.Spectrum()(
-            es.Windowing(type="hann")(
-                audio[:32768] if len(audio) >= 32768 else audio
-            )
-        )))
-    except Exception:
-        return {}
 
     def clamp(value):
         return round(max(0.0, min(1.0, value)), 3)
 
-    # Brightness and density drive perceived energy; tempo reinforces it.
-    energy = clamp((onset_rate / 6.0) * 0.6 + (bpm / 180.0) * 0.4)
-    brightness = clamp(centroid / 4000.0)
+    bpm = raw.get("bpm", 0.0)
+    zcr = raw.get("zcr", 0.0)
+    flatness = raw.get("flatness", 0.0)
+    loudness_db = raw.get("loudness_db", -30.0)
+    centroid_hz = raw.get("centroid_hz")
 
-    return {
+    bpm_norm = clamp(bpm / 180.0)
+    zcr_norm = clamp(zcr / 0.15)
+    flatness_norm = clamp(flatness / 0.5)
+    # Mastered tracks mostly sit in -20..-3 dB on bliss's loudness scale;
+    # louder (closer to 0) reads as more energetic.
+    loudness_norm = clamp((loudness_db + 20.0) / 17.0)
+
+    energy = clamp(zcr_norm * 0.4 + loudness_norm * 0.3 + bpm_norm * 0.3)
+
+    result = {
         "energy": energy,
-        "brightness": brightness,
-        "aggressive": clamp(energy * 0.7 + brightness * 0.3),
+        "aggressive": clamp(energy * 0.6 + flatness_norm * 0.4),
         "relaxed": clamp(1.0 - energy),
-        "danceable": clamp((bpm / 140.0) * 0.6 + (onset_rate / 6.0) * 0.4),
-        "loudness": round(loudness, 3),
+        # Danceable music tends to be tonal and rhythmic rather than noisy,
+        # so flatness contributes inversely.
+        "danceable": clamp(bpm_norm * 0.6 + (1.0 - flatness_norm) * 0.4),
+        "loudness": round(loudness_db, 3),
     }
+    if centroid_hz is not None:
+        # Same scale factor the Essentia version used, but now over a
+        # whole-track mean instead of a single window near the intro.
+        result["brightness"] = clamp(centroid_hz / 4000.0)
+    return result
 
 
 def iter_audio_files(directory):
@@ -167,12 +186,12 @@ def analyze_directory(directory, emit=None, limit=None):
     of what was done. Used both as a backfill command and called from the
     downloader after a successful download.
     """
-    if not ESSENTIA_AVAILABLE:
+    if not ANALYSIS_AVAILABLE:
         return {
             "total": 0,
             "analysed": 0,
             "skipped": 0,
-            "essentia_available": False,
+            "analysis_available": False,
         }
 
     pending = []
@@ -207,5 +226,5 @@ def analyze_directory(directory, emit=None, limit=None):
         "analysed": analysed,
         "skipped": total - len(pending),
         "pending": len(pending) - analysed,
-        "essentia_available": True,
+        "analysis_available": True,
     }

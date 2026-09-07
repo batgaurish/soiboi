@@ -1,9 +1,10 @@
 """Tests for the acoustic analysis module.
 
-The feature extraction itself needs Essentia and a real audio file, so the
-core tests here cover the sidecar format and the directory scanning logic
-rather than the analysis output. The analysis is verified end-to-end in the
-handover with a real track.
+Real feature extraction needs the compiled `_bliss_analyze` extension and a
+real audio file, so the core tests here cover the sidecar format and the
+directory scanning logic rather than the analysis output itself. The mood
+formulas are exercised manually against real tracks -- see the module
+docstring in acoustic.py for how they were derived.
 """
 import json
 import os
@@ -97,40 +98,53 @@ def test_analyze_directory_skips_existing_sidecars(tmp_path):
     assert result["skipped"] == 1
 
 
-def test_analyze_directory_no_essentia(tmp_path, monkeypatch):
-    """Without essentia, the function returns a zero-summary without failing."""
+def test_analyze_directory_no_bliss(tmp_path, monkeypatch):
+    """Without the native extension, the function returns a zero-summary
+    without failing."""
     audio = tmp_path / "track.m4a"
     audio.write_bytes(b"")
-    monkeypatch.setattr(acoustic, "ESSENTIA_AVAILABLE", False)
+    monkeypatch.setattr(acoustic, "ANALYSIS_AVAILABLE", False)
 
     result = acoustic.analyze_directory(str(tmp_path))
-    assert result["essentia_available"] is False
+    assert result["analysis_available"] is False
     assert result["analysed"] == 0
-    # No sidecar written when essentia is absent
+    # No sidecar written when analysis is unavailable
     assert not acoustic.has_sidecar(str(audio))
 
 
-def test_analyze_file_without_essentia(tmp_path, monkeypatch):
-    monkeypatch.setattr(acoustic, "ESSENTIA_AVAILABLE", False)
+def test_analyze_file_without_bliss(tmp_path, monkeypatch):
+    monkeypatch.setattr(acoustic, "ANALYSIS_AVAILABLE", False)
     assert acoustic.analyze_file("/nonexistent.m4a") is None
 
 
-def test_analyze_file_with_short_audio(tmp_path, monkeypatch):
-    """Under one second of audio is not worth trusting — return None."""
-    if not acoustic.ESSENTIA_AVAILABLE:
-        return  # can't test the real path without essentia
+def test_analyze_file_on_decode_failure(tmp_path):
+    """A file bliss cannot decode (missing, corrupt, DRM-locked) returns
+    ``None`` rather than raising."""
+    if not acoustic.ANALYSIS_AVAILABLE:
+        return  # can't exercise the real decode path without the extension
+    assert acoustic.analyze_file(str(tmp_path / "nonexistent.m4a")) is None
 
-    import numpy as np
 
-    # Create a 0.1-second sine wave (4410 samples at 44100 Hz)
-    sr = 44100
-    t = np.linspace(0, 0.1, int(sr * 0.1), endpoint=False)
-    wave = (0.5 * np.sin(2 * np.pi * 440 * t) * 32767).astype(np.float32)
+def test_mood_estimates_are_clamped_to_unit_range():
+    raw = {"bpm": 400.0, "zcr": 0.9, "flatness": 0.9, "loudness_db": 0.0,
+           "centroid_hz": 999999.0}
+    result = acoustic._mood_estimates(raw)
+    for key in ("energy", "aggressive", "relaxed", "danceable", "brightness"):
+        assert 0.0 <= result[key] <= 1.0
 
-    # Essentia's MonoLoader can't load a numpy array, so we skip this test
-    # if we can't create a real audio file. The short-audio guard is tested
-    # by the fact that the function returns None for a non-existent file.
-    pass
+
+def test_mood_estimates_missing_centroid_omits_brightness():
+    raw = {"bpm": 120.0, "zcr": 0.05, "flatness": 0.2, "loudness_db": -10.0}
+    result = acoustic._mood_estimates(raw)
+    assert "brightness" not in result
+    assert "energy" in result
+
+
+def test_mood_estimates_energy_and_relaxed_are_complementary():
+    raw = {"bpm": 128.0, "zcr": 0.1, "flatness": 0.3, "loudness_db": -6.0,
+           "centroid_hz": 2000.0}
+    result = acoustic._mood_estimates(raw)
+    assert result["relaxed"] == round(1.0 - result["energy"], 3)
 
 
 def test_capabilities_reports_acoustic():

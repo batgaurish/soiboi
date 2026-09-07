@@ -86,7 +86,7 @@ chaquopy {
         buildPython(System.getenv("CHAQUOPY_PYTHON") ?: "python3.12")
 
         pip {
-            // Three packages come from a locally built repository rather than
+            // Four packages come from a locally built repository rather than
             // PyPI, because none of them installs here as published. See
             // tools/build_android_wheels.py for what each repair is and why.
             options("--find-links", "${project.projectDir}/../pip-repo")
@@ -94,6 +94,10 @@ chaquopy {
             // gamdl pulls the rest of the tree (mutagen, yt-dlp, httpx, m3u8,
             // click, pywidevine...) through its own dependency metadata.
             install("gamdl==3.8.5")
+
+            // Mood analysis. Not a gamdl dependency, so it needs its own
+            // explicit install -- pip won't pull it in on its own.
+            install("bliss_analyze==0.1.0")
         }
     }
 
