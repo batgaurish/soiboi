@@ -154,6 +154,18 @@
   "modifiedTimeDescending": "修改时间降序",
   "cannotBeUndone": "不可撤销",
   "clearCache": "清除缓存",
+  "backupLibrary": "备份库",
+  "restoreLibrary": "恢复库",
+  "backupSaved": "备份已保存到 {path}",
+  "@backupSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "backupFailed": "备份失败",
+  "restoreDone": "已恢复。请重新添加音乐文件夹，然后重启应用。",
   "tapAgain": "再按一次退出",
   "close": "关闭",
   "fonts": "字体",

@@ -1028,6 +1028,36 @@ abstract class AppLocalizations {
   /// **'Clear Cache'**
   String get clearCache;
 
+  /// No description provided for @backupLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Back Up Library'**
+  String get backupLibrary;
+
+  /// No description provided for @restoreLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Library'**
+  String get restoreLibrary;
+
+  /// No description provided for @backupSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved to {path}'**
+  String backupSaved(String path);
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup failed'**
+  String get backupFailed;
+
+  /// No description provided for @restoreDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored. Re-add your music folders, then restart the app.'**
+  String get restoreDone;
+
   /// No description provided for @tapAgain.
   ///
   /// In en, this message translates to:
