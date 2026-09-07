@@ -9,6 +9,7 @@ library;
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
+import 'package:soiboi/base/data/smart_playlist_templates.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/utils/media_query.dart';
@@ -155,21 +156,124 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
   }
 
   Future<void> _edit(SmartPlaylist? existing) async {
+    // A new playlist starts with a choice: a template (which seeds the editor
+    // and keeps it pre-filled) or a blank form. Editing an existing playlist
+    // never shows the picker — the rules are already its "template".
+    SmartPlaylist? seed;
+    if (existing == null) {
+      seed = await _pickTemplate();
+      // Dismissing the picker is the same as not wanting to create: no editor.
+      if (seed == null) return;
+    }
+
+    if (!mounted) return;
     final saved = await showAnimationDialog<bool>(
       context: context,
       child: SizedBox(
         width: 480,
         height: 560,
-        child: _SmartPlaylistEditor(existing: existing),
+        child: _SmartPlaylistEditor(existing: existing, initial: seed),
       ),
     );
     if (saved == true && mounted) setState(() {});
   }
+
+  /// The picker a brand-new playlist is offered before the editor opens.
+  ///
+  /// Choosing a template returns its [SmartPlaylist] (seeds the editor, fully
+  /// editable); choosing to start from scratch returns an empty
+  /// [SmartPlaylist]; dismissing returns null (no editor at all).
+  Future<SmartPlaylist?> _pickTemplate() async {
+    return showAnimationDialog<SmartPlaylist>(
+      context: context,
+      child: const SizedBox(width: 460, height: 540, child: _TemplatePicker()),
+    );
+  }
+}
+
+/// The "what are you making?" step shown before a new playlist's editor.
+class _TemplatePicker extends StatelessWidget {
+  const _TemplatePicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        Text(
+          'Start from a template',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: highlightTextColor.value,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Pick a vibe and tweak it, or start from a blank ruleset.',
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+        const SizedBox(height: 14),
+        for (final template in smartPlaylistTemplates)
+          _TemplateTile(
+            template: template,
+            onTap: () => Navigator.of(context).pop(template.playlist),
+          ),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Start from scratch'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A single template row in the picker.
+class _TemplateTile extends StatelessWidget {
+  const _TemplateTile({required this.template, required this.onTap});
+  final SmartPlaylistTemplate template;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: seekBarColor.value,
+          child: Icon(template.icon, color: textColor.value),
+        ),
+        title: Text(
+          template.name,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: highlightTextColor.value,
+          ),
+        ),
+        subtitle: Text(
+          template.description,
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: textColor.value),
+        onTap: onTap,
+      ),
+    );
+  }
 }
 
 class _SmartPlaylistEditor extends StatefulWidget {
-  const _SmartPlaylistEditor({this.existing});
+  const _SmartPlaylistEditor({this.existing, this.initial});
   final SmartPlaylist? existing;
+
+  /// A brand-new playlist pre-seeded from a template; not yet persisted, so
+  /// the editor treats it as "new" (no Delete, "New smart playlist" heading)
+  /// but starts pre-filled.
+  final SmartPlaylist? initial;
 
   @override
   State<_SmartPlaylistEditor> createState() => _SmartPlaylistEditorState();
@@ -187,12 +291,16 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
   void initState() {
     super.initState();
     final existing = widget.existing;
-    _name = TextEditingController(text: existing?.name ?? '');
-    _limit = TextEditingController(text: existing?.limit?.toString() ?? '');
-    _rules = [...?existing?.rules];
-    _matchAll = existing?.matchAll ?? true;
-    _sort = existing?.sort ?? SmartSort.added;
-    _descending = existing?.descending ?? true;
+    _name = TextEditingController(
+      text: existing?.name ?? widget.initial?.name ?? '',
+    );
+    _limit = TextEditingController(
+      text: (existing?.limit ?? widget.initial?.limit)?.toString() ?? '',
+    );
+    _rules = [...?existing?.rules, ...?widget.initial?.rules];
+    _matchAll = existing?.matchAll ?? widget.initial?.matchAll ?? true;
+    _sort = existing?.sort ?? widget.initial?.sort ?? SmartSort.added;
+    _descending = existing?.descending ?? widget.initial?.descending ?? true;
   }
 
   @override

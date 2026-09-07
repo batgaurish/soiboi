@@ -211,7 +211,7 @@ enum SmartSort {
 }
 
 class SmartPlaylist {
-  SmartPlaylist({
+  const SmartPlaylist({
     required this.name,
     this.rules = const [],
     this.matchAll = true,
