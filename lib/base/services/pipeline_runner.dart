@@ -50,6 +50,7 @@ class PipelineCapabilities {
     required this.pythonVersion,
     required this.missing,
     required this.nativeMuxer,
+    this.canAnalyze,
     this.error,
   });
 
@@ -57,6 +58,10 @@ class PipelineCapabilities {
   final String pythonVersion;
   final List<String> missing;
   final bool nativeMuxer;
+
+  /// Whether Essentia is available for mood/feature analysis. False on Android
+  /// (no wheel) and on desktop if the pipeline venv lacks essentia.
+  final bool? canAnalyze;
 
   /// Set when probing itself failed — no runtime at all, rather than an
   /// incomplete one.
@@ -67,6 +72,7 @@ class PipelineCapabilities {
     pythonVersion: '',
     missing: const [],
     nativeMuxer: false,
+    canAnalyze: false,
     error: reason,
   );
 
@@ -79,6 +85,8 @@ class PipelineCapabilities {
             .toList(),
         nativeMuxer:
             (json['native_muxer'] as Map?)?['available'] as bool? ?? false,
+        canAnalyze:
+            (json['acoustic_analysis'] as Map?)?['available'] as bool?,
       );
 
   /// A short, honest explanation for the UI.

@@ -20,6 +20,11 @@ MyAudioMetadata song({
   DateTime? lastPlayed,
   DateTime? added,
   bool favourite = false,
+  double? energy,
+  double? danceable,
+  double? bpm,
+  double? relaxed,
+  double? aggressive,
 }) {
   final meta = MyAudioMetadata(
     AudioMetadata(
@@ -37,6 +42,11 @@ MyAudioMetadata song({
     modified: added,
   );
   meta.isFavoriteNotifier.value = favourite;
+  meta.energy = energy;
+  meta.danceable = danceable;
+  meta.bpm = bpm;
+  meta.relaxed = relaxed;
+  meta.aggressive = aggressive;
   return meta;
 }
 
@@ -298,5 +308,123 @@ void main() {
         anyOf(SmartOperator.inLastDays, SmartOperator.notInLastDays),
       ),
     );
+  });
+
+  group('acoustic rules', () {
+    final library = [
+      song(id: 'chill', energy: 0.2, danceable: 0.3, bpm: 85, relaxed: 0.8),
+      song(id: 'banger', energy: 0.9, danceable: 0.85, bpm: 128, aggressive: 0.7),
+      song(id: 'mid', energy: 0.5, danceable: 0.5, bpm: 100),
+      song(id: 'unanalysed'), // no acoustic features
+    ];
+
+    test('energy greater than filters high-energy tracks', () {
+      final playlist = SmartPlaylist(
+        name: 'x',
+        sort: SmartSort.energy,
+        rules: const [
+          SmartRule(
+            field: SmartField.energy,
+            operator: SmartOperator.greaterThan,
+            value: '0.7',
+          ),
+        ],
+      );
+      expect(playlist.evaluate(library).map((s) => s.id), ['banger']);
+    });
+
+    test('danceable sorts high to low', () {
+      final playlist = SmartPlaylist(
+        name: 'x',
+        sort: SmartSort.danceable,
+        descending: true,
+        rules: const [
+          SmartRule(
+            field: SmartField.danceable,
+            operator: SmartOperator.greaterThan,
+            value: '0.4',
+          ),
+        ],
+      );
+      expect(playlist.evaluate(library).map((s) => s.id), ['banger', 'mid']);
+    });
+
+    test('BPM range filter', () {
+      final playlist = SmartPlaylist(
+        name: 'x',
+        sort: SmartSort.title,
+        descending: false,
+        rules: const [
+          SmartRule(
+            field: SmartField.bpm,
+            operator: SmartOperator.greaterThan,
+            value: '90',
+          ),
+          SmartRule(
+            field: SmartField.bpm,
+            operator: SmartOperator.lessThan,
+            value: '110',
+          ),
+        ],
+      );
+      expect(playlist.evaluate(library).map((s) => s.id), ['mid']);
+    });
+
+    test('a track with no acoustic features does not match number rules', () {
+      // Same principle as a missing year: null is not zero.
+      final playlist = SmartPlaylist(
+        name: 'x',
+        rules: const [
+          SmartRule(
+            field: SmartField.energy,
+            operator: SmartOperator.lessThan,
+            value: '0.5',
+          ),
+        ],
+      );
+      final result = playlist.evaluate(library).map((s) => s.id);
+      expect(result, contains('chill'));
+      expect(result, isNot(contains('unanalysed')));
+    });
+
+    test('relaxed playlist excludes aggressive tracks', () {
+      final playlist = SmartPlaylist(
+        name: 'x',
+        sort: SmartSort.energy,
+        descending: false,
+        rules: const [
+          SmartRule(
+            field: SmartField.relaxed,
+            operator: SmartOperator.greaterThan,
+            value: '0.7',
+          ),
+        ],
+      );
+      expect(playlist.evaluate(library).map((s) => s.id), ['chill']);
+    });
+
+    test('acoustic fields survive a round trip through JSON', () {
+      final original = SmartPlaylist(
+        name: 'High energy',
+        sort: SmartSort.energy,
+        rules: const [
+          SmartRule(
+            field: SmartField.energy,
+            operator: SmartOperator.greaterThan,
+            value: '0.7',
+          ),
+          SmartRule(
+            field: SmartField.bpm,
+            operator: SmartOperator.greaterThan,
+            value: '120',
+          ),
+        ],
+      );
+      final restored = SmartPlaylist.fromJson(original.toJson())!;
+      expect(restored.rules.length, 2);
+      expect(restored.rules[0].field, SmartField.energy);
+      expect(restored.rules[1].field, SmartField.bpm);
+      expect(restored.sort, SmartSort.energy);
+    });
   });
 }

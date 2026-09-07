@@ -38,6 +38,25 @@ def handle(command, payload=None, emit=None):
     if command == "version":
         return {"event": "done", "version": __version__}
 
+    if command == "analyze":
+        directory = payload.get("directory")
+        if not directory:
+            return {
+                "event": "error",
+                "code": "bad_request",
+                "message": "Missing: directory",
+            }
+        from . import acoustic
+
+        if not acoustic.ESSENTIA_AVAILABLE:
+            return {
+                "event": "error",
+                "code": "no_essentia",
+                "message": "Acoustic analysis is not available on this device.",
+            }
+        result = acoustic.analyze_directory(directory, emit=emit)
+        return {"event": "done", **result}
+
     if command == "download":
         missing = [
             key for key in ("url", "cookies_path", "output_dir")

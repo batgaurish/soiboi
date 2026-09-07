@@ -34,6 +34,11 @@ enum SmartField {
   playCount('Play count', SmartFieldKind.number),
   bitrate('Bitrate (kbps)', SmartFieldKind.number),
   durationSeconds('Length (seconds)', SmartFieldKind.number),
+  bpm('BPM', SmartFieldKind.number),
+  energy('Energy', SmartFieldKind.number),
+  danceable('Danceable', SmartFieldKind.number),
+  relaxed('Relaxed', SmartFieldKind.number),
+  aggressive('Aggressive', SmartFieldKind.number),
   lastPlayed('Last played', SmartFieldKind.date),
   added('Date added', SmartFieldKind.date),
   favourite('Favourite', SmartFieldKind.flag);
@@ -137,6 +142,11 @@ class SmartRule {
     // the badge on the card reads.
     SmartField.bitrate => song.bitrate == null ? null : song.bitrate! ~/ 1000,
     SmartField.durationSeconds => song.duration?.inSeconds,
+    SmartField.bpm => song.bpm,
+    SmartField.energy => song.energy,
+    SmartField.danceable => song.danceable,
+    SmartField.relaxed => song.relaxed,
+    SmartField.aggressive => song.aggressive,
     _ => null,
   };
 
@@ -192,6 +202,8 @@ enum SmartSort {
   title('Title'),
   artist('Artist'),
   year('Year'),
+  energy('Energy'),
+  danceable('Danceable'),
   random('Shuffled');
 
   const SmartSort(this.label);
@@ -305,6 +317,9 @@ class SmartPlaylist {
         (b.artist ?? '').toLowerCase(),
       ),
       SmartSort.year => (a.year ?? 0).compareTo(b.year ?? 0),
+      SmartSort.energy => (a.energy ?? -1).compareTo(b.energy ?? -1),
+      SmartSort.danceable =>
+          (a.danceable ?? -1).compareTo(b.danceable ?? -1),
       SmartSort.random => 0,
     };
     songs.sort((a, b) => descending ? compare(b, a) : compare(a, b));

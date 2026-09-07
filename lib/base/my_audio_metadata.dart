@@ -36,6 +36,17 @@ class MyAudioMetadata {
   int playCount;
   DateTime? lastPlayed;
 
+  /// Acoustic features from Essentia analysis, read from a per-file sidecar
+  /// written by the pipeline. Null when the track has not been analysed
+  /// (e.g. downloaded on Android, where Essentia has no wheel).
+  double? energy;
+  double? danceable;
+  double? brightness;
+  double? aggressive;
+  double? relaxed;
+  double? bpm;
+  String? musicalKey;
+
   late String compareTitle;
   late String compareArtist;
   late String compareAlbum;
@@ -94,6 +105,28 @@ class MyAudioMetadata {
 
   set lyrics(String? value) => _audioMetadata.lyrics = value;
   set duration(Duration? value) => _audioMetadata.duration = value;
+
+  /// Loads acoustic features from the sidecar next to this file, if one
+  /// exists. Called during library scan so smart playlists can filter on
+  /// energy, danceability, etc. without a separate query.
+  void loadAcousticFeatures() {
+    if (path == null || sourceType != .local) return;
+    final sidecar = File('$path.soiboi-acoustic.json');
+    if (!sidecar.existsSync()) return;
+    try {
+      final data = jsonDecode(sidecar.readAsStringSync());
+      if (data is! Map<String, dynamic>) return;
+      energy = (data['energy'] as num?)?.toDouble();
+      danceable = (data['danceable'] as num?)?.toDouble();
+      brightness = (data['brightness'] as num?)?.toDouble();
+      aggressive = (data['aggressive'] as num?)?.toDouble();
+      relaxed = (data['relaxed'] as num?)?.toDouble();
+      bpm = (data['bpm'] as num?)?.toDouble();
+      musicalKey = data['key'] as String?;
+    } catch (_) {
+      // A corrupt sidecar is no reason to drop the track from the library.
+    }
+  }
 
   factory MyAudioMetadata.fromMap(
     Map<String, dynamic> song,

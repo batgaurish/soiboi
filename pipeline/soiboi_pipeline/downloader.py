@@ -358,5 +358,20 @@ def download(
             "code": "gamdl_reported_error",
         }
 
+    # Analyse the downloaded file(s) for mood features. A sidecar is written
+    # next to each audio file so the Dart side can read it during a library
+    # scan. This is the desktop path: essentia has a manylinux wheel for
+    # Python 3.14 but not for Android, where this degrades to a no-op.
+    try:
+        from . import acoustic
+
+        if acoustic.ESSENTIA_AVAILABLE:
+            acoustic.analyze_directory(output_dir, emit=emit)
+    except Exception:
+        # Analysis is a bonus, not a gate: a download that succeeded must
+        # always report success, even if the mood features could not be
+        # extracted.
+        pass
+
     emit({"event": "progress", "progress": 100, "status": "Done"})
     return {"event": "done", "output_dir": output_dir, "log_path": log_path}

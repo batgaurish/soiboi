@@ -334,9 +334,16 @@ class Library {
 
       if (tmp != null) {
         song = MyAudioMetadata(tmp, id: id, path: path, modified: modified);
+        song.loadAcousticFeatures();
       } else {
         song = null;
       }
+    } else if (song != null && song.energy == null && song.path != null) {
+      // The file hasn't changed, but it may have been scanned before a
+      // sidecar was written (e.g. analysis completed after the last sync,
+      // or a backfill ran via the analyze command). A cheap null check
+      // avoids re-reading metadata while still picking up new features.
+      song.loadAcousticFeatures();
     }
     if (song != null) {
       library.id2Song[id] = song;
