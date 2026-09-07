@@ -24,6 +24,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/logger.dart';
 
 const _host = 'api.listenbrainz.org';
@@ -76,29 +77,6 @@ class LbEntry {
   /// False means you listen to this but don't own it — a gap the download
   /// pipeline could fill.
   bool get isInLibrary => localArtist != null || localAlbum != null;
-}
-
-/// Case- and punctuation-insensitive comparison, because tags and MusicBrainz
-/// disagree constantly about "&" vs "and", accents, and trailing articles.
-String _normalise(String value) => value
-    .toLowerCase()
-    .replaceAll('&', 'and')
-    .replaceAll(RegExp(r'[^a-z0-9]+'), '');
-
-Artist? _matchArtist(String name) {
-  final target = _normalise(name);
-  for (final artist in artistAlbumManager.artistList) {
-    if (_normalise(artist.name) == target) return artist;
-  }
-  return null;
-}
-
-Album? _matchAlbum(String name) {
-  final target = _normalise(name);
-  for (final album in artistAlbumManager.albumList) {
-    if (_normalise(album.name) == target) return album;
-  }
-  return null;
 }
 
 String? _coverArtUrl(Map<String, dynamic> item) {
@@ -194,7 +172,7 @@ Future<List<LbEntry>?> topArtistsFromListenBrainz({
       name: name,
       listenCount: (item['listen_count'] as num?)?.round() ?? 0,
       mbid: item['artist_mbid'] as String?,
-      localArtist: _matchArtist(name),
+      localArtist: matchArtist(name),
     );
   }).where((e) => e.name.isNotEmpty).toList();
 }
@@ -213,7 +191,7 @@ Future<List<LbEntry>?> topAlbumsFromListenBrainz({
       artistName: item['artist_name'] as String?,
       mbid: item['release_mbid'] as String?,
       artworkUrl: _coverArtUrl(item),
-      localAlbum: _matchAlbum(name),
+      localAlbum: matchAlbum(name),
     );
   }).where((e) => e.name.isNotEmpty).toList();
 }

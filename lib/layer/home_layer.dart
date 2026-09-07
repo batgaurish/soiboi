@@ -691,19 +691,20 @@ class _LbCard extends StatelessWidget {
         child: SizedBox(
           width: 124,
           child: InkWell(
-            // Not owning it is the moment someone is most likely to want it,
-            // so an unowned card opens the catalog rather than doing nothing.
-            onTap: owned
-                ? () => layersManager.switchRootLayer(
-                      entry.localArtist != null ? 'artists' : 'albums',
-                    )
-                : () => circular
-                      ? showCatalogArtistSheet(context, entry.name)
-                      : showCatalogAlbumSheet(
-                          context,
-                          entry.artistName ?? '',
-                          entry.name,
-                        ),
+            // Owned or not, every card opens the catalog sheet. A bare name
+            // match says nothing about how much of the release is actually
+            // local, and jumping to the local tab sent a partially-owned
+            // album down the "fully owned" path. The sheets render
+            // per-track/per-album ownership themselves and degrade
+            // gracefully (no archive footer) when nothing is missing, and
+            // browsing owned music stays on the collection shelves.
+            onTap: () => circular
+                ? showCatalogArtistSheet(context, entry.name)
+                : showCatalogAlbumSheet(
+                    context,
+                    entry.artistName ?? '',
+                    entry.name,
+                  ),
             borderRadius: BorderRadius.circular(radius),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

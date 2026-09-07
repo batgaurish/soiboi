@@ -10,12 +10,15 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/services/apple_catalog_service.dart';
 import 'package:soiboi/base/services/archive_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/preview_player.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
 
 /// Opens an album, resolving it from artist and title.
 Future<void> showCatalogAlbumSheet(
@@ -154,6 +157,12 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
   List<AppleTrack>? _tracks;
   String? _error;
 
+  /// The local album this matched by name, if any. A partial local match
+  /// (some tracks owned, not all) still ends up here rather than being
+  /// dropped into a pure-catalog view -- that was the bug: an album missing
+  /// even one track looked identical to owning none of it.
+  Album? _localAlbum;
+
   /// Track URLs already archived from this sheet, so a row shows it landed.
   final Set<String> _archived = {};
   final Set<String> _selected = {};
@@ -175,6 +184,8 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
   }
 
   Future<void> _load() async {
+    _localAlbum = matchAlbum(widget.album);
+
     final album = await resolveAppleAlbum(widget.artist, widget.album);
     if (!mounted) return;
     if (album == null) {
@@ -189,6 +200,13 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
       _tracks = tracks ?? const [];
       if (tracks == null) _error = 'Could not load the track list';
     });
+  }
+
+  /// The local copy of [track], if this album (or, failing that, this
+  /// artist) already has one -- checked by normalised title so a mismatch in
+  /// punctuation or "feat." formatting does not hide an owned track.
+  MyAudioMetadata? _localCopyOf(AppleTrack track) {
+    return matchSong(track.title, album: _localAlbum, artist: widget.artist);
   }
 
   Future<void> _archive(List<AppleTrack> tracks) async {
@@ -247,12 +265,15 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
       );
     }
 
+    // Owned tracks have nothing to archive, so they never enter the default
+    // "archive everything" set -- only the actual gaps in this album do.
+    final archivable = (tracks ?? const <AppleTrack>[])
+        .where((t) => _localCopyOf(t) == null)
+        .toList();
     final selecting = _selected.isNotEmpty;
     final chosen = selecting
-        ? (tracks ?? const <AppleTrack>[])
-              .where((t) => _selected.contains(t.url))
-              .toList()
-        : (tracks ?? const <AppleTrack>[]);
+        ? archivable.where((t) => _selected.contains(t.url)).toList()
+        : archivable;
 
     return _SheetScaffold(
       title: album.title,
@@ -263,7 +284,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
         if (album.genre != null) album.genre!,
         if (album.trackCount != null) '${album.trackCount} tracks',
       ].join(' · '),
-      footer: tracks == null || tracks.isEmpty
+      footer: tracks == null || archivable.isEmpty
           ? null
           : Row(
               children: [
@@ -280,14 +301,16 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                 if (selecting && !_sending) ...[
                   TextButton(
                     onPressed: () => setState(() {
-                      if (chosen.length == tracks.length) {
+                      if (chosen.length == archivable.length) {
                         _selected.clear();
                       } else {
-                        _selected.addAll(tracks.map((t) => t.url));
+                        _selected.addAll(archivable.map((t) => t.url));
                       }
                     }),
                     child: Text(
-                      chosen.length == tracks.length ? 'Clear' : 'Select all',
+                      chosen.length == archivable.length
+                          ? 'Clear'
+                          : 'Select all',
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -321,14 +344,18 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
   Widget _trackRow(AppleTrack track, bool selecting) {
     final selected = _selected.contains(track.url);
     final done = _archived.contains(track.url);
+    final owned = _localCopyOf(track) != null;
     final duration = track.duration;
 
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
       selected: selected,
-      onLongPress: () => _toggleSelected(track),
-      onTap: selecting ? () => _toggleSelected(track) : null,
+      // An owned track has nothing to select -- there is nothing left to
+      // archive, so long-press falls through to the row below it instead of
+      // silently doing nothing.
+      onLongPress: owned ? null : () => _toggleSelected(track),
+      onTap: selecting && !owned ? () => _toggleSelected(track) : null,
       leading: SizedBox(
         width: 34,
         child: selecting
@@ -347,49 +374,64 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
         track.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 13, color: highlightTextColor.value),
+        style: TextStyle(
+          fontSize: 13,
+          color: owned ? textColor.value : highlightTextColor.value,
+        ),
       ),
-      subtitle: duration == null
+      subtitle: owned
+          ? Text(
+              'In your library',
+              style: TextStyle(fontSize: 11, color: textColor.value),
+            )
+          : duration == null
           ? null
           : Text(
               '${duration.inMinutes}:'
               '${(duration.inSeconds % 60).toString().padLeft(2, '0')}',
               style: TextStyle(fontSize: 11, color: textColor.value),
             ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (track.previewUrl != null && track.previewUrl!.isNotEmpty)
-            ValueListenableBuilder(
-              valueListenable: previewingKeyNotifier,
-              builder: (context, playing, child) {
-                final active = playing == track.url;
-                return IconButton(
-                  iconSize: 19,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: active ? 'Stop' : 'Preview',
-                  onPressed: () => togglePreview(track.url, track.previewUrl),
-                  icon: Icon(
-                    active
-                        ? Icons.stop_circle_outlined
-                        : Icons.play_circle_outline,
-                    color: active ? seekBarColor.value : null,
+      trailing: owned
+          ? Icon(
+              Icons.check_circle_outline,
+              size: 18,
+              color: seekBarColor.value,
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (track.previewUrl != null && track.previewUrl!.isNotEmpty)
+                  ValueListenableBuilder(
+                    valueListenable: previewingKeyNotifier,
+                    builder: (context, playing, child) {
+                      final active = playing == track.url;
+                      return IconButton(
+                        iconSize: 19,
+                        visualDensity: VisualDensity.compact,
+                        tooltip: active ? 'Stop' : 'Preview',
+                        onPressed: () =>
+                            togglePreview(track.url, track.previewUrl),
+                        icon: Icon(
+                          active
+                              ? Icons.stop_circle_outlined
+                              : Icons.play_circle_outline,
+                          color: active ? seekBarColor.value : null,
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                IconButton(
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Archive this track',
+                  onPressed: _sending || done ? null : () => _archive([track]),
+                  icon: Icon(
+                    done ? Icons.check_rounded : Icons.download_outlined,
+                    color: done ? seekBarColor.value : null,
+                  ),
+                ),
+              ],
             ),
-          IconButton(
-            iconSize: 18,
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Archive this track',
-            onPressed: _sending || done ? null : () => _archive([track]),
-            icon: Icon(
-              done ? Icons.check_rounded : Icons.download_outlined,
-              color: done ? seekBarColor.value : null,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -443,6 +485,19 @@ class _CatalogArtistSheetState extends State<_CatalogArtistSheet> {
               itemCount: albums.length,
               itemBuilder: (context, i) {
                 final album = albums[i];
+                // Ownership per album, scoped to this artist so a same-titled
+                // release by someone else does not read as owned.
+                final local = matchAlbum(album.title, artist: widget.artist);
+                final localCount = local?.totalCount ?? 0;
+                // A local count meeting the catalog count reads as complete:
+                // deluxe/standard edition differences push the local count
+                // either way, and "more tracks locally" is not a gap.
+                final full =
+                    local != null &&
+                    (album.trackCount == null ||
+                        localCount >= (album.trackCount ?? 0));
+                final partial = local != null && !full;
+
                 return ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -471,11 +526,29 @@ class _CatalogArtistSheetState extends State<_CatalogArtistSheet> {
                   subtitle: Text(
                     [
                       if (album.releaseYear != null) album.releaseYear!,
-                      if (album.trackCount != null) '${album.trackCount} tracks',
+                      if (album.trackCount != null)
+                        '${album.trackCount} tracks',
+                      if (full)
+                        'In your library'
+                      else if (partial)
+                        '$localCount of ${album.trackCount} in your library',
                     ].join(' · '),
                     style: TextStyle(fontSize: 11, color: textColor.value),
                   ),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (full || partial)
+                        Icon(
+                          full
+                              ? Icons.check_circle
+                              : Icons.check_circle_outline,
+                          size: 17,
+                          color: seekBarColor.value,
+                        ),
+                      const Icon(Icons.chevron_right_rounded, size: 20),
+                    ],
+                  ),
                   onTap: () {
                     // Replaces this sheet rather than stacking: the layer
                     // system nests navigators, and two sheets deep leaves no
