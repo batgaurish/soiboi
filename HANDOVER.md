@@ -46,7 +46,7 @@ replacement for it.
 | 3 | QOL: library/playlist backup & restore | **Done, committed, verified live** |
 | 4 | Bug 2 + `library_match_service.dart` extraction | **Done, committed, verified live** |
 | 5 | Smart playlist templates | **Done, committed, verified live** |
-| 6 | Auto-generated mood playlists on Home | Not started |
+| 6 | Auto-generated mood playlists on Home | **Done, committed, verified live** |
 | 7 | QOL: download queue / resumable downloads / storage cleanup | Not started |
 | 8 | Auto-update checker + installer (Android + Linux) | Not started (partial infra already exists, see note below) |
 | 9 | Multi-platform playlist import (`ExternalPlaylistSource`) | Not started |
@@ -55,20 +55,20 @@ replacement for it.
 
 All commits through Phase 5 are pushed to `origin/main`.
 
-### Where to pick up: Phase 6 (auto-generated mood playlists on Home)
+### Where to pick up: Phase 7 (QOL: download queue, resumable downloads, storage cleanup)
 
-Phase 5 (smart playlist templates) is done and verified live on the
-emulator. `lib/base/data/smart_playlist_templates.dart` ships a const list
-of five templates (Energy, Sleep, Workout, Dance party, Chill); the picker
-seeds `_SmartPlaylistEditor` via a new `initial` param (distinct from
-`existing`, so template-seeded playlists still read as "new"). `SmartPlaylist`
-now has a `const` constructor so the template list stays const. 81 tests, analyzer clean.
+Phase 6 (auto-generated mood playlists on Home) is done and verified. A new
+`lib/base/data/mood_playlists.dart` produces ephemeral time-of-day mood
+playlists (Morning Light / Upbeat Mix / Wind Down / Late Night Drive) plus
+always-on Deep Focus, gated on `_minTracks >= 5` so unanalysed libraries
+show no shelf. `SmartSort.relaxed` was added to support evening mood sorting.
+The Home shelf sits below "Favorites" and above the ListenBrainz rankings.
+Each mood card opens `SongList(playlist: SmartPlaylistView(...))` — no new
+playback UI. 90 tests, analyzer clean.
 
-Phase 6 builds directly on Phase 4's matcher and the rule model — read the
-plan file's Phase 6 section. Its rule-builder ideas and the ephemeral,
-library-gated auto-mood shelf are exactly what the template `SmartRule`s
-already express, so the shared pieces (evaluate-as-pure-function,
-`SmartPlaylistView`) already exist.
+Next is **Phase 7** — read the plan file's Phase 7 section. It introduces a
+`DownloadQueueManager` wrapper over the existing `archive_service.dart`
+progress events, a queue screen in Settings, and a storage cleanup layer.
 
 Phase 4 (the local/catalog matcher + per-track ownership in the catalog
 sheets) is done and verified live on the emulator. Its

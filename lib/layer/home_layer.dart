@@ -20,6 +20,8 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/base/data/home_shelves.dart';
+import 'package:soiboi/base/data/mood_playlists.dart';
+import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
@@ -28,6 +30,7 @@ import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/quality_badge.dart';
+import 'package:soiboi/base/widgets/song_list.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/downloads_layer.dart';
 import 'package:soiboi/layer/catalog_sheet.dart';
@@ -105,6 +108,7 @@ class _HomeLayerState extends State<HomeLayer> {
         currentSongNotifier,
       ]),
       builder: (context, _) {
+        final moods = autoMoodPlaylists();
         final upNext = playNextSongs();
         final recent = history.recentlySongList.take(shelfLimit).toList();
         final added = recentlyAddedSongs();
@@ -145,6 +149,8 @@ class _HomeLayerState extends State<HomeLayer> {
 
             if (favourites.isNotEmpty)
               _sliver(_songShelf(l10n.favorites, favourites)),
+
+            if (moods.isNotEmpty) _sliver(_moodShelf(moods)),
 
             if (artistEntries != null && artistEntries.isNotEmpty)
               _sliver(_lbShelf('Top artists', artistEntries, circular: true))
@@ -303,6 +309,17 @@ class _HomeLayerState extends State<HomeLayer> {
       song: songs[i],
       index: i,
       onTap: () => audioHandler.singlePlay(songs[i]),
+    ),
+  );
+
+  /// Auto-generated mood playlists, kept ephemeral on Home.
+  Widget _moodShelf(List<MoodCardData> moods) => _shelf(
+    title: 'Made for you',
+    height: _shelfHeight(context, 46),
+    count: moods.length,
+    builder: (context, i) => _MoodCard(
+      mood: moods[i],
+      index: i,
     ),
   );
 
@@ -769,6 +786,74 @@ class _LbCard extends StatelessWidget {
                   color: textColor.value,
                 ),
               ),
+      ),
+    );
+  }
+}
+
+/// A mood/playlist card on the Home shelf: icon art, name, track count.
+///
+/// Tapping opens the ephemeral playlist via the ordinary playlist screen —
+/// no special playback UI is needed; reusing SongList is exactly the point.
+class _MoodCard extends StatelessWidget {
+  const _MoodCard({required this.mood, required this.index});
+  final MoodCardData mood;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = 12 * activeFlavour.cornerScale;
+    return _StaggeredIn(
+      index: index,
+      child: SizedBox(
+        width: 124,
+        child: InkWell(
+          onTap: () => Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(
+              builder: (_) => SongList(
+                playlist: SmartPlaylistView(mood.playlist),
+                isRoot: false,
+              ),
+            ),
+          ),
+          borderRadius: BorderRadius.circular(radius),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: Container(
+                  width: 124,
+                  height: 124,
+                  color: buttonColor.value,
+                  child: Center(
+                    child: Icon(
+                      mood.icon,
+                      size: 48,
+                      color: seekBarColor.value,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                mood.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: highlightTextColor.value,
+                ),
+              ),
+              Text(
+                mood.trackCount == 1 ? '1 track' : '${mood.trackCount} tracks',
+                maxLines: 1,
+                style: TextStyle(fontSize: 11, color: textColor.value),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
