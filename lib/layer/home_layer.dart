@@ -30,6 +30,7 @@ import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/quality_badge.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/downloads_layer.dart';
+import 'package:soiboi/layer/catalog_sheet.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
@@ -283,9 +284,20 @@ class _HomeLayerState extends State<HomeLayer> {
     ),
   );
 
+  /// Height for a shelf of 124px artwork plus [textLines] worth of labels.
+  ///
+  /// Computed rather than a constant. A fixed height overflowed by two pixels
+  /// at the default font size, and the part that would be clipped is the
+  /// quality badge — the codec and bitrate at a glance, which is the whole
+  /// point of the card. Scaling with the system font size keeps it visible for
+  /// anyone who has turned text up.
+  double _shelfHeight(BuildContext context, double textBlock) =>
+      124 + MediaQuery.textScalerOf(context).scale(textBlock);
+
   Widget _songShelf(String title, List<MyAudioMetadata> songs) => _shelf(
     title: title,
-    height: 186,
+    // Title, artist, quality badge, and the gaps between them.
+    height: _shelfHeight(context, 66),
     count: songs.length,
     builder: (context, i) => _SongCard(
       song: songs[i],
@@ -301,7 +313,7 @@ class _HomeLayerState extends State<HomeLayer> {
     bool circular = false,
   }) => _shelf(
     title: title,
-    height: circular ? 170 : 176,
+    height: _shelfHeight(context, circular ? 46 : 52),
     count: items.length,
     builder: (context, i) => _CollectionCard(
       item: items[i],
@@ -315,12 +327,17 @@ class _HomeLayerState extends State<HomeLayer> {
   /// the archival pipeline exists to close.
   Widget _lbShelf(String title, List<LbEntry> entries, {required bool circular}) {
     final missing = entries.where((e) => !e.isInLibrary).length;
+    // The range is named whenever it is not the default month, because these
+    // shelves widen to a year or all time when the month has no stats — and a
+    // decade of listening presented as "this month" would be wrong.
+    final range = lastUsedRange;
+    final source = range == null || range == LbRange.month
+        ? 'From ListenBrainz'
+        : 'ListenBrainz · ${range.label.toLowerCase()}';
     return _shelf(
       title: title,
-      trailing: missing == 0
-          ? 'From ListenBrainz'
-          : '$missing not in your library',
-      height: circular ? 170 : 176,
+      trailing: missing == 0 ? source : '$missing not in your library',
+      height: _shelfHeight(context, circular ? 46 : 52),
       count: entries.length,
       builder: (context, i) => _LbCard(
         entry: entries[i],
@@ -674,11 +691,19 @@ class _LbCard extends StatelessWidget {
         child: SizedBox(
           width: 124,
           child: InkWell(
+            // Not owning it is the moment someone is most likely to want it,
+            // so an unowned card opens the catalog rather than doing nothing.
             onTap: owned
                 ? () => layersManager.switchRootLayer(
                       entry.localArtist != null ? 'artists' : 'albums',
                     )
-                : null,
+                : () => circular
+                      ? showCatalogArtistSheet(context, entry.name)
+                      : showCatalogAlbumSheet(
+                          context,
+                          entry.artistName ?? '',
+                          entry.name,
+                        ),
             borderRadius: BorderRadius.circular(radius),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,7 +723,9 @@ class _LbCard extends StatelessWidget {
                 Text(
                   owned
                       ? '${entry.listenCount} plays'
-                      : 'Not in library',
+                      // Says what tapping does, rather than only what is
+                      // missing: the card is not a dead end any more.
+                      : 'Not in library · browse',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 11, color: textColor.value),

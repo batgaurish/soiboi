@@ -109,12 +109,50 @@ String? _coverArtUrl(Map<String, dynamic> item) {
       '_thumb250.jpg';
 }
 
+/// Ranges to try, widest-last, when the requested one has no stats.
+///
+/// ListenBrainz computes stats per range and answers 204 for one it has not
+/// filled, which is normal for anyone who has not listened much this month —
+/// including accounts with years of history. Asking for "month" and stopping
+/// there makes the ranked shelves silently vanish for those users, which is
+/// indistinguishable from the feature being broken.
+const _rangeFallback = [LbRange.month, LbRange.year, LbRange.allTime];
+
+/// The range the last successful fetch actually used, for the shelf subtitle.
+///
+/// A shelf headed "Top artists" showing a decade of listening when the user
+/// expects this month is misleading, so the widening is stated rather than
+/// hidden.
+LbRange? lastUsedRange;
+
 Future<List<Map<String, dynamic>>?> _fetch(
   String endpoint,
   String listKey, {
   required LbRange range,
   int count = 12,
 }) async {
+  // Widen only from the default. An explicitly chosen range is the caller's
+  // decision and answering with a different one would be a lie.
+  final ranges = range == LbRange.month
+      ? _rangeFallback
+      : [range];
+  for (final candidate in ranges) {
+    final items = await _fetchOne(endpoint, listKey, candidate, count);
+    if (items == null) return null;
+    if (items.isNotEmpty) {
+      lastUsedRange = candidate;
+      return items;
+    }
+  }
+  return const [];
+}
+
+Future<List<Map<String, dynamic>>?> _fetchOne(
+  String endpoint,
+  String listKey,
+  LbRange range,
+  int count,
+) async {
   final user = listenBrainzUserNotifier.value.trim();
   if (user.isEmpty) return null;
   try {
