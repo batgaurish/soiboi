@@ -26,11 +26,19 @@ echo "==> building pipeline environment in $VENV"
 # for this platform.
 "$VENV/bin/pip" install --quiet gamdl
 
-# Acoustic analysis: Essentia for BPM, key and mood feature extraction.
-# Desktop-only: Essentia publishes a manylinux wheel for CPython 3.14 but
-# not for Android. The pipeline degrades gracefully on Android (no sidecars,
-# no mood features).
-"$VENV/bin/pip" install --quiet essentia
+# Acoustic analysis: bliss-audio for BPM and mood feature extraction, via a
+# small PyO3 wrapper crate (pipeline/native/bliss_analyze) built locally --
+# it is not published, so it can't come from PyPI like gamdl. maturin builds
+# and installs it into this venv the same way pip installs any other wheel.
+# The same crate is cross-compiled for Android by tools/build_android_pipeline.sh,
+# so this is not desktop-only the way Essentia was.
+"$VENV/bin/pip" install --quiet maturin
+BLISS_WHEELHOUSE="$(mktemp -d)"
+"$VENV/bin/maturin" build --release \
+  -m "$ROOT/pipeline/native/bliss_analyze/Cargo.toml" \
+  --interpreter "$VENV/bin/python" -o "$BLISS_WHEELHOUSE" --quiet
+"$VENV/bin/pip" install --quiet --force-reinstall "$BLISS_WHEELHOUSE"/*.whl
+rm -rf "$BLISS_WHEELHOUSE"
 
 # For test_pipeline/. Not shipped -- the packaging scripts copy the runtime
 # environment, and pytest is not part of it.

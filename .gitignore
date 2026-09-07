@@ -49,3 +49,4 @@ app.*.map.json
 .pipeline-venv/
 build/android-native/
 android/pip-repo/
+pipeline/native/*/target/

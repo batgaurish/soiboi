@@ -1,0 +1,18 @@
+[package]
+name = "bliss_analyze"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# Named for the Python module, not the crate: imported as
+# `soiboi_pipeline._bliss_analyze` on desktop and as a bare `_bliss_analyze`
+# module inside the soiboi_bliss wheel on Android, never dlopened directly.
+name = "_bliss_analyze"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Same feature set as docs/bliss-probe, which this crate's analysis logic is
+# ported from: no ffmpeg, no C audio libraries -- just symphonia decoders for
+# the two containers Soiboi actually downloads (AAC in M4A).
+bliss-audio = { version = "0.13", default-features = false, features = ["symphonia-aac", "symphonia-isomp4"] }
+pyo3 = { version = "0.29", features = ["extension-module"] }

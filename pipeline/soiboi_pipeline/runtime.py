@@ -62,15 +62,16 @@ def is_android():
 def probe_acoustic():
     """Whether mood/feature analysis is available on this device.
 
-    Essentia publishes manylinux and macOS wheels but not Android builds, so a
-    track downloaded on the phone gets no mood features. Surfacing this in the
-    capabilities lets the UI say "mood analysis available on desktop" rather
-    than silently never producing a sidecar.
+    bliss-audio's native extension is cross-compiled per platform/ABI, same
+    as gamdl's muxer, so this can fail if that build hasn't been produced for
+    the current device yet. Surfacing this in the capabilities lets the UI
+    say whether mood analysis is available rather than silently never
+    producing a sidecar.
     """
     try:
         from . import acoustic
 
-        return {"available": acoustic.ESSENTIA_AVAILABLE}
+        return {"available": acoustic.ANALYSIS_AVAILABLE}
     except Exception as exc:
         return {"available": False, "error": str(exc)}
 
