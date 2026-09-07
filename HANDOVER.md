@@ -7,13 +7,19 @@ Paste this at the start of a new session.
 ## What Soiboi is
 
 Cross-platform music player (Linux + Android) forked from **Sylvakru**
-(Apache-2.0), with an Apple Music archival pipeline embedded **inside the app**.
+(Apache-2.0), with a streaming-to-offline archival pipeline embedded
+**inside the app**. Metadata and the actual archive/decrypt step are Apple
+Music today; playlist *discovery* already spans platforms via ListenBrainz,
+with more sources planned (see Phase 9 below).
 
 Repo: `~/Projects/Soiboi - Local Music Player with Download and Lyric Support/soiboi`
+GitHub: `github.com/batgaurish/soiboi` (public; `origin` remote). `upstream`
+remote points at the original `AfalpHy/sylvakru` fork source — never push
+there.
 
 Standing constraints, already decided, not up for re-litigation:
 
-- **Strictly offline.** No streaming services beyond self-hosted.
+- **Strictly offline.** No streaming services beyond self-hosted, for playback.
 - **Apple album IDs are canonical, not MusicBrainz.**
 - **Standalone on both platforms.** No Docker, no server, no Syncthing. Whatever
   device downloads a track does the whole job — and keeps the only copy.
@@ -24,137 +30,111 @@ Standing constraints, already decided, not up for re-litigation:
 
 ---
 
-## State
+## Current session: working a large backlog against an approved plan
 
-HEAD is `e1cded0`. **There is uncommitted work in the tree** — the desktop mood
-pipeline from a session that ran out of credits mid-way. Review before
-committing:
+The user reviewed the running app and handed over two bugs, a rebrand, and
+six features. A plan was written and approved, saved at
+`~/.claude-personal/plans/optimized-watching-globe.md` — **read that file**,
+it has the full phase-by-phase design with file:line references for
+everything below. This handover is the status pointer into that plan, not a
+replacement for it.
 
-```
- M lib/base/data/library.dart          M pipeline/soiboi_pipeline/downloader.py
- M lib/base/data/smart_playlist.dart   M pipeline/soiboi_pipeline/runtime.py
- M lib/base/my_audio_metadata.dart     M pipeline/soiboi_pipeline/__main__.py
- M lib/base/services/pipeline_runner.dart
- M test/smart_playlist_test.dart       M tools/build_pipeline.sh
-?? pipeline/soiboi_pipeline/acoustic.py
-?? test_pipeline/test_acoustic.py
-```
-
-67 Dart tests, 19 Python tests, analyzer clean (as reported by that session; re-run
-to confirm).
-
-**Verified working end to end on the emulator:** sign in → download → decrypt →
-mux → tag → library → play with synced lyrics. Real track, 10.6 MB, AAC-LC
-258 kbps, no `sinf`/`encv`/`enca`/`pssh` boxes, so the cross-compiled muxer
-really decrypts.
-
-**Desktop mood analysis works:** after a download, Essentia writes a per-file
-`.soiboi-acoustic.json` sidecar; the library scan reads it; the smart playlist
-editor offers BPM, Energy, Danceable, Relaxed, Aggressive as fields and sorts.
-
-### Architecture
-
-| Piece | Where | Notes |
+| Phase | What | Status |
 |---|---|---|
-| Shared pipeline | `pipeline/soiboi_pipeline/` | Same Python both platforms. |
-| Acoustic analysis | `pipeline/soiboi_pipeline/acoustic.py` | Essentia at download time. Desktop only. |
-| Desktop transport | `DesktopPipelineRunner` | Subprocess into `.pipeline-venv` (3.14). JSON per line. |
-| Android transport | `AndroidPipelineRunner` + `PipelineChannel.kt` | Chaquopy, CPython **3.12**. |
-| Native muxer | `tools/build_android_muxer.sh` | gamdl's Rust `_ammuxer`, arm64-v8a + x86_64. |
-| Android wheels | `tools/build_android_wheels.py` → `android/pip-repo/` | Per-ABI gamdl with muxer embedded; repaired `construct`, `pywidevine`. |
-| Rebuild both | `tools/build_android_pipeline.sh` | Outputs gitignored. |
+| 1 | Bug 1: Weekly Exploration race (stuck at 4/50 tracks) | **Done, committed, verified live** |
+| 2 | Rebrand: README/repo/pubspec to "streaming-to-offline archival" | **Done, committed** |
+| 3 | QOL: library/playlist backup & restore | **Done, committed, verified live** |
+| 4 | Bug 2 + `library_match_service.dart` extraction | **In progress — see below** |
+| 5 | Smart playlist templates | Not started |
+| 6 | Auto-generated mood playlists on Home | Not started |
+| 7 | QOL: download queue / resumable downloads / storage cleanup | Not started |
+| 8 | Auto-update checker + installer (Android + Linux) | Not started (partial infra already exists, see note below) |
+| 9 | Multi-platform playlist import (`ExternalPlaylistSource`) | Not started |
+| 10 | Global search shell | Not started |
+| 11 | Android dynamic color | Not started |
 
-`pywidevine-1.9.0` in `android/pip-repo/` is **unused** — pip backtracks to
-1.8.0. The wheel that unblocked the chain was `construct`.
+All commits through Phase 3 are pushed to `origin/main`. **Phase 4 is
+uncommitted, mid-flight, in the working tree right now.**
 
----
+### Phase 4 exact state (pick up here)
 
-## THE OPEN DECISION: mood analysis on Android
+Goal: fix "an album/artist partially in the local library shows as entirely
+'Not in library'" and extract the local/catalog name-matching logic into a
+shared service, since later phases (6, 10) need it too.
 
-Essentia has no Android wheel. The alternative evaluated is **`bliss-audio`**, a
-Rust crate ("a song analysis library for making playlists") built with
-`symphonia` instead of ffmpeg.
+**Done:**
+- `lib/base/services/library_match_service.dart` created — `normaliseForMatch`,
+  `matchArtist`, `matchAlbum`, `matchSong` (the last is new; album/artist
+  matching was moved here from `listenbrainz_service.dart`'s old private
+  `_normalise`/`_matchArtist`/`_matchAlbum`, deleted from there).
+- `lib/base/services/listenbrainz_service.dart` updated to call the extracted
+  functions. Pure refactor, `LbEntry.isInLibrary` unchanged in behavior.
+- `lib/layer/catalog_sheet.dart`'s `_CatalogAlbumSheetState`:
+  - `_load()` now also resolves `_localAlbum = matchAlbum(widget.album)`.
+  - New `_localCopyOf(AppleTrack)` helper calls `matchSong(...)`.
+  - `_trackRow` now renders three visually distinct things: an **owned**
+    track (checkmark trailing icon, "In your library" subtitle, not
+    selectable/long-press-able, dimmed title color) vs a normal catalog row
+    (unchanged from before).
+  - The "archive everything"/"select all" default set is now `archivable`
+    (tracks with no local copy), not all tracks — so a partially-owned
+    album's bulk-archive action no longer tries to re-download owned tracks.
+  - Footer hides entirely if `archivable.isEmpty` (fully-owned album via this
+    sheet — nothing left to do but browse).
 
-**A 220-track comparison against the user's real library has been run.** Do not
-redo it. Artefacts are in `docs/`:
+**Not done yet (do these next, in this order):**
 
-- `docs/bliss-vs-essentia-220.jsonl` — raw paired results
-- `docs/compare.py`, `docs/report.py` — harness and analysis
-- `docs/bliss-probe/` — the Rust probe (main.rs + Cargo.toml)
+1. **`_CatalogArtistSheet`** (same file, bottom half) needs the analogous
+   per-album treatment: each album row in the discography list should show
+   owned/partial/missing, not nothing. Around line 460-500, the
+   `ListView.builder` inside `_CatalogArtistSheetState.build`. Natural
+   approach: for each `AppleAlbum`, call `matchAlbum(album.title)` to see if
+   it's locally known at all, and optionally compare `album.trackCount`
+   against the matched `Album.totalCount` for a partial signal — re-check
+   the plan file's Phase 4 section for the exact intended shape before
+   overbuilding; a simple owned/not-owned per row may be enough for v1.
 
-### Findings
+2. **`lib/layer/home_layer.dart`'s `_LbCard.onTap`** (around line 690-706) is
+   the actual bug's root cause and has not been touched yet. Currently
+   branches purely on `entry.isInLibrary` (a binary matched-by-name check,
+   no track-count awareness) between jumping straight to the local
+   Albums/Artists tab (owned) or opening the catalog sheet (not owned) —
+   this is what silently sends a partially-owned album down the
+   "fully owned" path where missing tracks are never surfaced. The plan's
+   literal proposal was to reserve the direct local-view jump only for a
+   complete superset match, but that needs a network fetch not available
+   synchronously at tap time. A simplification considered but **not yet
+   decided**: always route to the catalog sheet on tap (it's now the more
+   informative view after step 1, and degrades gracefully — empty footer —
+   when fully owned), removing the direct-local-tab branch entirely. Make
+   the call when you resume; document whichever way you go in the commit
+   message and update the plan file if you diverge from its literal wording.
 
-**Viability: confirmed.** Built with
-`default-features = false, features = ["symphonia-aac", "symphonia-isomp4"]`,
-the binary links against **libc, libm, libgcc_s and nothing else** — no ffmpeg,
-no C audio libraries. Same linkage profile as `_ammuxer`, which already
-cross-compiles to both ABIs. And it is **8x faster** than Essentia
-(0.33 s vs 2.47 s median per track).
+3. Run `flutter analyze` + `flutter test`, then verify live on the emulator:
+   the most direct repro is a ListenBrainz account with a top album where you
+   own most but not all tracks. Confirm the sheet shows owned tracks as
+   owned and the rest as archivable, and a fully-owned album shows no
+   download affordances.
 
-**Accuracy: roughly one track in four disagrees on BPM.**
+4. Commit and push. Phase 4 is one commit (bug fix + the extraction that
+   enables it), same as the plan frames it.
 
-| | |
-|---|---|
-| within 5% | 170/220 (77%) |
-| octave error (half/double) | 13/220 (6%) |
-| metrical-ratio disagreement (≈4:3, 3:2, 2:3) | 37/220 (17%) |
+### Note for Phase 8 (auto-update), found in passing, not yet acted on
 
-The 17% bucket is not noise — the ratios cluster at 1.35 and 0.68, i.e. genuine
-ambiguity about where the beat is, not random error.
-
-On the tracks that do agree, bliss reads **+1.58% high on 99% of them** — a very
-clean systematic bias.
-
-**No cheap correction works.** Tested on the data:
-
-| mitigation | within 5% |
-|---|---|
-| as-is | 77% |
-| bias-corrected (÷1.0158) | 78% |
-| octave-folded into [80,160) | 75% |
-| octave-folded into [90,180) | 76% |
-
-Folding makes it *worse*. And **Essentia's own beat confidence does not flag the
-octave errors** (median 2.39 on flipped vs 2.21 on agreeing), so it cannot be
-used to filter them either.
-
-**bliss normalises every feature to [-1,1]** — `2(v−MIN)/(MAX−MIN)−1`. Index 0
-is not BPM. Constants: tempo 0..206, spectral 0..11025 (SAMPLE_RATE/2, and
-SAMPLE_RATE=22050), flatness and ZCR 0..1, loudness −90..0. `docs/bliss-probe`
-already inverts these.
-
-**bliss has no onset-rate equivalent.** The shipping mood formulas weight
-onset_rate at 0.6 in `energy` and 0.4 in `danceable`, so they cannot be ported
-to bliss unchanged — they would need retuning against bliss's feature set
-(which is richer: ZCR, flatness, rolloff, loudness stddev, 13 chroma).
-
-### A bug this uncovered, independent of Android
-
-`acoustic.py` computes brightness from `audio[:32768]` — **one 0.74 s window
-from the start of the track**, usually the intro. Measured against a whole-track
-mean it correlates at **r = 0.086**. It is measuring noise. bliss's whole-track
-centroid correlates with a proper Essentia whole-track mean at **r = 0.932**.
-
-So on brightness, bliss is *better than what currently ships*. Fix this
-regardless of which way the Android decision goes: replace the single window
-with a `FrameGenerator` mean (`docs/compare.py` has the working code).
-
-### Recommendation to put to the user
-
-Use **bliss on both platforms** rather than Essentia on desktop and bliss on
-Android. Reasons: one set of numbers so a rule means the same thing everywhere;
-8x faster; fixes the brightness bug by construction; and it removes Essentia,
-a 100 MB+ native dependency, from the desktop bundle — which also makes the
-unsolved desktop-packaging problem smaller.
-
-The cost is absolute BPM accuracy. That matters if the user writes literal
-"BPM > 120" rules; it matters much less for energy/danceable/mood axes, which
-would be retuned to bliss's features anyway. **Ask before committing to this** —
-it means deleting working desktop code.
+`lib/base/widgets/settings_list.dart` already has a `checkUpdate` tile
+(search `checkUpdateImage` / `Widget checkUpdate`) that fetches
+`https://api.github.com/repos/AfalpHy/soiboi/releases/latest` — **that repo
+does not exist** (should be `batgaurish/soiboi`, inherited unedited from
+upstream Sylvakru's own update-check pointing at itself). It already has a
+working version-compare (`compareVersion`) and a release-notes dialog with a
+"go to download" button that just opens the browser. When you get to Phase
+8: fix the repo URL first, then extend this same tile/dialog with the
+actual download+install flow the plan describes, rather than writing the
+version-check part from scratch.
 
 ---
 
-## Also outstanding
+## Also outstanding (pre-existing, unrelated to the current backlog)
 
 **Desktop packaging.** `tools/build_pipeline.sh` refers to "the Linux packaging
 scripts" — they do not exist. `generate_deb.sh` / `generate_rpm.sh` do not bundle
@@ -163,20 +143,31 @@ the pipeline. `DesktopPipelineRunner` already looks for
 the release and assemble that. Complication: a venv is **not relocatable** —
 `bin/python` is a symlink and `pyvenv.cfg` holds absolute paths. Either use
 `--copies` and accept a system-Python dependency, or bundle a relocatable
-interpreter (python-build-standalone).
+interpreter (python-build-standalone). Worked around manually for the
+`v4.1.0-debug` Linux release (fresh venv built directly at the bundle path) —
+not yet a repeatable script.
 
-**The Linux build will not compile here.** `flutter_inappwebview_linux` needs
-`sudo pacman -S wpewebkit`. Left for the user (needs root). Consequence: the
-matugen work is verified by direct testing but has never been seen running in
-the Linux app.
+**The Linux build now compiles** (wpewebkit installed this session), but the
+GUI itself has an open, not-yet-root-caused issue: it segfaults shortly after
+startup in a thread called `lua/ytdl_hook` inside libmpv's bundled LuaJIT
+(media_kit's playback engine) — a null-pointer jump as that script
+initializes. Bare system `mpv` with the same libraries does *not* crash
+standalone, so this looks tied to something about running inside the app's
+process (possibly a fork/thread-safety interaction with GTK's main loop)
+rather than a broken system library. Documented in the `v4.1.0-debug` release
+notes for the user's friend to check on a real desktop (this was found in a
+sandboxed build environment and may be specific to it).
 
 **Minor, noted not fixed:** the smart playlist editor recreates a
 `TextEditingController` on every parent rebuild (cursor jumps to end when a
 dropdown changes); `_completed` in the downloads layer grows unbounded.
 
-**Left on the emulator:** a test smart playlist "Daft Punk picks". The
-ListenBrainz username was set to a public test account during verification and
-**has been cleared**.
+**Emulator state:** `emulator-5554`, signed into Apple Music and connected to
+ListenBrainz as `localindiesoyboy` (the user's real, public username) — left
+running and configured this way throughout the current session. Reuse it
+rather than re-signing-in if it's still up. A "How It Would End" (Balu
+Brigada) track and a couple of Daft Punk tracks are downloaded on it from
+prior verification passes.
 
 ---
 
@@ -208,6 +199,24 @@ ListenBrainz username was set to a public test account during verification and
   anything Playlist-shaped must be populated in its constructor.
 - **`.pipeline-venv/bin/pip` has a stale shebang** from when the venv was moved.
   Use `.pipeline-venv/bin/python -m pip`.
+- **pyo3 0.23 doesn't support Python 3.14** (the desktop venv's interpreter) —
+  needs 0.29.2+. bliss's `song.duration` is unreliable for M4A/AAC via
+  symphonia (reads 0 on every real file tested); the `_bliss_analyze` crate
+  doesn't expose it since nothing consumes it.
+- **`adb shell input tap` coordinates must be scaled to the device's actual
+  resolution** (`adb shell wm size`), not the possibly-downscaled screenshot
+  image dimensions returned to you — mismatches cause silent mis-taps that
+  look like nothing happened. When a tap doesn't land, `adb shell uiautomator
+  dump` + `adb pull` gives exact element bounds — much faster than guessing
+  from a screenshot.
+- **Running a GUI binary backgrounded with plain `&` inside a single shell
+  tool call can get killed when that tool call's wrapper process exits.** Use
+  `(cmd &) ; other_commands` (subshell) or `setsid nohup cmd &` to actually
+  detach it.
+- **`sudo` is a hard refusal for the agent regardless of user permission
+  stated in chat** — even explicit "I authorize this" doesn't unlock it; the
+  user must run it themselves, or approve it via a connected Remote Control
+  session (which does work — confirmed this session for `pacman -S wpewebkit`).
 
 ---
 
@@ -219,6 +228,8 @@ ListenBrainz username was set to a public test account during verification and
 - **Do not generate their signing keystore.**
 - **Test on the emulator.** Do not drive the user's desktop cursor; they use the
   machine and their input gets mistaken for app bugs. Xvfb `:99` if needed.
+- **Never push to the `upstream` remote** (`AfalpHy/sylvakru`) — that is the
+  original project this was forked from, not a repo we own.
 
 ---
 
@@ -230,7 +241,10 @@ ANDROID_NDK=~/Android/Sdk/ndk/28.2.13676358 tools/build_android_pipeline.sh
 
 flutter test
 .pipeline-venv/bin/python -m pytest test_pipeline
-flutter analyze lib/
+flutter analyze
 
 flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk
+
+git push origin main                                       # NOT upstream
+gh release view v4.1.0-debug --repo batgaurish/soiboi       # current release
 ```
