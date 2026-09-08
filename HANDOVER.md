@@ -121,16 +121,39 @@ right for this project's private distribution; bundling
 python-build-standalone is the alternative if distribution ever widens.
 `generate_deb.sh` / `generate_rpm.sh` still do not bundle the pipeline.
 
-**The Linux build now compiles** (wpewebkit installed this session), but the
-GUI itself has an open, not-yet-root-caused issue: it segfaults shortly after
-startup in a thread called `lua/ytdl_hook` inside libmpv's bundled LuaJIT
-(media_kit's playback engine) — a null-pointer jump as that script
-initializes. Bare system `mpv` with the same libraries does *not* crash
-standalone, so this looks tied to something about running inside the app's
-process (possibly a fork/thread-safety interaction with GTK's main loop)
-rather than a broken system library. Documented in the `v4.1.0-debug` release
-notes for the user's friend to check on a real desktop (this was found in a
-sandboxed build environment and may be specific to it).
+**The Linux build runs.** The startup segfault is fixed, and the guess that it
+was specific to a sandboxed build environment was **wrong** — it reproduces on
+the user's own CachyOS desktop, in release as well as debug, under both
+Wayland and X11.
+
+Root cause: **libmpv's built-in Lua scripts**. The crashing thread is always
+one of them (`lua/ytdl_hook`, `lua/commands`, `lua/stats` were all observed
+across runs) with the program counter at `0x0`. Disabling them one at a time
+just moved the crash to the next script, which is what identifies the fault as
+LuaJIT inside libmpv rather than any one script; mpv v0.41.0 here cannot run
+its Lua layer in a hosted process, though the standalone `mpv` binary with the
+same libraries is fine — which is exactly why this looked environmental for so
+long.
+
+The fix sets every `load-*` flag (and `ytdl`) to `no` before `mpv_initialize`.
+`load-scripts` alone is **not** enough: that covers only *user* scripts, and
+each built-in has its own flag. None of those scripts is reachable in an
+audio-only embedded player, so nothing is traded away.
+
+It lives in `tools/patches/media_kit-disable-mpv-lua.patch` because the option
+has to be set inside `media_kit`, which is a git dependency. **`flutter pub
+get` reverts it** — re-run `tools/apply_patches.sh`, which is idempotent and
+which `tools/install_linux.sh` calls every time. The proper home for this is
+upstream in the `AfalpHy/media-kit` fork, at which point `tools/patches/` can
+go away.
+
+**Consequence: Phase 8's Linux update path is now testable** for the first
+time. It has still never been run.
+
+**Installing on Linux:** `tools/install_linux.sh` installs to `~/.local`
+(binary, icon, `.desktop` entry, and a runtime venv built at the installed
+path — a venv cannot be relocated). No root needed, nothing outside `$HOME`.
+`--uninstall` removes it and leaves the library alone.
 
 **Minor, noted not fixed:** the smart playlist editor recreates a
 `TextEditingController` on every parent rebuild (cursor jumps to end when a
@@ -192,6 +215,13 @@ task specifically needs a fully-owned album.
   look like nothing happened. When a tap doesn't land, `adb shell uiautomator
   dump` + `adb pull` gives exact element bounds — much faster than guessing
   from a screenshot.
+- **Launching a GUI on Linux inherits `WAYLAND_DISPLAY` and ignores your
+  `DISPLAY=:99`** — GTK prefers the Wayland backend, so the window opens on
+  the user's real desktop instead of Xvfb. Use
+  `env -u WAYLAND_DISPLAY GDK_BACKEND=x11 DISPLAY=:99` to actually get the
+  virtual display.
+- **`timeout N cmd` exiting 124 means it survived** the whole N seconds; 139
+  is SIGSEGV. For a GUI that is supposed to stay up, 124 is the pass.
 - **Running a GUI binary backgrounded with plain `&` inside a single shell
   tool call can get killed when that tool call's wrapper process exits.** Use
   `(cmd &) ; other_commands` (subshell) or `setsid nohup cmd &` to actually
@@ -251,6 +281,8 @@ flutter analyze
 flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 git push origin main                                       # NOT upstream
+tools/apply_patches.sh                                     # REQUIRED after pub get
 tools/package_linux.sh                                     # linux bundle + tarball
+tools/install_linux.sh                                     # install to ~/.local
 gh release view v4.2.0-debug --repo batgaurish/soiboi       # current release
 ```

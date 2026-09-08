@@ -1,0 +1,48 @@
+Disable libmpv's built-in Lua scripts.
+
+Without this the Linux app dies with SIGSEGV a few seconds after startup,
+before the window is usable. The crashing thread is always one of libmpv's
+Lua script threads -- observed as lua/ytdl_hook, lua/commands and lua/stats
+across runs -- and the program counter is always 0x0, a jump through a null
+pointer.
+
+Disabling them one at a time simply moved the crash to the next script, and
+that is what identifies the fault: it is LuaJIT inside libmpv, not any single
+script. mpv v0.41.0 here cannot run its Lua layer inside a hosted process,
+while the standalone mpv binary with the same libraries is fine -- which is
+why this looked for a long time like an environment quirk rather than a bug
+that reproduces on real hardware.
+
+None of these scripts does anything for an audio player embedded in Flutter.
+console/stats/context-menu/select/positioning are on-video overlays and
+interactive conveniences for the mpv UI that does not exist here; ytdl_hook is
+yt-dlp integration for streaming URLs, which Soiboi never gives mpv because it
+downloads through its own pipeline. So this turns off code that was never
+reachable rather than trading away a feature.
+
+`load-scripts` alone is not enough -- that flag covers only *user* scripts.
+Every built-in script has its own flag, which is why they are all listed.
+
+Applies to: github.com/AfalpHy/media-kit @ 40a2f7c, package media_kit.
+Apply with: tools/apply_patches.sh (needed again after any `flutter pub get`).
+--- a/lib/src/player/native/player/real.dart
++++ b/lib/src/player/native/player/real.dart
+@@ -2329,6 +2329,18 @@
+     return lock.synchronized(() async {
+       // The options which must be set before [MPV.mpv_initialize].
+       final options = <String, String>{
++        // libmpv's built-in Lua scripts segfault inside this process on at
++        // least mpv 0.41; none of them is reachable in an audio-only embedded
++        // player. See tools/patches/media_kit-disable-mpv-lua.patch.
++        'load-scripts': 'no',
++        'load-commands': 'no',
++        'load-console': 'no',
++        'load-context-menu': 'no',
++        'load-positioning': 'no',
++        'load-select': 'no',
++        'load-stats-overlay': 'no',
++        'load-auto-profiles': 'no',
++        'ytdl': 'no',
+         // Set --vid=no by default to prevent redundant video decoding.
+         // [VideoController] internally sets --vid=auto upon attachment to enable video rendering & decoding.
+         if (!test) 'vid': 'no',

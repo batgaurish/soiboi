@@ -27,13 +27,15 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=tools/_runtime_venv.sh
+source "$ROOT/tools/_runtime_venv.sh"
+
 MODE="debug"
 [[ "${1:-}" == "--release" ]] && MODE="release"
 
 BUNDLE="$ROOT/build/linux/x64/$MODE/bundle"
 DATA="$BUNDLE/data"
 VERSION="$(grep -m1 '^version:' "$ROOT/pubspec.yaml" | awk '{print $2}')"
-PYTHON="${PYTHON:-python3}"
 
 if [[ ! -x "$BUNDLE/soiboi" ]]; then
   echo "no bundle at $BUNDLE -- run: flutter build linux --$MODE" >&2
@@ -41,32 +43,11 @@ if [[ ! -x "$BUNDLE/soiboi" ]]; then
 fi
 
 echo "==> pipeline sources into the bundle"
-rm -rf "$DATA/pipeline"
-# Excluding caches and the native crate's build tree: the compiled wheel is
-# installed into the venv below, and target/ is gigabytes of Rust artifacts.
-mkdir -p "$DATA/pipeline"
-(cd "$ROOT/pipeline" && tar --exclude='__pycache__' --exclude='native/*/target' -cf - .) \
-  | (cd "$DATA/pipeline" && tar -xf -)
+copy_pipeline_sources "$DATA/pipeline" "$ROOT"
 
 echo "==> runtime venv at its final path (not relocatable, so not copied)"
 VENV="$DATA/.pipeline-venv"
-rm -rf "$VENV"
-"$PYTHON" -m venv --copies "$VENV"
-"$VENV/bin/python" -m pip install --quiet --upgrade pip
-
-# Same dependency set as tools/build_pipeline.sh, minus pytest: the test
-# dependency is not part of the runtime and has no business shipping.
-"$VENV/bin/python" -m pip install --quiet gamdl
-
-# bliss-audio's wrapper crate is not on PyPI, so it is built here the same way
-# the dev environment builds it.
-"$VENV/bin/python" -m pip install --quiet maturin
-WHEELHOUSE="$(mktemp -d)"
-trap 'rm -rf "$WHEELHOUSE"' EXIT
-"$VENV/bin/maturin" build --release \
-  -m "$ROOT/pipeline/native/bliss_analyze/Cargo.toml" \
-  --interpreter "$VENV/bin/python" -o "$WHEELHOUSE" --quiet
-"$VENV/bin/python" -m pip install --quiet --force-reinstall "$WHEELHOUSE"/*.whl
+build_runtime_venv "$VENV" "$ROOT"
 
 echo "==> verifying the bundled environment, not the dev one"
 PYTHONPATH="$DATA/pipeline" "$VENV/bin/python" -m soiboi_pipeline capabilities
