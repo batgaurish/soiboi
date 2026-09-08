@@ -159,6 +159,23 @@ class Sidebar extends StatelessWidget {
                     context,
                   ).copyWith(scrollbars: false),
                   slivers: [
+                    // First, and above Home: the sidebar is on every screen,
+                    // which is what makes this the app's one persistent search
+                    // entry point without wrapping a new shell around the
+                    // layer system.
+                    SliverToBoxAdapter(
+                      child: sidebarItem(
+                        label: 'search',
+
+                        leading: Icon(Icons.search_rounded, size: 30),
+                        content: 'Search',
+
+                        onTap: () {
+                          layersManager.switchRootLayer('search');
+                        },
+                      ),
+                    ),
+
                     SliverToBoxAdapter(
                       child: sidebarItem(
                         label: 'home',

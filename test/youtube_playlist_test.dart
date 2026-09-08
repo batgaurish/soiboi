@@ -5,12 +5,11 @@ import 'package:soiboi/base/services/youtube_playlist_source.dart';
 /// A source that answers from a fixed map, so the registry and the URL
 /// dispatch can be tested without a network or a Python runtime.
 class _FakeSource extends ExternalPlaylistSource {
-  _FakeSource(this.id, {this.prefix, this.offered = const []});
+  _FakeSource(this.id, {this.prefix});
 
   @override
   final String id;
   final String? prefix;
-  final List<ExternalPlaylist> offered;
 
   @override
   String get displayName => id;
@@ -19,7 +18,7 @@ class _FakeSource extends ExternalPlaylistSource {
   bool get acceptsLinks => prefix != null;
 
   @override
-  Future<List<ExternalPlaylist>> playlists() async => offered;
+  Future<List<ExternalPlaylist>> playlists() async => const [];
 
   @override
   Future<List<ExternalTrack>> tracks(String playlistId) async => const [];

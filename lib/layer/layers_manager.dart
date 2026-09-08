@@ -30,6 +30,7 @@ import 'package:soiboi/layer/single_playlist_layer.dart';
 import 'package:soiboi/layer/songs_layer.dart';
 import 'package:soiboi/layer/downloads_layer.dart';
 import 'package:soiboi/layer/smart_playlists_layer.dart';
+import 'package:soiboi/layer/global_search_layer.dart';
 import 'package:soiboi/layer/home_layer.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/playlist.dart';
@@ -143,6 +144,8 @@ class LayersManager {
         return PlaylistsLayer(key: GlobalKey());
       } else if (label == 'downloads') {
         return DownloadsLayer(key: GlobalKey());
+      } else if (label == 'search') {
+        return GlobalSearchLayer(key: GlobalKey());
       } else if (label == 'smart') {
         return SmartPlaylistsLayer(key: GlobalKey());
       } else if (label == 'settings') {
