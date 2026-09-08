@@ -47,63 +47,64 @@ replacement for it.
 | 4 | Bug 2 + `library_match_service.dart` extraction | **Done, committed, verified live** |
 | 5 | Smart playlist templates | **Done, committed, verified live** |
 | 6 | Auto-generated mood playlists on Home | **Done, committed, verified live** |
-| 7 | QOL: download queue / resumable downloads / storage cleanup | Not started |
+| 7 | QOL: download queue / resumable downloads / storage cleanup | **Done, committed, verified live** |
 | 8 | Auto-update checker + installer (Android + Linux) | Not started (partial infra already exists, see note below) |
 | 9 | Multi-platform playlist import (`ExternalPlaylistSource`) | Not started |
 | 10 | Global search shell | Not started |
 | 11 | Android dynamic color | Not started |
 
-All commits through Phase 5 are pushed to `origin/main`.
+All commits through Phase 7 are pushed to `origin/main`.
 
-### Where to pick up: Phase 7 (QOL: download queue, resumable downloads, storage cleanup)
+### Where to pick up: Phase 8 (auto-update checker + installer)
 
-Phase 6 (auto-generated mood playlists on Home) is done and verified. A new
-`lib/base/data/mood_playlists.dart` produces ephemeral time-of-day mood
-playlists (Morning Light / Upbeat Mix / Wind Down / Late Night Drive) plus
-always-on Deep Focus, gated on `_minTracks >= 5` so unanalysed libraries
-show no shelf. `SmartSort.relaxed` was added to support evening mood sorting.
-The Home shelf sits below "Favorites" and above the ListenBrainz rankings.
-Each mood card opens `SongList(playlist: SmartPlaylistView(...))` — no new
-playback UI. 90 tests, analyzer clean.
+Phase 7 is done, pushed and verified live. Three things landed:
 
-Next is **Phase 7** — read the plan file's Phase 7 section. It introduces a
-`DownloadQueueManager` wrapper over the existing `archive_service.dart`
-progress events, a queue screen in Settings, and a storage cleanup layer.
+- **`lib/base/services/download_queue_manager.dart`** now owns execution.
+  The three call sites that each looped over `archiveUrl` — the Downloads
+  form, the discovery playlist sheet, the catalog album sheet — only
+  `enqueue()` now and follow their own `DownloadBatch` (a `completed`
+  notifier plus a `done` future), so the sheets read exactly as before but
+  the work outlives the widget. One worker, sequential, because Apple
+  rate-limits. `syncArchivedToLibrary()` moved into the manager and runs once
+  when the queue drains, so the call sites no longer call it. Finished
+  history is capped at 60, which also closes the old "`_completed` grows
+  unbounded" note.
+- **Resume is track-level, not byte-level, and that is a pipeline fact, not
+  a shortcut.** gamdl hands yt-dlp `overwrites: True` and drives
+  `HttpFD`/`HlsFD` directly with no `continuedl`, so an interrupted *file*
+  always restarts from zero — there is no partial-file resume to be had.
+  What it does support is skipping any track whose final path already
+  exists, logged as a WARNING (`Skipping "…": Media file already exists`),
+  never as an ERROR, so `_StreamTap` does not mistake it for a failure.
+  Dropping the unconditional `--overwrite` is therefore the whole feature:
+  retrying an album that died at track nine now fetches the last two.
+  `archiveUrl(redownload: true)` still forces a refetch. Files only reach
+  the final path after muxing and tagging, so a half-written download never
+  counts as present.
+- **`lib/base/data/storage_cleanup.dart` + `lib/layer/storage_cleanup_sheet.dart`**:
+  largest / least-played / not-played-longest, sizes read by `stat` (there
+  is no size field on `MyAudioMetadata`), delete takes the `.lrc` and
+  `.soiboi-acoustic.json` sidecars with the track and then rescans. Manual
+  review only, no automatic policy — deliberate, given this device holds the
+  only copy.
 
-Phase 4 (the local/catalog matcher + per-track ownership in the catalog
-sheets) is done and verified live on the emulator. Its
-`lib/base/services/library_match_service.dart`
-(`normaliseForMatch`/`matchArtist`/`matchAlbum`/`matchSong`) is the
-primitive Phases 6, 9 and 10 were waiting for. Next is **Phase 5** — read
-the plan file's Phase 5 section; it builds on `smart_playlist.dart`'s
-existing rule store and the acoustic fields the bliss work added.
+**Divergence from the plan, recorded in the plan file too:** both new
+screens are `showAnimationDialog` sheets, not pushed detail layers. Every
+settings detail layer in this app is a `part` pair (a portrait page and a
+landscape panel) and each of these is a single list; sheets are already the
+idiom here (catalog, discovery) and work from inside a layer's nested
+navigator. The queue's body (`DownloadQueueView`) is also embedded inline on
+the Downloads screen, so there is one implementation, two entry points.
 
-Phase 4 decisions and observations worth knowing:
+Also not built, and honestly so: **a running job cannot be cancelled.**
+Neither transport can interrupt the pipeline once it has started —
+cancelling the Dart stream subscription does not kill the desktop process,
+and Android is in-process — so `cancel()` only drops *queued* jobs, and
+Pause is worded as taking effect after the track in flight. Do not "fix"
+this without changing the transport first.
 
-- **Every ListenBrainz card — owned, partial, or missing — opens the
-  catalog sheet on tap.** There is deliberately no "jump to the local tab
-  when fully owned" carve-out: the plan's complete-superset exception would
-  need the catalog tracklist, a network fetch not available synchronously
-  at tap time, and the sheet degrades gracefully when nothing is missing
-  (footer hidden, every row "In your library"). This diverges from the
-  plan's literal wording; the plan file records the divergence.
-- `matchAlbum(name)` gained optional artist scoping
-  (`matchAlbum(name, artist: …)`) — the artist discography sheet uses it so
-  a same-titled album by a different artist ("Greatest Hits") does not read
-  as owned. Unscoped calls keep the old first-match behaviour.
-- The artist discography sheet renders per-album state via
-  `Album.totalCount` vs Apple's `trackCount`, so "owned" is really
-  "local count ≥ catalog count" — a local deluxe edition is not a gap.
-- Verified live end-to-end: archived 3 of Bad's 11 tracks from the catalog
-  sheet → those rows flipped to "In your library" and lost selectability,
-  the footer counted down 11 → 8, the Home cards flipped to "22 plays" /
-  "41 plays", a tap on the now-partially-owned album opened the sheet
-  (the old code would have jumped to the local Albums tab — that was the
-  bug), and the Michael Jackson artist sheet shows
-  "Bad · 1987 · 11 tracks · 3 of 11 in your library". The fully-owned
-  case (footer hides when `archivable` is empty) shares that exact
-  predicate and was accepted by review rather than downloading a whole
-  album.
+Next is **Phase 8** — read the plan file's Phase 8 section, and the note
+just below.
 
 ### Note for Phase 8 (auto-update), found in passing, not yet acted on
 
@@ -146,12 +147,16 @@ sandboxed build environment and may be specific to it).
 
 **Minor, noted not fixed:** the smart playlist editor recreates a
 `TextEditingController` on every parent rebuild (cursor jumps to end when a
-dropdown changes); `_completed` in the downloads layer grows unbounded.
+dropdown changes). (The downloads layer's unbounded `_completed` list is gone
+— Phase 7 replaced it with the queue's capped history.)
 
-**Emulator state:** `emulator-5554`, signed into Apple Music and connected to
-ListenBrainz as `localindiesoyboy` (the user's real, public username) — left
-running and configured this way throughout the current session. Reuse it
-rather than re-signing-in if it's still up. A "How It Would End" (Balu
+**Emulator state:** `emulator-5554`, signed into Apple Music (session expires
+2027-03-05) and connected to ListenBrainz as `localindiesoyboy` (the user's
+real, public username). **Run it headless** — `emulator -avd soiboi_test
+-no-window -no-audio -no-boot-anim`, detached with `setsid nohup` — the user
+asked for it off their display; `adb exec-out screencap -p` and `uiautomator
+dump` work fine without a window. Reuse it rather than re-signing-in if it's
+still up. A "How It Would End" (Balu
 Brigada) track, a couple of Daft Punk tracks, and — as of the Phase 4
 verification — three *Michael Jackson* tracks from **Bad** are downloaded
 on it. That album is deliberately kept partial (3 of 11) as the standing
@@ -212,6 +217,17 @@ task specifically needs a fully-owned album.
   catalog sheet's "Not found in the Apple Music catalog" then means "iTunes
   Search didn't rank it", not "it isn't on Apple Music". A null resolve is
   not ground truth — keep that in mind for Phases 9 and 10.
+- **gamdl's "already downloaded" skip is a WARNING, not an ERROR** —
+  `Skipping "<title>": Media file already exists`. That is what makes
+  running without `--overwrite` safe: `_StreamTap` only treats `[ERROR ...]`
+  lines as failures, so a fully-owned album re-run reports success rather
+  than a queue full of red rows. gamdl's `--database-path` defaults to None,
+  so no SQLite file lands in the working directory (`/` on Android); the
+  skip is a pure `final_path.exists()` check.
+- **The emulator must run headless** (`-no-window -no-audio -no-boot-anim`,
+  detached with `setsid nohup`) — the user does not want it on their
+  display. `adb exec-out screencap -p` and `uiautomator dump` both work
+  without a window, so nothing is lost.
 - **uiautomator `content-desc` carries the full row labels** the toy
   screenshot→coordinate path makes painful: dump, grep the descs, tap the
   center of their exact `bounds`. Row selectability also shows up as
