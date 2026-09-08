@@ -241,12 +241,24 @@ def download(
     wvd_path=None,
     use_wrapper=False,
     wrapper_url=None,
+    overwrite=False,
 ):
     """Download one Apple Music URL into [output_dir].
 
     Returns a result dict. Raises nothing on a download failure -- the failure
     is reported in the result, because a caller streaming events wants a final
     event rather than an exception crossing the process boundary.
+
+    [overwrite] off is what makes a retry cheap. There is no byte-level resume
+    to be had here: gamdl hands yt-dlp `overwrites: True` and drives HttpFD /
+    HlsFD directly with no `continuedl`, so an interrupted file is always
+    restarted from zero. What *is* resumable is the track: with overwrite off
+    gamdl skips any item whose final path already exists, logging a warning
+    rather than an error, so re-running a fifty-track playlist that died at
+    track forty downloads the last ten and nothing else. Files only reach that
+    final path after muxing and tagging, so a half-written download never
+    counts as present. Pass overwrite=True to deliberately re-fetch a track
+    that is already on disk.
     """
     emit = emit or (lambda event: None)
 
@@ -281,8 +293,9 @@ def download(
         "-o", output_dir,
         "--temp-path", temp_dir,
         "--song-codec-priority", codec,
-        "--overwrite",
     ]
+    if overwrite:
+        args.append("--overwrite")
     if not use_wrapper:
         args += ["-c", cookies_path]
     if wvd_path:

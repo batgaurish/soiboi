@@ -14,6 +14,9 @@ import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
 import 'package:soiboi/layer/apple_signin_layer.dart';
+import 'package:soiboi/layer/download_queue_sheet.dart';
+import 'package:soiboi/layer/storage_cleanup_sheet.dart';
+import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/services/emby_client.dart';
@@ -180,6 +183,12 @@ class _SettingsListState extends State<SettingsList> {
         ),
 
         sliverBox(paddingIfNeed(isLandscape, lrclibListTile(l10n))),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, downloadQueueListTile(context)),
+        ),
+
+        sliverBox(paddingIfNeed(isLandscape, storageListTile(context))),
 
         sliverBox(
           paddingIfNeed(isLandscape, backupLibraryListTile(context, l10n)),
@@ -1421,6 +1430,52 @@ class _SettingsListState extends State<SettingsList> {
           }
         }
       },
+    );
+  }
+
+  /// The download queue, reachable from anywhere.
+  ///
+  /// The Downloads screen shows the same list inline, but a fifty-track
+  /// playlist runs for several minutes and nobody sits on that screen waiting
+  /// — this is how you check on it from wherever you actually are.
+  Widget downloadQueueListTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.download_outlined, size: 30),
+      title: const Text('Download queue'),
+      subtitle: ValueListenableBuilder<List<DownloadJob>>(
+        valueListenable: downloadQueue.jobs,
+        builder: (context, jobs, child) {
+          final active = jobs.where((job) => job.isActive).length;
+          final failed = jobs
+              .where((job) => job.state == DownloadJobState.failed)
+              .length;
+          return Text(
+            active > 0
+                ? '$active in progress'
+                : failed > 0
+                ? '$failed failed — tap to retry'
+                : 'Nothing downloading',
+            style: TextStyle(
+              fontSize: 12,
+              color: failed > 0 && active == 0 ? Colors.red : textColor.value,
+            ),
+          );
+        },
+      ),
+      onTap: () => showDownloadQueueSheet(context),
+    );
+  }
+
+  /// What the archive costs on this device, and how to get some of it back.
+  Widget storageListTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.sd_storage_outlined, size: 30),
+      title: const Text('Storage'),
+      subtitle: Text(
+        'Review the largest, least played and oldest tracks',
+        style: TextStyle(fontSize: 12, color: textColor.value),
+      ),
+      onTap: () => showStorageCleanupSheet(context),
     );
   }
 
