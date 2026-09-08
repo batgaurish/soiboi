@@ -11,10 +11,10 @@ library;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/setting.dart';
-import 'package:soiboi/base/services/archive_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
+import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
@@ -22,8 +22,8 @@ import 'package:soiboi/base/services/preview_player.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
-import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/layer/apple_signin_layer.dart';
+import 'package:soiboi/layer/download_queue_sheet.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 
 class DownloadsLayer extends StatefulWidget {
@@ -38,12 +38,12 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   List<LbPlaylist> _discover = const [];
   final _lbUserController = TextEditingController();
 
-  /// Progress for the download in flight, if any.
-  int _progress = 0;
-  String _status = '';
-  bool _busy = false;
-  String? _error;
-  final List<String> _completed = [];
+  /// Set while this screen's own submission is being handed to the queue, so
+  /// the button cannot double-fire. Everything after that — progress, errors,
+  /// history — belongs to [downloadQueue] and is read from it, not mirrored
+  /// here: mirroring is what made the old per-screen copy grow without bound
+  /// and disagree with the sheets.
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -67,35 +67,19 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     if (mounted) setState(() => _discover = playlists);
   }
 
-  Future<void> _archiveUrl() async {
+  /// Hands the typed URL to the queue and clears the box.
+  ///
+  /// Deliberately not awaited: the whole point of the queue is that a download
+  /// outlives the screen that asked for it, so blocking the form until it
+  /// finishes would give that back for nothing. Progress and failures show up
+  /// in the queue card below.
+  void _archiveUrl() {
     final url = _urlController.text.trim();
-    if (url.isEmpty || _busy) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-      _progress = 0;
-      _status = 'Starting';
-    });
-
-    final error = await archiveUrl(
-      url,
-      onProgress: (progress, status) {
-        if (!mounted) return;
-        setState(() {
-          _progress = progress;
-          _status = status;
-        });
-      },
-    );
-    if (!mounted) return;
-    if (error != null) {
-      setState(() => _error = error);
-    } else {
-      setState(() => _completed.insert(0, url));
-      _urlController.clear();
-      await syncArchivedToLibrary();
-    }
-    if (mounted) setState(() => _busy = false);
+    if (url.isEmpty || _submitting) return;
+    setState(() => _submitting = true);
+    downloadQueue.enqueue([DownloadRequest(url: url, label: url)]);
+    _urlController.clear();
+    setState(() => _submitting = false);
   }
 
   @override
@@ -112,13 +96,9 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
         },
         child: CustomScrollView(
           slivers: [
-            if (_error != null)
-              SliverToBoxAdapter(child: _banner(_error!, isError: true)),
             SliverToBoxAdapter(child: _readinessCard()),
             SliverToBoxAdapter(child: _archiveCard()),
-            if (_busy) SliverToBoxAdapter(child: _progressCard()),
-            if (_completed.isNotEmpty)
-              SliverToBoxAdapter(child: _completedCard()),
+            SliverToBoxAdapter(child: _queueCard()),
             if (_discover.isNotEmpty)
               SliverToBoxAdapter(child: _discoverCard())
             else if (listenBrainzUserNotifier.value.trim().isEmpty)
@@ -178,38 +158,6 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               ),
               const SizedBox(height: 12),
               child,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _banner(String text, {bool isError = false}) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-      child: SmoothClipRRect(
-        smoothness: 1,
-        borderRadius: BorderRadius.circular(10 * activeFlavour.cornerScale),
-        child: Container(
-          color: (isError ? Colors.red : seekBarColor.value).withValues(
-            alpha: 0.14,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          child: Row(
-            children: [
-              Icon(
-                isError ? Icons.error_outline : Icons.info_outline,
-                size: 18,
-                color: isError ? Colors.red : seekBarColor.value,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  text,
-                  style: TextStyle(fontSize: 13, color: textColor.value),
-                ),
-              ),
             ],
           ),
         ),
@@ -300,6 +248,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     final ready =
         signedInNotifier.value &&
         (pipelineCapabilitiesNotifier.value?.canDownload ?? false);
+    final busy = _submitting;
     return _card(
       title: 'Archive from Apple Music',
       child: Column(
@@ -310,7 +259,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               Expanded(
                 child: TextField(
                   controller: _urlController,
-                  enabled: ready && !_busy,
+                  enabled: ready && !busy,
                   onSubmitted: (_) => _archiveUrl(),
                   style: TextStyle(fontSize: 14, color: textColor.value),
                   decoration: InputDecoration(
@@ -329,7 +278,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               ),
               const SizedBox(width: 10),
               FilledButton(
-                onPressed: ready && !_busy ? _archiveUrl : null,
+                onPressed: ready && !busy ? _archiveUrl : null,
                 child: const Text('Archive'),
               ),
             ],
@@ -337,7 +286,8 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           const SizedBox(height: 12),
           Text(
             'Songs, albums or playlists. Files are downloaded, tagged and '
-            'added to your library on this device.',
+            'added to your library on this device. Downloads are queued, so '
+            'they keep going if you leave this screen.',
             style: TextStyle(fontSize: 12, color: textColor.value),
           ),
         ],
@@ -345,70 +295,63 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     );
   }
 
-  Widget _progressCard() {
-    return _card(
-      title: 'Downloading',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: TweenAnimationBuilder<double>(
-              // Progress arrives in discrete stage jumps, so easing between
-              // them reads as motion rather than stutter.
-              tween: Tween(end: _progress / 100),
-              duration: activeMotion.medium,
-              curve: activeMotion.standard,
-              builder: (context, value, _) => LinearProgressIndicator(
-                value: value,
-                minHeight: 4,
-                backgroundColor: buttonColor.value,
-                color: seekBarColor.value,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _status,
-            style: TextStyle(fontSize: 11.5, color: textColor.value),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _completedCard() {
-    return _card(
-      title: 'Archived this session (${_completed.length})',
-      child: Column(
-        children: [
-          for (final url in _completed.take(8))
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_rounded,
-                    size: 15,
-                    color: seekBarColor.value,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      url,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: textColor.value,
+  /// The live queue, inline where downloads are started.
+  ///
+  /// The same widget Settings opens as a sheet, so there is exactly one idea
+  /// of what is downloading rather than this screen's copy and the queue's.
+  Widget _queueCard() {
+    return ValueListenableBuilder<List<DownloadJob>>(
+      valueListenable: downloadQueue.jobs,
+      builder: (context, jobs, _) {
+        final failed = jobs
+            .where((job) => job.state == DownloadJobState.failed)
+            .toList();
+        return _card(
+          title: 'Download queue',
+          action: jobs.isEmpty
+              ? null
+              : IconButton(
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Open queue',
+                  onPressed: () => showDownloadQueueSheet(context),
+                  icon: const Icon(Icons.open_in_full_rounded),
+                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The most recent failure gets a banner of its own: a red row
+              // several items down a scrolling list is easy to miss, and a
+              // failed download that nobody notices is the worst outcome
+              // this screen has.
+              if (failed.isNotEmpty) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 16,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        failed.last.error ?? 'Download failed',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.red,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+              const DownloadQueueView(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -581,41 +524,54 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     setState(() => _tracks = tracks);
   }
 
-  /// Archives [tracks] through the on-device pipeline, one at a time.
+  /// Hands [tracks] to the shared download queue and follows that batch.
   ///
-  /// The pipeline downloads a single URL per call, so a playlist is a loop.
-  /// Sequential rather than parallel on purpose: Apple rate-limits, and the
-  /// original pipeline's cooldowns exist for good reason.
+  /// The queue runs them one at a time — Apple rate-limits, and the original
+  /// pipeline's cooldowns exist for good reason — and, unlike the loop this
+  /// replaces, keeps going if the sheet is closed halfway through a fifty
+  /// track playlist. The library sync afterwards is the queue's job now, once
+  /// per drain rather than once per batch.
   Future<void> _archive(List<DiscoveryTrack> tracks) async {
+    final requests = [
+      for (final track in tracks)
+        if (track.appleUrl != null)
+          DownloadRequest(
+            url: track.appleUrl!,
+            label: track.title,
+            subtitle: track.artist,
+          ),
+    ];
+    if (requests.isEmpty) return;
+
     setState(() {
       _sending = true;
       _archivedInBatch = 0;
-      _batchSize = tracks.length;
+      _batchSize = requests.length;
+      // Marked on enqueue, not on completion: the row's tick means "this is
+      // handled", and offering the button again while it sits in the queue
+      // would only queue it twice.
+      _queued.addAll(tracks.map((track) => track.title));
     });
-    for (final track in tracks) {
+
+    final batch = downloadQueue.enqueue(requests);
+    void onProgress() {
       if (!mounted) return;
-      final url = track.appleUrl;
-      if (url == null) continue;
-      final error = await archiveUrl(url);
-      if (error != null && mounted) setState(() => _error = error);
-      if (mounted) {
-        setState(() {
-          _queued.add(track.title);
-          _archivedInBatch++;
-        });
-      }
+      setState(() => _archivedInBatch = batch.completed.value);
     }
-    // Once for the batch rather than per track: a library sync walks every
-    // registered folder, and doing that between tracks would dominate the run.
-    if (_queued.isNotEmpty) await syncArchivedToLibrary();
-    if (mounted) {
-      setState(() {
-        _sending = false;
-        // Cleared on success: leaving the selection behind invites archiving
-        // the same tracks twice.
-        _selected.clear();
-      });
-    }
+
+    batch.completed.addListener(onProgress);
+    await batch.done;
+    batch.completed.removeListener(onProgress);
+
+    if (!mounted) return;
+    setState(() {
+      _sending = false;
+      final errors = batch.errors;
+      if (errors.isNotEmpty) _error = errors.last;
+      // Cleared either way: leaving the selection behind invites archiving the
+      // same tracks twice, and the failures are retryable from the queue.
+      _selected.clear();
+    });
   }
 
   String _rowKey(DiscoveryTrack track) => '${track.artist}|${track.title}';

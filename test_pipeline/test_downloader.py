@@ -107,3 +107,51 @@ def test_ytdlp_patch_replaces_the_multiprocessing_path():
     patched = AppleMusicBaseDownloader._download_ytdlp_async
     assert patched.__name__ == "_download_ytdlp_async"
     assert "multiprocessing" not in patched.__code__.co_names
+
+
+def _captured_args(tmp_path, monkeypatch, **kwargs):
+    """Runs download() far enough to see the argv it builds for gamdl."""
+    seen = {}
+
+    def fake_main(args, standalone_mode=True):
+        seen["args"] = args
+
+    monkeypatch.setattr(
+        downloader,
+        "_multiprocessing_works",
+        lambda: True,
+    )
+    monkeypatch.setattr(downloader, "_capture_gamdl_logging", lambda tap: True)
+    import types
+
+    fake_cli = types.ModuleType("gamdl.cli.cli")
+    fake_cli.main = fake_main
+    monkeypatch.setitem(sys.modules, "gamdl.cli.cli", fake_cli)
+
+    cookies = tmp_path / "cookies.txt"
+    cookies.write_text("")
+    downloader.download(
+        url="https://music.apple.com/album/1",
+        cookies_path=str(cookies),
+        output_dir=str(tmp_path / "out"),
+        temp_dir=str(tmp_path / "tmp"),
+        **kwargs,
+    )
+    return seen["args"]
+
+
+def test_retrying_resumes_by_default_rather_than_refetching(tmp_path, monkeypatch):
+    """No --overwrite is what makes a retry cheap.
+
+    gamdl skips any track whose final file already exists -- logging a warning,
+    not an error -- so re-running a playlist that died halfway fetches only the
+    rest. Passing --overwrite unconditionally, as this did, re-downloaded the
+    whole thing every time.
+    """
+    args = _captured_args(tmp_path, monkeypatch)
+    assert "--overwrite" not in args
+
+
+def test_overwrite_is_passed_when_a_redownload_is_asked_for(tmp_path, monkeypatch):
+    args = _captured_args(tmp_path, monkeypatch, overwrite=True)
+    assert "--overwrite" in args

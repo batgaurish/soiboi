@@ -78,6 +78,7 @@ def handle(command, payload=None, emit=None):
             wvd_path=payload.get("wvd_path"),
             use_wrapper=bool(payload.get("use_wrapper")),
             wrapper_url=payload.get("wrapper_url"),
+            overwrite=bool(payload.get("overwrite")),
             emit=emit,
         )
 

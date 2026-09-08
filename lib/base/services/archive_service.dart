@@ -16,8 +16,15 @@ import 'package:soiboi/base/services/pipeline_runner.dart';
 ///
 /// Never throws: callers are UI code streaming a batch, and an exception
 /// halfway through a fifty-track playlist would lose the progress already made.
+///
+/// Retrying is cheap by default. With [redownload] off the pipeline skips any
+/// track whose file is already on disk, so re-running an album that failed at
+/// track nine fetches the rest rather than the lot; the pipeline's own
+/// docstring explains why this is track-level and not byte-level. Pass
+/// [redownload] to deliberately replace a file that is already there.
 Future<String?> archiveUrl(
   String url, {
+  bool redownload = false,
   void Function(int progress, String status)? onProgress,
 }) async {
   String? error;
@@ -26,6 +33,7 @@ Future<String?> archiveUrl(
     'cookies_path': cookiesPath,
     'output_dir': downloadOutputDir,
     'temp_dir': downloadTempDir,
+    'overwrite': redownload,
   })) {
     if (event.isProgress) {
       onProgress?.call(event.progress, event.status);

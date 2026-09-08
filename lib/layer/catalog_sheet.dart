@@ -12,7 +12,7 @@ library;
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/services/apple_catalog_service.dart';
-import 'package:soiboi/base/services/archive_service.dart';
+import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/library_match_service.dart';
@@ -209,32 +209,50 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
     return matchSong(track.title, album: _localAlbum, artist: widget.artist);
   }
 
+  /// Queues [tracks] and follows that batch until it drains.
+  ///
+  /// Running through the shared queue rather than looping here means closing
+  /// the sheet no longer abandons the rest of an album, and the library sync
+  /// happens once when the queue goes quiet rather than once per sheet.
   Future<void> _archive(List<AppleTrack> tracks) async {
+    if (tracks.isEmpty) return;
     setState(() {
       _sending = true;
       _archivedInBatch = 0;
       _batchSize = tracks.length;
     });
-    for (final track in tracks) {
-      if (!mounted) return;
-      final error = await archiveUrl(track.url);
+
+    final batch = downloadQueue.enqueue([
+      for (final track in tracks)
+        DownloadRequest(
+          url: track.url,
+          label: track.title,
+          subtitle: widget.artist,
+        ),
+    ]);
+    void onProgress() {
       if (!mounted) return;
       setState(() {
-        if (error != null) {
-          _error = error;
-        } else {
-          _archived.add(track.url);
-        }
-        _archivedInBatch++;
+        _archivedInBatch = batch.completed.value;
+        // Rows flip as each track lands, not all at once at the end: on an
+        // eleven-track album that is the difference between visible progress
+        // and a frozen sheet.
+        _archived.addAll(batch.succeeded.map((job) => job.url));
       });
     }
-    if (_archived.isNotEmpty) await syncArchivedToLibrary();
-    if (mounted) {
-      setState(() {
-        _sending = false;
-        _selected.clear();
-      });
-    }
+
+    batch.completed.addListener(onProgress);
+    await batch.done;
+    batch.completed.removeListener(onProgress);
+
+    if (!mounted) return;
+    setState(() {
+      _sending = false;
+      _archived.addAll(batch.succeeded.map((job) => job.url));
+      final errors = batch.errors;
+      if (errors.isNotEmpty) _error = errors.last;
+      _selected.clear();
+    });
   }
 
   void _toggleSelected(AppleTrack track) {
