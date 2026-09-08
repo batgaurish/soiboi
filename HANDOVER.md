@@ -49,56 +49,50 @@ replacement for it.
 | 6 | Auto-generated mood playlists on Home | **Done, committed, verified live** |
 | 7 | QOL: download queue / resumable downloads / storage cleanup | **Done, committed, verified live** |
 | 8 | Auto-update checker + installer (Android + Linux) | **Done, committed, verified live (Android); Linux not runnable here** |
-| 9 | Multi-platform playlist import (`ExternalPlaylistSource`) | Not started |
-| 10 | Global search shell | Not started |
-| 11 | Android dynamic color | Not started |
+| 9 | Multi-platform playlist import (`ExternalPlaylistSource`) | **Done, committed, verified live** |
+| 10 | Global search shell | **Done, committed, verified live** |
+| 11 | Android dynamic color | **Done, committed, verified live** |
 
-All commits through Phase 8 are pushed to `origin/main`.
+**All eleven phases are complete.** Every commit is pushed to `origin/main`.
 
-### Where to pick up: Phase 9 (multi-platform playlist import)
+### The backlog is finished — what to know before picking up anything new
 
-Phases 7 and 8 are done, pushed and verified. Phase 8 notes worth keeping:
+All eleven phases are done, committed, pushed and verified on the emulator.
+Notes from the last three that are not obvious from the code:
 
-- **The update tile had never worked, for three separate reasons.** It
-  fetched `AfalpHy/soiboi` (a repo that does not exist); `/releases/latest`
-  excludes prereleases and every build this project ships is one, so that
-  endpoint 404s for `batgaurish/soiboi` too; and `compareVersion`
-  `int.parse`s each dot-part, so a real tag (`v4.1.0-debug` → `'0-debug'`)
-  throws. `lib/base/services/update_service.dart` lists `/releases`,
-  filters drafts, keeps prereleases, picks the *highest* version rather
-  than the most recent, and compares on the numeric core only
-  (`releaseVersion` / `compareReleaseVersion`). `compareVersion` in
-  `common_utils.dart` was left alone — `loader.dart` still uses it on
-  stored version strings that are always plain.
-- **Android install path:** `UpdateChannel.kt` + a FileProvider scoped by
-  `res/xml/file_paths.xml` to `files/updates` only — deliberately not the
-  whole of app storage, which would expose the Apple Music cookie jar.
-  `REQUEST_INSTALL_PACKAGES` is in the manifest. When the per-app "install
-  unknown apps" permission is missing the bridge *opens that settings
-  page* instead of returning a dead end; that is the first thing you will
-  hit on a fresh device, and it is intended.
-- **Linux install path is written but not runnable in this environment** —
-  the Linux GUI still segfaults at startup (`lua/ytdl_hook`, see below), so
-  the swap-and-relaunch has never been exercised against a real running
-  app. What *is* tested: `findBundleDir` against a nested extraction, and
-  `linuxSwapScript` both string-asserted and actually executed against real
-  directories (a quoting mistake in that heredoc would be invisible to a
-  string assertion). **If someone gets the Linux build running, exercising
-  a real update is the one outstanding verification for this phase.**
-- **How to test an update without publishing anything:** temporarily set
-  `versionNumber` in `lib/base/app.dart` to something below the newest
-  real tag, build, run the flow, then revert. That is how the Android path
-  was verified against the genuine `v4.1.0-debug` release — no test release
-  was cut, and none is needed.
-- The APK asset is ~600 MB (debug), so a real update download takes a
-  while and needs the space; the emulator had 6.7 GB free. The staged file
-  lands at `files/updates/` and is worth deleting after a test.
+**Phase 9 (playlist import).** The spike the plan demanded came out for
+**YouTube Music, via the yt-dlp already bundled** — gamdl depends on it and
+it is already cross-compiled for Android. Spotify was rejected: it needs a
+bearer token even for a *public* playlist, so it would mean shipping a
+client secret, which contradicts the "nothing configured, no accounts"
+shape the rest of discovery has. `ExternalPlaylistSource` abstracts only
+the *supply*; Apple resolution and caching stay in
+`discovery_service.dart` and are shared. Cache keys are
+`sourceId:playlistId` — never a bare id, since a hex string is a plausible
+MusicBrainz *and* YouTube id. The fragile part is
+`parseYouTubeTrack`: YouTube entries are videos, so artist and title arrive
+fused with promotional noise. It is pure and heavily tested — extend the
+tests, not the regex, when something parses wrong.
 
-Next is **Phase 9** — read the plan file's Phase 9 section. Note its
-explicit prerequisite: the Spotify-vs-YouTube-Music decision needs its own
-spike before any code is written, and the "iTunes Search does not index
-every album" trap below is directly relevant to how much any of it can be
-trusted.
+**Phase 10 (search).** The plan called this the highest-uncertainty item
+because it needed a new shell above `LayersManager`. **There was nothing to
+build**: the sidebar is the drawer on narrow and a rail on wide, and it is
+already on every screen, so Search is just another root layer. If a future
+task wants app-level chrome, the sidebar is the place — do not wrap
+`LayersManager`.
+
+**Phase 11 (Android dynamic color).** `dynamic_color` (the official
+package) supplies the channel; `getCorePalette()` returning null on
+Android 11 and older *is* the fallback contract, so **no `minSdk` bump was
+needed**. `paletteFromColorScheme` is a second mapping parallel to
+`_roleForToken`, and a test asserts both cover the same tokens — a device
+themed by half the mapping would come out half-flavour, half-system.
+
+**If you are starting fresh:** there is no approved backlog left. Get a
+new one from the user rather than inventing work. The plan file at
+`~/.claude-personal/plans/optimized-watching-globe.md` records every
+divergence per phase and is still the reference for *why* things are
+shaped as they are.
 
 ---
 
@@ -140,7 +134,9 @@ dump` work fine without a window. Reuse it rather than re-signing-in if it's
 still up. A "How It Would End" (Balu
 Brigada) track, a couple of Daft Punk tracks, and — as of the Phase 4
 verification — three *Michael Jackson* tracks from **Bad** are downloaded
-on it. That album is deliberately kept partial (3 of 11) as the standing
+on it. It is also left with **"Follow system colours" switched on**
+(Phase 11's Material You), so it will not look like the Expressive
+default until that is turned off in Settings. That album is deliberately kept partial (3 of 11) as the standing
 repro for partial-ownership UI states; don't archive the rest unless a
 task specifically needs a fully-owned album.
 
