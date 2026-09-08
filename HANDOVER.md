@@ -151,9 +151,18 @@ go away.
 time. It has still never been run.
 
 **Installing on Linux:** `tools/install_linux.sh` installs to `~/.local`
-(binary, icon, `.desktop` entry, and a runtime venv built at the installed
-path — a venv cannot be relocated). No root needed, nothing outside `$HOME`.
-`--uninstall` removes it and leaves the library alone.
+(binary, icon, `.desktop` entry, and a runtime venv). No root needed, nothing
+outside `$HOME`. `--uninstall` removes it and leaves the library alone.
+
+**A venv built with `--copies` *is* relocatable** — the earlier note in this
+file claiming otherwise was wrong. Python derives `sys.prefix` from the
+interpreter binary's own location, so moving the tree works; only the `bin/*`
+console-script shebangs (pip, maturin) go stale, and nothing at runtime uses
+them because the app runs `<venv>/bin/python -m soiboi_pipeline` directly.
+Verified by extracting a packaged tarball to an unrelated path and getting
+`can_download: true`. The scripts still build at the final path, but for a
+different reason: it compiles the native bliss wheel against the interpreter
+that will run it.
 
 **Minor, noted not fixed:** the smart playlist editor recreates a
 `TextEditingController` on every parent rebuild (cursor jumps to end when a

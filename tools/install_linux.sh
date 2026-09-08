@@ -5,10 +5,11 @@
 # own applications, icons and data live there, and every desktop environment
 # reads them. Nothing is written outside $HOME.
 #
-# The Python runtime is rebuilt at the *installed* path rather than copied from
-# a build directory, because a virtualenv is not relocatable — see
-# tools/_runtime_venv.sh. That is the whole reason this is a script and not
-# `cp -r`.
+# The Python runtime is rebuilt at the installed path rather than copied from a
+# build directory. Not because it could not be copied — a --copies venv does
+# relocate, see tools/_runtime_venv.sh — but because building it here compiles
+# the native bliss wheel against the interpreter that will actually run it, and
+# because the build tree may not have a venv at all.
 #
 # Applies tools/patches/ first: without the mpv Lua patch the app segfaults
 # within seconds of launching, so installing an unpatched build would put a

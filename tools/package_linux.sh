@@ -8,20 +8,16 @@
 # archive any. This is that missing script.
 #
 # The awkward part is the virtualenv. DesktopPipelineRunner looks for
-# <exe>/data/pipeline and <exe>/data/.pipeline-venv, but a venv is NOT
-# relocatable: bin/python is a symlink into the system interpreter and
-# pyvenv.cfg holds absolute paths, so copying .pipeline-venv into the bundle
-# produces an environment that cannot start. Two ways out:
+# <exe>/data/pipeline and <exe>/data/.pipeline-venv, so one has to end up
+# inside the bundle. It is created with --copies, which gives it a real
+# interpreter binary instead of a symlink into the system one; the packaged
+# tarball then survives being extracted anywhere, which was tested rather than
+# assumed (see tools/_runtime_venv.sh).
 #
-#   * --copies, which puts a real interpreter binary in the venv but still
-#     depends on the host having a compatible libpython. Fine for the private
-#     distribution this project actually does (the user and friends, same
-#     distro family), and what this script uses.
-#   * bundling a relocatable interpreter (python-build-standalone). Correct for
-#     wider distribution, and much heavier. Not done here.
-#
-# Because of that, the venv is built *directly at its final path* rather than
-# built elsewhere and copied.
+# What it still depends on is the host having a compatible libpython. That is
+# fine for the private distribution this project actually does — the user and
+# friends, same distro family — and would not be for a general release, where
+# the answer is bundling python-build-standalone. Not done here.
 #
 # Usage: tools/package_linux.sh [--release]
 set -euo pipefail
