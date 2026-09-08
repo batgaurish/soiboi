@@ -48,7 +48,7 @@ replacement for it.
 | 5 | Smart playlist templates | **Done, committed, verified live** |
 | 6 | Auto-generated mood playlists on Home | **Done, committed, verified live** |
 | 7 | QOL: download queue / resumable downloads / storage cleanup | **Done, committed, verified live** |
-| 8 | Auto-update checker + installer (Android + Linux) | **Done, committed, verified live (Android); Linux not runnable here** |
+| 8 | Auto-update checker + installer (Android + Linux) | **Done; Android verified by a real self-update, Linux path unrun** |
 | 9 | Multi-platform playlist import (`ExternalPlaylistSource`) | **Done, committed, verified live** |
 | 10 | Global search shell | **Done, committed, verified live** |
 | 11 | Android dynamic color | **Done, committed, verified live** |
@@ -88,6 +88,20 @@ needed**. `paletteFromColorScheme` is a second mapping parallel to
 `_roleForToken`, and a test asserts both cover the same tokens — a device
 themed by half the mapping would come out half-flavour, half-system.
 
+**Phase 8 is now verified to the plan's full bar on Android.** `v4.2.0-debug`
+was released to `batgaurish/soiboi` with both assets, and the emulator —
+still running the 4.1.0 build — detected it, downloaded the 594,840,659-byte
+APK (exact size match), handed it to the system installer, and came back up
+reporting `versionName=4.2.0`. **The app updated itself from the real
+repository.** The Linux half is still unrun for the reason below.
+
+**Releases are repeatable now.** `tools/package_linux.sh` assembles the
+Linux bundle (Flutter build + `data/pipeline` + a `--copies` venv built *at
+its final path*, because a venv is not relocatable) and verifies the bundled
+environment before packing. That closes the "Desktop packaging" item that
+was outstanding since the standalone pivot. `generate_deb.sh` /
+`generate_rpm.sh` still do not bundle the pipeline — they were left alone.
+
 **If you are starting fresh:** there is no approved backlog left. Get a
 new one from the user rather than inventing work. The plan file at
 `~/.claude-personal/plans/optimized-watching-globe.md` records every
@@ -98,16 +112,14 @@ shaped as they are.
 
 ## Also outstanding (pre-existing, unrelated to the current backlog)
 
-**Desktop packaging.** `tools/build_pipeline.sh` refers to "the Linux packaging
-scripts" — they do not exist. `generate_deb.sh` / `generate_rpm.sh` do not bundle
-the pipeline. `DesktopPipelineRunner` already looks for
-`<exe>/data/pipeline` + `<exe>/data/.pipeline-venv`, so a script needs to build
-the release and assemble that. Complication: a venv is **not relocatable** —
-`bin/python` is a symlink and `pyvenv.cfg` holds absolute paths. Either use
-`--copies` and accept a system-Python dependency, or bundle a relocatable
-interpreter (python-build-standalone). Worked around manually for the
-`v4.1.0-debug` Linux release (fresh venv built directly at the bundle path) —
-not yet a repeatable script.
+**Desktop packaging — resolved.** `tools/package_linux.sh` now does this:
+Flutter build + `data/pipeline` + a venv built with `--copies` **directly at
+its final path** (a venv is not relocatable — `bin/python` is a symlink and
+`pyvenv.cfg` holds absolute paths), then verifies the *bundled* environment
+before packing. It accepts a dependency on the host's libpython, which is
+right for this project's private distribution; bundling
+python-build-standalone is the alternative if distribution ever widens.
+`generate_deb.sh` / `generate_rpm.sh` still do not bundle the pipeline.
 
 **The Linux build now compiles** (wpewebkit installed this session), but the
 GUI itself has an open, not-yet-root-caused issue: it segfaults shortly after
@@ -239,5 +251,6 @@ flutter analyze
 flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 git push origin main                                       # NOT upstream
-gh release view v4.1.0-debug --repo batgaurish/soiboi       # current release
+tools/package_linux.sh                                     # linux bundle + tarball
+gh release view v4.2.0-debug --repo batgaurish/soiboi       # current release
 ```
