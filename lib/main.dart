@@ -26,7 +26,10 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'base/audio_handler.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
+import 'package:soiboi/base/services/external_playlist_source.dart';
+import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
+import 'package:soiboi/base/services/youtube_playlist_source.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +54,11 @@ Future<void> main() async {
       viewModeFile.writeAsString(viewModeNotifier.value.name);
     });
   }
+
+  // Registered once, in order: the Home and Downloads shelves iterate this
+  // list rather than naming a platform, so a third source is one line here.
+  registerPlaylistSource(ListenBrainzPlaylistSource());
+  registerPlaylistSource(YouTubePlaylistSource());
 
   await logger.init();
   if (isMobile) {

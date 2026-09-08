@@ -24,6 +24,7 @@ import 'package:soiboi/base/data/mood_playlists.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
+import 'package:soiboi/base/services/external_playlist_source.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/theme/flavour.dart';
@@ -47,7 +48,7 @@ class HomeLayer extends StatefulWidget {
 }
 
 class _HomeLayerState extends State<HomeLayer> {
-  List<LbPlaylist> _discover = const [];
+  List<ExternalPlaylist> _discover = const [];
   List<LbEntry>? _lbArtists;
   List<LbEntry>? _lbAlbums;
 
@@ -65,10 +66,13 @@ class _HomeLayerState extends State<HomeLayer> {
   }
 
   Future<void> _loadRemote() async {
-    // Discovery playlists come straight from ListenBrainz now. They are public
-    // and need only a username, so no server is involved and this works on a
-    // device with nothing else configured.
-    final playlists = await discoveryPlaylists();
+    // Every registered source, not just ListenBrainz. All of them are public
+    // and need no account, so this works on a device with nothing configured;
+    // link-only sources (YouTube Music) contribute nothing here by design.
+    final playlists = <ExternalPlaylist>[];
+    for (final source in playlistSources) {
+      playlists.addAll(await source.playlists());
+    }
     if (mounted) setState(() => _discover = playlists);
 
     if (!listenBrainzConnected) {
@@ -411,7 +415,7 @@ class _DiscoverCard extends StatefulWidget {
     required this.index,
     required this.onTap,
   });
-  final LbPlaylist playlist;
+  final ExternalPlaylist playlist;
   final int index;
   final VoidCallback onTap;
 
@@ -426,16 +430,16 @@ class _DiscoverCardState extends State<_DiscoverCard> {
   @override
   void initState() {
     super.initState();
-    _tracks = cachedDiscoveryTracks(widget.playlist.mbid);
+    _tracks = cachedDiscoveryTracks(widget.playlist);
     _prefetch();
   }
 
   Future<void> _prefetch() async {
     // Only the first four covers are needed for the mosaic, and each costs an
     // Apple lookup -- resolving all fifty here would be fifty requests per card.
-    final total = await discoveryTrackCount(widget.playlist.mbid);
+    final total = await discoveryTrackCount(widget.playlist);
     if (mounted) setState(() => _total = total);
-    final tracks = await resolveDiscoveryTracks(widget.playlist.mbid, limit: 4);
+    final tracks = await resolveDiscoveryTracks(widget.playlist, limit: 4);
     if (mounted && tracks != null) setState(() => _tracks = tracks);
   }
 

@@ -15,6 +15,8 @@ import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
+import 'package:soiboi/base/services/external_playlist_source.dart';
+import 'package:soiboi/base/services/youtube_playlist_source.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
@@ -35,8 +37,14 @@ class DownloadsLayer extends StatefulWidget {
 
 class _DownloadsLayerState extends State<DownloadsLayer> {
   final _urlController = TextEditingController();
-  List<LbPlaylist> _discover = const [];
+  List<ExternalPlaylist> _discover = const [];
   final _lbUserController = TextEditingController();
+  final _importController = TextEditingController();
+
+  /// Set while a pasted link is being read. The fetch is a real network call
+  /// through the pipeline and takes a second or two.
+  bool _importing = false;
+  String? _importError;
 
   /// Set while this screen's own submission is being handed to the queue, so
   /// the button cannot double-fire. Everything after that — progress, errors,
@@ -59,11 +67,19 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     listenBrainzUserNotifier.removeListener(_load);
     _urlController.dispose();
     _lbUserController.dispose();
+    _importController.dispose();
     super.dispose();
   }
 
+  /// Playlists from every registered source, not just ListenBrainz.
+  ///
+  /// Sources that only accept a link (YouTube Music) return nothing here and
+  /// contribute through the import card instead.
   Future<void> _load() async {
-    final playlists = await discoveryPlaylists();
+    final playlists = <ExternalPlaylist>[];
+    for (final source in playlistSources) {
+      playlists.addAll(await source.playlists());
+    }
     if (mounted) setState(() => _discover = playlists);
   }
 
@@ -99,6 +115,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
             SliverToBoxAdapter(child: _readinessCard()),
             SliverToBoxAdapter(child: _archiveCard()),
             SliverToBoxAdapter(child: _queueCard()),
+            SliverToBoxAdapter(child: _importCard()),
             if (_discover.isNotEmpty)
               SliverToBoxAdapter(child: _discoverCard())
             else if (listenBrainzUserNotifier.value.trim().isEmpty)
@@ -355,6 +372,132 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     );
   }
 
+  /// Importing a playlist from another platform by link.
+  ///
+  /// Separate from the Archive box above, and deliberately so: that one takes
+  /// an Apple Music URL and downloads it directly, while this one takes a
+  /// playlist from somewhere the app cannot download from, matches each track
+  /// against Apple's catalog, and lets you choose. Same sheet as a weekly
+  /// discovery, because from that point on it is the same problem.
+  Widget _importCard() {
+    return _card(
+      title: 'Import a playlist',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _importController,
+                  enabled: !_importing,
+                  onSubmitted: (_) => _import(),
+                  style: TextStyle(fontSize: 14, color: textColor.value),
+                  decoration: InputDecoration(
+                    hintText: 'https://music.youtube.com/playlist?list=…',
+                    isDense: true,
+                    filled: true,
+                    fillColor: searchFieldColor.value,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        8 * activeFlavour.cornerScale,
+                      ),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              FilledButton(
+                onPressed: _importing ? null : _import,
+                child: Text(_importing ? 'Reading…' : 'Import'),
+              ),
+            ],
+          ),
+          if (_importError != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.error_outline, size: 16, color: Colors.red),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _importError!,
+                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            'Paste a public ${_importSourceNames()} playlist link. Its tracks '
+            'are matched against the Apple Music catalog so you can archive '
+            'the ones you want — nothing is downloaded from the other '
+            'platform.',
+            style: TextStyle(fontSize: 12, color: textColor.value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The platforms that actually accept a link, named from the registry rather
+  /// than hard-coded, so this sentence cannot drift from what is registered.
+  String _importSourceNames() {
+    final names = [
+      for (final source in playlistSources)
+        if (source.acceptsLinks) source.displayName,
+    ];
+    return names.isEmpty ? 'playlist' : names.join(' or ');
+  }
+
+  Future<void> _import() async {
+    final text = _importController.text.trim();
+    if (text.isEmpty || _importing) return;
+    setState(() {
+      _importing = true;
+      _importError = null;
+    });
+
+    final match = sourceForUrl(text);
+    if (match == null) {
+      setState(() {
+        _importing = false;
+        _importError = 'That is not a playlist link this app can read.';
+      });
+      return;
+    }
+
+    // Fetched before opening the sheet so a private or deleted playlist fails
+    // here, with the platform's own explanation, rather than as an empty sheet
+    // that looks like a playlist with nothing in it.
+    final title = await match.source.titleFor(match.playlistId);
+    if (!mounted) return;
+    if (title == null) {
+      final source = match.source;
+      setState(() {
+        _importing = false;
+        _importError = source is YouTubePlaylistSource
+            ? (source.lastError ?? 'Could not read that playlist.')
+            : 'Could not read that playlist.';
+      });
+      return;
+    }
+
+    setState(() => _importing = false);
+    _importController.clear();
+    await showDiscoverPlaylistSheet(
+      context,
+      ExternalPlaylist(
+        sourceId: match.source.id,
+        id: match.playlistId,
+        title: title,
+      ),
+    );
+  }
+
   /// Shown instead of the shelf when there is no ListenBrainz username.
   ///
   /// Without this the whole discovery feature is invisible: the shelf renders
@@ -438,7 +581,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
 /// silently fails to find one from inside a layer.
 Future<void> showDiscoverPlaylistSheet(
   BuildContext context,
-  LbPlaylist playlist,
+  ExternalPlaylist playlist,
 ) {
   return showAnimationDialog(
     context: context,
@@ -452,7 +595,7 @@ Future<void> showDiscoverPlaylistSheet(
 
 class _DiscoverPlaylistSheet extends StatefulWidget {
   const _DiscoverPlaylistSheet({required this.playlist});
-  final LbPlaylist playlist;
+  final ExternalPlaylist playlist;
 
   @override
   State<_DiscoverPlaylistSheet> createState() => _DiscoverPlaylistSheetState();
@@ -498,12 +641,12 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
   Future<void> _load() async {
     // Show whatever the card already resolved so the sheet is not blank while
     // the rest arrives, then always ask for the full list.
-    final cached = cachedDiscoveryTracks(widget.playlist.mbid);
+    final cached = cachedDiscoveryTracks(widget.playlist);
     if (cached != null && cached.isNotEmpty) {
       setState(() => _tracks = cached);
     }
     final tracks = await resolveDiscoveryTracks(
-      widget.playlist.mbid,
+      widget.playlist,
       // Fills the list as matches land. A fifty-track playlist takes a few
       // seconds to resolve, and without this the sheet sits showing whatever
       // the card had prefetched -- which reads as a playlist with four songs.
