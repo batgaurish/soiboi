@@ -104,6 +104,7 @@ dependencies:
   intl: any
   material_ui: any
   cupertino_ui: any
+  dynamic_color: ^2.1.0
 dependency_overrides:
   media_kit_libs_windows_audio:
     git:
