@@ -771,12 +771,25 @@ class _SettingsListState extends State<SettingsList> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Matches the rest of your desktop. Reads an existing '
-                      'matugen scheme if you have one, otherwise generates '
-                      'one from your wallpaper.',
+                      Platform.isAndroid
+                          // Android derives the palette itself, from the
+                          // wallpaper, and hands it over whole — there is
+                          // nothing to configure and nothing to run.
+                          ? 'Uses the Material You palette Android builds '
+                                'from your wallpaper, so Soiboi matches the '
+                                'rest of your system. Needs Android 12 or '
+                                'newer.'
+                          : 'Matches the rest of your desktop. Reads an '
+                                'existing matugen scheme if you have one, '
+                                'otherwise generates one from your wallpaper.',
                       style: TextStyle(fontSize: 12, color: textColor.value),
                     ),
                     const SizedBox(height: 12),
+                    // Both controls below are matugen's, and matugen is
+                    // Linux's route to this. Showing a scheme picker and a
+                    // JSON path on a phone would offer settings that cannot
+                    // affect anything.
+                    if (!Platform.isAndroid)
                     // The scheme only applies when Soiboi generates the
                     // colours itself; a file written by someone else's
                     // matugen config was already built with their choice.
@@ -828,15 +841,16 @@ class _SettingsListState extends State<SettingsList> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    TextField(
-                      controller: controller,
-                      style: const TextStyle(fontSize: 12),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                        labelText: 'matugen JSON (optional)',
+                    if (!Platform.isAndroid)
+                      TextField(
+                        controller: controller,
+                        style: const TextStyle(fontSize: 12),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          labelText: 'matugen JSON (optional)',
+                        ),
                       ),
-                    ),
                     if (status != null) ...[
                       const SizedBox(height: 8),
                       Text(status!, style: const TextStyle(fontSize: 12)),
@@ -865,8 +879,13 @@ class _SettingsListState extends State<SettingsList> {
                             if (!ok) {
                               setDialogState(
                                 () => status =
-                                    'No colours found, and matugen could not '
-                                    'generate any from your wallpaper',
+                                    Platform.isAndroid
+                                        ? 'Android did not provide a palette. '
+                                              'Material You needs Android 12 '
+                                              'or newer.'
+                                        : 'No colours found, and matugen '
+                                              'could not generate any from '
+                                              'your wallpaper',
                               );
                               return;
                             }

@@ -7,8 +7,10 @@
 ///    matugen setup already writes, so a desktop themed as a whole stays
 ///    consistent; failing that, run matugen directly against the detected
 ///    wallpaper, so this works with no template configuration at all.
-///  * **Android** would use the platform's own Material You palette, which is
-///    the same mechanism by a different route. Not wired yet; see [systemPalette].
+///  * **Android** uses the platform's own Material You palette, which is the
+///    same mechanism by a different route: Android 12+ derives the tonal
+///    palettes from the wallpaper itself and exposes them, so there is nothing
+///    to detect and nothing to run.
 ///
 /// This sits *above* the flavour: when a dynamic palette is loaded it wins,
 /// and the flavour still supplies any token the palette does not cover. So
@@ -19,6 +21,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/theme/flavour.dart';
@@ -84,6 +87,11 @@ String get effectiveMatugenPath {
 /// the content pane sits on `surface`, cards and menus on
 /// `surface_container_high`. Accents come from `primary`, which is the role
 /// that actually carries the wallpaper's hue.
+/// The tokens the matugen route fills, so a test can assert the Android route
+/// covers the same ground — a device themed by only half the mapping would
+/// come out half-flavour, half-system.
+Iterable<ColorToken> get matugenMappedTokens => _roleForToken.keys;
+
 const _roleForToken = <ColorToken, String>{
   ColorToken.pageBackground: 'surface',
   ColorToken.panel: 'surface_container_low',
@@ -284,6 +292,18 @@ Future<bool> generateMatugenPalette({String? image, String? scheme}) async {
 /// desktop from one scheme wants Soiboi to match it exactly, not to
 /// re-derive something close. Generating is the fallback for everyone else.
 Future<bool> autoLoadDynamicPalette() async {
+  // Android needs no detection and nothing to run: the system already derived
+  // the palette from the wallpaper, so asking it is both cheaper and more
+  // faithful than re-deriving something close.
+  if (Platform.isAndroid) {
+    if (await loadSystemPalette()) {
+      dynamicColorSourceDescription = 'Material You, from your wallpaper';
+      return true;
+    }
+    dynamicColorSourceDescription = null;
+    return false;
+  }
+
   if (await loadMatugenPalette()) {
     dynamicColorSourceDescription = 'Read from $effectiveMatugenPath';
     return true;
@@ -311,9 +331,77 @@ Color? dynamicColor(ColorToken? token, {required bool isDark}) {
   return palette?[token];
 }
 
-/// Android's system Material You palette.
+/// Material 3 role → [ColorToken], as a [ColorScheme] exposes them.
 ///
-/// Deliberately unimplemented rather than faked: reading it needs a platform
-/// channel into `DynamicColors`, and returning something plausible here would
-/// paint the app in colours the system never chose.
-Palette? systemPalette({required bool isDark}) => null;
+/// The same assignment [_roleForToken] already encodes for matugen's JSON,
+/// expressed against the typed fields instead of string keys — a second small
+/// mapping, not a second schema. Keeping them side by side is what makes a
+/// Linux and an Android device with the same wallpaper look like the same app.
+Palette paletteFromColorScheme(ColorScheme scheme) => {
+  ColorToken.pageBackground: scheme.surface,
+  ColorToken.panel: scheme.surfaceContainerLow,
+  ColorToken.sidebar: scheme.surfaceContainerLowest,
+  ColorToken.bottom: scheme.surfaceContainer,
+  ColorToken.menu: scheme.surfaceContainerHigh,
+  ColorToken.button: scheme.surfaceContainerHigh,
+  ColorToken.searchField: scheme.surfaceContainerHigh,
+  ColorToken.selectedItem: scheme.secondaryContainer,
+  ColorToken.divider: scheme.outlineVariant,
+  ColorToken.text: scheme.onSurfaceVariant,
+  ColorToken.highlightText: scheme.onSurface,
+  ColorToken.icon: scheme.onSurfaceVariant,
+  ColorToken.seekBar: scheme.primary,
+  ColorToken.volumeBar: scheme.primary,
+  ColorToken.switchTrack: scheme.primary,
+  ColorToken.glass: scheme.surfaceContainer,
+  ColorToken.lyricsBackground: scheme.surface,
+  ColorToken.lyricsForeground: scheme.onSurfaceVariant,
+  ColorToken.lyricsHighlightText: scheme.onSurface,
+  ColorToken.lyricsButton: scheme.surfaceContainerHigh,
+  ColorToken.lyricsDivider: scheme.outlineVariant,
+  ColorToken.lyricsSelectedItem: scheme.secondaryContainer,
+  ColorToken.lyricsMenu: scheme.surfaceContainerHigh,
+};
+
+/// The schemes built from the last palette Android handed over.
+///
+/// Cached as [ColorScheme]s rather than as the core palette itself: the type
+/// `getCorePalette` returns is deprecated upstream in favour of a replacement
+/// this package version does not expose, and holding the converted result
+/// means never naming it.
+ColorScheme? _systemLight;
+ColorScheme? _systemDark;
+
+/// Android's system Material You palette, or null where there is none.
+///
+/// Null is the honest answer in three real cases and the caller already treats
+/// it as "fall back to the flavour": not Android at all, Android 11 or older
+/// (no `DynamicColors`, so `getCorePalette` returns null), and an OEM build
+/// that does not implement it. Nothing is faked — painting the app in colours
+/// the system never chose would be worse than not following it.
+Palette? systemPalette({required bool isDark}) {
+  final scheme = isDark ? _systemDark : _systemLight;
+  return scheme == null ? null : paletteFromColorScheme(scheme);
+}
+
+/// Reads Android's palette and applies it. Returns false when there is none.
+Future<bool> loadSystemPalette() async {
+  if (!Platform.isAndroid) return false;
+  try {
+    final core = await DynamicColorPlugin.getCorePalette();
+    if (core == null) return false;
+    _systemLight = core.toColorScheme();
+    _systemDark = core.toColorScheme(brightness: Brightness.dark);
+  } catch (e) {
+    // A platform channel failure is a missing feature, not a crash: the app
+    // must still paint.
+    logger.output('dynamic color: $e');
+    _systemLight = null;
+    _systemDark = null;
+    return false;
+  }
+
+  dynamicLightNotifier.value = systemPalette(isDark: false);
+  dynamicDarkNotifier.value = systemPalette(isDark: true);
+  return true;
+}

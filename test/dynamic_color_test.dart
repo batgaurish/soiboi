@@ -3,6 +3,7 @@ library;
 
 import 'dart:io';
 
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/theme/flavour.dart';
@@ -60,5 +61,48 @@ void main() {
   test('labels are readable, not raw scheme ids', () {
     expect(schemeLabel('scheme-fruit-salad'), 'Fruit Salad');
     expect(schemeLabel('scheme-tonal-spot'), 'Tonal Spot');
+  });
+
+  group('Android system colours', () {
+    test('no palette on a non-Android host, and no crash asking', () async {
+      // The settings screen calls this to decide what to offer, so it has to
+      // answer on every platform. False here is the honest answer, and the
+      // caller already treats it as "fall back to the flavour".
+      expect(await loadSystemPalette(), isFalse);
+      expect(systemPalette(isDark: false), isNull);
+      expect(systemPalette(isDark: true), isNull);
+    });
+
+    test('every token the flavour paints has a system role behind it', () {
+      // The Android mapping and the matugen mapping have to cover the same
+      // ground, or a device would come out half-themed: one route would leave
+      // tokens to the flavour that the other fills.
+      final scheme = ColorScheme.fromSeed(
+        seedColor: const Color(0xff5b7fff),
+        brightness: Brightness.dark,
+      );
+      final fromScheme = paletteFromColorScheme(scheme);
+      for (final token in matugenMappedTokens) {
+        expect(
+          fromScheme.containsKey(token),
+          isTrue,
+          reason: '$token is mapped for matugen but not for Android',
+        );
+      }
+    });
+
+    test('the mapping produces a usable palette, not a blank one', () {
+      final palette = paletteFromColorScheme(
+        ColorScheme.fromSeed(seedColor: const Color(0xff5b7fff)),
+      );
+      expect(palette[ColorToken.pageBackground], isNotNull);
+      expect(palette[ColorToken.seekBar], isNotNull);
+      // Text has to differ from the surface it sits on, or the app is
+      // unreadable in whatever the wallpaper happened to be.
+      expect(
+        palette[ColorToken.highlightText],
+        isNot(palette[ColorToken.pageBackground]),
+      );
+    });
   });
 }
