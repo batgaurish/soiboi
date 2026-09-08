@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the FileProvider is allowed to share. Deliberately only the updates
+  directory: the same provider would otherwise expose the whole of the app's
+  private storage, including the Apple Music cookie jar.
+
+  "files" is getFilesDir(), which is where appSupportDir points on Android, so
+  update_service.dart's staging directory lands at files/updates.
+-->
+<paths>
+    <files-path name="updates" path="updates/" />
+</paths>

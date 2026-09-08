@@ -13,11 +13,13 @@ import org.flame_engine.gamepads_android.GamepadsCompatibleActivity
 
 class MainActivity: AudioServiceActivity(), GamepadsCompatibleActivity {
 
-    /// Registers the bridge to the bundled Python pipeline. Done here rather
-    /// than lazily so the channel exists before any Dart code asks for it.
+    /// Registers the bridges to the bundled Python pipeline and to the package
+    /// installer. Done here rather than lazily so the channels exist before any
+    /// Dart code asks for them.
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         PipelineChannel(flutterEngine, applicationContext)
+        UpdateChannel(flutterEngine, applicationContext)
     }
 
     var keyListener: ((KeyEvent) -> Boolean)? = null
