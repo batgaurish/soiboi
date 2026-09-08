@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:http/http.dart' as http;
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/backup_service.dart';
 import 'package:soiboi/base/data/config.dart';
@@ -14,7 +12,9 @@ import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
 import 'package:soiboi/layer/apple_signin_layer.dart';
+import 'package:soiboi/base/services/update_service.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
+import 'package:soiboi/layer/update_sheet.dart';
 import 'package:soiboi/layer/storage_cleanup_sheet.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/app.dart';
@@ -42,7 +42,6 @@ import 'package:soiboi/portrait_view/sleep_timer.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SettingsList extends StatefulWidget {
   final double? iconSize;
@@ -1320,114 +1319,35 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
+  /// Checks GitHub for a newer build, and installs it.
+  ///
+  /// The old version of this tile fetched `AfalpHy/soiboi` — upstream
+  /// Sylvakru's own update check, inherited unedited — a repository that does
+  /// not exist, so every check this app ever made answered 404. It also only
+  /// offered to open a browser; the actual download and install now happen in
+  /// the sheet.
   Widget checkUpdate(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: ImageIcon(checkUpdateImage, size: iconSize),
       title: Text(l10n.checkUpdate),
+      subtitle: Text(
+        'You have $versionNumber',
+        style: TextStyle(fontSize: 12, color: textColor.value),
+      ),
       onTap: () async {
-        final url = Uri.parse(
-          'https://api.github.com/repos/AfalpHy/soiboi/releases/latest',
-        );
-
-        try {
-          final response = await http
-              .get(url)
-              .timeout(const Duration(seconds: 3));
-          if (response.statusCode != 200) {
-            if (context.mounted) {
-              showCenterMessage(
-                'Failed to fetch GitHub release:${response.statusCode}',
-              );
-            }
-            return;
-          }
-          final data = jsonDecode(response.body);
-          String latestVersion = (data['tag_name'] as String).replaceFirst(
-            'v',
-            '',
-          );
-          if (compareVersion(latestVersion, versionNumber) > 0) {
-            if (context.mounted) {
-              showAnimationDialog(
-                context: context,
-
-                child: SizedBox(
-                  height: isMobile ? 350 : 400,
-                  width: isMobile ? 320 : 400,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 30),
-                            child: ListView(
-                              children: [
-                                Center(
-                                  child: Text(
-                                    data['tag_name'] as String,
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: .bold,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 10),
-
-                                Text(data['body'] as String),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        ValueListenableBuilder(
-                          valueListenable: buttonColor.valueNotifier,
-                          builder: (context, value, child) {
-                            return Row(
-                              children: [
-                                Spacer(),
-                                ElevatedButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: value,
-                                  ),
-                                  child: Text(l10n.cancel),
-                                ),
-                                SizedBox(width: 20),
-                                ElevatedButton(
-                                  onPressed: () => launchUrl(
-                                    Uri.parse(
-                                      "https://github.com/AfalpHy/soiboi/releases/latest",
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: value,
-                                  ),
-                                  child: Text(l10n.go2Download),
-                                ),
-                                Spacer(),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-          } else {
-            if (context.mounted) {
-              showCenterMessage(l10n.alreadyLatest);
-            }
-          }
-        } catch (e) {
-          if (context.mounted) {
+        showCenterMessage('Checking for updates…');
+        final check = await checkForUpdate();
+        if (!context.mounted) return;
+        switch (check.state) {
+          case UpdateState.available:
+            await showUpdateSheet(context, check.release!);
+          case UpdateState.upToDate:
+            showCenterMessage(l10n.alreadyLatest);
+          case UpdateState.failed:
             showCenterMessage(
-              'Failed to fetch GitHub release:$e',
+              'Could not check for updates: ${check.error}',
               duration: 5000,
             );
-          }
         }
       },
     );
