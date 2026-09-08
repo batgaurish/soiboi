@@ -2,12 +2,22 @@
 # Builds the Python runtime the app needs, at a path given by the caller.
 #
 # Shared by tools/package_linux.sh (which builds it inside a tarball's bundle)
-# and tools/install_linux.sh (which builds it inside an installed copy),
-# because the *path matters*: a virtualenv is not relocatable — bin/python is a
-# symlink into the system interpreter and pyvenv.cfg holds absolute paths — so
-# it has to be created where it will finally live rather than created once and
-# copied. One implementation, so the two callers cannot drift on what "the
-# runtime" means.
+# and tools/install_linux.sh (which builds it inside an installed copy), so the
+# two cannot drift on what "the runtime" means.
+#
+# On relocatability, since the earlier note here was wrong and it matters:
+# a venv built WITHOUT --copies has bin/python as a symlink into the system
+# interpreter, and moving that tree breaks it. With --copies the venv owns a
+# real interpreter binary and Python derives sys.prefix from that binary's own
+# location, so the whole tree *does* survive being moved — verified by
+# extracting a packaged tarball to an unrelated path and running the pipeline
+# from it. What does not survive are the bin/* console-script shebangs (pip,
+# maturin), which hold absolute paths; nothing at runtime uses them, because
+# the app invokes `<venv>/bin/python -m soiboi_pipeline` directly.
+#
+# Each caller still builds at the final path rather than copying, which is
+# belt-and-braces now rather than a requirement: it also guarantees the native
+# bliss wheel is compiled against the interpreter that will run it.
 #
 # Usage: build_runtime_venv <venv-path> <repo-root>
 
