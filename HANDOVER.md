@@ -48,76 +48,57 @@ replacement for it.
 | 5 | Smart playlist templates | **Done, committed, verified live** |
 | 6 | Auto-generated mood playlists on Home | **Done, committed, verified live** |
 | 7 | QOL: download queue / resumable downloads / storage cleanup | **Done, committed, verified live** |
-| 8 | Auto-update checker + installer (Android + Linux) | Not started (partial infra already exists, see note below) |
+| 8 | Auto-update checker + installer (Android + Linux) | **Done, committed, verified live (Android); Linux not runnable here** |
 | 9 | Multi-platform playlist import (`ExternalPlaylistSource`) | Not started |
 | 10 | Global search shell | Not started |
 | 11 | Android dynamic color | Not started |
 
-All commits through Phase 7 are pushed to `origin/main`.
+All commits through Phase 8 are pushed to `origin/main`.
 
-### Where to pick up: Phase 8 (auto-update checker + installer)
+### Where to pick up: Phase 9 (multi-platform playlist import)
 
-Phase 7 is done, pushed and verified live. Three things landed:
+Phases 7 and 8 are done, pushed and verified. Phase 8 notes worth keeping:
 
-- **`lib/base/services/download_queue_manager.dart`** now owns execution.
-  The three call sites that each looped over `archiveUrl` — the Downloads
-  form, the discovery playlist sheet, the catalog album sheet — only
-  `enqueue()` now and follow their own `DownloadBatch` (a `completed`
-  notifier plus a `done` future), so the sheets read exactly as before but
-  the work outlives the widget. One worker, sequential, because Apple
-  rate-limits. `syncArchivedToLibrary()` moved into the manager and runs once
-  when the queue drains, so the call sites no longer call it. Finished
-  history is capped at 60, which also closes the old "`_completed` grows
-  unbounded" note.
-- **Resume is track-level, not byte-level, and that is a pipeline fact, not
-  a shortcut.** gamdl hands yt-dlp `overwrites: True` and drives
-  `HttpFD`/`HlsFD` directly with no `continuedl`, so an interrupted *file*
-  always restarts from zero — there is no partial-file resume to be had.
-  What it does support is skipping any track whose final path already
-  exists, logged as a WARNING (`Skipping "…": Media file already exists`),
-  never as an ERROR, so `_StreamTap` does not mistake it for a failure.
-  Dropping the unconditional `--overwrite` is therefore the whole feature:
-  retrying an album that died at track nine now fetches the last two.
-  `archiveUrl(redownload: true)` still forces a refetch. Files only reach
-  the final path after muxing and tagging, so a half-written download never
-  counts as present.
-- **`lib/base/data/storage_cleanup.dart` + `lib/layer/storage_cleanup_sheet.dart`**:
-  largest / least-played / not-played-longest, sizes read by `stat` (there
-  is no size field on `MyAudioMetadata`), delete takes the `.lrc` and
-  `.soiboi-acoustic.json` sidecars with the track and then rescans. Manual
-  review only, no automatic policy — deliberate, given this device holds the
-  only copy.
+- **The update tile had never worked, for three separate reasons.** It
+  fetched `AfalpHy/soiboi` (a repo that does not exist); `/releases/latest`
+  excludes prereleases and every build this project ships is one, so that
+  endpoint 404s for `batgaurish/soiboi` too; and `compareVersion`
+  `int.parse`s each dot-part, so a real tag (`v4.1.0-debug` → `'0-debug'`)
+  throws. `lib/base/services/update_service.dart` lists `/releases`,
+  filters drafts, keeps prereleases, picks the *highest* version rather
+  than the most recent, and compares on the numeric core only
+  (`releaseVersion` / `compareReleaseVersion`). `compareVersion` in
+  `common_utils.dart` was left alone — `loader.dart` still uses it on
+  stored version strings that are always plain.
+- **Android install path:** `UpdateChannel.kt` + a FileProvider scoped by
+  `res/xml/file_paths.xml` to `files/updates` only — deliberately not the
+  whole of app storage, which would expose the Apple Music cookie jar.
+  `REQUEST_INSTALL_PACKAGES` is in the manifest. When the per-app "install
+  unknown apps" permission is missing the bridge *opens that settings
+  page* instead of returning a dead end; that is the first thing you will
+  hit on a fresh device, and it is intended.
+- **Linux install path is written but not runnable in this environment** —
+  the Linux GUI still segfaults at startup (`lua/ytdl_hook`, see below), so
+  the swap-and-relaunch has never been exercised against a real running
+  app. What *is* tested: `findBundleDir` against a nested extraction, and
+  `linuxSwapScript` both string-asserted and actually executed against real
+  directories (a quoting mistake in that heredoc would be invisible to a
+  string assertion). **If someone gets the Linux build running, exercising
+  a real update is the one outstanding verification for this phase.**
+- **How to test an update without publishing anything:** temporarily set
+  `versionNumber` in `lib/base/app.dart` to something below the newest
+  real tag, build, run the flow, then revert. That is how the Android path
+  was verified against the genuine `v4.1.0-debug` release — no test release
+  was cut, and none is needed.
+- The APK asset is ~600 MB (debug), so a real update download takes a
+  while and needs the space; the emulator had 6.7 GB free. The staged file
+  lands at `files/updates/` and is worth deleting after a test.
 
-**Divergence from the plan, recorded in the plan file too:** both new
-screens are `showAnimationDialog` sheets, not pushed detail layers. Every
-settings detail layer in this app is a `part` pair (a portrait page and a
-landscape panel) and each of these is a single list; sheets are already the
-idiom here (catalog, discovery) and work from inside a layer's nested
-navigator. The queue's body (`DownloadQueueView`) is also embedded inline on
-the Downloads screen, so there is one implementation, two entry points.
-
-Also not built, and honestly so: **a running job cannot be cancelled.**
-Neither transport can interrupt the pipeline once it has started —
-cancelling the Dart stream subscription does not kill the desktop process,
-and Android is in-process — so `cancel()` only drops *queued* jobs, and
-Pause is worded as taking effect after the track in flight. Do not "fix"
-this without changing the transport first.
-
-Next is **Phase 8** — read the plan file's Phase 8 section, and the note
-just below.
-
-### Note for Phase 8 (auto-update), found in passing, not yet acted on
-
-`lib/base/widgets/settings_list.dart` already has a `checkUpdate` tile
-(search `checkUpdateImage` / `Widget checkUpdate`) that fetches
-`https://api.github.com/repos/AfalpHy/soiboi/releases/latest` — **that repo
-does not exist** (should be `batgaurish/soiboi`, inherited unedited from
-upstream Sylvakru's own update-check pointing at itself). It already has a
-working version-compare (`compareVersion`) and a release-notes dialog with a
-"go to download" button that just opens the browser. When you get to Phase
-8: fix the repo URL first, then extend this same tile/dialog with the
-actual download+install flow the plan describes, rather than writing the
-version-check part from scratch.
+Next is **Phase 9** — read the plan file's Phase 9 section. Note its
+explicit prerequisite: the Spotify-vs-YouTube-Music decision needs its own
+spike before any code is written, and the "iTunes Search does not index
+every album" trap below is directly relevant to how much any of it can be
+trusted.
 
 ---
 
