@@ -57,6 +57,18 @@ def handle(command, payload=None, emit=None):
         result = acoustic.analyze_directory(directory, emit=emit)
         return {"event": "done", **result}
 
+    if command == "playlist":
+        url = payload.get("url")
+        if not url:
+            return {
+                "event": "error",
+                "code": "bad_request",
+                "message": "Missing: url",
+            }
+        from . import playlist
+
+        return playlist.fetch(url, limit=payload.get("limit"), emit=emit)
+
     if command == "download":
         missing = [
             key for key in ("url", "cookies_path", "output_dir")

@@ -24,6 +24,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/services/external_playlist_source.dart';
 import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/logger.dart';
 
@@ -324,4 +325,35 @@ Future<List<LbTrack>> discoveryTracks(String mbid) async {
     logger.output('listenbrainz playlist tracks: $e');
     return const [];
   }
+}
+
+/// ListenBrainz as an [ExternalPlaylistSource].
+///
+/// A pure wrapper over the two functions above — no behaviour changes, and it
+/// deliberately does not become the only way to reach them, because the Home
+/// shelf still wants ListenBrainz's rankings, which are not a playlist concept
+/// any other source has.
+class ListenBrainzPlaylistSource extends ExternalPlaylistSource {
+  @override
+  String get id => 'listenbrainz';
+
+  @override
+  String get displayName => 'ListenBrainz';
+
+  @override
+  Future<List<ExternalPlaylist>> playlists() async => [
+    for (final playlist in await discoveryPlaylists())
+      ExternalPlaylist(
+        sourceId: id,
+        id: playlist.mbid,
+        title: playlist.title,
+        lastModified: playlist.lastModified,
+      ),
+  ];
+
+  @override
+  Future<List<ExternalTrack>> tracks(String playlistId) async => [
+    for (final track in await discoveryTracks(playlistId))
+      ExternalTrack(title: track.title, artist: track.artist),
+  ];
 }
