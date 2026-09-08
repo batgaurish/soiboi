@@ -257,6 +257,20 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
   Control session (confirmed working for `pacman -S wpewebkit`).
 - **Uploading a ~600 MB release asset takes ~25 minutes.** Background it; the
   release shows an `untagged-…` URL until `gh release create` finishes.
+- **`git push origin main` can fail with "Permission denied (publickey)"** —
+  `origin` is an SSH remote and the agent is not always reachable from the
+  session (`SSH_AUTH_SOCK` unset). `gh` is authenticated independently, so
+  push over HTTPS with its token instead of changing the user's remote:
+
+  ```bash
+  GH_TOKEN=$(gh auth token)
+  git -c credential.helper='!f(){ echo username=batgaurish; echo password='"$GH_TOKEN"'; };f' \
+    push https://github.com/batgaurish/soiboi.git main
+  ```
+
+  `git fetch` fails the same way, which leaves `origin/main` stale and the
+  working copy looking "ahead" after a successful push — `git update-ref
+  refs/remotes/origin/main <sha>` corrects it.
 
 ---
 
