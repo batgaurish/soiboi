@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:screen_corner_radius/screen_corner_radius.dart';
 
-const String versionNumber = '4.2.3';
+const String versionNumber = '1.0b';
 
 late final Directory appDocsDir;
 late final Directory appSupportDir;
