@@ -1308,6 +1308,17 @@ class _SettingsListState extends State<SettingsList> {
                                 ),
                                 ListTile(
                                   title: Text(l10n.vividMode),
+                                  // "Vivid" says nothing about what it does.
+                                  // This is the album-art colouring people
+                                  // go looking for and do not find, so the
+                                  // tile now says so.
+                                  subtitle: Text(
+                                    'Colours taken from the album art',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textColor.value,
+                                    ),
+                                  ),
                                   onTap: () {
                                     if (!isPremiumNotifier.value) {
                                       showPremiumDialog(context);
@@ -1366,6 +1377,17 @@ class _SettingsListState extends State<SettingsList> {
                                 ),
                                 ListTile(
                                   title: Text(l10n.vividMode),
+                                  // "Vivid" says nothing about what it does.
+                                  // This is the album-art colouring people
+                                  // go looking for and do not find, so the
+                                  // tile now says so.
+                                  subtitle: Text(
+                                    'Colours taken from the album art',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textColor.value,
+                                    ),
+                                  ),
                                   onTap: () {
                                     lyricsPageThemeNotifier.value = .vivid;
                                   },
