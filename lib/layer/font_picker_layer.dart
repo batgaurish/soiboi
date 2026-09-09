@@ -21,6 +21,7 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/layer/settings_layer.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/portrait_view/my_search_field.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 part '../portrait_view/pages/font_picker_page.dart';
 part '../landscape_view/panels/font_picker_panel.dart';

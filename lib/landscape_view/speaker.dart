@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 double? _volumeTmp;
 
@@ -23,7 +24,7 @@ class Speaker extends StatelessWidget {
                 audioHandler.savePlayState();
               }
             },
-            icon: ImageIcon(speakerOffImage, size: 25),
+            icon: AppIcon(speakerOffImage, size: 25),
           );
         }
         _volumeTmp = null;
@@ -36,7 +37,7 @@ class Speaker extends StatelessWidget {
             audioHandler.setVolume(0);
             audioHandler.savePlayState();
           },
-          icon: ImageIcon(speakerImage, size: 25),
+          icon: AppIcon(speakerImage, size: 25),
         );
       },
     );

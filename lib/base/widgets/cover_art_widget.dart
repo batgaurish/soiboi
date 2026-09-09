@@ -5,6 +5,7 @@ import 'package:soiboi/base/asset_images.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/picture_load_scheduler.dart';
 import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class CoverArtWidget extends StatelessWidget {
   final double? size;
@@ -75,7 +76,7 @@ class CoverArtWidget extends StatelessWidget {
   }
 
   Widget musicNote() {
-    return ImageIcon(musicNoteImage, size: size);
+    return AppIcon(musicNoteImage, size: size);
   }
 }
 

@@ -14,6 +14,7 @@ import 'package:soiboi/layer/lyrics_page_layer.dart';
 import 'package:soiboi/mini_view/mini_view.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class TitleBar extends StatefulWidget {
   final bool isMainPage;
@@ -141,7 +142,7 @@ class _TitleBarState extends State<TitleBar> {
                             displayLyricsPage = false;
                             Navigator.pop(context);
                           },
-                          icon: ImageIcon(arrowDownImage),
+                          icon: AppIcon(arrowDownImage),
                         );
                       },
                     );
@@ -169,7 +170,7 @@ class _TitleBarState extends State<TitleBar> {
                 icon: ValueListenableBuilder(
                   valueListenable: isFullScreenNotifier,
                   builder: (context, isFullScreen, child) {
-                    return ImageIcon(
+                    return AppIcon(
                       isFullScreen ? fullscreenExitImage : fullscreenImage,
                     );
                   },
@@ -183,13 +184,13 @@ class _TitleBarState extends State<TitleBar> {
         if (widget.scrollToTop != null)
           IconButton(
             onPressed: widget.scrollToTop,
-            icon: ImageIcon(topArrowImage),
+            icon: AppIcon(topArrowImage),
           ),
 
         if (widget.findLocation != null)
           IconButton(
             onPressed: widget.findLocation,
-            icon: ImageIcon(locationImage),
+            icon: AppIcon(locationImage),
           ),
 
         if (widget.isMainPage)
@@ -197,7 +198,7 @@ class _TitleBarState extends State<TitleBar> {
             onPressed: () {
               layersManager.switchRootLayer('settings');
             },
-            icon: ImageIcon(settingImage),
+            icon: AppIcon(settingImage),
           ),
 
         if (widget.isMainPage)
@@ -224,7 +225,7 @@ class _TitleBarState extends State<TitleBar> {
                 layersManager.clearAll();
               });
             },
-            icon: ImageIcon(bigPictureModeImage),
+            icon: AppIcon(bigPictureModeImage),
           ),
 
         if (!isMobile) windowControls(),
@@ -356,7 +357,7 @@ class _TitleBarState extends State<TitleBar> {
                       layersManager.popDetail('playlists');
                       while (await layersManager.popDetail('settings')) {}
                     },
-                    icon: ImageIcon(miniModeImage),
+                    icon: AppIcon(miniModeImage),
                   ),
                 IconButton(
                   color: widget.isMainPage
@@ -365,7 +366,7 @@ class _TitleBarState extends State<TitleBar> {
                   onPressed: () {
                     windowManager.minimize();
                   },
-                  icon: ImageIcon(minimizeImage),
+                  icon: AppIcon(minimizeImage),
                 ),
                 ValueListenableBuilder(
                   valueListenable: isMaximizedNotifier,
@@ -379,7 +380,7 @@ class _TitleBarState extends State<TitleBar> {
                             ? windowManager.unmaximize()
                             : windowManager.maximize();
                       },
-                      icon: ImageIcon(value ? unmaximizeImage : maximizeImage),
+                      icon: AppIcon(value ? unmaximizeImage : maximizeImage),
                     );
                   },
                 ),
@@ -390,7 +391,7 @@ class _TitleBarState extends State<TitleBar> {
                   onPressed: () {
                     windowManager.close();
                   },
-                  icon: ImageIcon(closeImage),
+                  icon: AppIcon(closeImage),
                 ),
               ],
             );

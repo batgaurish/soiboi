@@ -43,6 +43,7 @@ import 'package:soiboi/portrait_view/sleep_timer.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class SettingsList extends StatefulWidget {
   final double? iconSize;
@@ -77,7 +78,7 @@ class _SettingsListState extends State<SettingsList> {
 
               child: Focus(
                 child: ListTile(
-                  leading: ImageIcon(settingImage, size: 50),
+                  leading: AppIcon(settingImage, size: 50),
                   title: Text(
                     l10n.settings,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -223,7 +224,7 @@ class _SettingsListState extends State<SettingsList> {
             paddingIfNeed(
               isLandscape,
               ListTile(
-                leading: ImageIcon(infoImage, size: iconSize),
+                leading: AppIcon(infoImage, size: iconSize),
                 title: Text(l10n.about),
                 onTap: () {
                   layersManager.pushDetail('settings', 'about');
@@ -261,7 +262,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget syncListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(reloadImage, size: iconSize),
+      leading: AppIcon(reloadImage, size: iconSize),
       title: Text(l10n.syncLibrary),
       onTap: () async {
         if (await showConfirmDialog(context, l10n.syncLibrary)) {
@@ -282,7 +283,7 @@ class _SettingsListState extends State<SettingsList> {
     AppLocalizations l10n,
   ) {
     return ListTile(
-      leading: ImageIcon(folderImage, size: iconSize),
+      leading: AppIcon(folderImage, size: iconSize),
       title: Text(l10n.manageMusicFolder),
       onTap: () {
         showAnimationDialog(context: context, child: ManageMusicFolders());
@@ -292,7 +293,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget premiumFeaturesListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(premiumImage, size: iconSize),
+      leading: AppIcon(premiumImage, size: iconSize),
       title: Text(l10n.premiumFeatures),
       onTap: () {
         layersManager.pushDetail('settings', 'premium');
@@ -318,7 +319,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget switchSourceTypeListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(optionImage, size: iconSize),
+      leading: AppIcon(optionImage, size: iconSize),
       title: Text(l10n.switchSource),
       onTap: () {
         if (Loader.busy) {
@@ -413,7 +414,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget manageServersListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(serverImage, size: iconSize),
+      leading: AppIcon(serverImage, size: iconSize),
       title: Text(l10n.manageServers),
       onTap: () {
         showAnimationDialog(
@@ -511,7 +512,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget cleanCacheListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(cacheImage, size: iconSize),
+      leading: AppIcon(cacheImage, size: iconSize),
       title: Text(l10n.clearCache),
       onTap: () async {
         if (Loader.busy) {
@@ -539,7 +540,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget languageListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(languageImage, size: iconSize),
+      leading: AppIcon(languageImage, size: iconSize),
       title: Text(l10n.language),
       onTap: () {
         showAnimationDialog(
@@ -617,7 +618,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget vibrationListTile(AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(vibrationImage, size: iconSize),
+      leading: AppIcon(vibrationImage, size: iconSize),
       title: Text(l10n.vibration),
       trailing: SizedBox(
         width: 50,
@@ -643,7 +644,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget fontListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(fontImage, size: iconSize),
+      leading: AppIcon(fontImage, size: iconSize),
 
       title: Text(l10n.fonts),
       onTap: () {
@@ -675,7 +676,7 @@ class _SettingsListState extends State<SettingsList> {
   /// light it is, and the two compose.
   Widget flavourListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(themeImage, size: iconSize),
+      leading: AppIcon(themeImage, size: iconSize),
       title: const Text('Flavour'),
       subtitle: ValueListenableBuilder(
         valueListenable: flavourNotifier,
@@ -1053,7 +1054,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget themeListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(themeImage, size: iconSize),
+      leading: AppIcon(themeImage, size: iconSize),
       title: Text(l10n.theme),
       onTap: () async {
         mainPageThemeNotifier.addListener(_updateMainPageTheme);
@@ -1198,7 +1199,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget equalizerListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(equalizerImage, size: iconSize),
+      leading: AppIcon(equalizerImage, size: iconSize),
       title: Text(l10n.equalizer),
       onTap: () {
         if (!isPremiumNotifier.value) {
@@ -1246,7 +1247,7 @@ class _SettingsListState extends State<SettingsList> {
     return ListTile(
       leading: Transform.scale(
         scale: 0.9,
-        child: ImageIcon(fullscreenImage, size: iconSize),
+        child: AppIcon(fullscreenImage, size: iconSize),
       ),
 
       title: Text(l10n.immersiveWideLayout),
@@ -1616,7 +1617,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget lrclibListTile(AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(lyricsImage, size: iconSize),
+      leading: AppIcon(lyricsImage, size: iconSize),
       title: const Text('Fetch lyrics from LRCLIB'),
       subtitle: Text(
         'Only for tracks with no local lyrics',
@@ -1636,7 +1637,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget autoPlayOnStartupListTile(AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(playOutlinedImage, size: iconSize),
+      leading: AppIcon(playOutlinedImage, size: iconSize),
 
       title: Text(l10n.autoPlayOnStartup),
       trailing: SizedBox(
@@ -1653,7 +1654,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget exitOnClose(AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(powerOffImage),
+      leading: AppIcon(powerOffImage),
 
       title: Text(l10n.closeAction),
       trailing: SizedBox(
@@ -1684,7 +1685,7 @@ class _SettingsListState extends State<SettingsList> {
   /// the sheet.
   Widget checkUpdate(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(checkUpdateImage, size: iconSize),
+      leading: AppIcon(checkUpdateImage, size: iconSize),
       title: Text(l10n.checkUpdate),
       subtitle: Text(
         'You have $versionNumber',
@@ -1757,7 +1758,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget backupLibraryListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(exportLogImage, size: iconSize),
+      leading: AppIcon(exportLogImage, size: iconSize),
       title: Text(l10n.backupLibrary),
       onTap: () async {
         try {
@@ -1776,7 +1777,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget restoreLibraryListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(reloadImage, size: iconSize),
+      leading: AppIcon(reloadImage, size: iconSize),
       title: Text(l10n.restoreLibrary),
       onTap: () async {
         if (!await showConfirmDialog(context, l10n.restoreLibrary)) return;
@@ -1799,7 +1800,7 @@ class _SettingsListState extends State<SettingsList> {
 
   Widget viewLogListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
-      leading: ImageIcon(exportLogImage, size: iconSize),
+      leading: AppIcon(exportLogImage, size: iconSize),
 
       title: Text(l10n.viewLog),
       onTap: () async {

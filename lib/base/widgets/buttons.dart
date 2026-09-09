@@ -10,6 +10,7 @@ import 'package:soiboi/base/widgets/play_queue_sheet.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/pages/play_queue_page.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 Widget playModeButton(double? size, {Color? iconColor}) {
   return ValueListenableBuilder(
@@ -19,7 +20,7 @@ Widget playModeButton(double? size, {Color? iconColor}) {
 
       return IconButton(
         color: iconColor,
-        icon: ImageIcon(
+        icon: AppIcon(
           playMode == 0
               ? loopImage
               : playMode == 1
@@ -48,7 +49,7 @@ Widget playModeButton(double? size, {Color? iconColor}) {
                     return Column(
                       children: [
                         ListTile(
-                          leading: ImageIcon(loopImage, color: iconColor),
+                          leading: AppIcon(loopImage, color: iconColor),
                           title: Text(
                             l10n.loop,
                             style: TextStyle(color: textColor),
@@ -62,7 +63,7 @@ Widget playModeButton(double? size, {Color? iconColor}) {
                               : null,
                         ),
                         ListTile(
-                          leading: ImageIcon(shuffleImage, color: iconColor),
+                          leading: AppIcon(shuffleImage, color: iconColor),
 
                           title: Text(
                             l10n.shuffle,
@@ -77,7 +78,7 @@ Widget playModeButton(double? size, {Color? iconColor}) {
                               : null,
                         ),
                         ListTile(
-                          leading: ImageIcon(repeatImage, color: iconColor),
+                          leading: AppIcon(repeatImage, color: iconColor),
 
                           title: Text(
                             l10n.repeat,
@@ -107,7 +108,7 @@ Widget playModeButton(double? size, {Color? iconColor}) {
 Widget rewindButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: ImageIcon(rewindImage, size: size),
+    icon: AppIcon(rewindImage, size: size),
     onPressed: () {
       if (playQueue.isEmpty) {
         return;
@@ -124,7 +125,7 @@ Widget rewindButton(double size, {Color? iconColor}) {
 Widget skip2PreviousButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: ImageIcon(previousButtonImage, size: size),
+    icon: AppIcon(previousButtonImage, size: size),
     onPressed: () {
       audioHandler.skipToPrevious();
     },
@@ -156,7 +157,7 @@ Widget playOrPauseButton(double size, {Color? iconColor}) {
 Widget forwardButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: ImageIcon(forwardImage, size: size),
+    icon: AppIcon(forwardImage, size: size),
     onPressed: () {
       if (playQueue.isEmpty) {
         return;
@@ -174,7 +175,7 @@ Widget forwardButton(double size, {Color? iconColor}) {
 Widget skip2NextButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: ImageIcon(nextButtonImage, size: size),
+    icon: AppIcon(nextButtonImage, size: size),
     onPressed: () {
       audioHandler.skipToNext();
     },
@@ -186,7 +187,7 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
     builder: (context) {
       return IconButton(
         color: iconColor,
-        icon: ImageIcon(playQueueImage, size: size),
+        icon: AppIcon(playQueueImage, size: size),
         onPressed: () {
           if (playQueue.isEmpty) {
             return;

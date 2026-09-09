@@ -19,6 +19,7 @@ import 'package:soiboi/base/widgets/seekbar.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class LandscapeLyricsPage extends StatefulWidget {
   const LandscapeLyricsPage({super.key});
@@ -372,7 +373,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                         onPressed: () async {
                           showCenterMessage('Desktop lyrics has been removed');
                         },
-                        icon: const ImageIcon(desktopLyricsImage, size: 25),
+                        icon: const AppIcon(desktopLyricsImage, size: 25),
 
                         color: value,
                       ),

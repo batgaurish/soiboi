@@ -8,6 +8,7 @@ import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/my_sheet.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class PlayQueueSheet extends StatefulWidget {
   const PlayQueueSheet({super.key});
@@ -95,7 +96,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                         audioHandler.reversePlayQueue();
                         updateQueue();
                       },
-                      icon: ImageIcon(reverseImage),
+                      icon: AppIcon(reverseImage),
                     ),
 
                     playModeButton(null, iconColor: specificIconColor),
@@ -115,7 +116,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                           curve: Curves.linear,
                         );
                       },
-                      icon: ImageIcon(locationImage),
+                      icon: AppIcon(locationImage),
                     ),
                     IconButton(
                       color: specificIconColor,
@@ -130,7 +131,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                           }
                         }
                       },
-                      icon: const ImageIcon(deleteImage),
+                      icon: const AppIcon(deleteImage),
                     ),
                   ],
                 ),

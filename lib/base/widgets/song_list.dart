@@ -45,6 +45,7 @@ import 'package:soiboi/layer/recently_layer.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/portrait_view/my_search_field.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 part '../../landscape_view/panels/song_list_panel.dart';
 part '../../portrait_view/pages/song_list_page.dart';

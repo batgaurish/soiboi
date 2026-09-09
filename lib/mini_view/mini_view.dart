@@ -19,6 +19,7 @@ import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 final miniModeDisplayOverlayNotifier = ValueNotifier(true);
 Timer? miniModeHideOverlayTimer;
@@ -334,7 +335,7 @@ class _MiniViewState extends State<MiniView> {
                   await windowManager.show();
                   await windowManager.setAlwaysOnTop(false);
                 },
-                icon: ImageIcon(miniModeImage),
+                icon: AppIcon(miniModeImage),
               ),
               IconButton(
                 color: foregroundColor,
@@ -342,7 +343,7 @@ class _MiniViewState extends State<MiniView> {
                 onPressed: () {
                   windowManager.minimize();
                 },
-                icon: ImageIcon(minimizeImage),
+                icon: AppIcon(minimizeImage),
               ),
 
               IconButton(
@@ -351,7 +352,7 @@ class _MiniViewState extends State<MiniView> {
                 onPressed: () {
                   windowManager.close();
                 },
-                icon: ImageIcon(closeImage),
+                icon: AppIcon(closeImage),
               ),
             ],
           );
@@ -490,7 +491,7 @@ class _MiniViewState extends State<MiniView> {
                   }
                   myWindowListener.saveConfig();
                 },
-                icon: ImageIcon(lyricsImage),
+                icon: AppIcon(lyricsImage),
                 color: foregroundColor,
               ),
               Spacer(),
@@ -537,7 +538,7 @@ class _MiniViewState extends State<MiniView> {
 
                   myWindowListener.saveConfig();
                 },
-                icon: const ImageIcon(playQueueImage, size: 25),
+                icon: const AppIcon(playQueueImage, size: 25),
                 color: foregroundColor,
               ),
               Spacer(),
@@ -546,7 +547,7 @@ class _MiniViewState extends State<MiniView> {
                 onPressed: () async {
                   showCenterMessage('Desktop lyrics has been removed');
                 },
-                icon: const ImageIcon(desktopLyricsImage, size: 25),
+                icon: const AppIcon(desktopLyricsImage, size: 25),
 
                 color: foregroundColor,
               ),

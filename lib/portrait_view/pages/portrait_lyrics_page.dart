@@ -26,6 +26,7 @@ import 'package:soiboi/base/widgets/seekbar.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class PortraitLyricsPage extends StatefulWidget {
   const PortraitLyricsPage({super.key});
@@ -356,7 +357,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
               onPressed: () {
                 displayTimedPauseSetting(context);
               },
-              icon: ImageIcon(timerImage, size: 25),
+              icon: AppIcon(timerImage, size: 25),
             ),
             remainTimesText(textColor: lyricsPageForegroundColor.value),
             Spacer(),
@@ -499,7 +500,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                             ),
 
                             ListTile(
-                              leading: ImageIcon(
+                              leading: AppIcon(
                                 desktopLyricsImage,
                                 color: value,
                               ),
@@ -567,7 +568,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                           lyricsFontSizeOffsetNotifier.value -= 2;
                           setting.save();
                         },
-                        icon: ImageIcon(minimizeImage),
+                        icon: AppIcon(minimizeImage),
                       ),
                       ValueListenableBuilder(
                         valueListenable: lyricsFontSizeOffsetNotifier,
@@ -608,7 +609,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         onPressed: () {
                           lyricsTimeOffsetNotifier.value -= 100;
                         },
-                        icon: ImageIcon(minimizeImage),
+                        icon: AppIcon(minimizeImage),
                       ),
                       ValueListenableBuilder(
                         valueListenable: lyricsTimeOffsetNotifier,

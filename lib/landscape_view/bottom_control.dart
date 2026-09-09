@@ -13,6 +13,7 @@ import 'package:soiboi/base/widgets/seekbar.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class BottomControl extends StatelessWidget {
   const BottomControl({super.key});
@@ -158,7 +159,7 @@ class BottomControl extends StatelessWidget {
           onPressed: () {
             showCenterMessage('Desktop lyrics has been removed');
           },
-          icon: const ImageIcon(desktopLyricsImage, size: 25),
+          icon: const AppIcon(desktopLyricsImage, size: 25),
         ),
         ValueListenableBuilder(
           valueListenable: iconColor.valueNotifier,

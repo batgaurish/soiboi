@@ -28,6 +28,7 @@ import 'package:soiboi/big_picture_view/panels/big_single_artist_panel.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 DateTime? _lastShowTime;
 
@@ -1112,7 +1113,7 @@ void showSongListOptions(BuildContext context, List<MyAudioMetadata> songList) {
                 },
               ),
               ListTile(
-                leading: ImageIcon(shuffleImage),
+                leading: AppIcon(shuffleImage),
                 title: Text(l10n.shuffle),
                 onTap: () async {
                   Navigator.pop(context);
@@ -1123,7 +1124,7 @@ void showSongListOptions(BuildContext context, List<MyAudioMetadata> songList) {
               ),
 
               ListTile(
-                leading: ImageIcon(selectImage),
+                leading: AppIcon(selectImage),
                 title: Text(l10n.select),
                 onTap: () async {
                   Navigator.pop(context);
@@ -1172,7 +1173,7 @@ void showArtistsAlbumsOptions(BuildContext context, bool isArtist) {
               SizedBox(height: 10),
 
               ListTile(
-                leading: ImageIcon(sequenceImage),
+                leading: AppIcon(sequenceImage),
                 title: Text(
                   isAscending.value ? l10n.descending : l10n.ascending,
                 ),

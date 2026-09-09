@@ -9,6 +9,7 @@ import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/my_sheet.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 ValueNotifier<bool> sleepTimerOnNotifier = ValueNotifier(false);
 ValueNotifier<int> remainTimesNotifier = ValueNotifier(0);
@@ -143,7 +144,7 @@ Widget sleepTimerListTile(
   double? iconSize,
 }) {
   return ListTile(
-    leading: ImageIcon(timerImage, size: iconSize),
+    leading: AppIcon(timerImage, size: iconSize),
 
     title: Text(l10n.sleepTimer),
     onTap: () {

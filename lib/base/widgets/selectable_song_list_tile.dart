@@ -5,6 +5,7 @@ import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class SelectableSongListTile extends StatelessWidget {
   final int index;
@@ -111,7 +112,7 @@ class SelectableSongListTile extends StatelessWidget {
             child: Row(
               children: [
                 Spacer(),
-                ImageIcon(playOutlinedImage, size: 15, color: iconColor.value),
+                AppIcon(playOutlinedImage, size: 15, color: iconColor.value),
                 Text(song.playCount.toString()),
               ],
             ),
@@ -129,7 +130,7 @@ class SelectableSongListTile extends StatelessWidget {
                     child: Row(
                       children: [
                         SizedBox(width: 10),
-                        ImageIcon(reorderImage, color: iconColor.value),
+                        AppIcon(reorderImage, color: iconColor.value),
                       ],
                     ),
                   ),

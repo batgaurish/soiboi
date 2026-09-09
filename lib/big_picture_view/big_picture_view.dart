@@ -30,6 +30,7 @@ import 'package:soiboi/big_picture_view/panels/big_songs_panel.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class BigPictureView extends StatefulWidget {
   const BigPictureView({super.key});
@@ -179,7 +180,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                     viewModeNotifier.value = .normal;
                     layersManager.switchRootLayer('songs');
                   },
-                  icon: ImageIcon(bigPictureModeImage),
+                  icon: AppIcon(bigPictureModeImage),
                 ),
 
               if (!isMobile && !isFullScreenNotifier.value) ...[
@@ -187,7 +188,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                   onPressed: () {
                     windowManager.minimize();
                   },
-                  icon: ImageIcon(minimizeImage),
+                  icon: AppIcon(minimizeImage),
                 ),
                 IconButton(
                   onPressed: () async {
@@ -195,7 +196,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                         ? windowManager.unmaximize()
                         : windowManager.maximize();
                   },
-                  icon: ImageIcon(
+                  icon: AppIcon(
                     isMaximizedNotifier.value ? unmaximizeImage : maximizeImage,
                   ),
                 ),
@@ -203,7 +204,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                   onPressed: () {
                     windowManager.close();
                   },
-                  icon: ImageIcon(closeImage),
+                  icon: AppIcon(closeImage),
                 ),
               ],
             ],
@@ -267,7 +268,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                                   await windowManager.setFullScreen(true);
                                 }
                               },
-                              icon: ImageIcon(
+                              icon: AppIcon(
                                 isFullScreenNotifier.value
                                     ? fullscreenExitImage
                                     : fullscreenImage,
@@ -518,7 +519,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                                 default:
                               }
                             },
-                            icon: ImageIcon(optionImage),
+                            icon: AppIcon(optionImage),
                           ),
                         ),
                         SizedBox(width: isMobile ? 10 : 20),

@@ -77,7 +77,7 @@ extension _CollectionListPage on CollectionListState {
                     leading: ValueListenableBuilder(
                       valueListenable: isListViewNotifier!,
                       builder: (context, value, child) {
-                        return ImageIcon(value ? listImage : gridImage);
+                        return AppIcon(value ? listImage : gridImage);
                       },
                     ),
                     title: Text(
@@ -105,7 +105,7 @@ extension _CollectionListPage on CollectionListState {
                       return SizedBox.shrink();
                     }
                     return ListTile(
-                      leading: ImageIcon(pictureImage),
+                      leading: AppIcon(pictureImage),
                       title: Text(
                         l10n.pictureSize,
                         style: TextStyle(fontWeight: FontWeight.bold),
@@ -124,7 +124,7 @@ extension _CollectionListPage on CollectionListState {
 
                 if (randomizeNotifier != null)
                   ListTile(
-                    leading: ImageIcon(sequenceImage),
+                    leading: AppIcon(sequenceImage),
                     title: Text(
                       l10n.order,
                       style: TextStyle(fontWeight: FontWeight.bold),
