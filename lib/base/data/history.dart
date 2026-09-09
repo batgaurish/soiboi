@@ -20,6 +20,15 @@ class History {
   final List<Album> recentlyAlbumList = [];
 
   void load() {
+    // Rebuilt, not appended to. A second load -- after a library sync, or a
+    // source switch -- otherwise stacks a fresh copy of every played song on
+    // top of the previous list, and both screens then show duplicates in an
+    // order that no longer means anything. Today the callers happen to
+    // replace the History object first, which is exactly the kind of thing
+    // that stops being true silently.
+    rankingSongList.clear();
+    recentlySongList.clear();
+
     for (final song in library.songList) {
       if (song.playCount > 0 && song.lastPlayed != null) {
         rankingSongList.add(song);
