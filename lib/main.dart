@@ -9,6 +9,7 @@ import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/my_tray_listener.dart';
@@ -103,7 +104,8 @@ Future<void> main() async {
         mainPageThemeNotifier,
         lightHoverFocusColorNotifier,
         flavourNotifier,
-        dynamicColorEnabledNotifier,
+        colorSourceNotifier,
+        prebuiltPaletteNotifier,
         dynamicLightNotifier,
         dynamicDarkNotifier,
       ]),

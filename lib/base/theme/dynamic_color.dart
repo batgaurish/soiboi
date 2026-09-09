@@ -24,10 +24,8 @@ import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/flavour.dart';
-
-/// Whether to follow system colours instead of the flavour palette.
-final dynamicColorEnabledNotifier = ValueNotifier<bool>(false);
 
 /// Where to read matugen's output. Empty means the default location.
 final matugenPathNotifier = ValueNotifier<String>('');
@@ -324,9 +322,12 @@ void clearDynamicPalette() {
   dynamicDarkNotifier.value = null;
 }
 
-/// The dynamic colour for [token], or null to fall through to the flavour.
+/// The dynamic (matugen/system) colour for [token], or null to fall through
+/// to whatever the next source in the chain supplies.
 Color? dynamicColor(ColorToken? token, {required bool isDark}) {
-  if (token == null || !dynamicColorEnabledNotifier.value) return null;
+  if (token == null || colorSourceNotifier.value != ColorSource.matugen) {
+    return null;
+  }
   final palette = isDark ? dynamicDarkNotifier.value : dynamicLightNotifier.value;
   return palette?[token];
 }
