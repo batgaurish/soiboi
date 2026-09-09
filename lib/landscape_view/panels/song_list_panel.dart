@@ -76,6 +76,12 @@ extension _SongListPanel on _SongListState {
                   ),
                 );
               }
+              if (currentSongList.isEmpty) {
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _emptyPlaylistState(context),
+                );
+              }
               return SliverReorderableList(
                 itemExtent: 60,
                 itemBuilder: (context, index) {
@@ -107,6 +113,67 @@ extension _SongListPanel on _SongListState {
           ),
         ),
       ],
+    );
+  }
+
+  /// Empty state for a playlist with no songs. Shows an "Add songs" button
+  /// that opens the library's selectable song list for picking.
+  Widget _emptyPlaylistState(BuildContext context) {
+    final canAdd = playlist != null && playlist!.canModify && !playlist!.isFavorite;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.playlist_add_rounded, size: 48, color: textColor.value),
+            const SizedBox(height: 16),
+            Text(
+              canAdd ? 'No songs yet' : 'Nothing here',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: highlightTextColor.value,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              canAdd
+                  ? 'Add songs from your library to fill this playlist.'
+                  : 'Play something and it will show up here.',
+              style: TextStyle(fontSize: 13, color: textColor.value),
+              textAlign: TextAlign.center,
+            ),
+            if (canAdd) ...[
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () {
+                  final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
+                  for (final song in library.songList) {
+                    selectionMap[song] = ValueNotifier(false);
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SelectableSongListPage(
+                        songList: library.songList,
+                        playlist: playlist,
+                        folder: null,
+                        isRanking: false,
+                        isRecently: false,
+                        isLibrary: false,
+                        reorderable: false,
+                        isSelectedNotifierMap: selectionMap,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Add songs'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

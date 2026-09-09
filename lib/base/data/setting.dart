@@ -27,6 +27,27 @@ final playlistsUseLargePictureNotifier = ValueNotifier(true);
 
 final exitOnCloseNotifier = ValueNotifier(false);
 
+/// Download quality: the codec gamdl should fetch. gamdl supports aac, alac,
+/// and flac. "aac" is the default (256-320 kbps lossy), "alac" is Apple Lossless
+/// (needs a Widevine L3 .wvd file), "flac" is lossless without Widevine.
+final downloadCodecNotifier = ValueNotifier('aac');
+
+/// Available codecs with human-readable labels.
+const downloadCodecLabels = <String, String>{
+  'aac': 'AAC (256-320 kbps)',
+  'alac': 'ALAC Lossless (needs Widevine)',
+  'flac': 'FLAC Lossless',
+};
+
+/// Path to a Widevine L3 .wvd device file, for ALAC downloads. Null = not set.
+final wvdPathNotifier = ValueNotifier<String?>(null);
+
+/// Whether to use a Widevine wrapper service instead of a local .wvd file.
+final useWrapperNotifier = ValueNotifier(false);
+
+/// URL of the Widevine wrapper service.
+final wrapperUrlNotifier = ValueNotifier<String>('');
+
 /// Fetch missing lyrics from LRCLIB. On by default: the pipeline already writes
 /// sidecars at archive time, so this only fires for tracks it had nothing for.
 final lrclibEnabledNotifier = ValueNotifier(true);
@@ -132,6 +153,12 @@ class Setting {
     exitOnCloseNotifier.value =
         json['exitOnClose'] as bool? ?? exitOnCloseNotifier.value;
 
+    downloadCodecNotifier.value =
+        json['downloadCodec'] as String? ?? 'aac';
+    wvdPathNotifier.value = json['wvdPath'] as String?;
+    useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
+    wrapperUrlNotifier.value = json['wrapperUrl'] as String? ?? '';
+
     recursiveScanNotifier.value = json['recursiveScan'] as bool? ?? false;
   }
 
@@ -169,6 +196,11 @@ class Setting {
         'listenBrainzUser': listenBrainzUserNotifier.value,
         'lrclibEnabled': lrclibEnabledNotifier.value,
         'exitOnClose': exitOnCloseNotifier.value,
+
+        'downloadCodec': downloadCodecNotifier.value,
+        'wvdPath': wvdPathNotifier.value,
+        'useWrapper': useWrapperNotifier.value,
+        'wrapperUrl': wrapperUrlNotifier.value,
 
         'recursiveScan': recursiveScanNotifier.value,
       }),

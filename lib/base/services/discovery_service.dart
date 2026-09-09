@@ -162,9 +162,16 @@ Future<List<DiscoveryTrack>?> _resolveAndCache(
   // any index bookkeeping, and order is what the user sees.
   for (var start = 0; start < slice.length; start += _resolveConcurrency) {
     final chunk = slice.skip(start).take(_resolveConcurrency);
-    final matches = await Future.wait([
+    final matches = await Future.wait<AppleMatch?>([
       for (final track in chunk)
-        resolveAppleTrack(track.artist, track.title, storefront: storefront),
+        track.isrc != null && track.isrc!.isNotEmpty
+            ? resolveAppleTrackByIsrc(track.isrc!, storefront: storefront)
+                .then<AppleMatch?>((m) => m ?? resolveAppleTrack(
+                      track.artist,
+                      track.title,
+                      storefront: storefront,
+                    ))
+            : resolveAppleTrack(track.artist, track.title, storefront: storefront),
     ]);
     var i = 0;
     for (final track in chunk) {

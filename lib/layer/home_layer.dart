@@ -20,6 +20,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/base/data/home_shelves.dart';
+import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/mood_playlists.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
@@ -110,6 +111,7 @@ class _HomeLayerState extends State<HomeLayer> {
         history.rankingChangeNotifier,
         artistAlbumManager.updateNotifier,
         currentSongNotifier,
+        library.changeNotifier,
       ]),
       builder: (context, _) {
         final moods = autoMoodPlaylists();
@@ -829,7 +831,16 @@ class _MoodCard extends StatelessWidget {
                 child: Container(
                   width: 124,
                   height: 124,
-                  color: buttonColor.value,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        seekBarColor.value.withAlpha(40),
+                        menuColor.value,
+                      ],
+                    ),
+                  ),
                   child: Center(
                     child: Icon(
                       mood.icon,

@@ -73,7 +73,7 @@ String _clean(String value) => value
 ///    an artist, which is right for an artist's own channel and wrong for a
 ///    compilation. Wrong here costs a failed Apple match, which the sheet
 ///    already shows as an unmatched row.
-ExternalTrack parseYouTubeTrack(String rawTitle, String rawUploader) {
+ExternalTrack parseYouTubeTrack(String rawTitle, String rawUploader, {String? isrc}) {
   final uploader = rawUploader.trim();
   final topic = _topicSuffix.hasMatch(uploader);
   final artistFromUploader = _clean(uploader.replaceAll(_topicSuffix, ''));
@@ -82,6 +82,7 @@ ExternalTrack parseYouTubeTrack(String rawTitle, String rawUploader) {
     return ExternalTrack(
       title: _clean(rawTitle).replaceAll(_featuring, '').trim(),
       artist: artistFromUploader,
+      isrc: isrc,
     );
   }
 
@@ -96,6 +97,7 @@ ExternalTrack parseYouTubeTrack(String rawTitle, String rawUploader) {
       return ExternalTrack(
         title: title.replaceAll(_featuring, '').trim(),
         artist: artist.replaceAll(_featuring, '').trim(),
+        isrc: isrc,
       );
     }
   }
@@ -103,6 +105,7 @@ ExternalTrack parseYouTubeTrack(String rawTitle, String rawUploader) {
   return ExternalTrack(
     title: cleaned.replaceAll(_featuring, '').trim(),
     artist: artistFromUploader,
+    isrc: isrc,
   );
 }
 
@@ -164,6 +167,7 @@ class YouTubePlaylistSource extends ExternalPlaylistSource {
         parseYouTubeTrack(
           entry['title'] as String? ?? '',
           entry['uploader'] as String? ?? '',
+          isrc: entry['isrc'] as String?,
         ),
     ].where((track) => track.title.isNotEmpty).toList();
   }

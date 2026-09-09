@@ -178,6 +178,14 @@ class _SettingsListState extends State<SettingsList> {
         ),
 
         sliverBox(
+          paddingIfNeed(isLandscape, downloadQualityListTile(context, l10n)),
+        ),
+
+        sliverBox(
+          paddingIfNeed(isLandscape, widevineListTile(context, l10n)),
+        ),
+
+        sliverBox(
           paddingIfNeed(isLandscape, listenBrainzListTile(context, l10n)),
         ),
 
@@ -1273,6 +1281,201 @@ class _SettingsListState extends State<SettingsList> {
           MaterialPageRoute(builder: (_) => const AppleSignInLayer()),
         );
         await cookie_store.refreshSessionState();
+      },
+    );
+  }
+
+  /// Download quality: which codec gamdl should fetch.
+  Widget downloadQualityListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: const Icon(Icons.high_quality_outlined, size: 30),
+      title: const Text('Download quality'),
+      subtitle: ValueListenableBuilder(
+        valueListenable: downloadCodecNotifier,
+        builder: (context, codec, child) => Text(
+          downloadCodecLabels[codec] ?? codec,
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () async {
+        await showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 320,
+            height: 290,
+            child: Padding(
+              padding: const EdgeInsets.all(18.0),
+              child: StatefulBuilder(
+                builder: (context, setDialogState) => Column(
+                  children: [
+                    const Text(
+                      'Download quality',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'ALAC and FLAC are lossless. ALAC needs a Widevine '
+                      'L3 device file (.wvd) or a wrapper service.',
+                      style: TextStyle(fontSize: 11, color: textColor.value),
+                    ),
+                    const SizedBox(height: 12),
+                    for (final entry in downloadCodecLabels.entries)
+                      RadioListTile<String>(
+                        value: entry.key,
+                        groupValue: downloadCodecNotifier.value,
+                        title: Text(entry.value),
+                        dense: true,
+                        onChanged: (value) {
+                          if (value == null) return;
+                          downloadCodecNotifier.value = value;
+                          setting.save();
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Widevine configuration for ALAC downloads.
+  Widget widevineListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: const Icon(Icons.lock_outline, size: 30),
+      title: const Text('Widevine (for ALAC)'),
+      subtitle: ValueListenableBuilder(
+        valueListenable: useWrapperNotifier,
+        builder: (context, _, child) {
+          final detail = useWrapperNotifier.value
+              ? wrapperUrlNotifier.value.isEmpty
+                  ? 'Wrapper enabled — set URL'
+                  : 'Wrapper: ${wrapperUrlNotifier.value}'
+              : wvdPathNotifier.value != null && wvdPathNotifier.value!.isNotEmpty
+                  ? 'WVD file set'
+                  : 'Not configured — ALAC needs this';
+          return Text(
+            detail,
+            style: TextStyle(fontSize: 12, color: textColor.value),
+          );
+        },
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () async {
+        final wvdController = TextEditingController(text: wvdPathNotifier.value ?? '');
+        final wrapperController = TextEditingController(text: wrapperUrlNotifier.value);
+        await showAnimationDialog(
+          context: context,
+          child: StatefulBuilder(
+            builder: (context, setDialogState) => SizedBox(
+              width: 360,
+              height: 380,
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Widevine configuration',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'ALAC downloads need a Widevine L3 content key. '
+                      'Either provide a .wvd device file dumped from a '
+                      'Widevine L3 CDM, or use a wrapper service.',
+                      style: TextStyle(fontSize: 11, color: textColor.value),
+                    ),
+                    const SizedBox(height: 16),
+                    // Mode toggle
+                    SwitchListTile(
+                      title: const Text('Use wrapper service'),
+                      subtitle: const Text('Instead of a local .wvd file'),
+                      value: useWrapperNotifier.value,
+                      onChanged: (v) {
+                        setDialogState(() => useWrapperNotifier.value = v);
+                        setting.save();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    if (useWrapperNotifier.value)
+                      TextField(
+                        controller: wrapperController,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          labelText: 'Wrapper URL',
+                          hintText: 'https://...',
+                        ),
+                        style: const TextStyle(fontSize: 13),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: wvdController,
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                border: OutlineInputBorder(),
+                                labelText: 'WVD file path',
+                                hintText: '/path/to/device.wvd',
+                              ),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.folder_open),
+                            onPressed: () async {
+                              final result = await FilePicker.pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: ['wvd'],
+                              );
+                              if (result != null && result.files.isNotEmpty) {
+                                wvdController.text = result.files.first.path ?? '';
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: () {
+                            if (useWrapperNotifier.value) {
+                              wrapperUrlNotifier.value = wrapperController.text.trim();
+                              wvdPathNotifier.value = null;
+                            } else {
+                              wvdPathNotifier.value = wvdController.text.trim().isEmpty
+                                  ? null
+                                  : wvdController.text.trim();
+                              wrapperUrlNotifier.value = '';
+                            }
+                            setting.save();
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
       },
     );
   }

@@ -48,10 +48,15 @@ class ExternalPlaylist {
 /// preview and catalog URL, which is the *output* of resolution. Keeping the
 /// input this thin is what lets a new source be a few dozen lines.
 class ExternalTrack {
-  const ExternalTrack({required this.title, required this.artist});
+  const ExternalTrack({required this.title, required this.artist, this.isrc});
 
   final String title;
   final String artist;
+
+  /// ISRC if the source knows it. YouTube Music and Spotify both tag tracks
+  /// with ISRC, making it the most reliable bridge to Apple's catalog —
+  /// far more accurate than artist+title keyword search.
+  final String? isrc;
 }
 
 abstract class ExternalPlaylistSource {
