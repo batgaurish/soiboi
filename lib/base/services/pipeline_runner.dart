@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/data/setting.dart';
 
 /// One JSON line from the pipeline: progress, or a terminal result.
 class PipelineEvent {
@@ -325,6 +326,39 @@ PipelineRunner buildPipelineRunner() =>
 /// music library, so a failed or partial download never scatters junk through
 /// a curated collection. Configurable once the library-folder work lands.
 String downloadOutputDir = '';
+
+/// The app's own private archive folder — always writable, and the fallback
+/// whenever a chosen folder is not.
+String defaultDownloadDir = '';
+
+/// The folder downloads should actually be written to.
+///
+/// Checked rather than trusted: the user's choice is stored as a plain path,
+/// and between runs it can stop being writable (an unmounted card, All files
+/// access revoked). Falling back to the private folder keeps downloads
+/// working; failing at download time would not.
+String resolveDownloadDir() {
+  final chosen = downloadFolderNotifier.value.trim();
+  if (chosen.isEmpty) return defaultDownloadDir;
+  return downloadDirIsUsable(chosen) ? chosen : defaultDownloadDir;
+}
+
+/// Whether [path] can actually be written to, tested by writing.
+///
+/// Android's permission model makes this impossible to answer by inspection:
+/// the directory is readable and listable long before it is writable.
+bool downloadDirIsUsable(String path) {
+  try {
+    final dir = Directory(path);
+    if (!dir.existsSync()) dir.createSync(recursive: true);
+    final probe = File('$path/.soiboi-write-test');
+    probe.writeAsStringSync('');
+    probe.deleteSync();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 /// Scratch space for in-progress downloads.
 ///

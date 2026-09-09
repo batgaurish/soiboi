@@ -45,6 +45,8 @@ import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/services/acoustic_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:soiboi/base/services/pipeline_runner.dart';
 
 class SettingsList extends StatefulWidget {
   final double? iconSize;
@@ -203,6 +205,10 @@ class _SettingsListState extends State<SettingsList> {
         ),
 
         sliverBox(
+          paddingIfNeed(isLandscape, downloadFolderListTile(context, l10n)),
+        ),
+
+        sliverBox(
           paddingIfNeed(isLandscape, analyseLibraryListTile(context, l10n)),
         ),
 
@@ -285,6 +291,153 @@ class _SettingsListState extends State<SettingsList> {
         }
       },
     );
+  }
+
+  /// Where archived music lands.
+  ///
+  /// Downloads used to go to the app's own private folder unconditionally,
+  /// which is why they appeared as a second music folder separate from the
+  /// library the user already had. Pointing this at a real music folder puts
+  /// both in one place.
+  Widget downloadFolderListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: const Icon(Icons.folder_special_outlined, size: 30),
+      title: const Text('Download folder'),
+      subtitle: ValueListenableBuilder<String>(
+        valueListenable: downloadFolderNotifier,
+        builder: (context, value, child) => Text(
+          value.trim().isEmpty ? "The app's own folder" : value,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () async {
+        // Offering the folders already configured first is the point: the
+        // common case is "put downloads with the music I already have", and
+        // those are exactly the folders the library scans.
+        final candidates = <String>[
+          for (final folder in library.folderList)
+            if (!folder.isWebdav && folder.path != defaultDownloadDir)
+              folder.path,
+        ];
+
+        await showAnimationDialog(
+          context: context,
+          child: StatefulBuilder(
+            builder: (context, setDialogState) => SizedBox(
+              width: 380,
+              height: 420,
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Download folder',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Where archived music is saved. Choosing a folder you '
+                      'already scan keeps downloads and library together.',
+                      style: TextStyle(fontSize: 11, color: textColor.value),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          RadioListTile<String>(
+                            value: '',
+                            groupValue: downloadFolderNotifier.value,
+                            dense: true,
+                            title: const Text("The app's own folder"),
+                            subtitle: Text(
+                              'Private to Soiboi, always writable',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: textColor.value,
+                              ),
+                            ),
+                            onChanged: (v) => setDialogState(
+                              () => downloadFolderNotifier.value = '',
+                            ),
+                          ),
+                          for (final path in candidates)
+                            RadioListTile<String>(
+                              value: path,
+                              groupValue: downloadFolderNotifier.value,
+                              dense: true,
+                              title: Text(
+                                path,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              onChanged: (v) async {
+                                if (v == null) return;
+                                final ok = await _useDownloadFolder(v);
+                                if (ok) setDialogState(() {});
+                              },
+                            ),
+                          ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.create_new_folder_outlined),
+                            title: const Text('Choose another folder…'),
+                            onTap: () async {
+                              final picked =
+                                  await FilePicker.getDirectoryPath();
+                              if (picked == null) return;
+                              final ok = await _useDownloadFolder(picked);
+                              if (ok) setDialogState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Done'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Accepts [path] only if it can actually be written to.
+  ///
+  /// Android grants All files access separately from anything the folder
+  /// picker returns, so a path can be chosen and still be unwritable. Testing
+  /// it here turns a silent failure at download time into an answer now.
+  Future<bool> _useDownloadFolder(String path) async {
+    if (Platform.isAndroid && !downloadDirIsUsable(path)) {
+      final status = await Permission.manageExternalStorage.request();
+      if (!status.isGranted) {
+        showCenterMessage(
+          'Soiboi needs All files access to save there.',
+          duration: 4000,
+        );
+        return false;
+      }
+    }
+    if (!downloadDirIsUsable(path)) {
+      showCenterMessage('That folder cannot be written to.', duration: 4000);
+      return false;
+    }
+    downloadFolderNotifier.value = path;
+    downloadOutputDir = resolveDownloadDir();
+    setting.save();
+    return true;
   }
 
   /// Backfills acoustic features so smart playlists have something to match.

@@ -91,7 +91,11 @@ Future<void> main() async {
   }
 
   // Know whether we have a usable Apple session before any UI asks.
-  downloadOutputDir = '${appSupportDir.path}/Downloads';
+  // A chosen folder wins, but only if it is still usable: an SD card can be
+  // unmounted and a granted permission can be revoked between runs, and
+  // silently writing nowhere is worse than falling back.
+  defaultDownloadDir = '${appSupportDir.path}/Downloads';
+  downloadOutputDir = resolveDownloadDir();
   downloadTempDir = '${appSupportDir.path}/download-temp';
 
   unawaited(refreshSessionState());
