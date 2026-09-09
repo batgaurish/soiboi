@@ -27,6 +27,8 @@ import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/services/apple_library_service.dart';
+import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
 
 class DownloadsLayer extends StatefulWidget {
   const DownloadsLayer({super.key});
@@ -44,6 +46,16 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   /// Set while a pasted link is being read. The fetch is a real network call
   /// through the pipeline and takes a second or two.
   bool _importing = false;
+
+  // The signed-in account's own playlists. Loaded on demand rather than with
+  // the screen: it is a network round trip that only matters if you came here
+  // to import, and the screen is also the download queue.
+  List<ApplePlaylist> _applePlaylists = const [];
+  String _appleStorefront = 'us';
+  bool _appleLoading = false;
+  String? _appleError;
+  bool _appleNeedsSignIn = false;
+  bool _appleLoaded = false;
   String? _importError;
 
   /// Set while this screen's own submission is being handed to the queue, so
@@ -115,6 +127,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
             SliverToBoxAdapter(child: _readinessCard()),
             SliverToBoxAdapter(child: _archiveCard()),
             SliverToBoxAdapter(child: _queueCard()),
+            SliverToBoxAdapter(child: _applePlaylistsCard()),
             SliverToBoxAdapter(child: _importCard()),
             if (_discover.isNotEmpty)
               SliverToBoxAdapter(child: _discoverCard())
@@ -369,6 +382,192 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           ),
         );
       },
+    );
+  }
+
+  /// The account's own Apple Music playlists, archivable without a URL.
+  ///
+  /// The app is already authenticated as this account for downloading, and
+  /// the same cookies are what Apple's personalised endpoints want, so making
+  /// the user paste their own playlist links one at a time was never
+  /// necessary.
+  Widget _applePlaylistsCard() {
+    return _card(
+      title: 'Your Apple Music playlists',
+      action: _appleLoaded && !_appleLoading
+          ? IconButton(
+              icon: const Icon(Icons.refresh_rounded, size: 20),
+              tooltip: 'Refresh',
+              onPressed: _loadApplePlaylists,
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!_appleLoaded && !_appleLoading) ...[
+            Text(
+              'Archive any playlist from your library directly — no link to '
+              'copy.',
+              style: TextStyle(fontSize: 12.5, color: textColor.value),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _loadApplePlaylists,
+              icon: const Icon(Icons.library_music_outlined, size: 18),
+              label: const Text('Show my playlists'),
+            ),
+          ] else if (_appleLoading) ...[
+            Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: iconColor.value,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Reading your library…',
+                  style: TextStyle(fontSize: 12.5, color: textColor.value),
+                ),
+              ],
+            ),
+          ] else if (_appleError != null) ...[
+            Text(
+              _appleError!,
+              style: const TextStyle(fontSize: 12.5, color: Colors.redAccent),
+            ),
+            const SizedBox(height: 10),
+            FilledButton(
+              onPressed: _appleNeedsSignIn
+                  ? () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AppleSignInLayer(),
+                        ),
+                      );
+                      await cookie_store.refreshSessionState();
+                      if (mounted) await _loadApplePlaylists();
+                    }
+                  : _loadApplePlaylists,
+              child: Text(_appleNeedsSignIn ? 'Sign in' : 'Try again'),
+            ),
+          ] else if (_applePlaylists.isEmpty) ...[
+            Text(
+              'No playlists in this account yet.',
+              style: TextStyle(fontSize: 12.5, color: textColor.value),
+            ),
+          ] else ...[
+            Text(
+              '${_applePlaylists.length} playlists',
+              style: TextStyle(fontSize: 12, color: textColor.value),
+            ),
+            const SizedBox(height: 6),
+            for (final playlist in _applePlaylists)
+              _applePlaylistRow(playlist),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _applePlaylistRow(ApplePlaylist playlist) {
+    final count = playlist.trackCount;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6 * activeFlavour.cornerScale),
+            child: playlist.artworkUrl != null
+                ? Image.network(
+                    playlist.artworkUrl!,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _applePlaceholder(),
+                  )
+                : _applePlaceholder(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  playlist.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: highlightTextColor.value,
+                  ),
+                ),
+                Text(
+                  [
+                    if (count != null) '$count tracks',
+                    // Worth saying: these are queued track by track, so the
+                    // queue fills with songs rather than one playlist entry.
+                    if (!playlist.hasCatalogUrl) 'your own playlist',
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11.5, color: textColor.value),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.download_rounded, size: 20),
+            tooltip: 'Archive',
+            onPressed: () => _archiveApplePlaylist(playlist),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _applePlaceholder() => Container(
+    width: 40,
+    height: 40,
+    color: buttonColor.value,
+    child: Icon(Icons.queue_music_rounded, size: 20, color: iconColor.value),
+  );
+
+  Future<void> _loadApplePlaylists() async {
+    setState(() {
+      _appleLoading = true;
+      _appleError = null;
+      _appleNeedsSignIn = false;
+    });
+    final result = await fetchApplePlaylists();
+    if (!mounted) return;
+    setState(() {
+      _appleLoading = false;
+      _appleLoaded = true;
+      _applePlaylists = result.playlists;
+      _appleStorefront = result.storefront;
+      _appleError = result.error;
+      _appleNeedsSignIn = result.needsSignIn;
+    });
+  }
+
+  Future<void> _archiveApplePlaylist(ApplePlaylist playlist) async {
+    showCenterMessage('Queueing ${playlist.name}…');
+    final outcome = await archiveApplePlaylist(playlist, _appleStorefront);
+    if (!mounted) return;
+    if (outcome.error != null) {
+      showCenterMessage(outcome.error!, duration: 4000);
+      return;
+    }
+    showCenterMessage(
+      outcome.skipped > 0
+          ? 'Queued ${outcome.queued} · skipped ${outcome.skipped} not in the '
+                'catalog'
+          : 'Queued ${outcome.queued == 1 ? playlist.name : "${outcome.queued} tracks"}',
+      duration: 4000,
     );
   }
 

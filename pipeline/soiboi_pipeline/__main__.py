@@ -72,6 +72,34 @@ def handle(command, payload=None, emit=None):
 
         return playlist.fetch(url, limit=payload.get("limit"), emit=emit)
 
+    if command == "apple_playlists":
+        cookies_path = payload.get("cookies_path")
+        if not cookies_path:
+            return {
+                "event": "error",
+                "code": "bad_request",
+                "message": "Missing: cookies_path",
+            }
+        from . import apple_library
+
+        return apple_library.list_playlists(cookies_path, emit=emit)
+
+    if command == "apple_playlist_tracks":
+        missing = [
+            key for key in ("cookies_path", "library_id") if not payload.get(key)
+        ]
+        if missing:
+            return {
+                "event": "error",
+                "code": "bad_request",
+                "message": f"Missing: {', '.join(missing)}",
+            }
+        from . import apple_library
+
+        return apple_library.list_tracks(
+            payload["cookies_path"], payload["library_id"], emit=emit
+        )
+
     if command == "download":
         missing = [
             key for key in ("url", "cookies_path", "output_dir")
