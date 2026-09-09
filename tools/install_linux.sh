@@ -78,7 +78,11 @@ PYTHONPATH="$APP_DIR/data/pipeline" \
 
 echo "==> launcher entry"
 mkdir -p "$(dirname "$ICON")" "$(dirname "$DESKTOP")" "$PREFIX/bin"
-cp "$ROOT/app_icons/win_linux.png" "$ICON"
+# icon_transparent.png, not win_linux.png: the latter bakes in a flat cream
+# square behind the piglet, which most launchers and docks then clip into a
+# rounded square or circle -- the square corners show as a visible sticker
+# edge instead of blending into the icon theme like every other app's icon.
+cp "$ROOT/app_icons/icon_transparent.png" "$ICON"
 ln -sfn "$APP_DIR/soiboi" "$BIN_LINK"
 
 # StartupWMClass is the APPLICATION_ID from linux/CMakeLists.txt, which the
