@@ -241,6 +241,12 @@ class _TemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      // Without this the card takes Material's default surface, which this
+      // app never themes — it sets its own colours through MyColor rather
+      // than through ThemeData — so the template picker came out white on a
+      // dark app.
+      color: menuColor.value,
+      elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         leading: CircleAvatar(

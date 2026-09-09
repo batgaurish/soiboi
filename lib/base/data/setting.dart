@@ -28,19 +28,32 @@ final playlistsUseLargePictureNotifier = ValueNotifier(true);
 
 final exitOnCloseNotifier = ValueNotifier(false);
 
-/// Download quality: the codec gamdl should fetch. gamdl supports aac, alac,
-/// and flac. "aac" is the default (256-320 kbps lossy), "alac" is Apple Lossless
-/// (needs a Widevine L3 .wvd file), "flac" is lossless without Widevine.
+/// Download quality: the codec gamdl fetches, passed to
+/// `--song-codec-priority` verbatim.
+///
+/// The values must be members of gamdl's own `SongCodec` enum or it rejects
+/// the argument outright. A previous version offered "flac", which is not one
+/// of them — Apple Music streams AAC and ALAC, and there is no FLAC to ask
+/// for, so choosing it could only ever fail.
+///
+/// None of these require the user to supply anything: gamdl ships a Widevine
+/// device (`gamdl/interface/wvd.py`) and falls back to it whenever no
+/// `--wvd-path` is given, so ALAC works out of the box. See
+/// [wvdPathNotifier] for when overriding that is worth doing.
 final downloadCodecNotifier = ValueNotifier('aac');
 
 /// Available codecs with human-readable labels.
 const downloadCodecLabels = <String, String>{
   'aac': 'AAC (256-320 kbps)',
-  'alac': 'ALAC Lossless (needs Widevine)',
-  'flac': 'FLAC Lossless',
+  'alac': 'ALAC (Apple Lossless)',
 };
 
-/// Path to a Widevine L3 .wvd device file, for ALAC downloads. Null = not set.
+/// Overrides gamdl's bundled Widevine device with a .wvd of your own.
+///
+/// Optional, and normally unnecessary: gamdl carries its own L3 device and
+/// uses it whenever this is unset. It exists because that shared device can
+/// be revoked, at which point lossless downloads start failing and supplying
+/// a private one is the only fix. Null = use the bundled device.
 final wvdPathNotifier = ValueNotifier<String?>(null);
 
 /// Whether to use a Widevine wrapper service instead of a local .wvd file.
@@ -170,8 +183,12 @@ class Setting {
     exitOnCloseNotifier.value =
         json['exitOnClose'] as bool? ?? exitOnCloseNotifier.value;
 
+    // Anything gamdl would reject falls back rather than persisting: an
+    // earlier build offered "flac", which is not one of its codecs, so a
+    // saved 'flac' would otherwise fail every download until found by hand.
+    final savedCodec = json['downloadCodec'] as String?;
     downloadCodecNotifier.value =
-        json['downloadCodec'] as String? ?? 'aac';
+        downloadCodecLabels.containsKey(savedCodec) ? savedCodec! : 'aac';
     wvdPathNotifier.value = json['wvdPath'] as String?;
     useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
     wrapperUrlNotifier.value = json['wrapperUrl'] as String? ?? '';
