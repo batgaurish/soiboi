@@ -11,6 +11,7 @@ import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/layer/settings_layer.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 final trialRemainingMinNotifier = ValueNotifier(-1);
 
@@ -91,7 +92,7 @@ class _PremiumLayerState extends State<PremiumLayer> {
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
-                ImageIcon(premiumImage, size: 72),
+                AppIcon(premiumImage, size: 72),
 
                 const SizedBox(height: 8),
 
@@ -226,31 +227,31 @@ class _PremiumLayerState extends State<PremiumLayer> {
                 const SizedBox(height: 12),
 
                 FeatureCard(
-                  icon: ImageIcon(themeImage, size: 30),
+                  icon: AppIcon(themeImage, size: 30),
                   title: l10n.theme,
                   description: l10n.themeDescription,
                 ),
 
                 FeatureCard(
-                  icon: ImageIcon(bigPictureModeImage, size: 30),
+                  icon: AppIcon(bigPictureModeImage, size: 30),
                   title: l10n.bigPictureMode,
                   description: l10n.bigPictureModeDescription,
                 ),
 
                 FeatureCard(
-                  icon: ImageIcon(fontImage, size: 30),
+                  icon: AppIcon(fontImage, size: 30),
                   title: l10n.fonts,
                   description: l10n.fontDescription,
                 ),
 
                 FeatureCard(
-                  icon: ImageIcon(equalizerImage, size: 30),
+                  icon: AppIcon(equalizerImage, size: 30),
                   title: l10n.equalizer,
                   description: l10n.equalizerDescription,
                 ),
 
                 FeatureCard(
-                  icon: ImageIcon(futurePremiumImage, size: 30),
+                  icon: AppIcon(futurePremiumImage, size: 30),
                   title: l10n.futurePremium,
                   description: l10n.futurePremiumDescription,
                 ),

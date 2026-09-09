@@ -9,6 +9,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class Add2PlaylistPanel extends StatefulWidget {
   final List<MyAudioMetadata> songList;
@@ -44,7 +45,7 @@ class _Add2PlaylistPanelState extends State<Add2PlaylistPanel> {
                 borderRadius: BorderRadius.circular(4),
                 child: Container(
                   color: Colors.white30,
-                  child: ImageIcon(
+                  child: AppIcon(
                     addImage,
                     size: 40,
                     color: colorManager.getSpecificIconColor(),
@@ -181,7 +182,7 @@ Widget reorderablePlaylistsView(BuildContext context) {
                   child: Row(
                     children: [
                       SizedBox(width: 10),
-                      ImageIcon(reorderImage, color: iconColor.value),
+                      AppIcon(reorderImage, color: iconColor.value),
                     ],
                   ),
                 ),

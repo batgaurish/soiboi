@@ -20,6 +20,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 final ValueNotifier<bool> recursiveScanNotifier = ValueNotifier(false);
 
@@ -108,7 +109,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
                     currentFolderIdList.removeAt(index);
                     updateNotifier.value++;
                   },
-                  icon: ImageIcon(deleteImage),
+                  icon: AppIcon(deleteImage),
                   iconSize: 20,
                 ),
               ),
@@ -345,7 +346,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
               currentFolderIdList.removeAt(index);
               updateNotifier.value++;
             },
-            icon: ImageIcon(deleteImage),
+            icon: AppIcon(deleteImage),
             iconSize: 20,
           ),
         );
@@ -365,7 +366,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
               currentFolderIdList.removeAt(index);
               updateNotifier.value++;
             },
-            icon: ImageIcon(deleteImage),
+            icon: AppIcon(deleteImage),
             iconSize: 20,
           ),
         );

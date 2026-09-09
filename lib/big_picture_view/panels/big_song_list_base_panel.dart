@@ -9,6 +9,7 @@ import 'package:soiboi/base/utils/common_utils.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 abstract class BigSongListBasePanel extends StatefulWidget {
   const BigSongListBasePanel({super.key});
@@ -100,7 +101,7 @@ abstract class BigSongListBasePanelState extends State<BigSongListBasePanel> {
                 ? Row(
                     mainAxisAlignment: .center,
                     children: [
-                      ImageIcon(playOutlinedImage, size: 15),
+                      AppIcon(playOutlinedImage, size: 15),
                       Text(song.playCount.toString()),
                     ],
                   )

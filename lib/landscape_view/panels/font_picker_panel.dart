@@ -42,7 +42,7 @@ extension _FontPickerPanel on _FontPickerLayerState {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30),
             child: ListTile(
-              leading: ImageIcon(fontImage, size: 50),
+              leading: AppIcon(fontImage, size: 50),
               title: Text(
                 l10n.fonts,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),

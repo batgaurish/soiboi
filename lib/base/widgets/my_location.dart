@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class MyLocation extends StatelessWidget {
   final ScrollController scrollController;
@@ -47,7 +48,7 @@ class MyLocation extends StatelessWidget {
               curve: Curves.linear,
             );
           },
-          icon: ImageIcon(locationImage),
+          icon: AppIcon(locationImage),
         );
       },
     );

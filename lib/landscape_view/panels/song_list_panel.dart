@@ -472,7 +472,7 @@ extension _SongListPanel on _SongListState {
                       children: [
                         Text(text, overflow: TextOverflow.ellipsis),
                         if (value > 0 && value <= 4)
-                          ImageIcon(
+                          AppIcon(
                             (value == 1 || value == 3)
                                 ? longArrowUpImage
                                 : longArrowDownImage,
@@ -515,7 +515,7 @@ extension _SongListPanel on _SongListState {
                       valueListenable: sortTypeNotifier,
                       builder: (context, value, child) {
                         if (value == 5 || value == 6) {
-                          return ImageIcon(
+                          return AppIcon(
                             value == 5 ? longArrowUpImage : longArrowDownImage,
                             size: 20,
                           );
@@ -569,7 +569,7 @@ extension _SongListPanel on _SongListState {
                       valueListenable: sortTypeNotifier,
                       builder: (context, value, child) {
                         if (value == 7 || value == 8) {
-                          return ImageIcon(
+                          return AppIcon(
                             value == 7 ? longArrowUpImage : longArrowDownImage,
                             size: 20,
                           );

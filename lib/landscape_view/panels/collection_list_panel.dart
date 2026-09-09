@@ -33,7 +33,7 @@ extension _CollectionListPanel on CollectionListState {
               leading: ValueListenableBuilder(
                 valueListenable: iconColor.valueNotifier,
                 builder: (context, value, child) {
-                  return ImageIcon(image, size: 50, color: value);
+                  return AppIcon(image, size: 50, color: value);
                 },
               ),
               title: Text(

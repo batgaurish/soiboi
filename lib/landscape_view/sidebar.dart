@@ -15,6 +15,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 final ValueNotifier<String> sidebarHighlighLabel = ValueNotifier('');
 
@@ -128,7 +129,7 @@ class Sidebar extends StatelessWidget {
                         children: [
                           Transform.translate(
                             offset: Offset(0, 2),
-                            child: ImageIcon(iconImage, size: 28),
+                            child: AppIcon(iconImage, size: 28),
                           ),
                           SizedBox(width: 5),
                           Text(
@@ -192,7 +193,7 @@ class Sidebar extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: sidebarItem(
                         label: 'artists',
-                        leading: ImageIcon(artistImage, size: 30),
+                        leading: AppIcon(artistImage, size: 30),
                         content: l10n.artists,
 
                         onTap: () {
@@ -205,7 +206,7 @@ class Sidebar extends StatelessWidget {
                       child: sidebarItem(
                         label: 'albums',
 
-                        leading: ImageIcon(albumImage, size: 30),
+                        leading: AppIcon(albumImage, size: 30),
                         content: l10n.albums,
 
                         onTap: () {
@@ -218,7 +219,7 @@ class Sidebar extends StatelessWidget {
                       child: sidebarItem(
                         label: 'folders',
 
-                        leading: ImageIcon(folderImage, size: 30),
+                        leading: AppIcon(folderImage, size: 30),
                         content: l10n.folders,
 
                         onTap: () {
@@ -231,7 +232,7 @@ class Sidebar extends StatelessWidget {
                       child: sidebarItem(
                         label: 'songs',
 
-                        leading: ImageIcon(songsImage, size: 30),
+                        leading: AppIcon(songsImage, size: 30),
                         content: l10n.songs,
 
                         onTap: () {
@@ -282,7 +283,7 @@ class Sidebar extends StatelessWidget {
                       child: sidebarItem(
                         label: 'ranking',
 
-                        leading: ImageIcon(rankingImage, size: 30),
+                        leading: AppIcon(rankingImage, size: 30),
                         content: l10n.ranking,
 
                         onTap: () {
@@ -295,7 +296,7 @@ class Sidebar extends StatelessWidget {
                       child: sidebarItem(
                         label: 'recently',
 
-                        leading: ImageIcon(recentlyImage, size: 30),
+                        leading: AppIcon(recentlyImage, size: 30),
                         content: l10n.recently,
 
                         onTap: () {
@@ -321,7 +322,7 @@ class Sidebar extends StatelessWidget {
                           return GestureDetector(
                             child: sidebarItem(
                               label: 'playlists',
-                              leading: ImageIcon(playlistsImage, size: 30),
+                              leading: AppIcon(playlistsImage, size: 30),
                               content: l10n.playlists,
                               contentPadding: EdgeInsets.fromLTRB(16, 0, 8, 0),
 
@@ -329,7 +330,7 @@ class Sidebar extends StatelessWidget {
                                 onPressed: () {
                                   showCreatePlaylistDialog(context);
                                 },
-                                icon: ImageIcon(addImage, size: 20),
+                                icon: AppIcon(addImage, size: 20),
                               ),
 
                               onTap: () {
@@ -474,7 +475,7 @@ class Sidebar extends StatelessWidget {
             if (isTooNarrow(context)) ...[
               sidebarItem(
                 label: 'settings',
-                leading: ImageIcon(settingImage, size: 30),
+                leading: AppIcon(settingImage, size: 30),
                 content: l10n.settings,
                 onTap: () {
                   layersManager.switchRootLayer('settings');

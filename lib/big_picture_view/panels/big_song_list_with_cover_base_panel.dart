@@ -24,6 +24,7 @@ import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/my_divider.dart';
 import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 abstract class BigSongListWithCoverBasePanel extends StatefulWidget {
   final Color baseColor;
@@ -147,7 +148,7 @@ abstract class BigSongListWithCoverBasePanelState<
                     IconButton(
                       onPressed: () => audioHandler.setPlayQueue(songList, 1),
 
-                      icon: ImageIcon(shuffleImage),
+                      icon: AppIcon(shuffleImage),
                     ),
                     IconButton(
                       onPressed: () => audioHandler.setPlayQueue(songList, 0),
@@ -178,7 +179,7 @@ abstract class BigSongListWithCoverBasePanelState<
                       },
                       icon: Transform.scale(
                         scale: 0.95,
-                        child: ImageIcon(selectImage),
+                        child: AppIcon(selectImage),
                       ),
                     ),
                   ],

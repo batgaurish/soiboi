@@ -12,6 +12,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 part '../landscape_view/panels/folders_panel.dart';
 part '../portrait_view/pages/folders_page.dart';

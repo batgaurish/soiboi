@@ -11,6 +11,7 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class PlayBar extends StatelessWidget {
   const PlayBar({super.key});
@@ -87,7 +88,7 @@ class PlayBar extends StatelessWidget {
                     icon: ValueListenableBuilder(
                       valueListenable: isPlayingNotifier,
                       builder: (_, isPlaying, _) {
-                        return ImageIcon(
+                        return AppIcon(
                           isPlaying ? pauseCircleImage : playCircleFillImage,
                           size: 25,
                         );

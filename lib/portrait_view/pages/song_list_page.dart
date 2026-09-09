@@ -93,7 +93,7 @@ extension _SongListPage on _SongListState {
           ),
           MyDivider(thickness: 0.5, height: 1, color: dividerColor),
           ListTile(
-            leading: ImageIcon(selectImage),
+            leading: AppIcon(selectImage),
             title: Text(
               l10n.select,
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -127,7 +127,7 @@ extension _SongListPage on _SongListState {
           ),
           if (!isRanking && !isRecently)
             ListTile(
-              leading: ImageIcon(sequenceImage),
+              leading: AppIcon(sequenceImage),
               title: Text(
                 l10n.sortSongs,
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -222,7 +222,7 @@ extension _SongListPage on _SongListState {
 
           if (playlist != null && playlist!.isNotFavorite)
             ListTile(
-              leading: ImageIcon(deleteImage),
+              leading: AppIcon(deleteImage),
               title: Text(
                 l10n.delete,
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -283,7 +283,7 @@ extension _SongListPage on _SongListState {
                     curve: Curves.linear,
                   );
                 },
-                icon: ImageIcon(topArrowImage),
+                icon: AppIcon(topArrowImage),
               );
             },
           ),
@@ -511,7 +511,7 @@ extension _SongListPage on _SongListState {
                   child: Row(
                     children: [
                       Spacer(),
-                      ImageIcon(playOutlinedImage, size: 15),
+                      AppIcon(playOutlinedImage, size: 15),
                       Text(song.playCount.toString()),
                       songOptionsButton(index, song),
                     ],

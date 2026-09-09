@@ -22,6 +22,7 @@ import 'package:soiboi/base/widgets/big_play_bar.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
 
 class BigSingleAlbumPanel extends StatefulWidget {
   final Album album;
@@ -379,7 +380,7 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
             onPressed: () async {
               await audioHandler.setPlayQueue(currentSongList, 1);
             },
-            icon: ImageIcon(shuffleImage),
+            icon: AppIcon(shuffleImage),
             iconSize: 30,
           ),
           IconButton(
@@ -405,7 +406,7 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
                 ),
               );
             },
-            icon: Transform.scale(scale: 0.95, child: ImageIcon(selectImage)),
+            icon: Transform.scale(scale: 0.95, child: AppIcon(selectImage)),
             iconSize: 30,
           ),
         ],

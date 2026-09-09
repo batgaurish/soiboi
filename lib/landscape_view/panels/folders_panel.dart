@@ -30,7 +30,7 @@ extension FoldersPanel on FoldersLayer {
                 leading: ValueListenableBuilder(
                   valueListenable: iconColor.valueNotifier,
                   builder: (_, value, _) {
-                    return ImageIcon(folderImage, size: 50, color: value);
+                    return AppIcon(folderImage, size: 50, color: value);
                   },
                 ),
                 title: Text(
