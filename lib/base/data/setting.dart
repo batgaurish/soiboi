@@ -48,6 +48,21 @@ const downloadCodecLabels = <String, String>{
   'alac': 'ALAC (Apple Lossless)',
 };
 
+/// Where archived music is written. Empty means the app's own private
+/// folder, which is the safe default because it always exists and is always
+/// writable.
+///
+/// It was previously hardcoded to that private folder, which put downloads in
+/// a directory separate from the music the user already had: the archive
+/// folder showed up as a second entry in Manage Music Folders and nothing
+/// ever landed beside the existing library. Pointing this at a real music
+/// folder is what makes downloads and library one place.
+///
+/// On Android, anywhere outside the private folder needs All files access,
+/// so a path is checked for writability before it is accepted rather than
+/// failing later at download time.
+final downloadFolderNotifier = ValueNotifier<String>('');
+
 /// Overrides gamdl's bundled Widevine device with a .wvd of your own.
 ///
 /// Optional, and normally unnecessary: gamdl carries its own L3 device and
@@ -189,6 +204,7 @@ class Setting {
     final savedCodec = json['downloadCodec'] as String?;
     downloadCodecNotifier.value =
         downloadCodecLabels.containsKey(savedCodec) ? savedCodec! : 'aac';
+    downloadFolderNotifier.value = json['downloadFolder'] as String? ?? '';
     wvdPathNotifier.value = json['wvdPath'] as String?;
     useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
     wrapperUrlNotifier.value = json['wrapperUrl'] as String? ?? '';
@@ -233,6 +249,7 @@ class Setting {
         'exitOnClose': exitOnCloseNotifier.value,
 
         'downloadCodec': downloadCodecNotifier.value,
+        'downloadFolder': downloadFolderNotifier.value,
         'wvdPath': wvdPathNotifier.value,
         'useWrapper': useWrapperNotifier.value,
         'wrapperUrl': wrapperUrlNotifier.value,
