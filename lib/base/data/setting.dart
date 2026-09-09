@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/interaction.dart';
@@ -131,16 +132,32 @@ class Setting {
         json['lyricsFontSizeOffset'] as double? ??
         lyricsFontSizeOffsetNotifier.value;
 
-    dynamicColorEnabledNotifier.value =
-        json['dynamicColorEnabled'] as bool? ?? false;
+    final savedSource = json['colorSource'] as String?;
+    if (savedSource != null) {
+      colorSourceNotifier.value = ColorSource.values.firstWhere(
+        (e) => e.name == savedSource,
+        orElse: () => ColorSource.off,
+      );
+    } else {
+      // Migrates a pre-4.2.3 save, when this was a single "Follow system
+      // colours" boolean and there was no prebuilt-palette option yet.
+      colorSourceNotifier.value =
+          (json['dynamicColorEnabled'] as bool? ?? false)
+          ? ColorSource.matugen
+          : ColorSource.off;
+    }
+    prebuiltPaletteNotifier.value = PrebuiltPalette.values.firstWhere(
+      (e) => e.name == json['prebuiltPalette'],
+      orElse: () => PrebuiltPalette.dracula,
+    );
     matugenPathNotifier.value = json['matugenPath'] as String? ?? '';
     matugenSchemeNotifier.value =
         json['matugenScheme'] as String? ?? matugenSchemeNotifier.value;
-    if (dynamicColorEnabledNotifier.value) {
+    if (colorSourceNotifier.value == ColorSource.matugen) {
       // Loaded before the first colour resolution so startup paints correctly
-      // rather than flashing the flavour palette first. Auto rather than the
-      // file alone: the wallpaper may have changed since, and a user with no
-      // matugen template at all should still get colours.
+      // rather than flashing the app's own colours first. Auto rather than
+      // the file alone: the wallpaper may have changed since, and a user with
+      // no matugen template at all should still get colours.
       await autoLoadDynamicPalette();
     }
 
@@ -190,7 +207,8 @@ class Setting {
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,
-        'dynamicColorEnabled': dynamicColorEnabledNotifier.value,
+        'colorSource': colorSourceNotifier.value.name,
+        'prebuiltPalette': prebuiltPaletteNotifier.value.name,
         'matugenPath': matugenPathNotifier.value,
         'matugenScheme': matugenSchemeNotifier.value,
         'listenBrainzUser': listenBrainzUserNotifier.value,

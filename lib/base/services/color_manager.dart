@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/utils/contrast_color_generator.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
@@ -503,14 +504,16 @@ class MyColor {
         valueNotifier.value = vividModeValue ?? getVividValue!.call();
         break;
       case .light:
-        // Resolution order: system palette, then flavour, then upstream.
+        // Resolution order: a colour source (matugen/system, or a prebuilt
+        // palette — mutually exclusive, see color_source.dart), then
+        // upstream. Flavour has no colours of its own any more.
         valueNotifier.value = dynamicColor(token, isDark: false) ??
-            flavourColor(token, isDark: false) ??
+            prebuiltColor(token, isDark: false) ??
             lightModeValue;
         break;
       default:
         valueNotifier.value = dynamicColor(token, isDark: true) ??
-            flavourColor(token, isDark: true) ??
+            prebuiltColor(token, isDark: true) ??
             darkModeValue;
     }
   }

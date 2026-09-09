@@ -8,6 +8,7 @@ import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
@@ -140,7 +141,7 @@ class _SettingsListState extends State<SettingsList> {
         sliverBox(paddingIfNeed(isLandscape, flavourListTile(context, l10n))),
 
         sliverBox(
-          paddingIfNeed(isLandscape, dynamicColorListTile(context, l10n)),
+          paddingIfNeed(isLandscape, colorSourceListTile(context, l10n)),
         ),
 
         sliverBox(paddingIfNeed(isLandscape, themeListTile(context, l10n))),
@@ -731,189 +732,322 @@ class _SettingsListState extends State<SettingsList> {
   /// System colours override the flavour's palette but keep its shape,
   /// density and motion -- dynamic colour restyles a flavour, it doesn't
   /// replace one.
-  Widget dynamicColorListTile(BuildContext context, AppLocalizations l10n) {
+  /// Colour source: where the app's colours come from, independent of
+  /// [Flavour] (shape/motion only, see flavour.dart). Three choices — app's
+  /// own colours, matugen/Material You, or a prebuilt named palette — plus
+  /// "Album art", which is not a fourth branch here at all: it is
+  /// `ThemeType.vivid`, already offered per-page from the Theme tile.
+  Widget colorSourceListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.palette_outlined, size: 30),
-      title: const Text('Follow system colours'),
+      title: const Text('Colour source'),
       subtitle: ValueListenableBuilder(
-        valueListenable: dynamicColorEnabledNotifier,
-        builder: (context, enabled, child) {
+        valueListenable: colorSourceNotifier,
+        builder: (context, source, child) {
           final loaded = dynamicDarkNotifier.value != null;
-          return Text(
-            !enabled
-                ? 'Use the flavour palette'
-                : loaded
+          final label = switch (source) {
+            ColorSource.off => 'App colours (default)',
+            ColorSource.matugen => !loaded
+                ? 'No colours found — tap to set up'
                 // Says where the colours actually came from: with two routes
                 // (an existing matugen setup's file, or generating from the
                 // wallpaper) "it worked" is not enough to debug from.
-                ? dynamicColorSourceDescription ?? 'Matched via matugen'
-                : 'No matugen colours found — tap to set up',
-            style: TextStyle(fontSize: 12, color: textColor.value),
-          );
+                : dynamicColorSourceDescription ??
+                      (Platform.isAndroid ? 'Material You' : 'Matched via matugen'),
+            ColorSource.prebuilt =>
+              'Prebuilt · ${prebuiltPaletteNotifier.value.label}',
+          };
+          return Text(label, style: TextStyle(fontSize: 12, color: textColor.value));
         },
       ),
-      onTap: () async {
-        final controller = TextEditingController(
-          text: matugenPathNotifier.value.isEmpty
-              ? defaultMatugenPath
-              : matugenPathNotifier.value,
-        );
-        String? status;
-        await showAnimationDialog(
-          context: context,
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => SizedBox(
-              width: 360,
-              // Taller than it looks it needs: the scheme row and the
-              // optional-path field both wrap on narrow displays, and a
-              // Column in a fixed box overflows rather than scrolling.
-              height: 340,
-              child: Padding(
-                padding: const EdgeInsets.all(18.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: () => _openColorSourcePicker(context),
+    );
+  }
+
+  Future<void> _openColorSourcePicker(BuildContext context) async {
+    await showAnimationDialog(
+      context: context,
+      child: ValueListenableBuilder(
+        valueListenable: colorSourceNotifier,
+        builder: (context, source, child) => SizedBox(
+          width: 320,
+          child: Padding(
+            padding: const EdgeInsets.all(15.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Colour source',
+                  style: TextStyle(fontSize: 18, fontWeight: .bold),
+                ),
+                ListTile(
+                  title: const Text('App colours'),
+                  subtitle: const Text(
+                    'Default — no system or prebuilt colours',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                  onTap: () {
+                    colorSourceNotifier.value = ColorSource.off;
+                    clearDynamicPalette();
+                    setting.save();
+                    colorManager.updateColors();
+                    Navigator.of(context).pop();
+                  },
+                  trailing: source == ColorSource.off
+                      ? const Icon(Icons.check)
+                      : null,
+                ),
+                ListTile(
+                  title: Text(Platform.isAndroid ? 'Material You' : 'Matugen'),
+                  subtitle: Text(
+                    Platform.isAndroid
+                        ? "Your wallpaper's system palette"
+                        : 'Reads or generates a matugen scheme',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _openMatugenDialog(context);
+                  },
+                  trailing: source == ColorSource.matugen
+                      ? const Icon(Icons.check)
+                      : null,
+                ),
+                ListTile(
+                  title: const Text('Prebuilt palette'),
+                  subtitle: const Text(
+                    'Dracula, Nord, Catppuccin, and more',
+                    style: TextStyle(fontSize: 11),
+                  ),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _openPrebuiltPaletteDialog(context);
+                  },
+                  trailing: source == ColorSource.prebuilt
+                      ? const Icon(Icons.check)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openMatugenDialog(BuildContext context) async {
+    final controller = TextEditingController(
+      text: matugenPathNotifier.value.isEmpty
+          ? defaultMatugenPath
+          : matugenPathNotifier.value,
+    );
+    String? status;
+    await showAnimationDialog(
+      context: context,
+      child: StatefulBuilder(
+        builder: (context, setDialogState) => SizedBox(
+          width: 360,
+          // Taller than it looks it needs: the scheme row and the
+          // optional-path field both wrap on narrow displays, and a
+          // Column in a fixed box overflows rather than scrolling.
+          height: 340,
+          child: Padding(
+            padding: const EdgeInsets.all(18.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Platform.isAndroid ? 'Material You' : 'Matugen',
+                  style: const TextStyle(fontSize: 18, fontWeight: .bold),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  Platform.isAndroid
+                      // Android derives the palette itself, from the
+                      // wallpaper, and hands it over whole — there is
+                      // nothing to configure and nothing to run.
+                      ? 'Uses the Material You palette Android builds '
+                            'from your wallpaper, so Soiboi matches the '
+                            'rest of your system. Needs Android 12 or '
+                            'newer.'
+                      : 'Matches the rest of your desktop. Reads an '
+                            'existing matugen scheme if you have one, '
+                            'otherwise generates one from your wallpaper.',
+                  style: TextStyle(fontSize: 12, color: textColor.value),
+                ),
+                const SizedBox(height: 12),
+                // Both controls below are matugen's, and matugen is
+                // Linux's route to this. Showing a scheme picker and a
+                // JSON path on a phone would offer settings that cannot
+                // affect anything.
+                if (!Platform.isAndroid)
+                // The scheme only applies when Soiboi generates the
+                // colours itself; a file written by someone else's
+                // matugen config was already built with their choice.
+                Row(
                   children: [
-                    const Text(
-                      'System colours',
-                      style: TextStyle(fontSize: 18, fontWeight: .bold),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      Platform.isAndroid
-                          // Android derives the palette itself, from the
-                          // wallpaper, and hands it over whole — there is
-                          // nothing to configure and nothing to run.
-                          ? 'Uses the Material You palette Android builds '
-                                'from your wallpaper, so Soiboi matches the '
-                                'rest of your system. Needs Android 12 or '
-                                'newer.'
-                          : 'Matches the rest of your desktop. Reads an '
-                                'existing matugen scheme if you have one, '
-                                'otherwise generates one from your wallpaper.',
-                      style: TextStyle(fontSize: 12, color: textColor.value),
-                    ),
-                    const SizedBox(height: 12),
-                    // Both controls below are matugen's, and matugen is
-                    // Linux's route to this. Showing a scheme picker and a
-                    // JSON path on a phone would offer settings that cannot
-                    // affect anything.
-                    if (!Platform.isAndroid)
-                    // The scheme only applies when Soiboi generates the
-                    // colours itself; a file written by someone else's
-                    // matugen config was already built with their choice.
-                    Row(
-                      children: [
-                        const Text('Scheme', style: TextStyle(fontSize: 12)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            value: matugenSchemeNotifier.value,
-                            // Both are needed. The default menu paints on the
-                            // ambient Material canvas, which this app never
-                            // sets, so it comes out white — and the app's own
-                            // near-white text on it is unreadable.
-                            dropdownColor: menuColor.value,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: textColor.value,
+                    const Text('Scheme', style: TextStyle(fontSize: 12)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: matugenSchemeNotifier.value,
+                        // Both are needed. The default menu paints on the
+                        // ambient Material canvas, which this app never
+                        // sets, so it comes out white — and the app's own
+                        // near-white text on it is unreadable.
+                        dropdownColor: menuColor.value,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor.value,
+                        ),
+                        items: [
+                          for (final scheme in matugenSchemes)
+                            DropdownMenuItem(
+                              value: scheme,
+                              child: Text(schemeLabel(scheme)),
                             ),
-                            items: [
-                              for (final scheme in matugenSchemes)
-                                DropdownMenuItem(
-                                  value: scheme,
-                                  child: Text(schemeLabel(scheme)),
-                                ),
-                            ],
-                            onChanged: (scheme) async {
-                              if (scheme == null) return;
-                              matugenSchemeNotifier.value = scheme;
-                              final ok = await generateMatugenPalette();
-                              setDialogState(() {
-                                status = ok
-                                    ? 'Generated a ${schemeLabel(scheme)} '
-                                          'scheme from your wallpaper'
-                                    : 'Could not generate — is matugen '
-                                          'installed?';
-                              });
-                              if (ok) {
-                                dynamicColorSourceDescription =
-                                    '${schemeLabel(scheme)} from your wallpaper';
-                                dynamicColorEnabledNotifier.value = true;
-                                setting.save();
-                                colorManager.updateColors();
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (!Platform.isAndroid)
-                      TextField(
-                        controller: controller,
-                        style: const TextStyle(fontSize: 12),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          labelText: 'matugen JSON (optional)',
-                        ),
+                        ],
+                        onChanged: (scheme) async {
+                          if (scheme == null) return;
+                          matugenSchemeNotifier.value = scheme;
+                          final ok = await generateMatugenPalette();
+                          setDialogState(() {
+                            status = ok
+                                ? 'Generated a ${schemeLabel(scheme)} '
+                                      'scheme from your wallpaper'
+                                : 'Could not generate — is matugen '
+                                      'installed?';
+                          });
+                          if (ok) {
+                            dynamicColorSourceDescription =
+                                '${schemeLabel(scheme)} from your wallpaper';
+                            colorSourceNotifier.value = ColorSource.matugen;
+                            setting.save();
+                            colorManager.updateColors();
+                          }
+                        },
                       ),
-                    if (status != null) ...[
-                      const SizedBox(height: 8),
-                      Text(status!, style: const TextStyle(fontSize: 12)),
-                    ],
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            dynamicColorEnabledNotifier.value = false;
-                            clearDynamicPalette();
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (!Platform.isAndroid)
+                  TextField(
+                    controller: controller,
+                    style: const TextStyle(fontSize: 12),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      labelText: 'matugen JSON (optional)',
+                    ),
+                  ),
+                if (status != null) ...[
+                  const SizedBox(height: 8),
+                  Text(status!, style: const TextStyle(fontSize: 12)),
+                ],
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        colorSourceNotifier.value = ColorSource.off;
+                        clearDynamicPalette();
+                        setting.save();
+                        colorManager.updateColors();
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Turn off'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () async {
+                        matugenPathNotifier.value = controller.text.trim();
+                        // Falls back to generating, so an empty or wrong
+                        // path is not a dead end.
+                        final ok = await autoLoadDynamicPalette();
+                        if (!ok) {
+                          setDialogState(
+                            () => status =
+                                Platform.isAndroid
+                                    ? 'Android did not provide a palette. '
+                                          'Material You needs Android 12 '
+                                          'or newer.'
+                                    : 'No colours found, and matugen '
+                                          'could not generate any from '
+                                          'your wallpaper',
+                          );
+                          return;
+                        }
+                        colorSourceNotifier.value = ColorSource.matugen;
+                        setting.save();
+                        colorManager.updateColors();
+                        if (context.mounted) Navigator.of(context).pop();
+                      },
+                      child: const Text('Use these colours'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    controller.dispose();
+  }
+
+  Future<void> _openPrebuiltPaletteDialog(BuildContext context) async {
+    final isDark = mainPageThemeNotifier.value == .dark;
+    await showAnimationDialog(
+      context: context,
+      child: SizedBox(
+        width: 320,
+        height: 420,
+        child: Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Column(
+            children: [
+              const Text(
+                'Prebuilt palette',
+                style: TextStyle(fontSize: 18, fontWeight: .bold),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: ValueListenableBuilder(
+                  valueListenable: prebuiltPaletteNotifier,
+                  builder: (context, selected, child) => ListView(
+                    children: [
+                      for (final palette in PrebuiltPalette.values)
+                        ListTile(
+                          leading: CircleAvatar(
+                            radius: 10,
+                            backgroundColor: palette.accent(isDark: isDark),
+                          ),
+                          title: Text(palette.label),
+                          onTap: () {
+                            prebuiltPaletteNotifier.value = palette;
+                            colorSourceNotifier.value = ColorSource.prebuilt;
                             setting.save();
                             colorManager.updateColors();
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Turn off'),
+                          trailing:
+                              selected == palette &&
+                                  colorSourceNotifier.value ==
+                                      ColorSource.prebuilt
+                              ? const Icon(Icons.check)
+                              : null,
                         ),
-                        const SizedBox(width: 8),
-                        FilledButton(
-                          onPressed: () async {
-                            matugenPathNotifier.value = controller.text.trim();
-                            // Falls back to generating, so an empty or wrong
-                            // path is not a dead end.
-                            final ok = await autoLoadDynamicPalette();
-                            if (!ok) {
-                              setDialogState(
-                                () => status =
-                                    Platform.isAndroid
-                                        ? 'Android did not provide a palette. '
-                                              'Material You needs Android 12 '
-                                              'or newer.'
-                                        : 'No colours found, and matugen '
-                                              'could not generate any from '
-                                              'your wallpaper',
-                              );
-                              return;
-                            }
-                            dynamicColorEnabledNotifier.value = true;
-                            setting.save();
-                            colorManager.updateColors();
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
-                          child: const Text('Use these colours'),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        );
-        controller.dispose();
-      },
+        ),
+      ),
     );
   }
 
