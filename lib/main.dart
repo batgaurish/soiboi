@@ -396,7 +396,8 @@ Future<void> _setupTray() async {
   );
 
   if (!Platform.isLinux) {
-    await trayManager.setToolTip('Sylvaru');
+    // Left over from the Sylvakru fork this project started from.
+    await trayManager.setToolTip('Soiboi');
   }
 
   Locale systemLocale = PlatformDispatcher.instance.locale;
