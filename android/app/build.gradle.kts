@@ -44,9 +44,19 @@ android {
         //
         // arm64-v8a covers every phone made in the last decade; x86_64 is for
         // the emulator.
+        //
+        // x86_64 exists for the emulator and is dead weight on a phone: its
+        // libs are ~95 MB of an APK nobody with an ARM device can use. It is
+        // therefore opt-out, so a release can be built arm64-only:
+        //
+        //     SOIBOI_ABIS=arm64-v8a flutter build apk --debug
+        //
+        // Default keeps both, so the ordinary dev build still installs on the
+        // emulator without anyone having to know this exists.
         ndk {
             abiFilters.clear()
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += (System.getenv("SOIBOI_ABIS")
+                ?: "arm64-v8a,x86_64").split(",").map { it.trim() }
         }
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -106,6 +116,21 @@ chaquopy {
             // The same package the desktop build runs, so a fix on one
             // platform is a fix on both.
             srcDir("../../pipeline")
+
+            // Everything under pipeline/ that is not the Python package.
+            //
+            // srcDir takes the whole directory, and pipeline/native is the
+            // Rust crate for bliss -- source plus, on any machine that has
+            // built it, a target/ tree of hundreds of megabytes. None of it
+            // is used at runtime: the compiled extension arrives as the
+            // bliss_analyze wheel installed above, not from here. It was
+            // being packaged regardless, and at 295 MB compressed it was
+            // over half the APK.
+            exclude("native/**")
+
+            // Build caches that are pure waste in a package.
+            exclude("**/__pycache__/**")
+            exclude("**/*.pyc")
         }
     }
 }
