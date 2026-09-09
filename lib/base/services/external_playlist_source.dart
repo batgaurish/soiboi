@@ -16,6 +16,17 @@
 /// returns an empty list from [playlists] and recognises URLs instead.
 library;
 
+/// Whether [host] is [domain] or a subdomain of it.
+///
+/// `host.endsWith(domain)` is the obvious spelling and it is wrong: it also
+/// accepts `notdeezer.com` and `evilspotify.com`, so one source would claim
+/// links belonging to nobody. Matching the boundary is what makes the check
+/// mean "this domain".
+bool hostMatches(String host, String domain) {
+  final lower = host.toLowerCase();
+  return lower == domain || lower.endsWith('.$domain');
+}
+
 /// A playlist as the source describes it, before anything is resolved.
 class ExternalPlaylist {
   const ExternalPlaylist({

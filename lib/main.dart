@@ -33,6 +33,8 @@ import 'package:soiboi/base/services/external_playlist_source.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/youtube_playlist_source.dart';
+import 'package:soiboi/base/services/deezer_playlist_source.dart';
+import 'package:soiboi/base/services/spotify_playlist_source.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +64,12 @@ Future<void> main() async {
   // list rather than naming a platform, so a third source is one line here.
   registerPlaylistSource(ListenBrainzPlaylistSource());
   registerPlaylistSource(YouTubePlaylistSource());
+  // Both key-free and account-free, which is the whole reason they are here.
+  // Deezer first: it supplies ISRCs, so when a link matches both it is the
+  // one that resolves against Apple's catalog exactly rather than by
+  // keyword.
+  registerPlaylistSource(DeezerPlaylistSource());
+  registerPlaylistSource(SpotifyPlaylistSource());
 
   await logger.init();
   if (isMobile) {

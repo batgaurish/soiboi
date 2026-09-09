@@ -593,7 +593,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                   onSubmitted: (_) => _import(),
                   style: TextStyle(fontSize: 14, color: textColor.value),
                   decoration: InputDecoration(
-                    hintText: 'https://music.youtube.com/playlist?list=…',
+                    hintText: 'Paste a YouTube Music, Deezer or Spotify link',
                     // The hint and the field edge both defaulted to Material's
                     // own colours, which this app never themes, so on a dark
                     // palette the example URL was barely legible and the box
