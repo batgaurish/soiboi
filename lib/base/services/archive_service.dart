@@ -8,6 +8,7 @@ library;
 
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 
@@ -27,14 +28,26 @@ Future<String?> archiveUrl(
   bool redownload = false,
   void Function(int progress, String status)? onProgress,
 }) async {
-  String? error;
-  await for (final event in pipelineRunner.run('download', {
+  // Pull the current settings at call time, not at startup: the user may
+  // have changed quality or Widevine config between downloads.
+  final payload = <String, dynamic>{
     'url': url,
     'cookies_path': cookiesPath,
     'output_dir': downloadOutputDir,
     'temp_dir': downloadTempDir,
     'overwrite': redownload,
-  })) {
+    'codec': downloadCodecNotifier.value,
+  };
+  if (useWrapperNotifier.value) {
+    payload['use_wrapper'] = true;
+    final wrapperUrl = wrapperUrlNotifier.value.trim();
+    if (wrapperUrl.isNotEmpty) payload['wrapper_url'] = wrapperUrl;
+  } else if (wvdPathNotifier.value != null && wvdPathNotifier.value!.isNotEmpty) {
+    payload['wvd_path'] = wvdPathNotifier.value;
+  }
+
+  String? error;
+  await for (final event in pipelineRunner.run('download', payload)) {
     if (event.isProgress) {
       onProgress?.call(event.progress, event.status);
     } else if (event.isError) {

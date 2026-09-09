@@ -92,6 +92,11 @@ def fetch(url, limit=None, emit=None):
                 # uploader is kept as the fallback for older extractions.
                 "uploader": entry.get("channel") or entry.get("uploader") or "",
                 "duration": duration,
+                # ISRC is the most reliable bridge to Apple's catalog.
+                # yt-dlp exposes it when available on YouTube Music tracks;
+                # flat extraction may not always populate it, but when it
+                # does it makes Apple resolution near-perfect.
+                "isrc": entry.get("isrc"),
             }
         )
 

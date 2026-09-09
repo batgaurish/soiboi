@@ -166,29 +166,32 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (lyricsPageThemeNotifier.value == .vivid) ...[
-                  CoverArtWidget(
-                    picture: currentSong?.picture,
-                    color: colorManager
-                        .getSpecificLyricsPageCoverArtBaseColor(),
-                  ),
-                  RepaintBoundary(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                      child: AnimatedContainer(
-                        duration: Duration(milliseconds: 300),
-                        curve: Curves.easeInOutCubic,
-                        color: currentCoverArtColor.withAlpha(180),
-                      ),
+                // Blurred album art background — always shown, not just in vivid.
+                // The artwork is dimmed by an overlay so lyrics stay legible.
+                CoverArtWidget(
+                  picture: currentSong?.picture,
+                  color: colorManager
+                      .getSpecificLyricsPageCoverArtBaseColor(),
+                ),
+                RepaintBoundary(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      curve: Curves.easeInOutCubic,
+                      // In vivid mode, the overlay uses the cover art colour;
+                      // otherwise it uses the lyrics page background colour,
+                      // so the tint follows the active theme.
+                      color: lyricsPageThemeNotifier.value == .vivid
+                          ? currentCoverArtColor.withAlpha(180)
+                          : lyricsPageBackgroundColor.value.withAlpha(200),
                     ),
                   ),
-                ],
-                Container(
-                  color: lyricsPageBackgroundColor.value,
-                  child: Column(
-                    children: [
-                      SizedBox(height: 60),
-                      Padding(
+                ),
+                Column(
+                  children: [
+                    SizedBox(height: 60),
+                    Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 30),
                         child: SizedBox(
                           height: 36,
@@ -271,7 +274,6 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                       ),
                     ],
                   ),
-                ),
               ],
             ),
           ),

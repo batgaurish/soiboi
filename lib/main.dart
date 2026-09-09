@@ -8,6 +8,8 @@ import 'package:liquid_glass_widgets/liquid_glass_setup.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/my_tray_listener.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
@@ -100,6 +102,10 @@ Future<void> main() async {
         fontFamilyNotifier,
         mainPageThemeNotifier,
         lightHoverFocusColorNotifier,
+        flavourNotifier,
+        dynamicColorEnabledNotifier,
+        dynamicLightNotifier,
+        dynamicDarkNotifier,
       ]),
       builder: (context, child) {
         if (!immersiveWideLayoutNotifier.value) {
