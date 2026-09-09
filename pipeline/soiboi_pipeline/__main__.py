@@ -48,10 +48,13 @@ def handle(command, payload=None, emit=None):
             }
         from . import acoustic
 
-        if not acoustic.ESSENTIA_AVAILABLE:
+        # Renamed when analysis moved from Essentia to bliss; the old name
+        # was left here and raised AttributeError, so this command could
+        # never run at all.
+        if not acoustic.ANALYSIS_AVAILABLE:
             return {
                 "event": "error",
-                "code": "no_essentia",
+                "code": "no_analysis",
                 "message": "Acoustic analysis is not available on this device.",
             }
         result = acoustic.analyze_directory(directory, emit=emit)

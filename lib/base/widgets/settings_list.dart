@@ -44,6 +44,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/services/acoustic_service.dart';
 
 class SettingsList extends StatefulWidget {
   final double? iconSize;
@@ -55,6 +56,10 @@ class SettingsList extends StatefulWidget {
 
 class _SettingsListState extends State<SettingsList> {
   double? iconSize;
+  // Analysis runs off a settings tap and can take minutes on a big library,
+  // so its progress lives here rather than in the tile, which rebuilds.
+  final _analyseStatus = ValueNotifier<String>('');
+  bool _analysing = false;
 
   @override
   void initState() {
@@ -197,6 +202,10 @@ class _SettingsListState extends State<SettingsList> {
           paddingIfNeed(isLandscape, downloadQueueListTile(context)),
         ),
 
+        sliverBox(
+          paddingIfNeed(isLandscape, analyseLibraryListTile(context, l10n)),
+        ),
+
         sliverBox(paddingIfNeed(isLandscape, storageListTile(context))),
 
         sliverBox(
@@ -273,6 +282,52 @@ class _SettingsListState extends State<SettingsList> {
             return;
           }
           await Loader.sync();
+        }
+      },
+    );
+  }
+
+  /// Backfills acoustic features so smart playlists have something to match.
+  ///
+  /// Only downloads were ever analysed, so a library that came from anywhere
+  /// else had no features at all and every smart playlist and mood shelf sat
+  /// at zero tracks. This is the way to fix that for music already on disk.
+  Widget analyseLibraryListTile(BuildContext context, AppLocalizations l10n) {
+    return ListTile(
+      leading: const Icon(Icons.graphic_eq_rounded, size: 30),
+      title: const Text('Analyse Library'),
+      subtitle: ValueListenableBuilder<String>(
+        valueListenable: _analyseStatus,
+        builder: (context, value, child) => Text(
+          value.isEmpty
+              ? 'Needed for smart playlists and mood shelves'
+              : value,
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+      ),
+      onTap: () async {
+        if (_analysing) {
+          showCenterMessage('Already analysing');
+          return;
+        }
+        _analysing = true;
+        _analyseStatus.value = 'Starting…';
+        final summary = await analyseLibrary(
+          onProgress: (p) {
+            _analyseStatus.value = p.folderCount > 1
+                ? '${p.status} (folder ${p.folderIndex + 1}/${p.folderCount})'
+                : p.status;
+          },
+        );
+        _analysing = false;
+        if (summary.unavailable) {
+          _analyseStatus.value = 'Not available on this device';
+        } else if (summary.error != null) {
+          _analyseStatus.value = 'Failed: ${summary.error}';
+        } else {
+          _analyseStatus.value =
+              '${summary.analysed} analysed · ${summary.skipped} already done'
+              '${summary.pending > 0 ? " · ${summary.pending} unreadable" : ""}';
         }
       },
     );
@@ -1450,8 +1505,8 @@ class _SettingsListState extends State<SettingsList> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'ALAC and FLAC are lossless. ALAC needs a Widevine '
-                      'L3 device file (.wvd) or a wrapper service.',
+                      'ALAC is lossless and roughly three times the size. '
+                      'Both work as-is — no extra setup.',
                       style: TextStyle(fontSize: 11, color: textColor.value),
                     ),
                     const SizedBox(height: 12),
@@ -1482,7 +1537,7 @@ class _SettingsListState extends State<SettingsList> {
   Widget widevineListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.lock_outline, size: 30),
-      title: const Text('Widevine (for ALAC)'),
+      title: const Text('Widevine device'),
       subtitle: ValueListenableBuilder(
         valueListenable: useWrapperNotifier,
         builder: (context, _, child) {
@@ -1492,7 +1547,7 @@ class _SettingsListState extends State<SettingsList> {
                   : 'Wrapper: ${wrapperUrlNotifier.value}'
               : wvdPathNotifier.value != null && wvdPathNotifier.value!.isNotEmpty
                   ? 'WVD file set'
-                  : 'Not configured — ALAC needs this';
+                  : 'Using the built-in device';
           return Text(
             detail,
             style: TextStyle(fontSize: 12, color: textColor.value),
@@ -1520,9 +1575,12 @@ class _SettingsListState extends State<SettingsList> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'ALAC downloads need a Widevine L3 content key. '
-                      'Either provide a .wvd device file dumped from a '
-                      'Widevine L3 CDM, or use a wrapper service.',
+                      'Lossless downloads already work — the downloader '
+                      'carries its own Widevine device and uses it by '
+                      'default. You only need this if ALAC downloads start '
+                      'failing to decrypt, which means that shared device '
+                      'has been revoked. Then supply your own .wvd, or a '
+                      'wrapper service that holds one for you.',
                       style: TextStyle(fontSize: 11, color: textColor.value),
                     ),
                     const SizedBox(height: 16),

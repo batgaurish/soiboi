@@ -395,14 +395,36 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                   style: TextStyle(fontSize: 14, color: textColor.value),
                   decoration: InputDecoration(
                     hintText: 'https://music.youtube.com/playlist?list=…',
+                    // The hint and the field edge both defaulted to Material's
+                    // own colours, which this app never themes, so on a dark
+                    // palette the example URL was barely legible and the box
+                    // had no visible edge at all.
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: textColor.value.withValues(alpha: 0.55),
+                    ),
                     isDense: true,
                     filled: true,
                     fillColor: searchFieldColor.value,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        8 * activeFlavour.cornerScale,
+                      ),
+                      borderSide: BorderSide(
+                        color: dividerColor.value,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        8 * activeFlavour.cornerScale,
+                      ),
+                      borderSide: BorderSide(color: seekBarColor.value, width: 1.5),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(
                         8 * activeFlavour.cornerScale,
                       ),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: dividerColor.value),
                     ),
                   ),
                 ),
