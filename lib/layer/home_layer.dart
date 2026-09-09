@@ -33,6 +33,7 @@ import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/quality_badge.dart';
 import 'package:soiboi/base/widgets/song_list.dart';
+import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/downloads_layer.dart';
 import 'package:soiboi/layer/catalog_sheet.dart';
@@ -187,7 +188,17 @@ class _HomeLayerState extends State<HomeLayer> {
     // On a narrow layout the drawer is the only navigation, and every other
     // page gets its menu button from its own portrait wrapper. Without one
     // here, Home was a dead end with no way to reach anything else.
-    if (!isTooNarrow(context)) return body;
+    //
+    // The wide layout has the same bug from the other side: every other
+    // landscape panel embeds its own TitleBar (drag region, window controls,
+    // the settings gear), but Home never did. On a window wide enough that
+    // isTooNarrow is false -- true for every desktop default size -- Home
+    // was the very first thing shown, and it offered no window controls and
+    // no way to reach Settings at all, not even indirectly through another
+    // page, because there was nothing to click.
+    if (!isTooNarrow(context)) {
+      return Column(children: [const TitleBar(), Expanded(child: body)]);
+    }
     return Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
