@@ -124,8 +124,12 @@ String? youTubePlaylistId(String input) {
 
   final uri = Uri.tryParse(trimmed);
   if (uri == null) return null;
-  final host = uri.host.toLowerCase();
-  if (!host.endsWith('youtube.com') && !host.endsWith('youtu.be')) return null;
+  // Boundary-matched, not suffix-matched: `endsWith` alone also accepts
+  // `notyoutube.com`.
+  if (!hostMatches(uri.host, 'youtube.com') &&
+      !hostMatches(uri.host, 'youtu.be')) {
+    return null;
+  }
   final id = uri.queryParameters['list'];
   return (id != null && id.isNotEmpty) ? id : null;
 }
