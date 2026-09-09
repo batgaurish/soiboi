@@ -385,14 +385,56 @@ Palette? systemPalette({required bool isDark}) {
   return scheme == null ? null : paletteFromColorScheme(scheme);
 }
 
+/// matugen's scheme names as Flutter's own variant enum.
+///
+/// The two lists are the same nine schemes under the same names, which is not
+/// a coincidence — both implement Material 3's spec. That correspondence is
+/// what lets one setting mean the same thing on both platforms: Linux hands
+/// the name to matugen, Android hands the variant to `ColorScheme.fromSeed`.
+/// The Flutter variant for a matugen scheme name, or null if unmapped.
+DynamicSchemeVariant? schemeVariantFor(String scheme) =>
+    _schemeVariants[scheme];
+
+const _schemeVariants = <String, DynamicSchemeVariant>{
+  'scheme-tonal-spot': DynamicSchemeVariant.tonalSpot,
+  'scheme-expressive': DynamicSchemeVariant.expressive,
+  'scheme-fruit-salad': DynamicSchemeVariant.fruitSalad,
+  'scheme-vibrant': DynamicSchemeVariant.vibrant,
+  'scheme-content': DynamicSchemeVariant.content,
+  'scheme-fidelity': DynamicSchemeVariant.fidelity,
+  'scheme-rainbow': DynamicSchemeVariant.rainbow,
+  'scheme-neutral': DynamicSchemeVariant.neutral,
+  'scheme-monochrome': DynamicSchemeVariant.monochrome,
+};
+
 /// Reads Android's palette and applies it. Returns false when there is none.
+///
+/// The wallpaper only supplies a seed colour; the scheme decides what is
+/// built from it. Android's own `toColorScheme()` always builds Tonal Spot,
+/// so taking the seed and rebuilding through [DynamicSchemeVariant] is what
+/// makes the scheme picker mean anything here — before this it was hidden on
+/// Android entirely, and every wallpaper produced the same muted palette no
+/// matter what was selected.
 Future<bool> loadSystemPalette() async {
   if (!Platform.isAndroid) return false;
   try {
     final core = await DynamicColorPlugin.getCorePalette();
     if (core == null) return false;
-    _systemLight = core.toColorScheme();
-    _systemDark = core.toColorScheme(brightness: Brightness.dark);
+    // Tone 40 is Material's own source tone for the primary role, so this is
+    // the wallpaper's colour as Android derived it, not a guess.
+    final seed = Color(core.primary.get(40));
+    final variant =
+        _schemeVariants[matugenSchemeNotifier.value] ??
+        DynamicSchemeVariant.tonalSpot;
+    _systemLight = ColorScheme.fromSeed(
+      seedColor: seed,
+      dynamicSchemeVariant: variant,
+    );
+    _systemDark = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.dark,
+      dynamicSchemeVariant: variant,
+    );
   } catch (e) {
     // A platform channel failure is a missing feature, not a crash: the app
     // must still paint.

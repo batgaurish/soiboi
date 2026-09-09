@@ -1085,14 +1085,11 @@ class _SettingsListState extends State<SettingsList> {
                   style: TextStyle(fontSize: 12, color: textColor.value),
                 ),
                 const SizedBox(height: 12),
-                // Both controls below are matugen's, and matugen is
-                // Linux's route to this. Showing a scheme picker and a
-                // JSON path on a phone would offer settings that cannot
-                // affect anything.
-                if (!Platform.isAndroid)
-                // The scheme only applies when Soiboi generates the
-                // colours itself; a file written by someone else's
-                // matugen config was already built with their choice.
+                // The scheme applies on both platforms, by different
+                // routes: matugen builds it from the wallpaper on Linux,
+                // and on Android the wallpaper's seed is rebuilt through
+                // the matching Material variant. Only the JSON path below
+                // is matugen's alone.
                 Row(
                   children: [
                     const Text('Scheme', style: TextStyle(fontSize: 12)),
@@ -1120,11 +1117,18 @@ class _SettingsListState extends State<SettingsList> {
                         onChanged: (scheme) async {
                           if (scheme == null) return;
                           matugenSchemeNotifier.value = scheme;
-                          final ok = await generateMatugenPalette();
+                          // Android has no matugen: the palette comes from
+                          // the system, so the scheme is applied by
+                          // rebuilding from the same seed.
+                          final ok = Platform.isAndroid
+                              ? await loadSystemPalette()
+                              : await generateMatugenPalette();
                           setDialogState(() {
                             status = ok
-                                ? 'Generated a ${schemeLabel(scheme)} '
-                                      'scheme from your wallpaper'
+                                ? 'Using a ${schemeLabel(scheme)} scheme '
+                                      'from your wallpaper'
+                                : Platform.isAndroid
+                                ? 'Android did not provide a palette'
                                 : 'Could not generate — is matugen '
                                       'installed?';
                           });
