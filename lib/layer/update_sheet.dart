@@ -17,6 +17,7 @@ import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/update_service.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:soiboi/base/widgets/release_notes.dart';
 
 Future<void> showUpdateSheet(BuildContext context, AppRelease release) {
   return showAnimationDialog(
@@ -133,12 +134,19 @@ class _UpdateSheetState extends State<_UpdateSheet> {
             const SizedBox(height: 12),
             Expanded(
               child: SingleChildScrollView(
-                child: Text(
-                  release.notes.trim().isEmpty
-                      ? 'No release notes.'
-                      : release.notes,
-                  style: TextStyle(fontSize: 12.5, color: textColor.value),
-                ),
+                child: release.notes.trim().isEmpty
+                    ? Text(
+                        'No release notes.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: textColor.value,
+                        ),
+                      )
+                    : ReleaseNotesView(
+                        release.notes,
+                        textColor: textColor.value,
+                        headingColor: highlightTextColor.value,
+                      ),
               ),
             ),
             const SizedBox(height: 12),
