@@ -1,183 +1,120 @@
 """Entry point, shared by both transports.
 
 Desktop spawns this as `python -m soiboi_pipeline <command>`; Android calls
-`handle()` directly through Chaquopy. Both paths run the same functions, so a
-fix on one platform is a fix on both.
+`handle_json()` directly through Chaquopy. Both paths run the same handlers, so
+a fix on one platform is a fix on both.
 
-Protocol: one JSON object per line on stdout. Every line is either a progress
-event or a terminal result, so the Dart side can parse incrementally and never
-has to wait for the process to exit before showing something.
+Protocol: one JSON object per line on stdout (see `protocol.py`). Every line is
+either a progress event or a terminal result, so the Dart side can parse
+incrementally and never has to wait for the process to exit before showing
+something.
 """
 import json
+import logging
 import sys
+from collections.abc import Callable
 
-from . import __version__, downloader, runtime
+from . import __version__, acoustic, apple_library, downloader, playlist, runtime
+from .protocol import Emit, Event, Payload, done, error, ignore
+
+logger = logging.getLogger(__name__)
+
+Handler = Callable[[Payload, Emit], Event]
+
+# Every module loads up front. The capabilities check the app runs at startup
+# imports gamdl and yt-dlp regardless, so loading lazily would save a desktop
+# subprocess about 0.4s and nothing at all on Android.
+_HANDLERS: dict[str, Handler] = {
+    "capabilities": runtime.handle_capabilities,
+    "analyze": acoustic.handle_analyze,
+    "playlist": playlist.handle_playlist,
+    "apple_playlists": apple_library.handle_playlists,
+    "apple_playlist_tracks": apple_library.handle_playlist_tracks,
+    "download": downloader.handle_download,
+}
 
 
-def _emit(event):
+def _handler_for(command: str) -> Handler | None:
+    return _HANDLERS.get(command)
+
+
+def handle(
+    command: str,
+    payload: Payload | None = None,
+    emit: Emit | None = None,
+) -> Event:
+    """Run [command] and return its terminal event."""
+    if command == "version":
+        return done(version=__version__)
+    handler = _handler_for(command)
+    if handler is None:
+        return error("unknown_command", command)
+    return handler(payload or {}, emit or ignore)
+
+
+def _emit_line(event: Event) -> None:
     """One JSON object per line, flushed immediately.
 
-    Flushing matters: without it Python buffers stdout when not attached to a
-    terminal, and the app would see nothing until the download finished.
+    Without the flush Python buffers stdout when it is not a terminal, and the
+    app would see nothing until the download finished.
     """
     sys.stdout.write(json.dumps(event) + "\n")
     sys.stdout.flush()
 
 
-def handle(command, payload=None, emit=None):
-    """Run [command]. Returns the terminal result dict.
-
-    Used directly by Chaquopy on Android, where there is no stdout to parse.
-    """
-    emit = emit or (lambda event: None)
-    payload = payload or {}
-
-    if command == "capabilities":
-        return {"event": "done", **runtime.capabilities()}
-
-    if command == "version":
-        return {"event": "done", "version": __version__}
-
-    if command == "analyze":
-        directory = payload.get("directory")
-        if not directory:
-            return {
-                "event": "error",
-                "code": "bad_request",
-                "message": "Missing: directory",
-            }
-        from . import acoustic
-
-        # Renamed when analysis moved from Essentia to bliss; the old name
-        # was left here and raised AttributeError, so this command could
-        # never run at all.
-        if not acoustic.ANALYSIS_AVAILABLE:
-            return {
-                "event": "error",
-                "code": "no_analysis",
-                "message": "Acoustic analysis is not available on this device.",
-            }
-        result = acoustic.analyze_directory(directory, emit=emit)
-        return {"event": "done", **result}
-
-    if command == "playlist":
-        url = payload.get("url")
-        if not url:
-            return {
-                "event": "error",
-                "code": "bad_request",
-                "message": "Missing: url",
-            }
-        from . import playlist
-
-        return playlist.fetch(url, limit=payload.get("limit"), emit=emit)
-
-    if command == "apple_playlists":
-        cookies_path = payload.get("cookies_path")
-        if not cookies_path:
-            return {
-                "event": "error",
-                "code": "bad_request",
-                "message": "Missing: cookies_path",
-            }
-        from . import apple_library
-
-        return apple_library.list_playlists(cookies_path, emit=emit)
-
-    if command == "apple_playlist_tracks":
-        missing = [
-            key for key in ("cookies_path", "library_id") if not payload.get(key)
-        ]
-        if missing:
-            return {
-                "event": "error",
-                "code": "bad_request",
-                "message": f"Missing: {', '.join(missing)}",
-            }
-        from . import apple_library
-
-        return apple_library.list_tracks(
-            payload["cookies_path"], payload["library_id"], emit=emit
-        )
-
-    if command == "download":
-        missing = [
-            key for key in ("url", "cookies_path", "output_dir")
-            if not payload.get(key)
-        ]
-        if missing:
-            return {
-                "event": "error",
-                "code": "bad_request",
-                "message": f"Missing: {', '.join(missing)}",
-            }
-        return downloader.download(
-            url=payload["url"],
-            cookies_path=payload["cookies_path"],
-            output_dir=payload["output_dir"],
-            temp_dir=payload.get("temp_dir"),
-            log_path=payload.get("log_path"),
-            codec=payload.get("codec", "aac"),
-            wvd_path=payload.get("wvd_path"),
-            use_wrapper=bool(payload.get("use_wrapper")),
-            wrapper_url=payload.get("wrapper_url"),
-            overwrite=bool(payload.get("overwrite")),
-            emit=emit,
-        )
-
-    return {"event": "error", "code": "unknown_command", "message": command}
-
-
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
-        _emit({"event": "error", "code": "bad_request", "message": "No command"})
+        _emit_line(error("bad_request", "No command"))
         return 2
 
-    command = argv[0]
-    payload = {}
-    if len(argv) > 1:
-        try:
-            payload = json.loads(argv[1])
-        except json.JSONDecodeError as exc:
-            _emit({"event": "error", "code": "bad_json", "message": str(exc)})
-            return 2
+    command, *rest = argv
+    try:
+        payload = json.loads(rest[0]) if rest else {}
+    except json.JSONDecodeError as exc:
+        _emit_line(error("bad_json", str(exc)))
+        return 2
 
-    result = handle(command, payload, emit=_emit)
-    _emit(result)
-    return 0 if result.get("event") != "error" else 1
+    result = handle(command, payload, emit=_emit_line)
+    _emit_line(result)
+    return 1 if result.get("event") == "error" else 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-
-
-def handle_json(command, payload_json, emit_callable=None):
+def handle_json(
+    command: str,
+    payload_json: str | None,
+    emit_callable: Callable[[str], None] | None = None,
+) -> str:
     """JSON-in, JSON-out entry point for the Android bridge.
 
     Chaquopy marshals Java strings cleanly but not nested dicts, so both sides
     exchange JSON text. [emit_callable] is a Java object whose __call__ takes a
-    JSON string; progress is pushed through it as it happens rather than
-    accumulating until the download finishes.
+    JSON string; progress goes through it as it happens rather than piling up
+    until the download finishes.
     """
     try:
         payload = json.loads(payload_json) if payload_json else {}
     except (TypeError, json.JSONDecodeError) as exc:
-        return json.dumps(
-            {"event": "error", "code": "bad_json", "message": str(exc)}
-        )
+        return json.dumps(error("bad_json", str(exc)))
 
-    def emit(event):
+    def emit(event: Event) -> None:
         if emit_callable is None:
             return
         try:
             emit_callable(json.dumps(event))
         except Exception:
-            # A UI-side failure must never abort a download in progress.
-            pass
+            # The app failing to take one progress event must never abort
+            # the download that sent it.
+            logger.warning("Dropped a progress event", exc_info=True)
 
     try:
         result = handle(command, payload, emit=emit)
-    except Exception as exc:  # never let an exception cross the JNI boundary
-        result = {"event": "error", "code": "pipeline", "message": str(exc)}
+    except Exception as exc:
+        # Nothing may cross the JNI boundary as an exception.
+        logger.exception("Command %s failed", command)
+        result = error("pipeline", str(exc))
     return json.dumps(result)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

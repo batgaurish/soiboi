@@ -6,14 +6,7 @@ directory scanning logic rather than the analysis output itself. The mood
 formulas are exercised manually against real tracks -- see the module
 docstring in acoustic.py for how they were derived.
 """
-import json
-import os
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-
-from soiboi_pipeline import acoustic  # noqa: E402
+from soiboi_pipeline import acoustic, runtime
 
 
 def test_sidecar_path():
@@ -148,8 +141,16 @@ def test_mood_estimates_energy_and_relaxed_are_complementary():
 
 
 def test_capabilities_reports_acoustic():
-    from soiboi_pipeline import runtime
-
     caps = runtime.capabilities()
     assert "acoustic_analysis" in caps
     assert isinstance(caps["acoustic_analysis"]["available"], bool)
+
+
+def test_handler_requires_a_directory():
+    assert acoustic.handle_analyze({}, lambda event: None)["code"] == "bad_request"
+
+
+def test_handler_reports_missing_analyser(tmp_path, monkeypatch):
+    monkeypatch.setattr(acoustic, "ANALYSIS_AVAILABLE", False)
+    result = acoustic.handle_analyze({"directory": str(tmp_path)}, lambda event: None)
+    assert result["code"] == "no_analysis"

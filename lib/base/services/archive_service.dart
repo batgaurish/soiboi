@@ -47,12 +47,21 @@ Future<String?> archiveUrl(
   }
 
   String? error;
+  var finished = false;
   await for (final event in pipelineRunner.run('download', payload)) {
     if (event.isProgress) {
       onProgress?.call(event.progress, event.status);
     } else if (event.isError) {
       error = event.message;
+    } else if (event.isDone) {
+      finished = true;
     }
+  }
+  // A pipeline that dies mid-download (a Python traceback, a killed process)
+  // closes the stream without a terminal event. That is a failure, not a
+  // silent success.
+  if (error == null && !finished) {
+    return 'The downloader stopped without finishing. See the log for details.';
   }
   return error;
 }

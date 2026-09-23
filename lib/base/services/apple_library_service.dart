@@ -143,26 +143,37 @@ Future<ApplePlaylistsResult> fetchApplePlaylists() async {
 }
 
 /// The tracks of a library-only playlist.
+/// A pipeline failure worth showing as-is, such as an expired session.
+class AppleLibraryException implements Exception {
+  const AppleLibraryException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// The tracks of one library playlist.
+///
+/// Throws [AppleLibraryException] with the pipeline's own message on failure,
+/// so an expired session is reported as one rather than as an empty playlist.
 Future<List<AppleLibraryTrack>> fetchApplePlaylistTracks(
   String libraryId,
 ) async {
-  try {
-    final tracks = <AppleLibraryTrack>[];
-    await for (final event in pipelineRunner.run('apple_playlist_tracks', {
-      'cookies_path': cookie_store.cookiesPath,
-      'library_id': libraryId,
-    })) {
-      if (event.isDone) {
-        for (final item in ((event.raw['tracks'] as List?) ?? const [])
-            .whereType<Map>()) {
-          tracks.add(AppleLibraryTrack.fromJson(Map<String, dynamic>.from(item)));
-        }
+  final tracks = <AppleLibraryTrack>[];
+  await for (final event in pipelineRunner.run('apple_playlist_tracks', {
+    'cookies_path': cookie_store.cookiesPath,
+    'library_id': libraryId,
+  })) {
+    if (event.isError) throw AppleLibraryException(event.message);
+    if (event.isDone) {
+      for (final item in ((event.raw['tracks'] as List?) ?? const [])
+          .whereType<Map>()) {
+        tracks.add(AppleLibraryTrack.fromJson(Map<String, dynamic>.from(item)));
       }
     }
-    return tracks;
-  } catch (_) {
-    return const [];
   }
+  return tracks;
 }
 
 /// A catalog URL for [id], which the downloader accepts directly.
@@ -209,7 +220,12 @@ Future<AppleImportOutcome> archiveApplePlaylist(
     return AppleImportOutcome(batch: batch, queued: 1);
   }
 
-  final tracks = await fetchApplePlaylistTracks(playlist.libraryId);
+  final List<AppleLibraryTrack> tracks;
+  try {
+    tracks = await fetchApplePlaylistTracks(playlist.libraryId);
+  } on AppleLibraryException catch (e) {
+    return AppleImportOutcome(batch: null, error: e.message);
+  }
   if (tracks.isEmpty) {
     return const AppleImportOutcome(
       batch: null,

@@ -24,11 +24,8 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
   }
 
   Future<List<String>> listDirectories(String path) async {
-    try {
-      await webdavClient!.ping();
-    } catch (e) {
-      return [];
-    }
+    // ping() reports failure as false; it does not throw.
+    if (!await webdavClient!.ping()) return [];
 
     final files = await webdavClient!.list(path);
     // Keep only directories

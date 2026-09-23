@@ -7,12 +7,9 @@ into the APK, and test code has no business shipping to a phone.
 
 Run with: .pipeline-venv/bin/python -m pytest test_pipeline
 """
-import sys
-from pathlib import Path
+import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-
-from soiboi_pipeline import downloader  # noqa: E402
+from soiboi_pipeline import downloader
 
 
 def _tap():
@@ -56,21 +53,14 @@ def test_gamdl_logger_is_captured():
     raw log lines corrupt the JSON protocol on desktop and progress silently
     stops being reported everywhere.
     """
-    pytest_skip_if_missing()
+    _skip_without_gamdl()
     tap, _ = _tap()
     assert downloader._capture_gamdl_logging(tap) is True
-
-    from gamdl.cli.utils import CustomOutputWriter
-
-    assert CustomOutputWriter().streams == [tap]
+    assert downloader.CustomOutputWriter().streams == [tap]
 
 
-def pytest_skip_if_missing():
-    try:
-        import gamdl  # noqa: F401
-    except ImportError:  # pragma: no cover - depends on the built environment
-        import pytest
-
+def _skip_without_gamdl():
+    if downloader.gamdl_main is None:  # pragma: no cover - depends on the build
         pytest.skip("gamdl not installed in this environment")
 
 
@@ -99,44 +89,37 @@ def test_ytdlp_patch_replaces_the_multiprocessing_path():
     renamed the patch silently stops applying, and every Android download
     fails again with an OSError the user cannot act on.
     """
-    pytest_skip_if_missing()
+    _skip_without_gamdl()
     assert downloader._patch_ytdlp_to_run_in_thread() is True
 
-    from gamdl.downloader.base import AppleMusicBaseDownloader
-
-    patched = AppleMusicBaseDownloader._download_ytdlp_async
+    patched = downloader.gamdl_base.AppleMusicBaseDownloader._download_ytdlp_async
     assert patched.__name__ == "_download_ytdlp_async"
     assert "multiprocessing" not in patched.__code__.co_names
 
 
-def _captured_args(tmp_path, monkeypatch, **kwargs):
+def _captured_args(tmp_path, monkeypatch, **fields):
     """Runs download() far enough to see the argv it builds for gamdl."""
     seen = {}
 
     def fake_main(args, standalone_mode=True):
         seen["args"] = args
 
-    monkeypatch.setattr(
-        downloader,
-        "_multiprocessing_works",
-        lambda: True,
-    )
+    monkeypatch.setattr(downloader, "_multiprocessing_works", lambda: True)
     monkeypatch.setattr(downloader, "_capture_gamdl_logging", lambda tap: True)
-    import types
-
-    fake_cli = types.ModuleType("gamdl.cli.cli")
-    fake_cli.main = fake_main
-    monkeypatch.setitem(sys.modules, "gamdl.cli.cli", fake_cli)
+    monkeypatch.setattr(downloader, "gamdl_main", fake_main)
 
     cookies = tmp_path / "cookies.txt"
     cookies.write_text("")
-    downloader.download(
-        url="https://music.apple.com/album/1",
-        cookies_path=str(cookies),
-        output_dir=str(tmp_path / "out"),
-        temp_dir=str(tmp_path / "tmp"),
-        **kwargs,
+    result = downloader.download(
+        downloader.DownloadRequest(
+            url="https://music.apple.com/album/1",
+            cookies_path=str(cookies),
+            output_dir=str(tmp_path / "out"),
+            temp_dir=str(tmp_path / "tmp"),
+            **fields,
+        )
     )
+    assert result["event"] == "done"
     return seen["args"]
 
 
@@ -155,3 +138,62 @@ def test_retrying_resumes_by_default_rather_than_refetching(tmp_path, monkeypatc
 def test_overwrite_is_passed_when_a_redownload_is_asked_for(tmp_path, monkeypatch):
     args = _captured_args(tmp_path, monkeypatch, overwrite=True)
     assert "--overwrite" in args
+
+
+def test_the_wrapper_replaces_cookies(tmp_path, monkeypatch):
+    args = _captured_args(
+        tmp_path, monkeypatch, use_wrapper=True, wrapper_url="http://127.0.0.1:1"
+    )
+    assert "-c" not in args
+    assert args[args.index("--wrapper-url") + 1] == "http://127.0.0.1:1"
+
+
+def test_missing_cookies_fail_before_anything_runs(tmp_path):
+    result = downloader.download(
+        downloader.DownloadRequest(
+            url="u",
+            cookies_path=str(tmp_path / "absent.txt"),
+            output_dir=str(tmp_path / "out"),
+        )
+    )
+    assert result["code"] == "no_cookies"
+    assert not (tmp_path / "out").exists()
+
+
+def test_a_reported_gamdl_error_fails_the_download(tmp_path, monkeypatch):
+    def failing_main(args, standalone_mode=True):
+        print("[ERROR 00:00:01] Song is not available in your storefront")
+
+    monkeypatch.setattr(downloader, "_multiprocessing_works", lambda: True)
+    monkeypatch.setattr(downloader, "_capture_gamdl_logging", lambda tap: True)
+    monkeypatch.setattr(downloader, "gamdl_main", failing_main)
+    cookies = tmp_path / "cookies.txt"
+    cookies.write_text("")
+
+    result = downloader.download(
+        downloader.DownloadRequest(
+            url="u", cookies_path=str(cookies), output_dir=str(tmp_path / "out")
+        )
+    )
+    assert result["code"] == "gamdl_reported_error"
+    assert result["message"] == "Song is not available in your storefront"
+
+
+def test_payload_fields_map_onto_the_request():
+    request = downloader.DownloadRequest.from_payload({
+        "url": "u",
+        "cookies_path": "c",
+        "output_dir": "o",
+        "codec": "alac",
+        "use_wrapper": 1,
+        "overwrite": "",
+    })
+    assert request.codec == "alac"
+    assert request.use_wrapper is True
+    assert request.overwrite is False
+    assert request.temp_dir is None
+
+
+def test_handler_names_every_missing_field():
+    result = downloader.handle_download({"url": "u"}, lambda event: None)
+    assert result["message"] == "Missing: cookies_path, output_dir"

@@ -13,11 +13,30 @@ label is the honest signal, the number is a comfort.
 import asyncio
 import contextlib
 import io
+import logging
 import multiprocessing
 import os
 import queue
 import re
-import sys
+from collections.abc import Iterator
+from dataclasses import dataclass
+from typing import TextIO
+
+from . import acoustic
+from .protocol import Emit, Event, Payload, done, error, ignore, missing_fields
+from .protocol import progress, warning
+
+try:
+    from gamdl.cli.cli import main as gamdl_main
+    from gamdl.cli.utils import CustomOutputWriter
+    from gamdl.downloader import base as gamdl_base
+except ImportError as exc:  # the bundled environment is incomplete
+    gamdl_main = CustomOutputWriter = gamdl_base = None
+    _GAMDL_IMPORT_ERROR = str(exc)
+else:
+    _GAMDL_IMPORT_ERROR = None
+
+logger = logging.getLogger(__name__)
 
 # Ordered stage markers. The first pattern to appear in a log line wins, so
 # order matters: later stages are checked first to avoid an early keyword
@@ -53,7 +72,7 @@ _STAGES = [
 ]
 
 
-def _stage_for(line):
+def _stage_for(line: str) -> tuple[int, str] | None:
     for pattern, progress, label in _STAGES:
         if pattern.search(line):
             return progress, label
@@ -68,7 +87,7 @@ class _StreamTap(io.TextIOBase):
     report nothing until it finished.
     """
 
-    def __init__(self, emit, log=None):
+    def __init__(self, emit: Emit, log: TextIO | None = None):
         self._emit = emit
         # Everything that passes through is mirrored here. gamdl's own
         # --log-file only records what its logger emits; the traceback that
@@ -82,7 +101,7 @@ class _StreamTap(io.TextIOBase):
         self.failures = []
         self._in_traceback = False
 
-    def write(self, text):
+    def write(self, text: str) -> int:
         if not text:
             return 0
         self._buffer += text
@@ -99,14 +118,16 @@ class _StreamTap(io.TextIOBase):
                 self._handle(line)
         return len(text)
 
-    def _handle(self, line):
+    def _handle(self, line: str) -> None:
         line = _ANSI.sub("", line)
         if self._log is not None:
             try:
                 self._log.write(line + "\n")
                 self._log.flush()
-            except Exception:
-                # Logging must never be the reason a download fails.
+            except OSError:
+                # A full disk or a vanished SD card must never be the reason
+                # a download fails; stop mirroring and carry on.
+                logger.warning("Stopped mirroring the download log", exc_info=True)
                 self._log = None
 
         if self._in_traceback:
@@ -129,21 +150,22 @@ class _StreamTap(io.TextIOBase):
         stage = _stage_for(line)
         if not stage:
             return
-        progress, label = stage
+        percent, label = stage
         # Never let progress go backwards; a late-matching keyword shouldn't
         # make the bar jump back and look broken. Equal is dropped too: yt-dlp
         # emits a progress line many times a second and they all map to the
         # same stage, so forwarding each one floods the channel to say nothing.
-        if progress <= self._last_progress:
+        if percent <= self._last_progress:
             return
-        self._last_progress = progress
-        self._emit({"event": "progress", "progress": progress, "status": label})
+        self._last_progress = percent
+        self._emit(progress(percent, label))
 
-    def flush(self):
-        pass
+    def flush(self) -> None:
+        if self._log is not None:
+            self._log.flush()
 
 
-def _multiprocessing_works():
+def _multiprocessing_works() -> bool:
     """Whether multiprocessing.Queue can actually be constructed here.
 
     Android has no POSIX named semaphores, so creating one raises
@@ -154,60 +176,56 @@ def _multiprocessing_works():
     """
     try:
         multiprocessing.get_context().Queue().close()
-        return True
-    except Exception:
+    except (OSError, ImportError):
+        # sem_open missing surfaces as either, depending on the build.
         return False
+    return True
 
 
-def _patch_ytdlp_to_run_in_thread():
+def _patch_ytdlp_to_run_in_thread() -> bool:
     """Run gamdl's yt-dlp step in a thread rather than a child process.
 
     gamdl isolates yt-dlp in a subprocess and collects the result through a
     multiprocessing.Queue. Neither is possible on Android, so every download
-    failed at the first byte with an OSError about sem_open -- reported to the
+    failed at the first byte with an OSError about sem_open, reported to the
     user only as 'Error downloading "<title>"'.
 
     The worker gamdl runs there is a plain function: it writes a file and puts
     a result on a queue, with no shared state and no reliance on being in
     another process. Running it in a thread with a plain queue is therefore
-    equivalent in everything except crash isolation -- and there is nothing to
+    equivalent in everything except crash isolation, and there is nothing to
     isolate on Android, where a hard crash in yt-dlp would take the embedded
     interpreter down either way.
 
     Returns True if the patch was applied.
     """
-    try:
-        from gamdl.downloader import base as gamdl_base
-
-        async def _download_ytdlp_async(self, stream_url, download_path):
-            result_queue = queue.Queue()
-            await asyncio.to_thread(
-                gamdl_base._download_ytdlp_process,
-                stream_url,
-                download_path,
-                self.silent,
-                result_queue,
-            )
-            try:
-                status, error_repr, error_traceback = result_queue.get_nowait()
-            except queue.Empty:
-                return
-            if status == "error":
-                raise RuntimeError(f"yt-dlp failed: {error_repr}\n{error_traceback}")
-
-        gamdl_base.AppleMusicBaseDownloader._download_ytdlp_async = (
-            _download_ytdlp_async
-        )
-        return True
-    except Exception:
+    worker = getattr(gamdl_base, "_download_ytdlp_process", None)
+    downloader_class = getattr(gamdl_base, "AppleMusicBaseDownloader", None)
+    if worker is None or downloader_class is None:
+        # A gamdl upgrade renamed one of them; the caller reports it.
         return False
 
+    async def _download_ytdlp_async(self, stream_url, download_path):
+        result_queue = queue.Queue()
+        await asyncio.to_thread(
+            worker, stream_url, download_path, self.silent, result_queue
+        )
+        try:
+            status, error_repr, error_traceback = result_queue.get_nowait()
+        except queue.Empty:
+            return
+        if status == "error":
+            raise RuntimeError(f"yt-dlp failed: {error_repr}\n{error_traceback}")
 
-def _capture_gamdl_logging(tap):
+    downloader_class._download_ytdlp_async = _download_ytdlp_async
+    return True
+
+
+def _capture_gamdl_logging(tap: _StreamTap) -> bool:
     """Point gamdl's logger at [tap]. Returns True if it took effect.
 
-    gamdl builds its log writer as `CustomOutputWriter(streams=[sys.stdout])`
-    -- a mutable default argument, so the real stdout is bound when
+    gamdl builds its log writer as `CustomOutputWriter(streams=[sys.stdout])`,
+    a mutable default argument, so the real stdout is bound when
     gamdl.cli.utils is first imported, long before any redirect_stdout can
     apply. Redirecting stdout therefore does nothing at all for gamdl's own
     logging: on desktop its raw log lines land in the middle of our JSON
@@ -216,175 +234,192 @@ def _capture_gamdl_logging(tap):
 
     Rebinding the default is narrow, and unlike importing gamdl inside the
     redirect it keeps working for the second and later downloads in one
-    process -- which is the normal case on Android, where the interpreter
+    process, which is the normal case on Android, where the interpreter
     outlives any single download.
     """
-    try:
-        from gamdl.cli.utils import CustomOutputWriter
-
-        CustomOutputWriter.__init__.__defaults__ = ([tap],)
-        return True
-    except Exception:
-        # A gamdl upgrade may drop or rename this. Losing progress reporting
-        # is survivable; failing the download over it is not.
+    init = getattr(CustomOutputWriter, "__init__", None)
+    if CustomOutputWriter is None or getattr(init, "__defaults__", None) is None:
+        # A gamdl upgrade changed the writer. Losing progress reporting is
+        # survivable; failing the download over it is not.
         return False
+    init.__defaults__ = ([tap],)
+    return True
 
 
-def download(
-    url,
-    cookies_path,
-    output_dir,
-    temp_dir=None,
-    log_path=None,
-    codec="aac",
-    emit=None,
-    wvd_path=None,
-    use_wrapper=False,
-    wrapper_url=None,
-    overwrite=False,
-):
-    """Download one Apple Music URL into [output_dir].
+@dataclass(frozen=True)
+class DownloadRequest:
+    """One download, as the app asks for it."""
 
-    Returns a result dict. Raises nothing on a download failure -- the failure
-    is reported in the result, because a caller streaming events wants a final
-    event rather than an exception crossing the process boundary.
+    url: str
+    cookies_path: str
+    output_dir: str
+    temp_dir: str | None = None
+    log_path: str | None = None
+    codec: str = "aac"
+    wvd_path: str | None = None
+    use_wrapper: bool = False
+    wrapper_url: str | None = None
+    # Off is what makes a retry cheap; see download().
+    overwrite: bool = False
 
-    [overwrite] off is what makes a retry cheap. There is no byte-level resume
-    to be had here: gamdl hands yt-dlp `overwrites: True` and drives HttpFD /
-    HlsFD directly with no `continuedl`, so an interrupted file is always
-    restarted from zero. What *is* resumable is the track: with overwrite off
-    gamdl skips any item whose final path already exists, logging a warning
-    rather than an error, so re-running a fifty-track playlist that died at
-    track forty downloads the last ten and nothing else. Files only reach that
-    final path after muxing and tagging, so a half-written download never
-    counts as present. Pass overwrite=True to deliberately re-fetch a track
-    that is already on disk.
+    @classmethod
+    def from_payload(cls, payload: Payload) -> "DownloadRequest":
+        return cls(
+            url=payload["url"],
+            cookies_path=payload["cookies_path"],
+            output_dir=payload["output_dir"],
+            temp_dir=payload.get("temp_dir"),
+            log_path=payload.get("log_path"),
+            codec=payload.get("codec") or "aac",
+            wvd_path=payload.get("wvd_path"),
+            use_wrapper=bool(payload.get("use_wrapper")),
+            wrapper_url=payload.get("wrapper_url"),
+            overwrite=bool(payload.get("overwrite")),
+        )
+
+
+def _prepare_dirs(request: DownloadRequest) -> tuple[str, str]:
+    """Create the output, temp and log locations. Returns (temp_dir, log_path).
+
+    gamdl defaults its temp directory to the working directory and click
+    validates that it is writable. On Android the working directory is "/",
+    so the download fails before it starts with "Directory '.' is not
+    readable"; on desktop it would scatter scratch files wherever the app was
+    launched from. Either way it must be passed explicitly.
     """
-    emit = emit or (lambda event: None)
-
-    if not os.path.exists(cookies_path) and not use_wrapper:
-        return {
-            "event": "error",
-            "message": "No Apple Music cookies. Sign in from Settings.",
-            "code": "no_cookies",
-        }
-
-    os.makedirs(output_dir, exist_ok=True)
-
-    # gamdl defaults its temp directory to the working directory and click
-    # validates that it is writable. On Android the working directory is "/",
-    # so the download fails before it starts with "Directory '.' is not
-    # readable"; on desktop it would scatter scratch files wherever the app
-    # was launched from. Either way it must be passed explicitly.
-    temp_dir = temp_dir or os.path.join(output_dir, ".temp")
+    os.makedirs(request.output_dir, exist_ok=True)
+    temp_dir = request.temp_dir or os.path.join(request.output_dir, ".temp")
     os.makedirs(temp_dir, exist_ok=True)
 
-    # A log on disk, written by the stream tap. The app has no console on
-    # either platform, and gamdl's summary line ('Error downloading
-    # "<title>"') omits the exception that explains it -- so without this a
-    # failed download is undiagnosable on a phone. gamdl's own --log-file is
-    # deliberately not used: it would duplicate every line the tap already
-    # mirrors, and it never sees the traceback.
-    log_path = log_path or os.path.join(temp_dir, "gamdl.log")
+    # The app has no console on either platform, and gamdl's summary line
+    # ('Error downloading "<title>"') omits the exception that explains it,
+    # so the stream tap mirrors everything here. gamdl's own --log-file is
+    # not used: it would duplicate every line the tap mirrors, and it never
+    # sees the traceback.
+    log_path = request.log_path or os.path.join(temp_dir, "gamdl.log")
     os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
+    return temp_dir, log_path
 
+
+def _gamdl_args(request: DownloadRequest, temp_dir: str) -> list[str]:
     args = [
         "-n",  # no interactive prompts
-        "-o", output_dir,
+        "-o", request.output_dir,
         "--temp-path", temp_dir,
-        "--song-codec-priority", codec,
+        "--song-codec-priority", request.codec,
     ]
-    if overwrite:
+    if request.overwrite:
         args.append("--overwrite")
-    if not use_wrapper:
-        args += ["-c", cookies_path]
-    if wvd_path:
-        args += ["--wvd-path", wvd_path]
-    if use_wrapper:
-        args += ["--use-wrapper"]
-        if wrapper_url:
-            args += ["--wrapper-url", wrapper_url]
-    args.append(url)
+    if request.use_wrapper:
+        args.append("--use-wrapper")
+        if request.wrapper_url:
+            args += ["--wrapper-url", request.wrapper_url]
+    else:
+        args += ["-c", request.cookies_path]
+    if request.wvd_path:
+        args += ["--wvd-path", request.wvd_path]
+    args.append(request.url)
+    return args
 
-    emit({"event": "progress", "progress": 8, "status": "Starting"})
 
+@contextlib.contextmanager
+def _open_log(path: str) -> Iterator[TextIO | None]:
     try:
-        from gamdl.cli.cli import main as gamdl_main
-    except Exception as exc:
-        return {
-            "event": "error",
-            "message": f"Downloader unavailable: {exc}",
-            "code": "no_gamdl",
-        }
-
-    try:
-        log = open(log_path, "a", encoding="utf-8")
+        log = open(path, "a", encoding="utf-8")
     except OSError:
-        log = None
+        logger.warning("Cannot write the download log at %s", path, exc_info=True)
+        yield None
+        return
+    with log:
+        yield log
 
-    tap = _StreamTap(emit, log=log)
 
-    if not _multiprocessing_works() and not _patch_ytdlp_to_run_in_thread():
-        if log is not None:
-            log.close()
-        return {
-            "event": "error",
-            "message": (
-                "This device cannot run the downloader: it has no working "
-                "multiprocessing support and the in-thread fallback could not "
-                "be applied."
-            ),
-            "code": "no_multiprocessing",
-        }
-
+def _run_gamdl(args: list[str], tap: _StreamTap, emit: Emit) -> Event | None:
+    """Run gamdl's CLI in-process. Returns an error event, or None on success."""
     if not _capture_gamdl_logging(tap):
-        emit({
-            "event": "progress",
-            "progress": 8,
-            "status": "Downloading (no progress detail)",
-        })
-
+        emit(progress(8, "Downloading (no progress detail)"))
     try:
-        # redirect_* catches anything gamdl's dependencies write directly --
-        # yt-dlp in particular. gamdl's own logger is handled above, since it
-        # does not go through sys.stdout. standalone_mode=False stops click
-        # calling sys.exit(), which would take the whole app down on Android.
+        # redirect_* catches anything gamdl's dependencies write directly,
+        # yt-dlp in particular; gamdl's own logger is captured above.
+        # standalone_mode=False stops click calling sys.exit(), which would
+        # take the whole app down on Android.
         with contextlib.redirect_stdout(tap), contextlib.redirect_stderr(tap):
             gamdl_main(args, standalone_mode=False)
     except SystemExit as exc:
         if exc.code not in (0, None):
-            return {
-                "event": "error",
-                "message": f"Downloader exited with status {exc.code}",
-                "code": "gamdl_failed",
-            }
+            return error("gamdl_failed", f"Downloader exited with status {exc.code}")
     except Exception as exc:
-        return {"event": "error", "message": str(exc), "code": "gamdl_error"}
-    finally:
-        if log is not None:
-            log.close()
-
+        # gamdl can raise almost anything from deep inside its dependencies;
+        # every one of them is a failed download with a message worth showing.
+        logger.warning("gamdl raised", exc_info=True)
+        return error("gamdl_error", str(exc))
+    # gamdl logs failures and then exits 0, so the log is the only signal.
     if tap.failures:
-        return {
-            "event": "error",
-            "message": tap.failures[0],
-            "code": "gamdl_reported_error",
-        }
+        return error("gamdl_reported_error", tap.failures[0])
+    return None
 
-    # Analyse the downloaded file(s) for mood features. A sidecar is written
-    # next to each audio file so the Dart side can read it during a library
-    # scan. Runs on both platforms -- bliss-audio's native extension is
-    # cross-compiled for Android the same way as gamdl's muxer.
+
+def _analyse_output(output_dir: str, emit: Emit) -> None:
+    """Write mood sidecars for what was just downloaded.
+
+    Analysis is a bonus, not a gate: a download that succeeded reports
+    success even when its features could not be extracted.
+    """
+    if not acoustic.ANALYSIS_AVAILABLE:
+        return
     try:
-        from . import acoustic
+        acoustic.analyze_directory(output_dir, emit=emit)
+    except OSError as exc:
+        logger.warning("Audio analysis failed in %s", output_dir, exc_info=True)
+        emit(warning(f"Audio analysis skipped: {exc}"))
 
-        if acoustic.ANALYSIS_AVAILABLE:
-            acoustic.analyze_directory(output_dir, emit=emit)
-    except Exception:
-        # Analysis is a bonus, not a gate: a download that succeeded must
-        # always report success, even if the mood features could not be
-        # extracted.
-        pass
 
-    emit({"event": "progress", "progress": 100, "status": "Done"})
-    return {"event": "done", "output_dir": output_dir, "log_path": log_path}
+def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
+    """Download one Apple Music URL into the request's output directory.
+
+    Returns a terminal event and raises nothing on a download failure: a
+    caller streaming events wants a final event, not an exception crossing the
+    process boundary.
+
+    There is no byte-level resume to be had: gamdl hands yt-dlp
+    `overwrites: True` and drives HttpFD / HlsFD directly with no
+    `continuedl`, so an interrupted file always restarts from zero. What *is*
+    resumable is the track. With overwrite off, gamdl skips any item whose
+    final path already exists (a warning, not an error), so re-running a
+    fifty-track playlist that died at track forty downloads the last ten.
+    Files reach that final path only after muxing and tagging, so a
+    half-written download never counts as present.
+    """
+    if not request.use_wrapper and not os.path.exists(request.cookies_path):
+        return error("no_cookies", "No Apple Music cookies. Sign in from Settings.")
+    if gamdl_main is None:
+        return error("no_gamdl", f"Downloader unavailable: {_GAMDL_IMPORT_ERROR}")
+
+    temp_dir, log_path = _prepare_dirs(request)
+    emit(progress(8, "Starting"))
+
+    if not _multiprocessing_works() and not _patch_ytdlp_to_run_in_thread():
+        return error(
+            "no_multiprocessing",
+            "This device cannot run the downloader: it has no working "
+            "multiprocessing support and the in-thread fallback could not "
+            "be applied.",
+        )
+
+    with _open_log(log_path) as log:
+        failure = _run_gamdl(
+            _gamdl_args(request, temp_dir), _StreamTap(emit, log=log), emit
+        )
+    if failure:
+        return failure
+
+    _analyse_output(request.output_dir, emit)
+    emit(progress(100, "Done"))
+    return done(output_dir=request.output_dir, log_path=log_path)
+
+
+def handle_download(payload: Payload, emit: Emit) -> Event:
+    problem = missing_fields(payload, "url", "cookies_path", "output_dir")
+    if problem:
+        return problem
+    return download(DownloadRequest.from_payload(payload), emit)

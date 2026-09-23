@@ -18,8 +18,6 @@ import 'package:soiboi/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:soiboi/base/services/picture_load_scheduler.dart';
 import 'package:soiboi/base/services/picture_service.dart';
-import 'package:soiboi/base/utils/common_utils.dart';
-import 'package:soiboi/base/utils/path.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 
 bool firstLaunch = true;
@@ -43,7 +41,7 @@ class Loader {
       }
     }
 
-    _handleLegacyVersionData();
+    _recordVersion();
 
     await config.load();
     await setting.load();
@@ -154,49 +152,16 @@ class Loader {
     stateNotifier.value++;
   }
 
-  static void _handleLegacyVersionData() {
-    File tmp = File('${appSupportDir.path}/version.json');
-    if (tmp.existsSync()) {
-      firstLaunch = false;
-      if (compareVersion('4.0.1', jsonDecode(tmp.readAsStringSync())) > 0) {
-        File playlistsFile = File(
-          "${getPlaylistConfigPath(.local)}/soiboi_playlists.json",
-        );
-        if (playlistsFile.existsSync()) {
-          final content = playlistsFile.readAsStringSync();
-          final list = jsonDecode(content) as List;
-          if (list.isNotEmpty && list[0] == 'Favorite') {
-            playlistsFile.writeAsStringSync(jsonEncode(list.skip(1).toList()));
-          }
-        }
-
-        playlistsFile = File(
-          "${getPlaylistConfigPath(.webdav)}/soiboi_playlists.json",
-        );
-        if (playlistsFile.existsSync()) {
-          final content = playlistsFile.readAsStringSync();
-          final list = jsonDecode(content) as List;
-          if (list.isNotEmpty && list[0] == 'Favorite') {
-            playlistsFile.writeAsStringSync(jsonEncode(list.skip(1).toList()));
-          }
-        }
-
-        Directory tmpDir = Directory('${appSupportDir.path}/subsonic');
-        if (tmpDir.existsSync()) {
-          tmpDir.deleteSync(recursive: true);
-        }
-
-        tmpDir = Directory('${appSupportDir.path}/navidrome');
-        if (tmpDir.existsSync()) {
-          tmpDir.deleteSync(recursive: true);
-        }
-
-        tmpDir = Directory('${appSupportDir.path}/emby');
-        if (tmpDir.existsSync()) {
-          tmpDir.deleteSync(recursive: true);
-        }
-      }
-    }
-    tmp.writeAsStringSync(jsonEncode(versionNumber));
+  /// Records the running version, and whether this is the first launch.
+  ///
+  /// Upstream Sylvakru migrated pre-4.0.1 playlist and server data here. That
+  /// data never exists under Soiboi's app id, and after the version reset to
+  /// 1.x the check "is 4.0.1 newer than the stored version" came out true on
+  /// every launch, so it deleted Navidrome and Emby data each time. It is
+  /// gone; only the bookkeeping remains.
+  static void _recordVersion() {
+    final versionFile = File('${appSupportDir.path}/version.json');
+    firstLaunch = !versionFile.existsSync();
+    versionFile.writeAsStringSync(jsonEncode(versionNumber));
   }
 }

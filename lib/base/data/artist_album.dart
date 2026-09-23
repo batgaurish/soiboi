@@ -214,7 +214,7 @@ abstract class ArtistAlbumBase {
 }
 
 class Artist extends ArtistAlbumBase {
-  Artist(String name, {super.id, super.coverArtId}) : super(name, false);
+  Artist(String name, {super.id, super.coverArtId}) : super(name, true);
 
   Set<Album> albumSet = {};
 
