@@ -96,9 +96,8 @@ class DownloadQueueView extends StatelessWidget {
     );
   }
 
-  /// Pause, and the two bulk actions. Pause is worded as taking effect after
-  /// the track in flight because that is what it does — no transport can
-  /// interrupt the pipeline mid-file.
+  /// Pause, stop and the bulk actions. Pause and stop both take effect at
+  /// once; a paused job goes back to the front of the queue.
   Widget _controls(int activeCount, int finishedCount) {
     return ValueListenableBuilder<bool>(
       valueListenable: downloadQueue.paused,
@@ -109,7 +108,7 @@ class DownloadQueueView extends StatelessWidget {
               activeCount == 0
                   ? '$finishedCount finished'
                   : paused
-                  ? '$activeCount waiting — pausing after this track'
+                  ? '$activeCount paused'
                   : '$activeCount in the queue',
               style: TextStyle(fontSize: 12, color: textColor.value),
             ),
@@ -119,10 +118,10 @@ class DownloadQueueView extends StatelessWidget {
               onPressed: () => downloadQueue.setPaused(!paused),
               child: Text(paused ? 'Resume' : 'Pause'),
             ),
-          if (activeCount > 1)
+          if (activeCount > 0)
             TextButton(
-              onPressed: downloadQueue.cancelPending,
-              child: const Text('Cancel waiting'),
+              onPressed: downloadQueue.stopAll,
+              child: const Text('Stop all'),
             ),
           if (finishedCount > 0)
             TextButton(
@@ -200,11 +199,14 @@ class DownloadQueueView extends StatelessWidget {
               onPressed: () => downloadQueue.retry(job),
               icon: const Icon(Icons.refresh_rounded),
             ),
-          if (job.state == DownloadJobState.queued)
+          if (job.state == DownloadJobState.queued ||
+              job.state == DownloadJobState.running)
             IconButton(
               iconSize: 17,
               visualDensity: VisualDensity.compact,
-              tooltip: 'Remove from queue',
+              tooltip: job.state == DownloadJobState.running
+                  ? 'Stop this download'
+                  : 'Remove from queue',
               onPressed: () => downloadQueue.cancel(job),
               icon: const Icon(Icons.close_rounded),
             ),

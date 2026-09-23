@@ -17,7 +17,11 @@
 /// stops a corrupt track being retried on every pass.
 library;
 
+import 'dart:io';
+
+import 'package:permission_handler/permission_handler.dart';
 import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 
 /// How far a run has got, for the settings tile to show.
@@ -82,6 +86,13 @@ Future<AcousticSummary> analyseLibrary({
     return const AcousticSummary();
   }
 
+  // Android needs All-files access to write a sidecar beside a file in shared
+  // storage. Without it the analyser still works: sidecars go to the app's
+  // private store instead. So a refusal here is not fatal.
+  if (Platform.isAndroid) {
+    await Permission.manageExternalStorage.request();
+  }
+
   var total = const AcousticSummary();
   for (var i = 0; i < folders.length; i++) {
     final folder = folders[i];
@@ -97,6 +108,7 @@ Future<AcousticSummary> analyseLibrary({
     try {
       await for (final event in pipelineRunner.run('analyze', {
         'directory': folder.path,
+        'store_dir': acousticStoreDir,
       })) {
         if (event.isProgress) {
           onProgress?.call(

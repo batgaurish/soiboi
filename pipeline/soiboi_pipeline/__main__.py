@@ -31,6 +31,7 @@ _HANDLERS: dict[str, Handler] = {
     "apple_playlists": apple_library.handle_playlists,
     "apple_playlist_tracks": apple_library.handle_playlist_tracks,
     "download": downloader.handle_download,
+    "cancel": downloader.handle_cancel,
 }
 
 

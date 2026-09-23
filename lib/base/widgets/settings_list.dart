@@ -1685,7 +1685,8 @@ class _SettingsListState extends State<SettingsList> {
                     const SizedBox(height: 8),
                     Text(
                       'ALAC is lossless and roughly three times the size. '
-                      'Both work as-is — no extra setup.',
+                      'AAC works as-is. ALAC needs a wrapper-v2 service, set '
+                      'up under Widevine device.',
                       style: TextStyle(fontSize: 11, color: textColor.value),
                     ),
                     const SizedBox(height: 12),
@@ -1754,12 +1755,11 @@ class _SettingsListState extends State<SettingsList> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Lossless downloads already work — the downloader '
-                      'carries its own Widevine device and uses it by '
-                      'default. You only need this if ALAC downloads start '
-                      'failing to decrypt, which means that shared device '
-                      'has been revoked. Then supply your own .wvd, or a '
-                      'wrapper service that holds one for you.',
+                      'AAC downloads use the Widevine device built into the '
+                      'downloader, so they need nothing here. ALAC is '
+                      'protected by FairPlay instead and needs a wrapper-v2 '
+                      'service: turn on the wrapper and enter its address. '
+                      'A .wvd file only replaces the AAC device.',
                       style: TextStyle(fontSize: 11, color: textColor.value),
                     ),
                     const SizedBox(height: 16),

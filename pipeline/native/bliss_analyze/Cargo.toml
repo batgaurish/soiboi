@@ -11,8 +11,29 @@ name = "_bliss_analyze"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Same feature set as docs/bliss-probe, which this crate's analysis logic is
-# ported from: no ffmpeg, no C audio libraries -- just symphonia decoders for
-# the two containers Soiboi actually downloads (AAC in M4A).
-bliss-audio = { version = "0.13", default-features = false, features = ["symphonia-aac", "symphonia-isomp4"] }
+# No ffmpeg, no C audio libraries: pure-Rust symphonia decoders, so this
+# cross-compiles for Android. Every format a library folder is likely to hold,
+# not only what Soiboi downloads: with AAC alone, ALAC/FLAC/MP3 files failed to
+# decode and were marked unanalysable. symphonia-all omits ALAC and AIFF, so
+# they are listed separately. Opus has no symphonia decoder.
+bliss-audio = { version = "0.13", default-features = false, features = ["symphonia-aac", "symphonia-isomp4", "symphonia-alac", "symphonia-mp3", "symphonia-flac", "symphonia-ogg", "symphonia-vorbis", "symphonia-wav", "symphonia-aiff"] }
 pyo3 = { version = "0.29", features = ["extension-module"] }
+
+# symphonia 0.6.1 depends on symphonia-bundle-mp3 0.6.1, which was never
+# published to crates.io. The v0.6.1 tag holds it, and the whole family has to
+# come from that tag so the crates agree with each other.
+[patch.crates-io]
+symphonia = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-bundle-flac = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-bundle-mp3 = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-codec-aac = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-codec-adpcm = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-codec-alac = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-codec-pcm = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-codec-vorbis = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-common = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-core = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-format-isomp4 = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-format-ogg = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-format-riff = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }
+symphonia-metadata = { git = "https://github.com/pdeljanov/Symphonia", tag = "v0.6.1" }

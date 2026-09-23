@@ -340,12 +340,40 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           title: 'Download queue',
           action: jobs.isEmpty
               ? null
-              : IconButton(
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Open queue',
-                  onPressed: () => showDownloadQueueSheet(context),
-                  icon: const Icon(Icons.open_in_full_rounded),
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (jobs.any((job) => job.isActive)) ...[
+                      ValueListenableBuilder<bool>(
+                        valueListenable: downloadQueue.paused,
+                        builder: (context, paused, _) => IconButton(
+                          iconSize: 18,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: paused ? 'Resume downloads' : 'Pause downloads',
+                          onPressed: () => downloadQueue.setPaused(!paused),
+                          icon: Icon(
+                            paused
+                                ? Icons.play_arrow_rounded
+                                : Icons.pause_rounded,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        iconSize: 18,
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Stop all downloads',
+                        onPressed: downloadQueue.stopAll,
+                        icon: const Icon(Icons.stop_rounded),
+                      ),
+                    ],
+                    IconButton(
+                      iconSize: 18,
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Open queue',
+                      onPressed: () => showDownloadQueueSheet(context),
+                      icon: const Icon(Icons.open_in_full_rounded),
+                    ),
+                  ],
                 ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
