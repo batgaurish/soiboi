@@ -20,6 +20,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/archive_service.dart';
+import 'package:soiboi/base/services/pipeline_runner.dart';
 
 enum DownloadJobState {
   queued,
@@ -133,9 +134,9 @@ class DownloadQueueManager {
   /// scanning the list.
   final active = ValueNotifier<DownloadJob?>(null);
 
-  /// Paused stops the queue *after* the job in flight. There is no way to
-  /// abort a download mid-file — neither transport can interrupt the pipeline
-  /// once it has started — so promising an instant stop would be a lie.
+  /// Whether the queue is holding. Pausing stops the job in flight too and
+  /// puts it back at the front, so resuming picks it up again. Tracks it had
+  /// already finished stay on disk and are skipped on the retry.
   final paused = ValueNotifier<bool>(false);
 
   /// Seams for tests. Real downloads need a signed-in session, a Python
@@ -148,6 +149,10 @@ class DownloadQueueManager {
   })
   archive = archiveUrl;
   Future<void> Function() sync = syncArchivedToLibrary;
+  Future<void> Function() stopActive = pipelineRunner.cancelDownload;
+
+  /// What should happen to the running job once its stop lands.
+  DownloadJobState? _afterStop;
 
   bool _pumping = false;
 
@@ -191,16 +196,31 @@ class DownloadQueueManager {
     unawaited(_pump());
   }
 
-  /// Drops a job that has not started yet.
-  ///
-  /// A running job is deliberately not cancellable: the pipeline call cannot
-  /// be interrupted, so "cancel" would only hide a download that carried on
-  /// regardless. Pause the queue instead.
+  /// Cancels [job], stopping it mid-download if it is running.
   void cancel(DownloadJob job) {
+    if (job.state == DownloadJobState.running) {
+      _stopActive(DownloadJobState.cancelled);
+      return;
+    }
     if (job.state != DownloadJobState.queued) return;
     job.state = DownloadJobState.cancelled;
     _notify();
     _refreshBatches();
+  }
+
+  /// Stops the running download and cancels everything waiting.
+  void stopAll() {
+    cancelPending();
+    _stopActive(DownloadJobState.cancelled);
+  }
+
+  void _stopActive(DownloadJobState then) {
+    final job = active.value;
+    if (job == null) return;
+    _afterStop = then;
+    job.status = 'Stopping';
+    _notify();
+    unawaited(stopActive());
   }
 
   /// Cancels every job that has not started.
@@ -216,7 +236,11 @@ class DownloadQueueManager {
 
   void setPaused(bool value) {
     paused.value = value;
-    if (!value) unawaited(_pump());
+    if (value) {
+      _stopActive(DownloadJobState.queued);
+    } else {
+      unawaited(_pump());
+    }
   }
 
   /// Clears finished rows. The queue in flight is untouched.
@@ -272,7 +296,15 @@ class DownloadQueueManager {
       error = '$e';
     }
 
-    if (error != null) {
+    final stoppedAs = _afterStop;
+    _afterStop = null;
+    if (stoppedAs != null) {
+      // Stopped on purpose: a pause requeues the job, a cancel drops it.
+      job.state = stoppedAs;
+      job.status = stoppedAs == DownloadJobState.queued ? 'Paused' : 'Stopped';
+      job.error = null;
+      _dirty = true; // tracks finished before the stop still need syncing
+    } else if (error != null) {
       job.state = DownloadJobState.failed;
       job.error = error;
       job.status = 'Failed';

@@ -18,6 +18,8 @@ import multiprocessing
 import os
 import queue
 import re
+import shutil
+import threading
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TextIO
@@ -37,6 +39,20 @@ else:
     _GAMDL_IMPORT_ERROR = None
 
 logger = logging.getLogger(__name__)
+
+# Set by the `cancel` command, which Android runs on a different thread from
+# the download it is stopping. Desktop kills the process instead, but honours
+# this too.
+_cancel_requested = threading.Event()
+
+
+class DownloadCancelled(BaseException):
+    """Raised inside gamdl to stop a download.
+
+    A BaseException, like KeyboardInterrupt, because gamdl catches Exception
+    per track: an ordinary exception would skip one track and carry on with
+    the rest of the album.
+    """
 
 # Ordered stage markers. The first pattern to appear in a log line wins, so
 # order matters: later stages are checked first to avoid an early keyword
@@ -102,6 +118,10 @@ class _StreamTap(io.TextIOBase):
         self._in_traceback = False
 
     def write(self, text: str) -> int:
+        # gamdl and yt-dlp write here many times a second while working, which
+        # makes this the one place a cancel is noticed promptly.
+        if _cancel_requested.is_set():
+            raise DownloadCancelled()
         if not text:
             return 0
         self._buffer += text
@@ -345,6 +365,8 @@ def _run_gamdl(args: list[str], tap: _StreamTap, emit: Emit) -> Event | None:
         # take the whole app down on Android.
         with contextlib.redirect_stdout(tap), contextlib.redirect_stderr(tap):
             gamdl_main(args, standalone_mode=False)
+    except DownloadCancelled:
+        return error("cancelled", "Download stopped")
     except SystemExit as exc:
         if exc.code not in (0, None):
             return error("gamdl_failed", f"Downloader exited with status {exc.code}")
@@ -374,6 +396,28 @@ def _analyse_output(output_dir: str, emit: Emit) -> None:
         emit(warning(f"Audio analysis skipped: {exc}"))
 
 
+def _discard_partial_files(temp_dir: str, log_path: str) -> None:
+    """Remove what a stopped download left behind.
+
+    Finished files are safe: gamdl moves a track into the output folder only
+    after muxing and tagging, so everything partial is under the temp folder.
+    The log is kept, since it explains the run.
+    """
+    for entry in os.scandir(temp_dir):
+        if entry.path == log_path:
+            continue
+        if entry.is_dir(follow_symlinks=False):
+            shutil.rmtree(entry.path, ignore_errors=True)
+        else:
+            with contextlib.suppress(OSError):
+                os.remove(entry.path)
+
+
+def request_cancel() -> None:
+    """Stop the download in progress at its next log line."""
+    _cancel_requested.set()
+
+
 def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
     """Download one Apple Music URL into the request's output directory.
 
@@ -395,6 +439,7 @@ def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
     if gamdl_main is None:
         return error("no_gamdl", f"Downloader unavailable: {_GAMDL_IMPORT_ERROR}")
 
+    _cancel_requested.clear()
     temp_dir, log_path = _prepare_dirs(request)
     emit(progress(8, "Starting"))
 
@@ -411,6 +456,8 @@ def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
             _gamdl_args(request, temp_dir), _StreamTap(emit, log=log), emit
         )
     if failure:
+        if failure["code"] == "cancelled":
+            _discard_partial_files(temp_dir, log_path)
         return failure
 
     _analyse_output(request.output_dir, emit)
@@ -423,3 +470,8 @@ def handle_download(payload: Payload, emit: Emit) -> Event:
     if problem:
         return problem
     return download(DownloadRequest.from_payload(payload), emit)
+
+
+def handle_cancel(_payload: Payload, _emit: Emit) -> Event:
+    request_cancel()
+    return done()

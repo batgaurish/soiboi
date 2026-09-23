@@ -38,6 +38,16 @@ import 'package:soiboi/base/services/spotify_playlist_source.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await _start();
+  } catch (error, stack) {
+    // Anything thrown before the first frame used to leave a black window
+    // with no way to tell what happened. Show it instead.
+    runApp(_StartupFailure(error: error, stack: stack));
+  }
+}
+
+Future<void> _start() async {
 
   appDocsDir = await getApplicationDocumentsDirectory();
   appSupportDir = await getApplicationSupportDirectory();
@@ -450,4 +460,49 @@ $text
 ''',
     );
   });
+}
+
+
+/// Shown when startup throws, so a crash is readable and reportable.
+class _StartupFailure extends StatelessWidget {
+  const _StartupFailure({required this.error, required this.stack});
+
+  final Object error;
+  final StackTrace stack;
+
+  @override
+  Widget build(BuildContext context) {
+    final report = '$error\n\n$stack';
+    return MaterialApp(
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Soiboi could not start',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      report,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                    ),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: () => Clipboard.setData(ClipboardData(text: report)),
+                  child: const Text('Copy error'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

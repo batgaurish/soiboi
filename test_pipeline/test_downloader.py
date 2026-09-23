@@ -197,3 +197,35 @@ def test_payload_fields_map_onto_the_request():
 def test_handler_names_every_missing_field():
     result = downloader.handle_download({"url": "u"}, lambda event: None)
     assert result["message"] == "Missing: cookies_path, output_dir"
+
+
+def test_cancel_stops_the_download_and_discards_partial_files(tmp_path, monkeypatch):
+    temp = tmp_path / "tmp"
+
+    def slow_main(args, standalone_mode=True):
+        (temp / "partial.m4a").write_bytes(b"half")
+        downloader.request_cancel()
+        print("[INFO 00:00:01] Downloading track")  # the next log line stops it
+        raise AssertionError("should have been cancelled")
+
+    monkeypatch.setattr(downloader, "_multiprocessing_works", lambda: True)
+    monkeypatch.setattr(downloader, "_capture_gamdl_logging", lambda tap: True)
+    monkeypatch.setattr(downloader, "gamdl_main", slow_main)
+    cookies = tmp_path / "cookies.txt"
+    cookies.write_text("")
+
+    result = downloader.download(
+        downloader.DownloadRequest(
+            url="u", cookies_path=str(cookies),
+            output_dir=str(tmp_path / "out"), temp_dir=str(temp),
+        )
+    )
+    assert result["code"] == "cancelled"
+    assert not (temp / "partial.m4a").exists()
+    assert (temp / "gamdl.log").exists()
+
+
+def test_a_new_download_is_not_cancelled_by_an_old_request(tmp_path, monkeypatch):
+    downloader.request_cancel()
+    args = _captured_args(tmp_path, monkeypatch)
+    assert args  # ran to completion

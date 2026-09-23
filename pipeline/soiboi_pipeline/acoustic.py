@@ -38,6 +38,7 @@ noise. This is a straightforward improvement, not a behaviour change to
 preserve.
 """
 
+import hashlib
 import json
 import os
 import time
@@ -59,7 +60,7 @@ except ImportError:
     ANALYSIS_AVAILABLE = False
 
 SIDECAR_SUFFIX = ".soiboi-acoustic.json"
-SIDECAR_VERSION = 1
+SIDECAR_VERSION = 2
 
 AUDIO_EXTENSIONS = {
     ".m4a", ".mp3", ".flac", ".ogg", ".opus", ".wav", ".aiff", ".alac",
@@ -81,65 +82,119 @@ Features = dict[str, JsonValue]
 
 
 def sidecar_path(audio_path: str) -> str:
-    """The sidecar filename for [audio_path]."""
+    """The sidecar filename next to [audio_path]."""
     return audio_path + SIDECAR_SUFFIX
 
 
-def write_sidecar(audio_path: str, features: Features | None) -> None:
-    """Write features atomically to a sidecar next to [audio_path].
+def private_sidecar_path(audio_path: str, store_dir: str) -> str:
+    """Where the sidecar goes when the music folder cannot be written to.
 
-    A temp-then-rename keeps a half-written file from being read if the
-    process is killed mid-write.
+    Android lets an app read audio in shared storage but not create a .json
+    beside it without All-files access, so the app passes a private folder
+    and the sidecar lands there, keyed by the audio file's path.
     """
-    path = sidecar_path(audio_path)
+    digest = hashlib.sha1(audio_path.encode("utf-8")).hexdigest()
+    return os.path.join(store_dir, digest + ".json")
+
+
+def _candidate_paths(audio_path: str, store_dir: str | None) -> list[str]:
+    paths = [sidecar_path(audio_path)]
+    if store_dir:
+        paths.append(private_sidecar_path(audio_path, store_dir))
+    return paths
+
+
+def _write_json_atomically(path: str, data: Features) -> None:
+    # Temp-then-rename, so a process killed mid-write leaves no half file.
     tmp = path + ".tmp"
-    data = {"version": SIDECAR_VERSION, "updated": int(time.time())}
-    if features:
-        data.update(features)
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, separators=(",", ":"))
     os.replace(tmp, path)
 
 
-def read_sidecar(audio_path: str) -> Features | None:
-    """Read the sidecar for [audio_path], or ``None`` if absent or corrupt."""
-    path = sidecar_path(audio_path)
-    if not os.path.exists(path):
-        return None
+def write_sidecar(
+    audio_path: str,
+    features: Features | None,
+    error_reason: str | None = None,
+    store_dir: str | None = None,
+) -> str:
+    """Write a sidecar for [audio_path] and return where it went.
+
+    Tries next to the file first, then [store_dir]. A failed analysis records
+    [error_reason] so the app can say why a track has no features.
+    """
+    data: Features = {"version": SIDECAR_VERSION, "updated": int(time.time())}
+    if features:
+        data.update(features)
+    elif error_reason:
+        data["error"] = error_reason
+
+    paths = _candidate_paths(audio_path, store_dir)
+    for index, path in enumerate(paths):
+        try:
+            if index > 0:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+            _write_json_atomically(path, data)
+            return path
+        except OSError:
+            if index == len(paths) - 1:
+                raise
+    raise AssertionError("unreachable: at least one candidate path")
+
+
+def read_sidecar(audio_path: str, store_dir: str | None = None) -> Features | None:
+    """The sidecar for [audio_path], or None if absent or corrupt."""
+    for path in _candidate_paths(audio_path, store_dir):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            continue
+        except (OSError, ValueError):
+            # Unreadable or half-written: treat it as absent.
+            continue
+    return None
+
+
+def is_settled(sidecar: Features | None) -> bool:
+    """Whether a sidecar means "done, do not analyse again".
+
+    An empty sidecar from format version 1 is not settled. The version 1
+    analyser could only decode AAC, so it marked every ALAC, FLAC and MP3 file
+    as unreadable; each gets one more attempt with the current decoders.
+    """
+    if not sidecar:
+        return False
+    if "bpm" in sidecar:
+        return True
+    return sidecar.get("version", 1) >= SIDECAR_VERSION
+
+
+def has_sidecar(audio_path: str, store_dir: str | None = None) -> bool:
+    return is_settled(read_sidecar(audio_path, store_dir))
+
+
+def _analyze(path: str) -> tuple[Features | None, str | None]:
+    """(features, None) on success, or (None, why it failed)."""
+    if not ANALYSIS_AVAILABLE:
+        return None, "analysis unavailable"
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        # Unreadable or half-written: treat it as absent.
-        return None
-
-
-def has_sidecar(audio_path: str) -> bool:
-    return os.path.exists(sidecar_path(audio_path))
+        raw = _bliss_analyze.analyze(path)
+    except Exception as exc:
+        # bliss raises for anything it cannot decode: corrupt, DRM-locked or
+        # an unsupported codec such as Opus.
+        return None, str(exc) or type(exc).__name__
+    bpm = raw.get("bpm")
+    if bpm is None:
+        return None, "no tempo detected"
+    features: Features = {"bpm": round(bpm, 1), "source": "local"}
+    features.update(_mood_estimates(raw))
+    return features, None
 
 
 def analyze_file(path: str) -> Features | None:
-    """Acoustic features for one audio file, or ``None`` if it cannot be
-    analysed.
-    """
-    if not ANALYSIS_AVAILABLE:
-        return None
-    try:
-        raw = _bliss_analyze.analyze(path)
-        bpm = raw.get("bpm")
-        if bpm is None:
-            return None
-
-        features = {
-            "bpm": round(bpm, 1),
-            "source": "local",
-        }
-        features.update(_mood_estimates(raw))
-        return features
-    except Exception:
-        # bliss raises for anything it cannot decode (corrupt, DRM-locked,
-        # an unsupported codec), and each of those means "no features".
-        return None
+    """Acoustic features for one audio file, or None if it cannot be analysed."""
+    return _analyze(path)[0]
 
 
 def _mood_estimates(raw: dict[str, float]) -> Features:
@@ -202,52 +257,48 @@ def analyze_directory(
     directory: str,
     emit: Emit | None = None,
     limit: int | None = None,
+    store_dir: str | None = None,
+    progress_range: tuple[int, int] = (90, 100),
 ) -> dict[str, JsonValue]:
-    """Analyse files missing a sidecar and write one for each.
+    """Analyse files without a settled sidecar and write one for each.
 
-    Bounded by [limit] so a caller can run this in slices. Returns a summary
-    of what was done. Used both as a backfill command and called from the
-    downloader after a successful download.
+    Bounded by [limit] so a caller can run this in slices. [progress_range]
+    maps the work onto the caller's progress bar: the tail of a download, or
+    all of a library analyse. One file failing, even to write its sidecar,
+    never stops the rest.
     """
     if not ANALYSIS_AVAILABLE:
-        return {
-            "total": 0,
-            "analysed": 0,
-            "skipped": 0,
-            "analysis_available": False,
-        }
+        return {"total": 0, "analysed": 0, "skipped": 0, "analysis_available": False}
 
-    pending = []
-    total = 0
-    for path in iter_audio_files(directory):
-        total += 1
-        if not has_sidecar(path):
-            pending.append(path)
-
+    files = list(iter_audio_files(directory))
+    pending = [path for path in files if not has_sidecar(path, store_dir)]
     if limit is not None:
         pending = pending[:limit]
 
-    analysed = 0
+    analysed = failed = unwritable = 0
+    start, end = progress_range
     for i, path in enumerate(pending):
-        features = analyze_file(path)
+        features, reason = _analyze(path)
+        try:
+            write_sidecar(path, features, error_reason=reason, store_dir=store_dir)
+        except OSError:
+            unwritable += 1
         if features is not None:
-            write_sidecar(path, features)
             analysed += 1
         else:
-            # Record failures as an empty sidecar so a corrupt or DRM-locked
-            # file is not retried on every pass.
-            write_sidecar(path, None)
+            failed += 1
         if emit:
             emit(progress(
-                90 + int(10 * (i + 1) / max(len(pending), 1)),
+                start + int((end - start) * (i + 1) / len(pending)),
                 f"Analyzing audio ({i + 1}/{len(pending)})",
             ))
 
     return {
-        "total": total,
+        "total": len(files),
         "analysed": analysed,
-        "skipped": total - len(pending),
-        "pending": len(pending) - analysed,
+        "skipped": len(files) - len(pending),
+        "pending": failed,
+        "unwritable": unwritable,
         "analysis_available": True,
     }
 
@@ -258,4 +309,9 @@ def handle_analyze(payload: Payload, emit: Emit) -> Event:
         return problem
     if not ANALYSIS_AVAILABLE:
         return error("no_analysis", "Acoustic analysis is not available on this device.")
-    return done(**analyze_directory(payload["directory"], emit=emit))
+    return done(**analyze_directory(
+        payload["directory"],
+        emit=emit,
+        store_dir=payload.get("store_dir"),
+        progress_range=(0, 100),
+    ))

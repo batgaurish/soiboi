@@ -22,6 +22,7 @@ import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/base/data/home_shelves.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/mood_playlists.dart';
+import 'package:soiboi/base/services/acoustic_service.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
@@ -157,7 +158,10 @@ class _HomeLayerState extends State<HomeLayer> {
             if (favourites.isNotEmpty)
               _sliver(_songShelf(l10n.favorites, favourites)),
 
-            if (moods.isNotEmpty) _sliver(_moodShelf(moods)),
+            if (moods.isNotEmpty)
+              _sliver(_moodShelf(moods))
+            else if (moodsNeedAnalysis())
+              _sliver(const _AnalysePrompt()),
 
             if (artistEntries != null && artistEntries.isNotEmpty)
               _sliver(_lbShelf('Top artists', artistEntries, circular: true))
@@ -879,6 +883,87 @@ class _MoodCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands where the mood shelf would be when nothing is analysed yet.
+///
+/// Mood playlists are built from audio features, so an unanalysed library
+/// has none. This says so and runs the analysis from here, rather than
+/// leaving a gap the user cannot explain.
+class _AnalysePrompt extends StatefulWidget {
+  const _AnalysePrompt();
+
+  @override
+  State<_AnalysePrompt> createState() => _AnalysePromptState();
+}
+
+class _AnalysePromptState extends State<_AnalysePrompt> {
+  String? _status;
+
+  Future<void> _analyse() async {
+    setState(() => _status = 'Starting…');
+    final summary = await analyseLibrary(
+      onProgress: (p) {
+        if (mounted) setState(() => _status = p.status);
+      },
+    );
+    if (!mounted) return;
+    setState(() {
+      _status = summary.unavailable
+          ? 'Audio analysis is not available on this device.'
+          : summary.error != null
+          ? 'Analysis failed: ${summary.error}'
+          : '${summary.analysed} tracks analysed.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = _status != null && _status!.startsWith(RegExp(r'Start|Analy'));
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: menuColor.value,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.graphic_eq_rounded, color: iconColor.value, size: 32),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mood playlists',
+                    style: TextStyle(
+                      color: textColor.value,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _status ??
+                        'Soiboi builds these from how your music sounds. '
+                            'Analyse your library to unlock them.',
+                    style: TextStyle(color: textColor.value, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton(
+              onPressed: busy ? null : _analyse,
+              child: Text(busy ? 'Analysing' : 'Analyse'),
+            ),
+          ],
         ),
       ),
     );

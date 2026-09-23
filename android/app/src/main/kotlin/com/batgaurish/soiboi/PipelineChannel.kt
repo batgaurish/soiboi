@@ -30,8 +30,11 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
     }
 
     // Python work must never touch the main thread: importing the runtime alone
-    // takes noticeable time, and a download blocks for minutes.
-    private val executor = Executors.newSingleThreadExecutor()
+    // takes noticeable time, and a download blocks for minutes. Downloads get
+    // their own thread so a library analyse (which can run for an hour) never
+    // holds one up, and neither blocks a capabilities check or playlist fetch.
+    private val downloads = Executors.newSingleThreadExecutor()
+    private val background = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private var events: EventChannel.EventSink? = null
 
@@ -42,7 +45,8 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
                     "run" -> {
                         val command = call.argument<String>("command") ?: ""
                         val payload = call.argument<String>("payload") ?: "{}"
-                        run(command, payload, result)
+                        val runId = call.argument<Int>("runId") ?: 0
+                        run(runId, command, payload, result)
                     }
                     else -> result.notImplemented()
                 }
@@ -66,7 +70,8 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
         }
     }
 
-    private fun run(command: String, payload: String, result: MethodChannel.Result) {
+    private fun run(runId: Int, command: String, payload: String, result: MethodChannel.Result) {
+        val executor = if (command == "download") downloads else background
         executor.execute {
             val terminal: String = try {
                 ensureStarted()
@@ -82,7 +87,9 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
                         val json = event?.toString() ?: return
                         main.post {
                             try {
-                                events?.success(json)
+                                // Tagged, because several runs share this one
+                                // sink and each Dart caller wants only its own.
+                                events?.success(mapOf("runId" to runId, "event" to json))
                             } catch (_: Throwable) {
                             }
                         }

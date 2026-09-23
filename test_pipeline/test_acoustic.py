@@ -154,3 +154,54 @@ def test_handler_reports_missing_analyser(tmp_path, monkeypatch):
     monkeypatch.setattr(acoustic, "ANALYSIS_AVAILABLE", False)
     result = acoustic.handle_analyze({"directory": str(tmp_path)}, lambda event: None)
     assert result["code"] == "no_analysis"
+
+
+def test_empty_version_1_sidecar_is_retried(tmp_path):
+    # The v1 analyser could only decode AAC and marked everything else as
+    # unreadable. Those files deserve one more attempt.
+    audio = tmp_path / "track.flac"
+    audio.write_bytes(b"")
+    (tmp_path / "track.flac.soiboi-acoustic.json").write_text('{"version": 1}')
+    assert not acoustic.has_sidecar(str(audio))
+
+
+def test_failed_analysis_records_why_and_is_settled(tmp_path):
+    audio = tmp_path / "track.opus"
+    audio.write_bytes(b"")
+    acoustic.write_sidecar(str(audio), None, error_reason="unsupported codec")
+    assert acoustic.read_sidecar(str(audio))["error"] == "unsupported codec"
+    assert acoustic.has_sidecar(str(audio))
+
+
+def test_unwritable_folder_falls_back_to_the_private_store(tmp_path, monkeypatch):
+    music = tmp_path / "music"
+    music.mkdir()
+    audio = music / "track.m4a"
+    audio.write_bytes(b"")
+    store = tmp_path / "store"
+    real_write = acoustic._write_json_atomically
+
+    def deny_music_folder(path, data):
+        if path.startswith(str(music)):
+            raise PermissionError(13, "Permission denied")
+        real_write(path, data)
+
+    monkeypatch.setattr(acoustic, "_write_json_atomically", deny_music_folder)
+    written = acoustic.write_sidecar(str(audio), {"bpm": 90}, store_dir=str(store))
+    assert written.startswith(str(store))
+    assert acoustic.read_sidecar(str(audio), str(store))["bpm"] == 90
+
+
+def test_one_unwritable_file_does_not_stop_the_folder(tmp_path, monkeypatch):
+    for name in ("a.m4a", "b.m4a"):
+        (tmp_path / name).write_bytes(b"")
+    monkeypatch.setattr(acoustic, "ANALYSIS_AVAILABLE", True)
+    monkeypatch.setattr(acoustic, "_analyze", lambda path: ({"bpm": 100.0}, None))
+
+    def deny(path, data):
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr(acoustic, "_write_json_atomically", deny)
+    result = acoustic.analyze_directory(str(tmp_path))
+    assert result["analysed"] == 2
+    assert result["unwritable"] == 2

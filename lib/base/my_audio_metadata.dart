@@ -111,8 +111,8 @@ class MyAudioMetadata {
   /// energy, danceability, etc. without a separate query.
   void loadAcousticFeatures() {
     if (path == null || sourceType != .local) return;
-    final sidecar = File('$path.soiboi-acoustic.json');
-    if (!sidecar.existsSync()) return;
+    final sidecar = acousticSidecarFor(path!);
+    if (sidecar == null) return;
     try {
       final data = jsonDecode(sidecar.readAsStringSync());
       if (data is! Map<String, dynamic>) return;
@@ -232,4 +232,19 @@ class MyAudioMetadata {
         "playCount:$playCount\n"
         "lastPlayed:$lastPlayed";
   }
+}
+
+/// Where the analyser keeps sidecars it could not write beside the audio.
+///
+/// Must match `private_sidecar_path` in `pipeline/soiboi_pipeline/acoustic.py`.
+String get acousticStoreDir => '${appSupportDir.path}/acoustic';
+
+/// The acoustic sidecar for [audioPath], beside the file or in the private
+/// store, or null if neither exists.
+File? acousticSidecarFor(String audioPath) {
+  final beside = File('$audioPath.soiboi-acoustic.json');
+  if (beside.existsSync()) return beside;
+  final digest = sha1.convert(utf8.encode(audioPath)).toString();
+  final private = File('$acousticStoreDir/$digest.json');
+  return private.existsSync() ? private : null;
 }

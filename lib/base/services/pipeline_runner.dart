@@ -104,6 +104,10 @@ abstract class PipelineRunner {
   /// Streams events until the pipeline produces a terminal result.
   Stream<PipelineEvent> run(String command, [Map<String, dynamic>? payload]);
 
+  /// Stops the download in progress, if any. Its stream then ends with a
+  /// `cancelled` error. Partial files are discarded; finished tracks stay.
+  Future<void> cancelDownload();
+
   Future<PipelineCapabilities> capabilities() async {
     try {
       await for (final event in run('capabilities')) {
@@ -127,6 +131,26 @@ class DesktopPipelineRunner extends PipelineRunner {
 
   final String? _pythonOverride;
   final String? _rootOverride;
+
+  /// The running download's process, so it can be stopped.
+  Process? _download;
+  bool _downloadKilled = false;
+
+  @override
+  Future<void> cancelDownload() async {
+    final process = _download;
+    if (process == null) return;
+    _downloadKilled = true;
+    process.kill(ProcessSignal.sigterm);
+    // gamdl does not trap SIGTERM, but a stuck native call could ignore it.
+    await process.exitCode.timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {
+        process.kill(ProcessSignal.sigkill);
+        return -1;
+      },
+    );
+  }
 
   /// Where the pipeline lives relative to the running binary.
   ///
@@ -199,6 +223,11 @@ class DesktopPipelineRunner extends PipelineRunner {
       environment: {'PYTHONPATH': root, 'PYTHONUNBUFFERED': '1'},
       workingDirectory: root,
     ).then((process) {
+      final isDownload = command == 'download';
+      if (isDownload) {
+        _download = process;
+        _downloadKilled = false;
+      }
       process.stdout
           .transform(utf8.decoder)
           .transform(const LineSplitter())
@@ -216,7 +245,20 @@ class DesktopPipelineRunner extends PipelineRunner {
                 logger.output('pipeline: $line');
               }
             },
-            onDone: () => controller.close(),
+            onDone: () {
+              // A killed download has no chance to report it, so say so here.
+              if (isDownload && identical(_download, process)) {
+                _download = null;
+                if (_downloadKilled) {
+                  controller.add(PipelineEvent({
+                    'event': 'error',
+                    'code': 'cancelled',
+                    'message': 'Download stopped',
+                  }));
+                }
+              }
+              controller.close();
+            },
             onError: (Object e) {
               controller.add(
                 PipelineEvent({
@@ -259,57 +301,73 @@ class AndroidPipelineRunner extends PipelineRunner {
   static const _method = MethodChannel('com.batgaurish.soiboi/pipeline');
   static const _events = EventChannel('com.batgaurish.soiboi/pipeline_events');
 
+  /// Live runs by id. Every progress event arrives on one shared channel,
+  /// tagged with the run it belongs to.
+  ///
+  /// Listening once, for the app's lifetime, is the point: when each run
+  /// subscribed and cancelled on its own, the first run to finish cancelled
+  /// the native sink out from under every other run, so an analyse and a
+  /// download running together lost each other's progress.
+  static final _runs = <int, StreamController<PipelineEvent>>{};
+  static var _nextRunId = 1;
+  static StreamSubscription<dynamic>? _subscription;
+
+  static void _listenOnce() {
+    _subscription ??= _events.receiveBroadcastStream().listen((data) {
+      if (data is! Map) return;
+      final controller = _runs[data['runId']];
+      final json = data['event'];
+      if (controller == null || json is! String) return;
+      final decoded = _decode(json);
+      if (decoded != null) controller.add(decoded);
+    }, onError: (Object e) => logger.output('pipeline events: $e'));
+  }
+
+  static PipelineEvent? _decode(String json) {
+    try {
+      final decoded = jsonDecode(json);
+      return decoded is Map<String, dynamic> ? PipelineEvent(decoded) : null;
+    } on FormatException catch (e) {
+      logger.output('pipeline: bad event $e');
+      return null;
+    }
+  }
+
+  /// The pipeline notices the flag at gamdl's next log line and stops there.
+  @override
+  Future<void> cancelDownload() => run('cancel').drain<void>();
+
   @override
   Stream<PipelineEvent> run(String command, [Map<String, dynamic>? payload]) {
+    _listenOnce();
+    final runId = _nextRunId++;
     final controller = StreamController<PipelineEvent>();
-
-    // Subscribe before invoking, or early progress is missed.
-    final subscription = _events.receiveBroadcastStream().listen((data) {
-      if (data is! String) return;
-      try {
-        final decoded = jsonDecode(data);
-        if (decoded is Map<String, dynamic>) {
-          controller.add(PipelineEvent(decoded));
-        }
-      } catch (_) {
-        // Malformed progress is not worth failing a download over.
-      }
-    }, onError: (Object _) {});
+    _runs[runId] = controller;
 
     _method
         .invokeMethod<String>('run', {
+          'runId': runId,
           'command': command,
           'payload': jsonEncode(payload ?? const {}),
         })
         .then((response) {
-          if (response != null) {
-            try {
-              final decoded = jsonDecode(response);
-              if (decoded is Map<String, dynamic>) {
-                controller.add(PipelineEvent(decoded));
-              }
-            } catch (e) {
-              controller.add(
-                PipelineEvent({
-                  'event': 'error',
-                  'code': 'bad_response',
-                  'message': '$e',
-                }),
-              );
-            }
-          }
+          final event = response == null ? null : _decode(response);
+          controller.add(event ??
+              PipelineEvent({
+                'event': 'error',
+                'code': 'bad_response',
+                'message': 'The pipeline returned no result',
+              }));
         })
         .catchError((Object e) {
-          controller.add(
-            PipelineEvent({
-              'event': 'error',
-              'code': 'channel',
-              'message': '$e',
-            }),
-          );
+          controller.add(PipelineEvent({
+            'event': 'error',
+            'code': 'channel',
+            'message': '$e',
+          }));
         })
         .whenComplete(() {
-          subscription.cancel();
+          _runs.remove(runId);
           controller.close();
         });
 

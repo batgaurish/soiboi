@@ -16,6 +16,7 @@ DownloadQueueManager _manager({
         return archive(url);
       };
   manager.sync = () async => onSync?.call();
+  manager.stopActive = () async {};
   return manager;
 }
 
@@ -129,7 +130,7 @@ void main() {
     expect(started, ['a']);
   });
 
-  test('pause stops the queue after the job in flight', () async {
+  test('pause holds the queue, and resuming reruns the stopped job', () async {
     final gate = Completer<void>();
     final started = <String>[];
     final manager = _manager(
@@ -152,7 +153,8 @@ void main() {
 
     manager.setPaused(false);
     await batch.done;
-    expect(started, ['a', 'b']);
+    // 'a' was stopped by the pause and requeued, so it runs again first.
+    expect(started, ['a', 'a', 'b']);
   });
 
   test('the library is synced once per drain, not once per track', () async {
@@ -217,5 +219,62 @@ void main() {
 
     expect(seen, contains(50));
     expect(seen.last, 100);
+  });
+
+  group('stopping a running download', () {
+    /// A download that runs until the pipeline is told to stop.
+    DownloadQueueManager stoppable(Completer<void> started) {
+      final stop = Completer<String?>();
+      final manager = _manager(
+        archive: (url) {
+          if (!started.isCompleted) started.complete();
+          return url == 'a' ? stop.future : Future.value(null);
+        },
+      );
+      manager.stopActive = () async => stop.complete('Download stopped');
+      return manager;
+    }
+
+    test('cancel stops it and the queue moves on', () async {
+      final started = Completer<void>();
+      final manager = stoppable(started);
+      final batch = manager.enqueue([_request('a'), _request('b')]);
+      await started.future;
+
+      manager.cancel(batch.jobs[0]);
+      await batch.done;
+
+      expect(batch.jobs[0].state, DownloadJobState.cancelled);
+      expect(batch.jobs[0].error, isNull);
+      expect(batch.jobs[1].state, DownloadJobState.done);
+    });
+
+    test('pause stops it and puts it back in the queue', () async {
+      final started = Completer<void>();
+      final manager = stoppable(started);
+      final batch = manager.enqueue([_request('a'), _request('b')]);
+      await started.future;
+
+      manager.setPaused(true);
+      await pumpEventQueue();
+
+      expect(batch.jobs[0].state, DownloadJobState.queued);
+      expect(batch.jobs[1].state, DownloadJobState.queued);
+    });
+
+    test('stop all ends the running job and everything waiting', () async {
+      final started = Completer<void>();
+      final manager = stoppable(started);
+      final batch = manager.enqueue([_request('a'), _request('b')]);
+      await started.future;
+
+      manager.stopAll();
+      await batch.done;
+
+      expect(
+        batch.jobs.map((j) => j.state),
+        everyElement(DownloadJobState.cancelled),
+      );
+    });
   });
 }

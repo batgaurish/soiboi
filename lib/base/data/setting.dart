@@ -36,10 +36,9 @@ final exitOnCloseNotifier = ValueNotifier(false);
 /// of them — Apple Music streams AAC and ALAC, and there is no FLAC to ask
 /// for, so choosing it could only ever fail.
 ///
-/// None of these require the user to supply anything: gamdl ships a Widevine
-/// device (`gamdl/interface/wvd.py`) and falls back to it whenever no
-/// `--wvd-path` is given, so ALAC works out of the box. See
-/// [wvdPathNotifier] for when overriding that is worth doing.
+/// AAC needs nothing from the user: gamdl ships a Widevine device and uses it
+/// whenever no `--wvd-path` is given. ALAC is FairPlay-protected, and gamdl
+/// 3.8 can only fetch it through a wrapper-v2 service ([useWrapperNotifier]).
 final downloadCodecNotifier = ValueNotifier('aac');
 
 /// Available codecs with human-readable labels.
