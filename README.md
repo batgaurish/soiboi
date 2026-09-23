@@ -1,66 +1,78 @@
 # Soiboi
 
-**A streaming-to-offline archival music player.** Point it at a playlist, get
-back a properly tagged local copy you own — no server, no subscription
-required to keep listening.
+Soiboi turns streaming playlists into a music library you own. Paste a link,
+and the app downloads, decrypts, tags and files the tracks on the device you
+are holding. It runs on Linux and Android with no server, no Docker and no
+sync service.
 
-Soiboi plays your local music collection on Linux and Android, and embeds its
-own download pipeline directly in the app — whichever device does the
-download keeps the only copy, standalone, with nothing to host or sync.
-Playlist discovery already spans multiple platforms via ListenBrainz's public
-weekly-exploration lists, with more sources planned; the actual archive step
-today runs through Apple Music, which also supplies canonical album/track
-metadata and artwork.
+Soiboi plays local files. It will not stream from Spotify, Apple Music or
+anyone else, and the plan stays that way. Plenty of apps stream; this one
+keeps copies.
 
-It is a player first. There is no streaming-service playback and none is
-planned — plenty of apps already do that. Soiboi is for building the local
-library you actually own.
+## What you get
 
-## What it does
+- **Local playback** on Linux and Android, with synced lyrics from `.lrc`
+  files or [LRCLIB](https://lrclib.net).
+- **Archiving from a link.** Hand Soiboi an Apple Music track, album or
+  playlist. It queues the download, resumes at the last finished track after
+  an interruption, and drops tagged files with artwork into your library.
+- **Playlist import from other services.** Paste a Spotify, Deezer or YouTube
+  Music playlist link, or pick a playlist from your Apple Music account.
+  Soiboi matches each track to Apple's catalog by ISRC first, then by artist
+  and title, and archives the matches. None of these sources ask you to log
+  in.
+- **Weekly discoveries** from your public ListenBrainz exploration and jams
+  playlists, on the home screen.
+- **Smart playlists** built on BPM, energy, danceability, play count, date
+  added and more. [bliss-audio](https://github.com/Polochon-street/bliss-rs)
+  computes the audio features on the device.
+- **Codec and bitrate on every track**, so you can see ALAC versus AAC at a
+  glance.
+- **Self-hosted servers**: browse Navidrome, Emby and WebDAV libraries next to
+  your local files.
+- **Backup and restore** for playlists, history and settings, plus an in-app
+  updater that installs new releases from this repo.
+- **Theming**: three UI flavours, light and dark, Material You on Android,
+  matugen on Linux, and six prebuilt palettes.
 
-- **Offline playback** of local files on Linux desktop and Android, with
-  synced lyrics from local `.lrc` sidecars or LRCLIB
-- **Archive a track, album or playlist** — paste a link, watch it download,
-  decrypt, tag, and land in your library, entirely on-device (no Docker, no
-  companion server)
-- **Weekly discoveries** — ListenBrainz's public weekly exploration and jams
-  playlists, matched to Apple Music and archivable straight from the home
-  screen
-- **Mood-aware smart playlists** — BPM, energy, danceability and more,
-  computed on-device at download time (via [bliss-audio](https://github.com/Polochon-street/bliss-rs)
-  on both platforms) and filterable/sortable like any other track field
-- **Self-hosted server support** — Navidrome, Emby, WebDAV — for browsing
-  music that lives elsewhere alongside your local library
-- **Quality at a glance** — codec and bitrate (ALAC, AAC 320, …) shown on
-  tracks, because in an archival library that's information you actually want
-  visible
-- **Three UI flavours** plus light/dark and dynamic colour (matugen on Linux)
+Soiboi downloads AAC today. Lossless ALAC needs a FairPlay decryption service
+([wrapper-v2](https://github.com/glomatico/wrapper-v2)), and in-app setup for
+it is in progress.
 
-Scrobbling is deliberately not built in. Use [Pano Scrobbler](https://github.com/kawaiiDango/pScrobbler)
-or any media-session scrobbler.
+Soiboi does not scrobble. Pair it with
+[Pano Scrobbler](https://github.com/kawaiiDango/pScrobbler) or any other
+media-session scrobbler.
 
-## Architecture
+## How it works
 
-Standalone by design: the same Python download/decrypt/tag/analyze pipeline
-runs as a subprocess on desktop and in-process (via Chaquopy) on Android, so
-there is nothing to self-host and nothing to keep running. A track downloaded
-on your phone lives on your phone; there's no sync layer moving files between
-devices.
+The app carries its own Python pipeline, built on
+[gamdl](https://github.com/glomatico/gamdl). On desktop Soiboi runs it as a
+subprocess; on Android it runs in-process through
+[Chaquopy](https://chaquo.com/chaquopy/). Both platforms run the same code.
+The device that downloads a track keeps the only copy, and nothing moves files
+between devices.
 
 ```
-┌─────────────────────────────────────────┐
+┌──────────────────────────────────────────┐
 │  Soiboi (Linux · Android)                │
-│  ┌─────────────────────────────────┐    │
-│  │ embedded pipeline                │    │
-│  │ download → decrypt → mux → tag   │    │
-│  │ → mood analysis → local library  │    │
-│  └─────────────────────────────────┘    │
-└─────────────────────────────────────────┘
+│  ┌────────────────────────────────────┐  │
+│  │ embedded pipeline                  │  │
+│  │ download → decrypt → mux → tag     │  │
+│  │ → audio analysis → local library   │  │
+│  └────────────────────────────────────┘  │
+└──────────────────────────────────────────┘
 ```
 
-## Build
+## Install
 
-Requires the [Flutter SDK](https://docs.flutter.dev/install/manual).
+Grab the Android APK or the Linux x64 tarball from
+[Releases](https://github.com/batgaurish/soiboi/releases). Android builds are
+debug-signed, so Android will ask you to allow installs from your browser or
+file manager.
+
+## Build from source
+
+You need the [Flutter SDK](https://docs.flutter.dev/install/manual).
 
 ### Linux (Arch / CachyOS)
 
@@ -69,6 +81,7 @@ sudo pacman -S clang lld cmake ninja pkgconf gtk3 xz libsecret mpv wpewebkit
 git clone https://github.com/batgaurish/soiboi.git
 cd soiboi
 tools/build_pipeline.sh
+tools/apply_patches.sh
 flutter run --release
 ```
 
@@ -79,8 +92,14 @@ sudo apt install clang lld cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 git clone https://github.com/batgaurish/soiboi.git
 cd soiboi
 tools/build_pipeline.sh
+tools/apply_patches.sh
 flutter run --release
 ```
+
+`tools/apply_patches.sh` patches media_kit so libmpv skips its Lua scripts,
+which crash the Linux build. `flutter pub get` reverts the patch, so run the
+script again after every `pub get`. `tools/install_linux.sh` adds Soiboi to
+your app launcher.
 
 ### Android
 
@@ -90,28 +109,30 @@ ANDROID_NDK=<path to your NDK> tools/build_android_pipeline.sh
 flutter build apk --release
 ```
 
-Windows, macOS and iOS build targets are inherited from upstream and remain in
-the tree, but are not tested here.
+Set `SOIBOI_ABIS=arm64-v8a` to leave out the x86_64 emulator libraries and
+cut the APK by about 95 MB.
+
+The tree still holds the Windows, macOS and iOS targets from upstream. Nobody
+tests them here.
 
 ## Credits
 
-Soiboi is a fork of **[Sylvakru](https://github.com/AfalpHy/sylvakru)** by
-[AfalpHy](https://github.com/AfalpHy), an excellent cross-platform music player
-licensed under Apache 2.0. All of the player foundation — the audio pipeline,
-library model, server clients, and platform integration — is their work. This
-fork adds the embedded streaming-to-offline archival workflow on top.
+Soiboi forks **[Sylvakru](https://github.com/AfalpHy/sylvakru)** by
+[AfalpHy](https://github.com/AfalpHy), a cross-platform music player under
+Apache 2.0. AfalpHy wrote the player foundation: audio engine, library model,
+server clients and platform integration. This fork adds the archiving
+pipeline on top. If you want a general music player without the archiving,
+use Sylvakru. It also supports Windows, macOS and iOS.
 
-If you want a general-purpose music player without the archival pipeline, use
-Sylvakru directly. It is the better choice for that, and it supports Windows,
-macOS and iOS properly.
-
-Audio playback is via [media_kit](https://github.com/media-kit/media-kit) (mpv/FFmpeg);
-tags via [audio_tags_lofty](https://github.com/AfalpHy/audio_tags_lofty);
-mood analysis via [bliss-audio](https://github.com/Polochon-street/bliss-rs).
+Soiboi plays audio through [media_kit](https://github.com/media-kit/media-kit)
+(mpv and FFmpeg), reads tags with
+[audio_tags_lofty](https://github.com/AfalpHy/audio_tags_lofty), downloads
+with [gamdl](https://github.com/glomatico/gamdl) and analyses audio with
+[bliss-audio](https://github.com/Polochon-street/bliss-rs).
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-Upstream Sylvakru is Copyright 2025-2026 AfalpHy. Changes in this fork are listed
-in [NOTICE](NOTICE); the complete modification history is preserved in git.
+Upstream Sylvakru is Copyright 2025-2026 AfalpHy. [NOTICE](NOTICE) lists the
+changes in this fork, and git keeps the full history.

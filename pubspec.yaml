@@ -23,7 +23,7 @@ environment:
   # Specify a fixed version to ensure consistent behavior.
   # If you want to use a newer version, add ^ before the version number,
   # or directly set the version you want.
-  flutter: 3.47.2
+  flutter: ^3.47.2
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -37,7 +37,6 @@ dependencies:
 
   flutter_localizations:
     sdk: flutter
-  provider: ^6.1.5+1
   file_picker:
     git:
       url: https://github.com/miguelpruivo/flutter_file_picker.git
@@ -49,12 +48,12 @@ dependencies:
   audio_service_win:
     git:
       url: https://github.com/AfalpHy/audio_service_win.git
-      ref: main
+      ref: 940c576294061a6f47f2318515d617e6a9fd1b7b  # pinned; upstream tracks main
   audio_session: ^0.2.2
   media_kit: 
     git:
       url: https://github.com/AfalpHy/media-kit
-      ref: main
+      ref: 40a2f7ce28d66c61acc3e31e998d240749611d83  # pinned; upstream tracks main
       path: media_kit
   media_kit_libs_audio: ^1.0.7
   path_provider: ^2.1.5
@@ -67,12 +66,10 @@ dependencies:
   window_manager:
     git:
         url: https://github.com/AfalpHy/window_manager.git
-        ref: main
+        ref: d18a15c8e92b2c21ff04580c7990bce32941db64  # pinned; upstream tracks main
         path: packages/window_manager
   tray_manager: ^0.5.3
   lpinyin: ^2.0.3
-  flex_color_picker: ^3.8.0
-  google_fonts: ^8.0.2
   http: ^1.6.0
   url_launcher: ^6.3.2
   dio: ^5.9.2
@@ -82,7 +79,6 @@ dependencies:
   screen_corner_radius: ^3.0.0
   xml: ^7.0.1
   drift: ^2.33.0
-  drift_flutter: ^0.3.0
   just_font_scan: ^0.3.0
   flutter_secure_storage: ^11.0.0
   # Android sign-in: Apple's own login page in a WebView, so the app never
@@ -95,11 +91,11 @@ dependencies:
   rive_animated_icon:
     git:
       url: https://github.com/AfalpHy/rive_animated_icons.git
-      ref: main
+      ref: 81eb597af7b4b82305e5559963b8013380e2ebed  # pinned; upstream tracks main
   windows_taskbar:
     git:
       url: https://github.com/axel10/windows_taskbar.git
-      ref: master
+      ref: e5ff1f094b4376b5b81999d9da6c423177e90bba  # pinned; upstream tracks master
 
   intl: any
   material_ui: any
@@ -109,23 +105,23 @@ dependency_overrides:
   media_kit_libs_windows_audio:
     git:
       url: https://github.com/AfalpHy/media-kit
-      ref: main
-      path: libs\windows\media_kit_libs_windows_audio\
+      ref: 40a2f7ce28d66c61acc3e31e998d240749611d83  # pinned; upstream tracks main
+      path: libs/windows/media_kit_libs_windows_audio
   media_kit_libs_android_audio:
     git:
       url: https://github.com/AfalpHy/media-kit
-      ref: main
-      path: libs\android\media_kit_libs_android_audio\
+      ref: 40a2f7ce28d66c61acc3e31e998d240749611d83  # pinned; upstream tracks main
+      path: libs/android/media_kit_libs_android_audio
   media_kit_libs_ios_audio:
     git:
       url: https://github.com/AfalpHy/media-kit
-      ref: main
-      path: libs\ios\media_kit_libs_ios_audio\
+      ref: 40a2f7ce28d66c61acc3e31e998d240749611d83  # pinned; upstream tracks main
+      path: libs/ios/media_kit_libs_ios_audio
   media_kit_libs_macos_audio:
     git:
       url: https://github.com/AfalpHy/media-kit
-      ref: main
-      path: libs\macos\media_kit_libs_macos_audio\
+      ref: 40a2f7ce28d66c61acc3e31e998d240749611d83  # pinned; upstream tracks main
+      path: libs/macos/media_kit_libs_macos_audio
 
 dev_dependencies:
   flutter_test:

@@ -133,6 +133,9 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
       late File lrcFile;
       if (sourceType == .webdav) {
         lrcFile = File('${tmpDir.path}/soiboi_lyric');
+        // The temp file is shared between tracks. Clear it first, so a failed
+        // download cannot leave the previous track's lyrics in place.
+        if (lrcFile.existsSync()) lrcFile.deleteSync();
         await webdavClient?.download(remotePath: path, localPath: lrcFile.path);
       } else {
         lrcFile = File(path);

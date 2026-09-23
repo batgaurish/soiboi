@@ -41,6 +41,10 @@ preserve.
 import json
 import os
 import time
+from collections.abc import Iterator
+
+from .protocol import Emit, Event, JsonValue, Payload, done, error
+from .protocol import missing_fields, progress
 
 # The native extension is a top-level module (like gamdl's `_ammuxer`
 # pattern, but not nested in a package -- bliss's build has no reason to
@@ -51,7 +55,7 @@ import time
 try:
     import _bliss_analyze
     ANALYSIS_AVAILABLE = True
-except Exception:
+except ImportError:
     ANALYSIS_AVAILABLE = False
 
 SIDECAR_SUFFIX = ".soiboi-acoustic.json"
@@ -61,13 +65,27 @@ AUDIO_EXTENSIONS = {
     ".m4a", ".mp3", ".flac", ".ogg", ".opus", ".wav", ".aiff", ".alac",
 }
 
+# Full-scale values for the mood heuristics: a feature at or above one of
+# these maps to 1.0.
+_BPM_FULL_SCALE = 180.0
+_ZCR_FULL_SCALE = 0.15
+_FLATNESS_FULL_SCALE = 0.5
+_CENTROID_FULL_SCALE_HZ = 4000.0
 
-def sidecar_path(audio_path):
+# Mastered tracks mostly sit in -20..-3 dB on bliss's loudness scale; louder
+# (closer to 0) reads as more energetic.
+_LOUDNESS_FLOOR_DB = -20.0
+_LOUDNESS_RANGE_DB = 17.0
+
+Features = dict[str, JsonValue]
+
+
+def sidecar_path(audio_path: str) -> str:
     """The sidecar filename for [audio_path]."""
     return audio_path + SIDECAR_SUFFIX
 
 
-def write_sidecar(audio_path, features):
+def write_sidecar(audio_path: str, features: Features | None) -> None:
     """Write features atomically to a sidecar next to [audio_path].
 
     A temp-then-rename keeps a half-written file from being read if the
@@ -83,7 +101,7 @@ def write_sidecar(audio_path, features):
     os.replace(tmp, path)
 
 
-def read_sidecar(audio_path):
+def read_sidecar(audio_path: str) -> Features | None:
     """Read the sidecar for [audio_path], or ``None`` if absent or corrupt."""
     path = sidecar_path(audio_path)
     if not os.path.exists(path):
@@ -91,15 +109,16 @@ def read_sidecar(audio_path):
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except (OSError, ValueError):
+        # Unreadable or half-written: treat it as absent.
         return None
 
 
-def has_sidecar(audio_path):
+def has_sidecar(audio_path: str) -> bool:
     return os.path.exists(sidecar_path(audio_path))
 
 
-def analyze_file(path):
+def analyze_file(path: str) -> Features | None:
     """Acoustic features for one audio file, or ``None`` if it cannot be
     analysed.
     """
@@ -118,10 +137,12 @@ def analyze_file(path):
         features.update(_mood_estimates(raw))
         return features
     except Exception:
+        # bliss raises for anything it cannot decode (corrupt, DRM-locked,
+        # an unsupported codec), and each of those means "no features".
         return None
 
 
-def _mood_estimates(raw):
+def _mood_estimates(raw: dict[str, float]) -> Features:
     """Mood axes derived from bliss's spectral and rhythmic features.
 
     These are heuristics, not the trained classifiers AcousticBrainz used --
@@ -137,7 +158,7 @@ def _mood_estimates(raw):
     axes.
     """
 
-    def clamp(value):
+    def clamp(value: float) -> float:
         return round(max(0.0, min(1.0, value)), 3)
 
     bpm = raw.get("bpm", 0.0)
@@ -146,12 +167,10 @@ def _mood_estimates(raw):
     loudness_db = raw.get("loudness_db", -30.0)
     centroid_hz = raw.get("centroid_hz")
 
-    bpm_norm = clamp(bpm / 180.0)
-    zcr_norm = clamp(zcr / 0.15)
-    flatness_norm = clamp(flatness / 0.5)
-    # Mastered tracks mostly sit in -20..-3 dB on bliss's loudness scale;
-    # louder (closer to 0) reads as more energetic.
-    loudness_norm = clamp((loudness_db + 20.0) / 17.0)
+    bpm_norm = clamp(bpm / _BPM_FULL_SCALE)
+    zcr_norm = clamp(zcr / _ZCR_FULL_SCALE)
+    flatness_norm = clamp(flatness / _FLATNESS_FULL_SCALE)
+    loudness_norm = clamp((loudness_db - _LOUDNESS_FLOOR_DB) / _LOUDNESS_RANGE_DB)
 
     energy = clamp(zcr_norm * 0.4 + loudness_norm * 0.3 + bpm_norm * 0.3)
 
@@ -167,11 +186,11 @@ def _mood_estimates(raw):
     if centroid_hz is not None:
         # Same scale factor the Essentia version used, but now over a
         # whole-track mean instead of a single window near the intro.
-        result["brightness"] = clamp(centroid_hz / 4000.0)
+        result["brightness"] = clamp(centroid_hz / _CENTROID_FULL_SCALE_HZ)
     return result
 
 
-def iter_audio_files(directory):
+def iter_audio_files(directory: str) -> Iterator[str]:
     """Yield audio file paths under [directory], recursively."""
     for root, _dirs, files in os.walk(directory):
         for name in files:
@@ -179,7 +198,11 @@ def iter_audio_files(directory):
                 yield os.path.join(root, name)
 
 
-def analyze_directory(directory, emit=None, limit=None):
+def analyze_directory(
+    directory: str,
+    emit: Emit | None = None,
+    limit: int | None = None,
+) -> dict[str, JsonValue]:
     """Analyse files missing a sidecar and write one for each.
 
     Bounded by [limit] so a caller can run this in slices. Returns a summary
@@ -215,11 +238,10 @@ def analyze_directory(directory, emit=None, limit=None):
             # file is not retried on every pass.
             write_sidecar(path, None)
         if emit:
-            emit({
-                "event": "progress",
-                "progress": 90 + int(10 * (i + 1) / max(len(pending), 1)),
-                "status": f"Analyzing audio ({i + 1}/{len(pending)})",
-            })
+            emit(progress(
+                90 + int(10 * (i + 1) / max(len(pending), 1)),
+                f"Analyzing audio ({i + 1}/{len(pending)})",
+            ))
 
     return {
         "total": total,
@@ -228,3 +250,12 @@ def analyze_directory(directory, emit=None, limit=None):
         "pending": len(pending) - analysed,
         "analysis_available": True,
     }
+
+
+def handle_analyze(payload: Payload, emit: Emit) -> Event:
+    problem = missing_fields(payload, "directory")
+    if problem:
+        return problem
+    if not ANALYSIS_AVAILABLE:
+        return error("no_analysis", "Acoustic analysis is not available on this device.")
+    return done(**analyze_directory(payload["directory"], emit=emit))

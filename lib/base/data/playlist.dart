@@ -107,14 +107,15 @@ class PlaylistManager {
   }
 
   Future<void> deletePlaylist(Playlist playlist) async {
-    playlist.songListFile?.deleteSync();
-
+    // Remote first: if the server refuses, the playlist must survive intact
+    // rather than lose its local song list while staying on screen.
     if (playlist.id != null && streamClient != null) {
       if (!await streamClient!.deletePlaylist(playlist.id!)) {
         showCenterMessage('Delete playlist failed');
         return;
       }
     }
+    playlist.songListFile?.deleteSync();
 
     playlists.remove(playlist);
     playlistMap.remove(playlist.name);

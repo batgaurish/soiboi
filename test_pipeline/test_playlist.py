@@ -5,13 +5,7 @@ filtering: the entries that must never reach a download queue.
 
 Run with: .pipeline-venv/bin/python -m pytest test_pipeline
 """
-import sys
-import types
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
-
-from soiboi_pipeline import playlist  # noqa: E402
+from soiboi_pipeline import playlist
 
 
 class _FakeYDL:
@@ -33,11 +27,14 @@ class _FakeYDL:
         return type(self).info
 
 
+class _FailingYDL(_FakeYDL):
+    def extract_info(self, url, download=False):
+        raise RuntimeError("ERROR: This playlist is private")
+
+
 def _patch(monkeypatch, info):
     _FakeYDL.info = info
-    module = types.ModuleType("yt_dlp")
-    module.YoutubeDL = _FakeYDL
-    monkeypatch.setitem(sys.modules, "yt_dlp", module)
+    monkeypatch.setattr(playlist, "YoutubeDL", _FakeYDL)
 
 
 def test_placeholder_entries_are_dropped(monkeypatch):
@@ -85,14 +82,7 @@ def test_channel_wins_over_uploader(monkeypatch):
 
 
 def test_a_failure_is_reported_with_yt_dlps_own_message(monkeypatch):
-    module = types.ModuleType("yt_dlp")
-
-    class _Failing(_FakeYDL):
-        def extract_info(self, url, download=False):
-            raise RuntimeError("ERROR: This playlist is private")
-
-    module.YoutubeDL = _Failing
-    monkeypatch.setitem(sys.modules, "yt_dlp", module)
+    monkeypatch.setattr(playlist, "YoutubeDL", _FailingYDL)
 
     result = playlist.fetch("u")
     assert result["event"] == "error"
@@ -105,3 +95,13 @@ def test_limit_is_passed_through_as_playlistend(monkeypatch):
     playlist.fetch("u", limit=4)
     assert _FakeYDL.last_options["playlistend"] == 4
     assert _FakeYDL.last_options["extract_flat"] == "in_playlist"
+
+
+def test_missing_yt_dlp_is_an_error_not_a_crash(monkeypatch):
+    monkeypatch.setattr(playlist, "YoutubeDL", None)
+    assert playlist.fetch("u")["code"] == "no_ytdlp"
+
+
+def test_handler_requires_a_url():
+    result = playlist.handle_playlist({}, lambda event: None)
+    assert result["code"] == "bad_request"

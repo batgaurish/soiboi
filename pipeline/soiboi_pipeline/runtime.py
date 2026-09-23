@@ -13,6 +13,10 @@ import importlib
 import os
 import platform
 import sys
+from importlib import metadata
+
+from . import acoustic
+from .protocol import Emit, Event, JsonValue, Payload, done
 
 # Pure-Python pieces gamdl needs. Absence of any of these means the bundled
 # environment is incomplete rather than the device being unsupported.
@@ -26,60 +30,58 @@ REQUIRED_MODULES = [
     "click",
 ]
 
-def _probe(module_name):
+# gamdl's Rust decrypt-and-mux engine.
+NATIVE_MUXER = "gamdl._ammuxer"
+
+Probe = dict[str, JsonValue]
+
+
+def _version(module_name: str) -> str | None:
+    """The installed distribution's version, from its package metadata.
+
+    Read from metadata rather than `module.__version__`, which not every
+    package sets and Click is removing.
+    """
+    distribution = module_name.split(".")[0].replace("_", "-")
+    try:
+        return metadata.version(distribution)
+    except metadata.PackageNotFoundError:
+        return None
+
+
+def _probe(module_name: str) -> Probe:
     try:
         module = importlib.import_module(module_name)
-        return {
-            "available": True,
-            "version": getattr(module, "__version__", None),
-        }
     except Exception as exc:
+        # Anything can fail inside a native import (a wrong-ABI .so raises
+        # ImportError, a broken one OSError), and every failure is an answer.
         return {"available": False, "error": str(exc)}
+    return {
+        "available": True,
+        "version": _version(module_name),
+        "path": getattr(module, "__file__", None),
+    }
 
 
-def probe_native_muxer():
-    """gamdl's Rust decrypt-and-mux engine.
+def probe_native_muxer() -> Probe:
+    """gamdl's Rust engine, probed apart from the pure-Python modules.
 
-    Separated from the pure-Python checks because this is the piece that must be
-    cross-compiled per architecture. On Android it has to be an
-    aarch64-linux-android build; a manylinux wheel will import-fail here, which
-    is exactly the signal we want surfaced rather than swallowed.
+    This is the piece that must be cross-compiled per architecture. On Android
+    it has to be an aarch64-linux-android build; a manylinux wheel import-fails
+    here, and that failure is the signal the UI needs.
     """
-    try:
-        from gamdl import _ammuxer  # noqa: F401
-
-        return {"available": True, "path": getattr(_ammuxer, "__file__", None)}
-    except Exception as exc:
-        return {"available": False, "error": str(exc)}
+    return _probe(NATIVE_MUXER)
 
 
-def is_android():
+def is_android() -> bool:
     # Chaquopy reports a normal Linux platform, so the reliable tell is the
-    # Android-specific path layout rather than sys.platform.
+    # Android-specific environment rather than sys.platform.
     return "ANDROID_ROOT" in os.environ or "ANDROID_DATA" in os.environ
 
 
-def probe_acoustic():
-    """Whether mood/feature analysis is available on this device.
-
-    bliss-audio's native extension is cross-compiled per platform/ABI, same
-    as gamdl's muxer, so this can fail if that build hasn't been produced for
-    the current device yet. Surfacing this in the capabilities lets the UI
-    say whether mood analysis is available rather than silently never
-    producing a sidecar.
-    """
-    try:
-        from . import acoustic
-
-        return {"available": acoustic.ANALYSIS_AVAILABLE}
-    except Exception as exc:
-        return {"available": False, "error": str(exc)}
-
-
-def capabilities():
+def capabilities() -> Event:
     modules = {name: _probe(name) for name in REQUIRED_MODULES}
     muxer = probe_native_muxer()
-    acoustic = probe_acoustic()
     missing = [name for name, info in modules.items() if not info["available"]]
 
     return {
@@ -89,9 +91,16 @@ def capabilities():
         "android": is_android(),
         "modules": modules,
         "native_muxer": muxer,
-        "acoustic_analysis": acoustic,
+        # bliss's extension is cross-compiled per ABI like the muxer, so it
+        # can be missing on its own; reporting it lets the UI say so instead
+        # of silently never producing a sidecar.
+        "acoustic_analysis": {"available": acoustic.ANALYSIS_AVAILABLE},
         "missing": missing,
         # Downloading needs both the orchestration code and the native engine;
         # either alone is useless.
-        "can_download": not missing and muxer["available"],
+        "can_download": not missing and bool(muxer["available"]),
     }
+
+
+def handle_capabilities(_payload: Payload, _emit: Emit) -> Event:
+    return done(**capabilities())

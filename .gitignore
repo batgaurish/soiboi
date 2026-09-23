@@ -50,3 +50,6 @@ app.*.map.json
 build/android-native/
 android/pip-repo/
 pipeline/native/*/target/
+
+# desloppify local state
+.desloppify/

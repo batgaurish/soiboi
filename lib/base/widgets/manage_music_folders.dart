@@ -489,16 +489,10 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
       showCenterMessage('Please connect to WebDAV first');
       return false;
     }
-    try {
-      await webdavClient!.ping();
-    } catch (e) {
-      if (!context.mounted) {
-        return false;
-      }
-      showCenterMessage('Can not connect to WebDAV');
-      return false;
-    }
-    return true;
+    // ping() reports failure as false; it does not throw.
+    if (await webdavClient!.ping()) return true;
+    if (context.mounted) showCenterMessage('Can not connect to WebDAV');
+    return false;
   }
 
   void _addWebdavFolder(BuildContext context) async {

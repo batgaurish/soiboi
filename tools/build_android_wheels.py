@@ -51,6 +51,12 @@ BLISS_ANALYZE_VERSION = "0.1.0"  # must match pipeline/native/bliss_analyze/Carg
 # pip to consider them compatible. 21 is the tag, not a minSdk claim.
 ANDROID_ABIS = {"arm64-v8a": "android_21_arm64_v8a", "x86_64": "android_21_x86_64"}
 PYTHON_TAG = "cp312-cp312"
+PYWIDEVINE_VERSION = "1.9.0"
+CONSTRUCT_VERSION = "2.8.8"
+
+# pip downloads and a pure-Python wheel build finish in seconds; this bound
+# only stops a stalled network from hanging the whole Android build.
+COMMAND_TIMEOUT_SECONDS = 600
 
 # gamdl pins newer versions of two native packages than Chaquopy's prebuilt
 # repository carries. Cross-compiling either for Android is a large amount of
@@ -67,23 +73,34 @@ RELAXED_PINS = {
 }
 
 
-def relax(requirement):
+Files = dict[str, bytes]
+
+
+def relax(requirement: str) -> str:
     name = re.split(r"[<>=!~\\[; ]", requirement, maxsplit=1)[0].strip().lower()
     return RELAXED_PINS.get(name, requirement)
-PYWIDEVINE_VERSION = "1.9.0"
-CONSTRUCT_VERSION = "2.8.8"
 
 
-def run(*args):
-    subprocess.run(args, check=True, stdout=subprocess.DEVNULL)
+def run(*args: str) -> None:
+    # Every argv here is built from constants in this file, never from input.
+    subprocess.run(
+        args, check=True, stdout=subprocess.DEVNULL, timeout=COMMAND_TIMEOUT_SECONDS
+    )
 
 
-def _record_line(name, data):
+def _record_line(name: str, data: bytes) -> list[str | int]:
     digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=")
     return [name, "sha256=" + digest.decode(), len(data)]
 
 
-def write_wheel(out_dir, dist, version, files, metadata, tag="py3-none-any"):
+def write_wheel(
+    out_dir: Path,
+    dist: str,
+    version: str,
+    files: Files,
+    metadata: bytes,
+    tag: str = "py3-none-any",
+) -> Path:
     """Assemble a wheel from {archive name: bytes}."""
     distinfo = f"{dist}-{version}.dist-info"
     purelib = tag.endswith("-any")
@@ -108,7 +125,7 @@ def write_wheel(out_dir, dist, version, files, metadata, tag="py3-none-any"):
     return path
 
 
-def sdist(work, name, version):
+def sdist(work: Path, name: str, version: str) -> Path:
     """Download and unpack an sdist, returning its root directory."""
     root = work / f"{name}-{version}"
     if not root.exists():
@@ -116,11 +133,14 @@ def sdist(work, name, version):
             "--no-deps", "--no-binary", ":all:", "-d", str(work))
         archive = next(work.glob(f"{name}-{version}.tar.gz"))
         with tarfile.open(archive) as tf:
-            tf.extractall(work)
+            # "data" refuses absolute paths, ".." escapes, links out of the
+            # tree and device files, so a tampered sdist cannot write
+            # outside the scratch directory.
+            tf.extractall(work, filter="data")
     return root
 
 
-def build_gamdl(work, out_dir, native_dir):
+def build_gamdl(work: Path, out_dir: Path, native_dir: Path) -> None:
     """Repackage gamdl once per ABI, embedding the cross-compiled extension."""
     root = sdist(work, "gamdl", GAMDL_VERSION)
     pyproject = (root / "pyproject.toml").read_text()
@@ -162,7 +182,7 @@ def build_gamdl(work, out_dir, native_dir):
                     tag=f"{PYTHON_TAG}-{platform_tag}")
 
 
-def build_bliss_analyze(out_dir, native_dir):
+def build_bliss_analyze(out_dir: Path, native_dir: Path) -> None:
     """Package the cross-compiled bliss-audio extension, one wheel per ABI.
 
     Unlike gamdl there's no surrounding pure-Python package -- the wheel is
@@ -186,7 +206,7 @@ def build_bliss_analyze(out_dir, native_dir):
                     metadata, tag=f"{PYTHON_TAG}-{platform_tag}")
 
 
-def build_pywidevine(work, out_dir):
+def build_pywidevine(work: Path, out_dir: Path) -> Path:
     """Copy the published wheel through, relaxing the pycryptodome pin."""
     run(sys.executable, "-m", "pip", "download",
         f"pywidevine=={PYWIDEVINE_VERSION}", "--no-deps", "-d", str(work))
@@ -211,7 +231,7 @@ def build_pywidevine(work, out_dir):
     return write_wheel(out_dir, "pywidevine", PYWIDEVINE_VERSION, files, metadata)
 
 
-def build_construct(work, out_dir):
+def build_construct(work: Path, out_dir: Path) -> Path:
     """construct 2.8.8 predates wheels; build one from the sdist."""
     root = sdist(work, "construct", CONSTRUCT_VERSION)
     run(sys.executable, "-m", "pip", "wheel", str(root), "--no-deps", "-w", str(out_dir))
@@ -220,7 +240,7 @@ def build_construct(work, out_dir):
     return built
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, help="local wheel repository")
     parser.add_argument("--native", required=True,

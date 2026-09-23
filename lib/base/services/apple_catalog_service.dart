@@ -376,10 +376,9 @@ Future<AppleMatch?> resolveAppleTrackByIsrc(
       'country': storefront,
     });
     final resp = await http.get(uri).timeout(_timeout);
-    if (resp.statusCode != 200) {
-      _cache[key] = null;
-      return null;
-    }
+    // A server error is transient, so it is not cached; only a real "no
+    // such ISRC" answer below is.
+    if (resp.statusCode != 200) return null;
     final body = jsonDecode(utf8.decode(resp.bodyBytes));
     final results = (body is Map ? body['results'] : null) as List?;
     if (results == null || results.isEmpty) {
