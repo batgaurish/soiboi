@@ -56,3 +56,4 @@ pipeline/native/*/target/
 
 # Built by tools/build_android_wrapper.sh
 /android/app/src/main/jniLibs/
+.claude/settings.local.json
