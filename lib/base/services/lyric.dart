@@ -126,10 +126,13 @@ Future<void> setParsedLyrics(MyAudioMetadata song) async {
     result.lines.add(LyricLine(Duration.zero, l10n.noLyrics, []));
     return;
   } else {
-    if (song.lyrics == null || song.lyrics!.isEmpty) {
-      String path = song.path!;
-      path = "${path.substring(0, path.lastIndexOf('.'))}.lrc";
-
+    String path = song.path!;
+    path = "${path.substring(0, path.lastIndexOf('.'))}.lrc";
+    // A sidecar .lrc wins over tags. Apple downloads embed line-timed lyrics,
+    // and the pipeline writes the word-timed version beside the file; reading
+    // the sidecar only when the tags were empty meant it was never used.
+    final hasSidecar = sourceType != .webdav && File(path).existsSync();
+    if (hasSidecar || song.lyrics == null || song.lyrics!.isEmpty) {
       late File lrcFile;
       if (sourceType == .webdav) {
         lrcFile = File('${tmpDir.path}/soiboi_lyric');
