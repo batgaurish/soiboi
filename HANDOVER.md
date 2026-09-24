@@ -25,7 +25,9 @@ Standing constraints, already decided, not up for re-litigation:
   copy.
 - **Scrobbling out of scope** (recommend Pano Scrobbler).
 - Codec/quality badges stay obvious in every flavour.
-- Expressive is the default flavour; three flavours, matugen, light/dark.
+- Three flavours: Zine (default), Liner Notes, Signal. Each owns typefaces,
+  heading case, badge style and a multi-colour palette. Colour sources
+  (matugen / Material You, prebuilt palettes) override the palette.
 - Private distribution: the user and friends. Not F-Droid, not Play Store.
 - **No accounts, no OAuth, no client secrets.** Every external source used so
   far needs only a public URL or a username. Spotify was evaluated and
@@ -33,61 +35,76 @@ Standing constraints, already decided, not up for re-litigation:
 
 ---
 
-## State (2026-09-24)
+## State (2026-09-24, end of session)
 
-Last release: **v1.0.2** (Android arm64 APK). `main` is pushed up to
-`70c7055`. **Everything since is local only, not pushed or released**
-(`ea6296b..HEAD`): the new playlist sources, the phone bug fixes,
-word-timed lyrics, the player modes, the back button, the Android progress
-fix, and `a0371cc` (a download analyses only the files it wrote; it used to
-analyse the whole Music folder, 1,089 tracks, and hold the queue). The
-phone does not have `a0371cc` yet.
-Next step: push `main`, build, release **v1.0.3**.
+**Official releases since v1.1.0.** Latest published: **v1.1.2**
+(github.com/batgaurish/soiboi/releases). All older prereleases (v4.x,
+v1.0.x) were converted to **drafts** (hidden, not deleted). The updater
+now ignores prereleases.
 
-Tests: 219 Dart, 85 Python (`.pipeline-venv/bin/python -m pytest`, root
-`pytest.ini` sets the path). Analyzer: only 6 pre-existing `RadioGroup`
-deprecation infos.
+`main` is pushed to `3b202d2` (v1.1.2). **Local, not pushed or released:**
+`e6f5d74` (Home AI recommendations shelf) and `62c9902` (Home pull to
+refresh, live shelves after sync, Recently added opens album, pushDetail
+fix). Next step: ask the user, then push and release **v1.1.3**.
 
-### Done and verified on the user's phone (10BFCF11KB001YK)
+Release recipe: bump `versionNumber` in `lib/base/app.dart` and `version:`
+in `pubspec.yaml`; commit; push (HTTPS gh-token push below if SSH fails);
+`tools/apply_patches.sh`; `flutter build apk --release --target-platform
+android-arm64`; `flutter build linux --release && tools/package_linux.sh
+--release`; upload as `soiboi-android-arm64-vX.apk` and
+`soiboi-linux-x64-vX.tar.gz` with `gh release create --latest` (not
+prerelease). Release notes: stop-slop style, no em dashes. Then
+`tools/install_linux.sh` to refresh the user's desktop copy.
 
-- Black screen fixed (`compareVersion('…','1.0b')` crash; the legacy 4.0.1
-  migration it guarded would also have wiped Navidrome/Emby data every
-  launch; both removed). Startup errors now render an error screen.
-- **Lossless ALAC works on-device.** A two-track album archive landed in
-  `/storage/emulated/0/Music` as ALAC 24-bit/48 kHz through the in-app
-  wrapper, with live progress in the album sheet.
-- Download engine check, downloads and analysis no longer hang; progress
-  shows live. Back button walks sections then opens the sidebar. New albums
-  opens the album and sorts by release year. Album sheet has Play + progress.
+**Android signing:** release key at `~/.config/soiboi/release.jks` +
+`key.properties`, symlinked to `android/key.properties` (gitignored).
+Never regenerate it. Release app id is `com.batgaurish.soiboi`; debug
+builds are `.debug`, a separate app.
 
-### Built but not yet verified on a device
+Tests: 226 Dart (`flutter test`), 85 Python. Analyzer: only the 6
+pre-existing `RadioGroup` infos. **Never run `dart format lib`**: it
+reformats ~50 unrelated files. Format only files you touched.
 
-- Word-timed lyrics (`pipeline/soiboi_pipeline/lyrics.py`): fetches Apple's
-  `syllable-lyrics` TTML per new track (by `cnID`), writes enhanced LRC
-  beside it. The last fix (replace gamdl's own line-only `.lrc`) is untested
-  live. Re-archive a track and check its `.lrc` contains `<mm:ss.xx>` tags.
-- Art / Both / Lyrics switcher in the fullscreen player.
-- Playlist import from Tidal, JioSaavn, SoundCloud, Qobuz, Gaana, Bandcamp
-  and pasted tracklists (parsers verified live against real playlists; the
-  in-app paste → sheet → archive flow is not). Last.fm (bot challenge),
-  Amazon Music and Wynk (no readable data) only via pasted tracklist.
-- Linux lossless: wrapper builds, runs under `unshare -rmpf` without root,
-  Apple runtime initialises; sign-in and an ALAC download not tried on Linux.
+### Built this session (all verified on emulator; Linux via Xvfb)
 
-### Still open (the user's plan, in order)
+- Flavours Zine / Liner Notes / Signal (`lib/base/theme/flavour.dart`,
+  palettes in `color_source.dart`), bundled OFL fonts in `assets/fonts/`
+  (static instances cut from Google variable fonts; FontWeight does not
+  drive a variable `wght` axis). Old names migrate.
+- Main theme defaults to system light/dark; a saved Vivid main theme is
+  moved once (`mainThemeMigrated`); choosing a colour source leaves Vivid.
+- Android folder picking uses the in-app path browser when All files
+  access is granted (system SAF picker refuses storage root / lists
+  nothing on the user's phone). Recursive add skips hidden folders.
+- Catalog: album search misses some albums; `resolveAppleAlbum` falls back
+  to song search + lookup by id. Library matching ignores " - Single"/" - EP".
+- Player: Art and Lyrics modes show seek bar + controls on tap/scroll.
+- Playlists: New playlist FAB on Playlists page, Add songs FAB on an open
+  playlist (phone and desktop); picking songs from a playlist adds them.
+- AI (BYOK): `lib/base/services/ai_service.dart` (providers Gemini,
+  OpenRouter, Groq, Anthropic `claude-opus-5` with server-side fallback,
+  OpenAI, Ollama, custom; two wire formats), `ai_features.dart` (make
+  playlist, recommend albums, 24h-cached Home shelf), UI in
+  `lib/base/widgets/ai_widgets.dart`: global Ask AI FAB (both root views),
+  Settings > AI provider and key, Home "AI recommendations" shelf.
+  Android manifest allows cleartext (LAN Ollama). Tested only against a
+  fake local server; **no real provider tested yet.** User set up Gemini
+  (`gemini-3.5-flash-lite`) on the phone.
 
-1. Release v1.0.3 (above).
-2. **Distinct UI personality**: the user chose to see **three clickable
-   mockups** (Home + Now Playing + song row with codec badges + empty state)
-   as an Artifact before any app change. Not started.
-3. Desloppify leftovers (user said skip the big refactors for now): the
-   108-file import cycle, splitting `settings_list.dart` (2.1k LOC) and
-   `interaction.dart` (1.4k LOC), `isNotStreamSource` branching in 17 files,
-   hard-coded English strings, ~12 misspelled identifiers. Dart strict score
-   51.0 after 11 of 20 review dimensions; 9 dimensions never reviewed.
-4. Known minor: smart playlist editor recreates its TextEditingController on
-   rebuild; Qobuz page data may cap at 25 tracks; Tidal's public web token or
-   SoundCloud's page shape can change without notice.
+### Still open
+
+1. Push + release v1.1.3 (ask first).
+2. User's phone checks still pending: one-track download analysis only,
+   word-timed `.lrc` + word highlighting, a playlist link from a new
+   source, and the first real AI provider run (Gemini).
+3. The mockups' phone layout (big masthead, filled mini player) was not
+   ported; only flavour type/palette/badges were. Now Playing not checked
+   against mockups.
+4. Deferred desloppify: 108-file import cycle, split `settings_list.dart`
+   and `interaction.dart`, `isNotStreamSource` branching, hard-coded
+   English strings.
+5. Known minor: smart playlist editor TextEditingController; Qobuz 25-track
+   cap; Tidal/SoundCloud page shapes can change.
 
 ### How the lossless wrapper is put together (read before touching it)
 
@@ -194,6 +211,26 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
 ---
 
 ## Traps already paid for
+
+**Paid for this session (2)**
+
+- **`Loader.sync()` replaces `history` and `artistAlbumManager` objects.**
+  Any listener list built once keeps watching dead objects. Rebuild
+  listeners on `Loader.stateNotifier` (Home does now).
+- **`layersManager.pushDetail` needs the tab's navigator to exist**; a tab
+  never opened has none and the push silently does nothing. It now
+  switches to the tab first and returns to the origin page on Back.
+- **Theme type Vivid bypasses every palette** (flavour, matugen,
+  prebuilt): colours come from album art, grey with nothing playing.
+- **Emulator scripting:** the shell is zsh-like without word splitting of
+  `$VAR` lists; `pkill -f` patterns can match the running shell itself
+  (exit 144). Use exact anchored patterns. Release builds are not
+  debuggable, so `run-as` fails on `com.batgaurish.soiboi`; drive the UI
+  or use the `.debug` app.
+- **Linux screenshots:** start `Xvfb :99` with `run_in_background`, run the
+  app with `env -u WAYLAND_DISPLAY GDK_BACKEND=x11 DISPLAY=:99
+  XDG_DATA_HOME=<scratch>` for an isolated profile; Synchronize Library
+  asks for confirmation.
 
 **Paid for this session**
 
