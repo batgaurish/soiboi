@@ -4,7 +4,8 @@ Branch: `scope-expansion`. Goal: make Soiboi accessible, easy to set up and
 pleasant to live with, then widen where playlists can come from.
 
 Every idea from the brainstorm is in here. They are ordered so that each phase
-builds on the one before, and each phase ships as its own release.
+builds on the one before. Each phase is a tested milestone on this branch;
+nothing reaches `main` until the final release is debugged.
 
 ## How we work through it
 
