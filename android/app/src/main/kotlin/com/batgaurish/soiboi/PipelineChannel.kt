@@ -48,6 +48,14 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
                         val runId = call.argument<Int>("runId") ?: 0
                         run(runId, command, payload, result)
                     }
+                    // Where the installer extracted the lossless wrapper's
+                    // programs, and which ABI's Apple libraries to install.
+                    "wrapperPaths" -> result.success(
+                        mapOf(
+                            "nativeLibraryDir" to context.applicationInfo.nativeLibraryDir,
+                            "abi" to android.os.Build.SUPPORTED_ABIS[0],
+                        )
+                    )
                     else -> result.notImplemented()
                 }
             }

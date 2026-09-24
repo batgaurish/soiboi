@@ -53,3 +53,6 @@ pipeline/native/*/target/
 
 # desloppify local state
 .desloppify/
+
+# Built by tools/build_android_wrapper.sh
+/android/app/src/main/jniLibs/

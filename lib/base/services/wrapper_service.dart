@@ -6,13 +6,17 @@
 /// ([appleMusicApkUrl]), and setup extracts and verifies the libraries.
 ///
 /// On Linux the wrapper runs in an unprivileged user namespace
-/// (`unshare -rmpf`), which is what lets its chroot work without root.
+/// (`unshare -rmpf`), which is what lets its chroot work without root. On
+/// Android there is no chroot: the two programs ship in the APK as native
+/// libraries (Android runs executables only from there), and the worker loads
+/// Apple's libraries from app storage.
 library;
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
@@ -63,12 +67,27 @@ class WrapperService {
   int? _httpPort;
   int? _decryptPort;
 
-  String get _arch => 'x86_64';
+  static const _channel = MethodChannel('com.batgaurish.soiboi/pipeline');
 
-  bool get supported => Platform.isLinux;
+  /// Android only: the native library folder and the device ABI.
+  String? _nativeDir;
+  String _arch = 'x86_64';
+
+  bool get supported => Platform.isLinux || Platform.isAndroid;
 
   String get installDir => p.join(appSupportDir.path, 'wrapper');
-  String get _libDir => p.join(installDir, 'rootfs', 'system', 'lib64');
+  String get _libDir => Platform.isAndroid
+      ? p.join(installDir, 'lib')
+      : p.join(installDir, 'rootfs', 'system', 'lib64');
+
+  /// Reads the Android install paths once. A no-op on Linux.
+  Future<void> _loadPlatform() async {
+    if (!Platform.isAndroid || _nativeDir != null) return;
+    final paths = await _channel.invokeMapMethod<String, String>('wrapperPaths');
+    _nativeDir = paths?['nativeLibraryDir'];
+    _arch = paths?['abi'] ?? 'arm64-v8a';
+  }
+
   String get _baseUrl => 'http://127.0.0.1:$_httpPort';
 
   bool get librariesInstalled =>
@@ -77,6 +96,12 @@ class WrapperService {
   /// Where the build put the wrapper: beside the installed app, or the
   /// development tree's build/ folder.
   String? get _bundleDir {
+    if (Platform.isAndroid) {
+      final dir = _nativeDir;
+      return dir != null && File(p.join(dir, 'libwrapperd.so')).existsSync()
+          ? dir
+          : null;
+    }
     final exeDir = p.dirname(Platform.resolvedExecutable);
     for (final candidate in [
       p.join(exeDir, 'data', 'wrapper', _arch),
@@ -88,7 +113,8 @@ class WrapperService {
   }
 
   /// Sets [state] from what is on disk, without starting anything.
-  void refresh() {
+  Future<void> refresh() async {
+    await _loadPlatform();
     if (!supported || _bundleDir == null) {
       state.value = const WrapperState(
         WrapperStage.unsupported,
@@ -107,50 +133,73 @@ class WrapperService {
     final bundle = _bundleDir;
     if (bundle == null) return 'The lossless wrapper is not part of this build.';
     await stop();
-    // The chroot needs a writable tree for Apple's session database, so the
-    // read-only bundle is copied rather than used in place.
-    final copy = await Process.run('cp', ['-a', '$bundle/.', installDir]);
-    if (copy.exitCode != 0) return 'Could not copy the wrapper: ${copy.stderr}';
+    if (Platform.isLinux) {
+      // The chroot needs a writable tree for Apple's session database, so the
+      // read-only bundle is copied rather than used in place.
+      final copy = await Process.run('cp', ['-a', '$bundle/.', installDir]);
+      if (copy.exitCode != 0) return 'Could not copy the wrapper: ${copy.stderr}';
+    }
 
     String? error;
     await for (final event in pipelineRunner.run('wrapper_install', {
       'apk_path': apkPath,
-      'libs_version': p.join(installDir, 'LIBS_VERSION.json'),
       'arch': _arch,
       'out_dir': _libDir,
     })) {
       if (event.isError) error = event.message;
     }
-    refresh();
+    await refresh();
     return error;
   }
 
   /// Starts the wrapper if it is not running. Returns once it answers.
   Future<void> start() async {
     if (_process != null) return;
-    refresh();
+    await refresh();
     if (state.value.stage != WrapperStage.stopped) return;
     state.value = const WrapperState(WrapperStage.starting);
 
     _httpPort = await _freePort();
     _decryptPort = await _freePort();
-    Directory(
-      p.join(installDir, 'rootfs', 'data', 'data', 'com.apple.android.music', 'files'),
-    ).createSync(recursive: true);
+    final ports = {
+      'WRAPPER_HOST': '127.0.0.1',
+      'WRAPPER_PORT': '$_httpPort',
+      'WRAPPER_DECRYPT_HOST': '127.0.0.1',
+      'WRAPPER_DECRYPT_PORT': '$_decryptPort',
+    };
 
     try {
-      final process = await Process.start(
-        'unshare',
-        ['-rmpf', p.join(installDir, 'wrapperd')],
-        workingDirectory: installDir,
-        environment: {
-          'WRAPPER_LAUNCHER': p.join(installDir, 'wrapper'),
-          'WRAPPER_HOST': '127.0.0.1',
-          'WRAPPER_PORT': '$_httpPort',
-          'WRAPPER_DECRYPT_HOST': '127.0.0.1',
-          'WRAPPER_DECRYPT_PORT': '$_decryptPort',
-        },
-      );
+      final Process process;
+      if (Platform.isAndroid) {
+        final baseDir = p.join(installDir, 'base');
+        Directory(baseDir).createSync(recursive: true);
+        final certs = p.join(_libDir, 'cacert.pem');
+        process = await Process.start(
+          p.join(_nativeDir!, 'libwrapperd.so'),
+          const [],
+          workingDirectory: installDir,
+          environment: {
+            ...ports,
+            'WRAPPER_LAUNCHER': p.join(_nativeDir!, 'libwrapperworker.so'),
+            'WRAPPER_NATIVE_ANDROID': '1',
+            'WRAPPER_LIBS_DIR': _libDir,
+            'WRAPPER_BASE_DIR': baseDir,
+            'LD_LIBRARY_PATH': _libDir,
+            'SSL_CERT_FILE': certs,
+            'CURL_CA_BUNDLE': certs,
+          },
+        );
+      } else {
+        Directory(
+          p.join(installDir, 'rootfs', 'data', 'data', 'com.apple.android.music', 'files'),
+        ).createSync(recursive: true);
+        process = await Process.start(
+          'unshare',
+          ['-rmpf', p.join(installDir, 'wrapperd')],
+          workingDirectory: installDir,
+          environment: {...ports, 'WRAPPER_LAUNCHER': p.join(installDir, 'wrapper')},
+        );
+      }
       _process = process;
       process.stderr
           .transform(utf8.decoder)
@@ -258,7 +307,7 @@ class WrapperService {
         return -1;
       },
     );
-    refresh();
+    await refresh();
   }
 
   /// What a download needs to go through the running wrapper, or null when

@@ -20,6 +20,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 bash "$ROOT/tools/build_android_muxer.sh"
 bash "$ROOT/tools/build_android_bliss.sh"
+bash "$ROOT/tools/build_android_wrapper.sh"
 
 python3 "$ROOT/tools/build_android_wheels.py" \
   --native "$ROOT/build/android-native" \
