@@ -133,7 +133,7 @@ Future<void> _start() async {
   downloadTempDir = '${appSupportDir.path}/download-temp';
 
   unawaited(refreshSessionState());
-  unawaited(wrapperService.refresh());
+  unawaited(wrapperService.probeSignIn());
 
   runApp(
     ListenableBuilder(

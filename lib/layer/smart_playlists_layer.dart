@@ -7,6 +7,7 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/data/smart_playlist_templates.dart';
@@ -28,7 +29,7 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
   Widget build(BuildContext context) {
     final playlists = smartPlaylists.playlists;
 
-    return Scaffold(
+    final page = Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
@@ -64,6 +65,10 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
               itemBuilder: (context, i) => _row(playlists[i]),
             ),
     );
+    // Wide layouts get window controls, the drag region and Settings from
+    // each page's own TitleBar; without one this page had none (see Home).
+    if (isTooNarrow(context)) return page;
+    return Column(children: [const TitleBar(), Expanded(child: page)]);
   }
 
   Widget _empty() => Center(
