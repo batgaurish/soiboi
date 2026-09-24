@@ -6,6 +6,11 @@
 /// file paths, nothing else.
 library;
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/playlist.dart';
@@ -103,6 +108,64 @@ class AiAlbumPick {
   final String artist;
   final String album;
   final String why;
+
+  Map<String, String> toJson() => {
+    'artist': artist,
+    'album': album,
+    'why': why,
+  };
+  factory AiAlbumPick.fromJson(Map j) => AiAlbumPick(
+    artist: j['artist'] as String? ?? '',
+    album: j['album'] as String? ?? '',
+    why: j['why'] as String? ?? '',
+  );
+}
+
+/// Home's AI recommendations shelf. Kept for a day so opening Home does not
+/// spend the person's key every time; the shelf's refresh button forces it.
+final aiRecsNotifier = ValueNotifier<List<AiAlbumPick>>(const []);
+final aiRecsBusyNotifier = ValueNotifier(false);
+final aiRecsErrorNotifier = ValueNotifier<String?>(null);
+const _recsMaxAge = Duration(hours: 24);
+
+File get _recsFile => File('${appSupportDir.path}/ai_recommendations.json');
+
+/// Shows the saved shelf, then asks for a new one when it is older than a
+/// day, empty, or [force]d. Does nothing without an AI key.
+Future<void> loadAiRecommendations({bool force = false}) async {
+  if (aiConfigNotifier.value == null || aiRecsBusyNotifier.value) return;
+  DateTime? savedAt;
+  try {
+    final json = jsonDecode(await _recsFile.readAsString()) as Map;
+    savedAt = DateTime.tryParse(json['at'] as String? ?? '');
+    aiRecsNotifier.value = [
+      for (final p in (json['picks'] as List? ?? const []))
+        if (p is Map) AiAlbumPick.fromJson(p),
+    ];
+  } catch (_) {}
+  final fresh = savedAt != null &&
+      DateTime.now().difference(savedAt) < _recsMaxAge &&
+      aiRecsNotifier.value.isNotEmpty;
+  if (fresh && !force) return;
+
+  aiRecsBusyNotifier.value = true;
+  aiRecsErrorNotifier.value = null;
+  try {
+    final picks = await aiRecommendAlbums('');
+    aiRecsNotifier.value = picks;
+    await _recsFile.writeAsString(
+      jsonEncode({
+        'at': DateTime.now().toIso8601String(),
+        'picks': [for (final p in picks) p.toJson()],
+      }),
+    );
+  } on AiException catch (e) {
+    aiRecsErrorNotifier.value = e.message;
+  } catch (e) {
+    aiRecsErrorNotifier.value = '$e';
+  } finally {
+    aiRecsBusyNotifier.value = false;
+  }
 }
 
 /// Albums worth archiving next, based on the library and listening history.
