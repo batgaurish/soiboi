@@ -1,0 +1,15 @@
+diff --git a/src/rust/main.rs b/src/rust/main.rs
+index 8d9e6c9..a62b516 100644
+--- a/src/rust/main.rs
++++ b/src/rust/main.rs
+@@ -31,7 +31,9 @@ fn run() -> io::Result<()> {
+     let decrypt_host = env_or("WRAPPER_DECRYPT_HOST", DEFAULT_DECRYPT_HOST);
+     let decrypt_port = env_u16("WRAPPER_DECRYPT_PORT", DEFAULT_DECRYPT_PORT);
+ 
+-    let worker = Arc::new(Worker::new("/app/wrapper", VERSION.to_string()));
++    // Soiboi runs the wrapper from its own install folder, not a Docker image.
++    let launcher = std::env::var("WRAPPER_LAUNCHER").unwrap_or_else(|_| "/app/wrapper".to_string());
++    let worker = Arc::new(Worker::new(&launcher, VERSION.to_string()));
+     worker.ensure_started().map_err(worker_io_error)?;
+ 
+     let tcp_worker = Arc::clone(&worker);
