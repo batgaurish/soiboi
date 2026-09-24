@@ -320,12 +320,15 @@ extension _SongListPage on _SongListState {
             Expanded(
               child: ListTile(
                 title: AutoSizeText(
-                  getTitleText(l10n),
+                  activeFlavour.heading(getTitleText(l10n)),
                   maxLines: 1,
                   minFontSize: 20,
                   maxFontSize: 20,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: activeFlavour.headingStyle(
+                    const TextStyle(),
+                    userFont: fontFamilyNotifier.value,
+                  ),
                 ),
                 subtitle: ValueListenableBuilder(
                   valueListenable: currentSongListNotifier,
@@ -500,6 +503,8 @@ extension _SongListPage on _SongListState {
                   style: TextStyle(fontSize: 12),
                 ),
               ),
+              const SizedBox(width: 6),
+              QualityBadge(song),
             ],
           ),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),

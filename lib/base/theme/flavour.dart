@@ -20,27 +20,41 @@ import 'package:material_ui/material_ui.dart';
 
 /// The visual identity. Orthogonal to colour.
 enum Flavour {
-  /// Material 3 Expressive: big shapes, springy motion.
-  expressive,
+  /// Warm and editorial: serif headings, printed-label badges, gentle motion.
+  linerNotes,
 
-  /// Frosted translucent panes over whatever is painted behind them.
-  glasshouse,
+  /// Hi-fi equipment: mono type, uppercase headings, square corners, no
+  /// stagger.
+  signal,
 
-  /// Dense, typographic, near-motionless. Built for large libraries.
-  console,
+  /// Bold and playful: chunky rounded type, sticker badges, springy motion.
+  zine,
 }
+
+/// Names written by builds up to v1.0.3, mapped to the flavour that took
+/// their place, so an upgrade keeps roughly the same feel.
+const Map<String, Flavour> legacyFlavourNames = {
+  'expressive': Flavour.zine,
+  'glasshouse': Flavour.linerNotes,
+  'console': Flavour.signal,
+};
+
+Flavour flavourFromName(String? name) =>
+    Flavour.values.where((e) => e.name == name).firstOrNull ??
+    legacyFlavourNames[name] ??
+    Flavour.zine;
 
 extension FlavourLabel on Flavour {
   String get label => switch (this) {
-    Flavour.expressive => 'Expressive',
-    Flavour.glasshouse => 'Glasshouse',
-    Flavour.console => 'Console',
+    Flavour.linerNotes => 'Liner Notes',
+    Flavour.signal => 'Signal',
+    Flavour.zine => 'Zine',
   };
 
   String get blurb => switch (this) {
-    Flavour.expressive => 'Bold shapes and springy motion',
-    Flavour.glasshouse => 'Frosted, translucent panels',
-    Flavour.console => 'Dense rows for large libraries',
+    Flavour.linerNotes => 'Serif headings, like a record sleeve',
+    Flavour.signal => 'Mono type and square corners, like hi-fi gear',
+    Flavour.zine => 'Chunky type and sticker badges',
   };
 }
 
@@ -96,6 +110,11 @@ class FlavourSpec {
     this.surfaceTreatment = SurfaceTreatment.flat,
     this.cornerScale = 1.0,
     this.density = Density.comfortable,
+    required this.bodyFont,
+    required this.displayFont,
+    this.displayWeight = FontWeight.w700,
+    this.uppercaseHeadings = false,
+    this.badgeStyle = BadgeStyle.outline,
   });
 
   /// How panels are painted. Glass surfaces need a `BackdropFilter`, which is
@@ -107,47 +126,85 @@ class FlavourSpec {
 
   /// Row height and padding scale.
   final Density density;
+
+  /// Bundled font for running text, used unless the user picked their own.
+  final String bodyFont;
+
+  /// Bundled font for headings and titles.
+  final String displayFont;
+
+  final FontWeight displayWeight;
+
+  final bool uppercaseHeadings;
+
+  /// How codec badges are drawn. Lossless always stands apart from lossy.
+  final BadgeStyle badgeStyle;
+
+  /// Heading text as this flavour prints it.
+  String heading(String text) =>
+      uppercaseHeadings ? text.toUpperCase() : text;
+
+  /// [base] in this flavour's heading face. A font the user chose wins.
+  TextStyle headingStyle(TextStyle base, {String? userFont}) => base.copyWith(
+    fontFamily: userFont ?? displayFont,
+    fontWeight: displayWeight,
+    letterSpacing: uppercaseHeadings ? 0.6 : base.letterSpacing,
+  );
 }
+
+/// Liner Notes prints solid labels, Signal lights LED readouts, Zine sticks
+/// on tilted pills.
+enum BadgeStyle { outline, label, led, sticker }
 
 enum SurfaceTreatment { flat, glass, solid }
 
 enum Density { compact, comfortable, spacious }
 
 // ---------------------------------------------------------------------------
-// Expressive — the default. Big, hard-rounded, springy.
+// Liner Notes: a record sleeve. Serif headings, small corners.
 // ---------------------------------------------------------------------------
-const _expressive = FlavourSpec(
+const _linerNotes = FlavourSpec(
+  surfaceTreatment: SurfaceTreatment.flat,
+  cornerScale: 0.5,
+  density: Density.comfortable,
+  bodyFont: 'IBM Plex Sans',
+  displayFont: 'Fraunces',
+  badgeStyle: BadgeStyle.label,
+);
+
+// ---------------------------------------------------------------------------
+// Signal: hi-fi equipment. Mono body, uppercase headings, square corners.
+// ---------------------------------------------------------------------------
+const _signal = FlavourSpec(
   surfaceTreatment: SurfaceTreatment.solid,
+  cornerScale: 0.25,
+  density: Density.compact,
+  bodyFont: 'JetBrains Mono',
+  displayFont: 'Space Grotesk',
+  uppercaseHeadings: true,
+  badgeStyle: BadgeStyle.led,
+);
+
+// ---------------------------------------------------------------------------
+// Zine: the default. Chunky type, hard rounding, sticker badges.
+// ---------------------------------------------------------------------------
+const _zine = FlavourSpec(
+  surfaceTreatment: SurfaceTreatment.glass,
   cornerScale: 1.6,
   density: Density.spacious,
-);
-
-// ---------------------------------------------------------------------------
-// Glasshouse — translucent surfaces over whatever sits behind them.
-// ---------------------------------------------------------------------------
-const _glasshouse = FlavourSpec(
-  surfaceTreatment: SurfaceTreatment.glass,
-  cornerScale: 1.3,
-  density: Density.comfortable,
-);
-
-// ---------------------------------------------------------------------------
-// Console — dense and typographic, corners barely rounded, motion minimal.
-// ---------------------------------------------------------------------------
-const _console = FlavourSpec(
-  surfaceTreatment: SurfaceTreatment.flat,
-  cornerScale: 0.35,
-  density: Density.compact,
+  bodyFont: 'Bricolage Grotesque',
+  displayFont: 'Bricolage Grotesque',
+  displayWeight: FontWeight.w800,
+  badgeStyle: BadgeStyle.sticker,
 );
 
 const Map<Flavour, FlavourSpec> flavourSpecs = {
-  Flavour.expressive: _expressive,
-  Flavour.glasshouse: _glasshouse,
-  Flavour.console: _console,
+  Flavour.linerNotes: _linerNotes,
+  Flavour.signal: _signal,
+  Flavour.zine: _zine,
 };
 
 /// Active flavour. Persisted alongside the other theme settings.
-final flavourNotifier = ValueNotifier(Flavour.expressive);
+final flavourNotifier = ValueNotifier(Flavour.zine);
 
-FlavourSpec get activeFlavour =>
-    flavourSpecs[flavourNotifier.value] ?? _expressive;
+FlavourSpec get activeFlavour => flavourSpecs[flavourNotifier.value] ?? _zine;

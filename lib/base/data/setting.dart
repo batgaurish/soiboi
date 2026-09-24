@@ -134,10 +134,7 @@ class Setting {
       fontFamilyFileNotifier.value = json['fontFamilyFile'] as String?;
     }
 
-    flavourNotifier.value = Flavour.values.firstWhere(
-      (e) => e.name == json['flavour'],
-      orElse: () => Flavour.expressive,
-    );
+    flavourNotifier.value = flavourFromName(json['flavour'] as String?);
 
     mainPageThemeNotifier.value = ThemeType.values.firstWhere(
       (e) => e.name == json['mainPageTheme'],

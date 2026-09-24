@@ -55,12 +55,160 @@ extension PrebuiltPaletteLabel on PrebuiltPalette {
 /// [ColorSource.prebuilt].
 final prebuiltPaletteNotifier = ValueNotifier(PrebuiltPalette.dracula);
 
+/// The flavour's own colours, taken from its design mockup. They fill in
+/// when no colour source is chosen, so "App colours" means the flavour's
+/// colours. Matugen and prebuilt palettes still win over them.
+Color? flavourColor(ColorToken? token, {required bool isDark}) {
+  if (token == null || colorSourceNotifier.value != ColorSource.off) {
+    return null;
+  }
+  final spec = flavourPalettes[flavourNotifier.value]!;
+  return (isDark ? spec.dark : spec.light)[token];
+}
+
+/// A flavour palette spans its mockup's whole set of colours, not one base:
+/// the sidebar, bottom bar, controls and volume bar each take a different
+/// role. Text on every one of them is the palette's own text colour, so each
+/// role colour is picked to keep that text readable.
+PrebuiltPaletteSpec _flavourSpec({
+  required PrebuiltPaletteSpec base,
+  required Map<ColorToken, Color> light,
+  required Map<ColorToken, Color> dark,
+}) => (light: {...base.light, ...light}, dark: {...base.dark, ...dark});
+
+Map<ColorToken, Color> _roles({
+  required Color sidebar,
+  required Color bottom,
+  required Color control,
+  required Color field,
+  required Color selected,
+  required Color second,
+}) => {
+  ColorToken.sidebar: sidebar,
+  ColorToken.bottom: bottom,
+  ColorToken.button: control,
+  ColorToken.menu: field,
+  ColorToken.searchField: field,
+  ColorToken.selectedItem: selected,
+  ColorToken.volumeBar: second,
+  ColorToken.lyricsButton: control,
+  ColorToken.lyricsSelectedItem: selected,
+};
+
+final Map<Flavour, PrebuiltPaletteSpec> flavourPalettes = {
+  // Paper and ink: letterpress red, bottle green, mustard.
+  Flavour.linerNotes: _flavourSpec(
+    base: _spec(
+      bgLight: const Color(0xFFF3EDE1),
+      surfaceLight: const Color(0xFFFBF8F1),
+      mantleLight: const Color(0xFFEBE3D3),
+      textLight: const Color(0xFF1F1A14),
+      subtextLight: const Color(0xFF5E5245),
+      accentLight: const Color(0xFFB8431F),
+      bgDark: const Color(0xFF1C1813),
+      surfaceDark: const Color(0xFF26211B),
+      mantleDark: const Color(0xFF15120E),
+      textDark: const Color(0xFFF3EDE1),
+      subtextDark: const Color(0xFFC4B8A4),
+      accentDark: const Color(0xFFE0714A),
+    ),
+    light: _roles(
+      sidebar: const Color(0xFFE2C35C),
+      bottom: const Color(0xFFC5D2BD),
+      control: const Color(0xFFF0DCC9),
+      field: const Color(0xFFFBF8F1),
+      selected: const Color(0xFFF3EDE1),
+      second: const Color(0xFF2F4A3A),
+    ),
+    dark: _roles(
+      sidebar: const Color(0xFF2F4A3A),
+      bottom: const Color(0xFF4A3A14),
+      control: const Color(0xFF5A2A1A),
+      field: const Color(0xFF26211B),
+      selected: const Color(0xFF1C1813),
+      second: const Color(0xFFE2C35C),
+    ),
+  ),
+  // Equipment black: green readout, amber warning, rack blue.
+  Flavour.signal: _flavourSpec(
+    base: _spec(
+      bgLight: const Color(0xFFE9ECE9),
+      surfaceLight: const Color(0xFFF5F7F5),
+      mantleLight: const Color(0xFFDDE2DE),
+      textLight: const Color(0xFF0D0F0E),
+      subtextLight: const Color(0xFF3F4A43),
+      accentLight: const Color(0xFF1A8A44),
+      bgDark: const Color(0xFF0D0F0E),
+      surfaceDark: const Color(0xFF171A18),
+      mantleDark: const Color(0xFF111312),
+      textDark: const Color(0xFFE6EDE8),
+      subtextDark: const Color(0xFF9AA69F),
+      accentDark: const Color(0xFF7CF29A),
+    ),
+    light: _roles(
+      sidebar: const Color(0xFFBFE8CB),
+      bottom: const Color(0xFFF2D9A0),
+      control: const Color(0xFFCFD8E8),
+      field: const Color(0xFFF5F7F5),
+      selected: const Color(0xFFE9ECE9),
+      second: const Color(0xFFB7791F),
+    ),
+    dark: _roles(
+      sidebar: const Color(0xFF12281A),
+      bottom: const Color(0xFF2A2210),
+      control: const Color(0xFF1B2433),
+      field: const Color(0xFF171A18),
+      selected: const Color(0xFF0D0F0E),
+      second: const Color(0xFFF2B84C),
+    ),
+  ),
+  // Cream stock: marker blue, tangerine, mint, highlighter yellow.
+  Flavour.zine: _flavourSpec(
+    base: _spec(
+      bgLight: const Color(0xFFFFF4D6),
+      surfaceLight: const Color(0xFFFFFFFF),
+      mantleLight: const Color(0xFFFFE9A8),
+      textLight: const Color(0xFF161616),
+      subtextLight: const Color(0xFF3D3D3D),
+      accentLight: const Color(0xFF3B3BD9),
+      bgDark: const Color(0xFF17161F),
+      surfaceDark: const Color(0xFF22212D),
+      mantleDark: const Color(0xFF111018),
+      textDark: const Color(0xFFFFF4D6),
+      subtextDark: const Color(0xFFD9D3C0),
+      accentDark: const Color(0xFF8F8FFF),
+    ),
+    light: _roles(
+      sidebar: const Color(0xFFFF8A5C),
+      bottom: const Color(0xFF7FD8B8),
+      control: const Color(0xFFFFD23F),
+      field: const Color(0xFFFFFFFF),
+      selected: const Color(0xFFFFF4D6),
+      second: const Color(0xFF16A37F),
+    ),
+    dark: _roles(
+      sidebar: const Color(0xFF2B2B8C),
+      bottom: const Color(0xFF0F4A3A),
+      control: const Color(0xFF5C3A00),
+      field: const Color(0xFF22212D),
+      selected: const Color(0xFF17161F),
+      second: const Color(0xFFFF8A5C),
+    ),
+  ),
+};
+
 Color? prebuiltColor(ColorToken? token, {required bool isDark}) {
   if (token == null || colorSourceNotifier.value != ColorSource.prebuilt) {
     return null;
   }
   final spec = prebuiltPalettes[prebuiltPaletteNotifier.value]!;
   return (isDark ? spec.dark : spec.light)[token];
+}
+
+/// [c] with its hue turned by [degrees].
+Color _turn(Color c, double degrees) {
+  final hsl = HSLColor.fromColor(c);
+  return hsl.withHue((hsl.hue + degrees) % 360).toColor();
 }
 
 typedef PrebuiltPaletteSpec = ({Palette light, Palette dark});
@@ -93,18 +241,20 @@ PrebuiltPaletteSpec _spec({
   }) => {
     ColorToken.pageBackground: bg,
     ColorToken.panel: bg,
-    ColorToken.sidebar: mantle,
-    ColorToken.bottom: mantle,
+    // Regions are tinted from the accent and two hue turns of it, so a
+    // palette with one accent still spans more than one colour.
+    ColorToken.sidebar: Color.lerp(bg, accent, 0.28)!,
+    ColorToken.bottom: Color.lerp(bg, _turn(accent, 150), 0.24)!,
     ColorToken.menu: surface,
-    ColorToken.button: surface,
+    ColorToken.button: Color.lerp(bg, _turn(accent, 60), 0.3)!,
     ColorToken.searchField: surface,
-    ColorToken.selectedItem: accent.withAlpha(60),
+    ColorToken.selectedItem: bg,
     ColorToken.divider: subtext.withAlpha(70),
     ColorToken.text: subtext,
     ColorToken.highlightText: text,
     ColorToken.icon: subtext,
     ColorToken.seekBar: accent,
-    ColorToken.volumeBar: accent,
+    ColorToken.volumeBar: _turn(accent, 60),
     ColorToken.switchTrack: accent,
     ColorToken.glass: surface.withAlpha(210),
     ColorToken.lyricsBackground: bg,

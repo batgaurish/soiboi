@@ -198,12 +198,15 @@ extension _SongListPanel on _SongListState {
                   SizedBox(height: isPhone ? 15 : 30),
                   ListTile(
                     title: AutoSizeText(
-                      getTitleText(l10n),
+                      activeFlavour.heading(getTitleText(l10n)),
                       maxLines: 1,
                       minFontSize: 20,
                       maxFontSize: 20,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: activeFlavour.headingStyle(
+                        const TextStyle(),
+                        userFont: fontFamilyNotifier.value,
+                      ),
                     ),
                     subtitle: ValueListenableBuilder(
                       valueListenable: currentSongListNotifier,
