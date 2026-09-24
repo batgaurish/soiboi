@@ -20,6 +20,7 @@ import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:soiboi/base/services/update_service.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
 import 'package:soiboi/layer/update_sheet.dart';
+import 'package:soiboi/layer/duplicates_flow.dart';
 import 'package:soiboi/layer/storage_cleanup_sheet.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/app.dart';
@@ -220,6 +221,7 @@ class _SettingsListState extends State<SettingsList> {
         ),
 
         sliverBox(paddingIfNeed(isLandscape, storageListTile(context))),
+        sliverBox(paddingIfNeed(isLandscape, duplicatesListTile(context))),
 
         sliverBox(
           paddingIfNeed(isLandscape, backupLibraryListTile(context, l10n)),
@@ -2039,6 +2041,19 @@ class _SettingsListState extends State<SettingsList> {
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
       onTap: () => showStorageCleanupSheet(context),
+    );
+  }
+
+  /// The same song held twice, typically an AAC copy and a later ALAC one.
+  Widget duplicatesListTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.library_add_check_outlined, size: 30),
+      title: const Text('Remove duplicates'),
+      subtitle: Text(
+        'Keep one copy of each song. You pick the codec when copies differ.',
+        style: TextStyle(fontSize: 12, color: textColor.value),
+      ),
+      onTap: () => removeDuplicates(context),
     );
   }
 
