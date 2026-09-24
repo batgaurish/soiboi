@@ -21,6 +21,7 @@
 
     <application
         android:label="Soiboi"
+        android:usesCleartextTraffic="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:banner="@mipmap/ic_launcher"

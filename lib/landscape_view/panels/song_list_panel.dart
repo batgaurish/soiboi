@@ -9,7 +9,7 @@ extension _SongListPanel on _SongListState {
         if (_canAddSongs && songList.isNotEmpty)
           Positioned(
             right: 32,
-            bottom: 32,
+            bottom: kPanelFabBottom,
             child: FloatingActionButton.extended(
               heroTag: 'addSongsPanel',
               onPressed: () => _addSongs(context),

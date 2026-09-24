@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/services/ai_service.dart';
+import 'package:soiboi/base/widgets/ai_widgets.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/widgets/lossless_setup.dart';
 import 'package:soiboi/base/audio_handler.dart';
@@ -149,6 +151,7 @@ class _SettingsListState extends State<SettingsList> {
         ),
 
         sliverBox(paddingIfNeed(isLandscape, flavourListTile(context, l10n))),
+        sliverBox(paddingIfNeed(isLandscape, aiListTile(context))),
 
         sliverBox(
           paddingIfNeed(isLandscape, colorSourceListTile(context, l10n)),
@@ -487,6 +490,22 @@ class _SettingsListState extends State<SettingsList> {
               '${summary.pending > 0 ? " · ${summary.pending} unreadable" : ""}';
         }
       },
+    );
+  }
+
+  Widget aiListTile(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: aiConfigNotifier,
+      builder: (context, config, _) => ListTile(
+        leading: Icon(Icons.auto_awesome_rounded, size: iconSize),
+        title: const Text('AI provider and key'),
+        subtitle: Text(
+          config == null
+              ? 'Not set up. Free keys from Gemini or OpenRouter'
+              : '${config.info.label} · ${config.effectiveModel}',
+        ),
+        onTap: () => openAiSetup(context),
+      ),
     );
   }
 

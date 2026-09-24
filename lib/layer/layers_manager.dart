@@ -148,6 +148,7 @@ class LayersManager {
         return GlobalSearchLayer(key: GlobalKey());
       } else if (label == 'smart') {
         return SmartPlaylistsLayer(key: GlobalKey());
+
       } else if (label == 'settings') {
         return SettingsLayer(key: GlobalKey());
       } else {

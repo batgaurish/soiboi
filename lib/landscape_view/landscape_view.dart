@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/widgets/ai_widgets.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
@@ -85,15 +86,22 @@ class LandscapeView extends StatelessWidget {
                         valueListenable: layersManager.switchNotifier,
                         builder: (context, value, child) {
                           return Stack(
-                            children: layersManager.rootLayerMap.values.map((
-                              layer,
-                            ) {
-                              return Visibility(
-                                visible: layer == layersManager.topRootLayer,
-                                maintainState: true,
-                                child: layer,
-                              );
-                            }).toList(),
+                            children: [
+                              ...layersManager.rootLayerMap.values.map((
+                                layer,
+                              ) {
+                                return Visibility(
+                                  visible: layer == layersManager.topRootLayer,
+                                  maintainState: true,
+                                  child: layer,
+                                );
+                              }),
+                              const Positioned(
+                                right: 32,
+                                bottom: 32,
+                                child: AskAiFab(),
+                              ),
+                            ],
                           );
                         },
                       ),
