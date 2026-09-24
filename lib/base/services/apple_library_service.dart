@@ -19,6 +19,8 @@ library;
 
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
 import 'package:soiboi/base/services/download_queue_manager.dart';
+import 'package:soiboi/base/services/linked_playlists.dart';
+import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 
@@ -220,6 +222,16 @@ Future<AppleImportOutcome> archiveApplePlaylist(
         subtitle: 'Apple Music playlist',
       ),
     ]);
+    // The local playlist is a bonus on top of the download; a failed track
+    // listing must not undo the queueing above.
+    try {
+      await _linkTracks(
+        playlist,
+        await fetchApplePlaylistTracks(playlist.libraryId),
+      );
+    } on AppleLibraryException catch (e) {
+      logger.output('apple playlist link: ${e.message}');
+    }
     return AppleImportOutcome(batch: batch, queued: 1);
   }
 
@@ -229,6 +241,7 @@ Future<AppleImportOutcome> archiveApplePlaylist(
   } on AppleLibraryException catch (e) {
     return AppleImportOutcome(batch: null, error: e.message);
   }
+  await _linkTracks(playlist, tracks);
   if (tracks.isEmpty) {
     return const AppleImportOutcome(
       batch: null,
@@ -259,6 +272,21 @@ Future<AppleImportOutcome> archiveApplePlaylist(
     skipped: tracks.length - archivable.length,
   );
 }
+
+/// Creates a local playlist from [playlist] out of songs already in the
+/// library, without downloading anything. Missing songs join it later if they
+/// are downloaded. Throws [AppleLibraryException] if the tracks cannot be read.
+Future<LinkResult?> linkApplePlaylist(ApplePlaylist playlist) async =>
+    _linkTracks(playlist, await fetchApplePlaylistTracks(playlist.libraryId));
+
+Future<LinkResult?> _linkTracks(
+  ApplePlaylist playlist,
+  List<AppleLibraryTrack> tracks,
+) => linkedPlaylists.link(
+  playlist.name,
+  [for (final track in tracks) LinkedTrack(track.artist ?? '', track.title)],
+  artworkUrl: playlist.artworkUrl,
+);
 
 /// The signed-in wrapper's address, which the pipeline prefers over the
 /// cookies file. Empty when the wrapper is not signed in.

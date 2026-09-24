@@ -9,10 +9,13 @@
 /// (cookies), and a working pipeline runtime for this platform.
 library;
 
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
+import 'package:soiboi/base/services/linked_playlists.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
@@ -553,6 +556,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.playlist_add_rounded, size: 20),
+            tooltip: 'Save as local playlist',
+            onPressed: () => _linkApplePlaylist(playlist),
+          ),
+          IconButton(
             icon: const Icon(Icons.download_rounded, size: 20),
             tooltip: 'Archive',
             onPressed: () => _archiveApplePlaylist(playlist),
@@ -602,6 +610,17 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           : 'Queued ${outcome.queued == 1 ? playlist.name : "${outcome.queued} tracks"}',
       duration: 4000,
     );
+  }
+
+  /// Makes a local playlist from songs already downloaded; nothing is queued.
+  Future<void> _linkApplePlaylist(ApplePlaylist playlist) async {
+    try {
+      final result = await linkApplePlaylist(playlist);
+      if (!mounted || result == null) return;
+      showCenterMessage(linkedMessage(result), duration: 4000);
+    } on AppleLibraryException catch (e) {
+      showCenterMessage(e.message, duration: 4000);
+    }
   }
 
   /// Importing a playlist from another platform by link.
@@ -955,6 +974,10 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
       _queued.addAll(tracks.map((track) => track.title));
     });
 
+    // The whole playlist, not just the chosen tracks: the local copy should
+    // mirror the source, and unmatched tracks simply stay out of it.
+    unawaited(_linkWholePlaylist(quiet: true));
+
     final batch = downloadQueue.enqueue(requests);
     void onProgress() {
       if (!mounted) return;
@@ -974,6 +997,16 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
       // same tracks twice, and the failures are retryable from the queue.
       _selected.clear();
     });
+  }
+
+  Future<void> _linkWholePlaylist({bool quiet = false}) async {
+    final tracks = _tracks;
+    if (tracks == null || tracks.isEmpty) return;
+    final result = await linkedPlaylists.link(widget.playlist.title, [
+      for (final track in tracks) LinkedTrack(track.artist, track.title),
+    ]);
+    if (quiet || !mounted || result == null) return;
+    showCenterMessage(linkedMessage(result), duration: 4000);
   }
 
   String _rowKey(DiscoveryTrack track) => '${track.artist}|${track.title}';
@@ -1030,6 +1063,12 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
           ),
           const SizedBox(width: 4),
         ],
+        if (!selecting && !_sending)
+          IconButton(
+            icon: const Icon(Icons.playlist_add_rounded, size: 20),
+            tooltip: 'Save as local playlist',
+            onPressed: _resolving != null ? null : _linkWholePlaylist,
+          ),
         FilledButton(
           // Disabled while matching: archiving now would quietly take only
           // the tracks resolved so far and report it as the whole playlist.
@@ -1214,3 +1253,9 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     );
   }
 }
+
+/// What saving a local playlist did, in a line.
+String linkedMessage(LinkResult result) => result.matched == result.total
+    ? 'Saved "${result.playlistName}" with all ${result.total} songs'
+    : 'Saved "${result.playlistName}": ${result.matched} of ${result.total} '
+          'songs are in your library. The rest join it when downloaded.';

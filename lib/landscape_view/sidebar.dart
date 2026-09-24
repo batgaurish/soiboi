@@ -450,24 +450,40 @@ class Sidebar extends StatelessWidget {
                     ValueListenableBuilder(
                       valueListenable: playlistManager.updateNotifier,
                       builder: (context, _, _) {
+                        // Pinned playlists only; the Playlists tab has all.
+                        final pinned = playlistManager.sidebarPlaylists
+                            .skip(1)
+                            .toList();
                         return SliverReorderableList(
                           onReorderItem: (oldIndex, newIndex) {
-                            final item = playlistManager.playlists.removeAt(
-                              oldIndex + 1,
-                            );
-                            playlistManager.playlists.insert(
-                              newIndex + 1,
+                            // Reorder the pinned ones among themselves, back
+                            // into the same slots of the full list, so
+                            // unpinned playlists keep their places.
+                            final all = playlistManager.playlists;
+                            final slots = [
+                              for (final p in pinned) all.indexOf(p),
+                            ];
+                            final item = pinned.removeAt(oldIndex);
+                            pinned.insert(
+                              newIndex.clamp(0, pinned.length),
                               item,
                             );
+                            for (var i = 0; i < slots.length; i++) {
+                              all[slots[i]] = pinned[i];
+                            }
                             playlistManager.update();
                           },
-                          itemCount: playlistManager.playlists.length - 1,
+                          itemCount: pinned.length,
                           itemBuilder: (_, index) {
                             return ReorderableDragStartListener(
                               enabled: !isMobile,
                               index: index,
-                              key: ValueKey(index),
-                              child: playlistItem(index + 1),
+                              key: ValueKey(pinned[index].name),
+                              child: playlistItem(
+                                playlistManager.playlists.indexOf(
+                                  pinned[index],
+                                ),
+                              ),
                             );
                           },
                         );
@@ -507,16 +523,14 @@ class Sidebar extends StatelessWidget {
             leading: ValueListenableBuilder(
               valueListenable: playlist.changeNotifier,
               builder: (context, value, child) {
-                final coverSong = playlist.getCoverSong();
+                final cover = playlist.coverPicture;
                 return ListenableBuilder(
-                  listenable: Listenable.merge([
-                    coverSong?.picture.changeNotifier,
-                  ]),
+                  listenable: Listenable.merge([cover?.changeNotifier]),
                   builder: (_, _) {
                     return CoverArtWidget(
                       size: 30,
                       borderRadius: 3,
-                      picture: coverSong?.picture,
+                      picture: cover,
                     );
                   },
                 );
@@ -532,7 +546,7 @@ class Sidebar extends StatelessWidget {
             if (index == 0) {
               return;
             }
-            final menuItems = <MenuItem>[];
+            final menuItems = <MenuItem>[...playlistOptionItems(playlist)];
 
             menuItems.add(
               MenuItem(
@@ -558,7 +572,7 @@ class Sidebar extends StatelessWidget {
           },
           onTapDown: (details) {
             if (Platform.isIOS && index > 0) {
-              final menuItems = <MenuItem>[];
+              final menuItems = <MenuItem>[...playlistOptionItems(playlist)];
 
               menuItems.add(
                 MenuItem(
@@ -587,7 +601,7 @@ class Sidebar extends StatelessWidget {
             if (Platform.isAndroid && index > 0) {
               tryVibrate();
 
-              final menuItems = <MenuItem>[];
+              final menuItems = <MenuItem>[...playlistOptionItems(playlist)];
 
               menuItems.add(
                 MenuItem(

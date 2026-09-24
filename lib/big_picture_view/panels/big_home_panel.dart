@@ -336,10 +336,10 @@ class _BigHomePanelState extends State<BigHomePanel> {
               title: l10n.playlists,
               count: playlistManager.playlists.length,
               getPicture: (index) =>
-                  playlistManager.playlists[index].getCoverSong()?.picture,
+                  playlistManager.playlists[index].coverPicture,
               onTap: (index) async {
                 final baseColor = await computeColor(
-                  playlistManager.playlists[index].getCoverSong()?.picture,
+                  playlistManager.playlists[index].coverPicture,
                 );
                 if (!context.mounted) {
                   return;
@@ -370,7 +370,7 @@ class _BigHomePanelState extends State<BigHomePanel> {
                 );
               },
               getTag: (index) =>
-                  'big${playlistManager.playlists[index].getCoverSong()?.id}${index == 0 ? l10n.favorites : playlistManager.playlists[index].name}',
+                  'big${playlistManager.playlists[index].coverPicture?.id}${index == 0 ? l10n.favorites : playlistManager.playlists[index].name}',
               verticalController: verticalController,
               changeNotifier: (index) =>
                   playlistManager.playlists[index].changeNotifier,

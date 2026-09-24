@@ -29,7 +29,7 @@ def test_playlist_entry_flattens_and_sizes_artwork():
         "name": "Road",
         "catalog_id": "pl.123",
         "track_count": 12,
-        "artwork_url": "https://a/300x300bb.jpg",
+        "artwork_url": "https://a/600x600bb.jpg",
         "can_edit": True,
         "description": "for driving",
     }
@@ -94,3 +94,19 @@ def test_handlers_validate_their_payloads():
     assert apple_library.handle_playlists({}, ignore)["code"] == "bad_request"
     result = apple_library.handle_playlist_tracks({"cookies_path": "c"}, ignore)
     assert result["message"] == "Missing: library_id"
+
+
+def test_playlist_tracks_follow_every_page():
+    # Regression: only Apple's first page (100 tracks) was read, so long
+    # playlists came back truncated.
+    import asyncio
+
+    class FakeApi:
+        async def get_extended_api_data(self, next_uri, href_uri):
+            if next_uri == "/p2":
+                return {"data": [{"id": "3"}], "next": "/p3"}
+            return {"data": [{"id": "4"}]}
+
+    relation = {"data": [{"id": "1"}, {"id": "2"}], "next": "/p2", "href": "/p1"}
+    items = asyncio.run(apple_library._follow_pages(FakeApi(), relation))
+    assert [item["id"] for item in items] == ["1", "2", "3", "4"]

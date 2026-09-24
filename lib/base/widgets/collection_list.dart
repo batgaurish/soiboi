@@ -33,6 +33,25 @@ abstract class CollectionListState extends State<CollectionList> {
   List<int>? currentSubCountList;
   List<Function> currentOnTapList = [];
 
+  /// Optional long-press / right-click menu per item, given where to open.
+  List<void Function(BuildContext context, Offset position)?>
+  currentOnMenuList = [];
+
+  /// Opens item [index]'s menu at [position], or at the item's centre.
+  void openItemMenu(BuildContext context, int index, [Offset? position]) {
+    if (index >= currentOnMenuList.length) return;
+    final menu = currentOnMenuList[index];
+    if (menu == null) return;
+    final box = context.findRenderObject() as RenderBox?;
+    menu(
+      context,
+      position ??
+          (box == null
+              ? Offset.zero
+              : box.localToGlobal(box.size.center(Offset.zero))),
+    );
+  }
+
   final textController = TextEditingController();
 
   final ScrollController scrollController = ScrollController();

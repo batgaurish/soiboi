@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/widgets/collection_list.dart';
 import 'package:soiboi/base/widgets/playlist_widgets.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
@@ -46,20 +47,50 @@ class _PlaylistsLayerState extends CollectionListState {
       return playlist.name.toLowerCase().contains(value.toLowerCase());
     }).toList();
 
-    currentPictureList = list.map((e) => e.getCoverSong()?.picture).toList();
+    currentPictureList = list.map((e) => e.coverPicture).toList();
     currentTextList = list.map((e) => e.name).toList();
     currentSubCountList = list.map((e) => e.totalCount).toList();
     currentOnTapList = list
         .map(
           (e) => () {
-            if (e.getCoverSong() == null ||
-                e.getCoverSong()!.picture.isLoaded) {
+            if (e.coverPicture == null || e.coverPicture!.isLoaded) {
               layersManager.pushDetail('playlists', e);
             }
           },
         )
         .toList();
+    currentOnMenuList = list
+        .map<void Function(BuildContext, Offset)?>(
+          (e) => (context, position) => _showPlaylistMenu(context, e, position),
+        )
+        .toList();
     changeNotifier.value++;
+  }
+
+  void _showPlaylistMenu(
+    BuildContext context,
+    Playlist playlist,
+    Offset position,
+  ) {
+    tryVibrate();
+    final l10n = AppLocalizations.of(context);
+    showContextMenu(context, [
+      ...playlistOptionItems(playlist),
+      if (playlist.isNotFavorite)
+        MenuItem(
+          iconData: Icons.delete,
+          text: l10n.delete,
+          callback: () async {
+            if (await showConfirmDialog(
+              context,
+              '${l10n.delete} ${playlist.name}',
+            )) {
+              layersManager.removeLayerIfNeed(playlist);
+              playlistManager.deletePlaylist(playlist);
+            }
+          },
+        ),
+    ], position);
   }
 
   @override
