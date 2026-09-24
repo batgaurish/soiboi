@@ -114,7 +114,9 @@ int compareReleaseVersion(String a, String b) {
 /// Prereleases are kept by default because that is all this project ships.
 AppRelease? newestRelease(
   List<dynamic> json, {
-  bool includePrereleases = true,
+  // Official releases only since v1.1.0; the old v4.x prereleases outrank
+  // them by number and would be offered as updates.
+  bool includePrereleases = false,
 }) {
   AppRelease? best;
   for (final entry in json) {

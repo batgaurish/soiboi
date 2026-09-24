@@ -10,7 +10,7 @@ import 'package:soiboi/base/services/update_service.dart';
 /// One release entry shaped the way GitHub actually returns them.
 Map<String, dynamic> _release(
   String tag, {
-  bool prerelease = true,
+  bool prerelease = false,
   bool draft = false,
   List<String> assets = const [],
   String body = 'notes',
@@ -77,11 +77,19 @@ void main() {
       expect(release!.tag, 'v4.1.0');
     });
 
-    test('keeps prereleases, because that is all this project ships', () {
-      expect(newestRelease([_release('v4.2.0-debug')])!.tag, 'v4.2.0-debug');
+    test('skips prereleases, which outrank official releases by number', () {
       expect(
-        newestRelease([_release('v4.2.0-debug')], includePrereleases: false),
-        isNull,
+        newestRelease([
+          _release('v4.2.3', prerelease: true),
+          _release('v1.1.1'),
+        ])!.tag,
+        'v1.1.1',
+      );
+      expect(
+        newestRelease([
+          _release('v4.2.0-debug', prerelease: true),
+        ], includePrereleases: true)!.tag,
+        'v4.2.0-debug',
       );
     });
 
