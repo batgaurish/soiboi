@@ -16,6 +16,7 @@ import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/my_tray_listener.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
 import 'package:soiboi/base/services/notification_service.dart';
+import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/services/single_instance.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/l10n/generated/app_localizations_en.dart';
@@ -56,6 +57,7 @@ Future<void> main() async {
 }
 
 Future<void> _start() async {
+  watchSystemMotionSetting();
 
   appDocsDir = await getApplicationDocumentsDirectory();
   appSupportDir = await getApplicationSupportDirectory();

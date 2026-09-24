@@ -633,11 +633,8 @@ class Sidebar extends StatelessWidget {
 }
 
 /// The accent, unless it would be hard to read on the sidebar's own colour.
-Color _wordmarkColor() {
-  final accent = seekBarColor.value;
-  final ground = sidebarColor.value;
-  double lum(Color c) => c.computeLuminance();
-  final hi = lum(accent) > lum(ground) ? lum(accent) : lum(ground);
-  final lo = lum(accent) > lum(ground) ? lum(ground) : lum(accent);
-  return (hi + 0.05) / (lo + 0.05) >= 3 ? accent : highlightTextColor.value;
-}
+Color _wordmarkColor() => readableOr(
+  seekBarColor.value.withAlpha(255),
+  sidebarColor.value,
+  highlightTextColor.value,
+);

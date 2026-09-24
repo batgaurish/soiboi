@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
+import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
@@ -221,6 +222,10 @@ class Setting {
         json['showDownloadLogs'] as bool? ?? false;
     notificationsEnabledNotifier.value =
         json['notificationsEnabled'] as bool? ?? true;
+    motionPreferenceNotifier.value = MotionPreference.values.firstWhere(
+      (e) => e.name == json['motion'],
+      orElse: () => MotionPreference.system,
+    );
     wrapperUrlNotifier.value = json['wrapperUrl'] as String? ?? '';
 
     recursiveScanNotifier.value = json['recursiveScan'] as bool? ?? false;
@@ -269,6 +274,7 @@ class Setting {
         'useWrapper': useWrapperNotifier.value,
         'showDownloadLogs': showDownloadLogsNotifier.value,
         'notificationsEnabled': notificationsEnabledNotifier.value,
+        'motion': motionPreferenceNotifier.value.name,
         'wrapperUrl': wrapperUrlNotifier.value,
 
         'recursiveScan': recursiveScanNotifier.value,
