@@ -272,6 +272,10 @@ Future<T?> showAnimationDialog<T>({
 
   return await showGeneralDialog<T>(
     context: context,
+    // The barrier below draws the blur and takes taps; this one is what
+    // lets Esc close the dialog, which only a dismissible route allows.
+    barrierDismissible: barrierDismissible,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 300),
     pageBuilder: (context, animation, _) {

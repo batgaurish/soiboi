@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/focus_ring.dart';
 import 'package:soiboi/base/widgets/scale_widget.dart';
 
 class MySwitch extends StatelessWidget {
@@ -34,6 +35,8 @@ class MySwitch extends StatelessWidget {
   /// The switch draws no semantics of its own (flutter_switch has none), so
   /// it is described here: a plain on/off switch, or, when its two states
   /// are named ("List" / "Grid"), a button that says which one is showing.
+  /// Nor does it take the keyboard, so [FocusRing] adds that: Tab reaches
+  /// it and Space or Enter flips it.
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -51,7 +54,13 @@ class MySwitch extends StatelessWidget {
           label: choice ? [?name, ?current].join(': ') : name,
           hint: choice ? 'Switches to $other' : null,
           onTap: _toggle,
-          child: ExcludeSemantics(child: child),
+          child: FocusRing(
+            onActivate: _toggle,
+            radius: 12,
+            // The switch's own ScaleWidget would be a second, unmarked Tab
+            // stop (and Tab would loop between the two).
+            child: ExcludeFocus(child: ExcludeSemantics(child: child)),
+          ),
         );
       },
       child: _visual(),

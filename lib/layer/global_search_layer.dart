@@ -41,6 +41,10 @@ class GlobalSearchLayer extends StatefulWidget {
   State<GlobalSearchLayer> createState() => _GlobalSearchLayerState();
 }
 
+/// Bumped by the Ctrl+F and / shortcuts: the search page, which stays built
+/// once opened, takes the keyboard again.
+final focusSearchNotifier = ValueNotifier(0);
+
 class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
@@ -53,10 +57,18 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
     // Opening search and having to tap the box first is a wasted step: this
     // screen has exactly one thing to do.
     WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+    focusSearchNotifier.addListener(_focusBox);
+  }
+
+  void _focusBox() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
   }
 
   @override
   void dispose() {
+    focusSearchNotifier.removeListener(_focusBox);
     _controller.dispose();
     _focus.dispose();
     super.dispose();
@@ -202,23 +214,27 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
       child: SmoothClipRRect(
         smoothness: 1,
         borderRadius: BorderRadius.circular(12 * activeFlavour.cornerScale),
-        child: Container(
+        // A Material, not a coloured Container: the rows' ink (the focus and
+        // hover highlight) is painted on it, and a Container would hide it.
+        child: Material(
           color: menuColor.value,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$title ($count)',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: highlightTextColor.value,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$title ($count)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: highlightTextColor.value,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              ...rows,
-            ],
+                const SizedBox(height: 4),
+                ...rows,
+              ],
+            ),
           ),
         ),
       ),
