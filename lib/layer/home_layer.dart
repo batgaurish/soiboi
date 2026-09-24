@@ -29,6 +29,7 @@ import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
+import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
@@ -212,7 +213,7 @@ class _HomeLayerState extends State<HomeLayer> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: Text(l10n.home),
+        title: Text(activeFlavour.heading(l10n.home)),
         centerTitle: true,
       ),
       body: body,
@@ -231,11 +232,10 @@ class _HomeLayerState extends State<HomeLayer> {
             Icon(Icons.library_music_outlined, size: 42, color: textColor.value),
             const SizedBox(height: 12),
             Text(
-              'Nothing here yet',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: highlightTextColor.value,
+              activeFlavour.heading('Nothing here yet'),
+              style: activeFlavour.headingStyle(
+                TextStyle(fontSize: 17, color: highlightTextColor.value),
+                userFont: fontFamilyNotifier.value,
               ),
             ),
             const SizedBox(height: 6),
@@ -255,12 +255,14 @@ class _HomeLayerState extends State<HomeLayer> {
       child: Row(
         children: [
           Text(
-            title,
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.3,
-              color: highlightTextColor.value,
+            activeFlavour.heading(title),
+            style: activeFlavour.headingStyle(
+              TextStyle(
+                fontSize: 19,
+                letterSpacing: -0.3,
+                color: highlightTextColor.value,
+              ),
+              userFont: fontFamilyNotifier.value,
             ),
           ),
           const Spacer(),

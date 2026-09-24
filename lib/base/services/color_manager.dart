@@ -505,15 +505,17 @@ class MyColor {
         break;
       case .light:
         // Resolution order: a colour source (matugen/system, or a prebuilt
-        // palette — mutually exclusive, see color_source.dart), then
-        // upstream. Flavour has no colours of its own any more.
+        // palette, mutually exclusive, see color_source.dart), then the
+        // flavour's own colours, then upstream for tokens nobody themes.
         valueNotifier.value = dynamicColor(token, isDark: false) ??
             prebuiltColor(token, isDark: false) ??
+            flavourColor(token, isDark: false) ??
             lightModeValue;
         break;
       default:
         valueNotifier.value = dynamicColor(token, isDark: true) ??
             prebuiltColor(token, isDark: true) ??
+            flavourColor(token, isDark: true) ??
             darkModeValue;
     }
   }

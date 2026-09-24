@@ -5,8 +5,8 @@
 /// means touching every one of them. Widgets should read from [activeMotion]
 /// rather than naming a `Duration` or `Curve` directly.
 ///
-/// Motion is a real axis of the flavour system, not decoration. Console's near
-/// absence of movement is as deliberate as Expressive's spring.
+/// Motion is a real axis of the flavour system, not decoration. Signal's near
+/// absence of movement is as deliberate as Zine's spring.
 library;
 
 import 'package:material_ui/material_ui.dart';
@@ -52,7 +52,7 @@ class MotionSpec {
   final Duration staggerStep;
 }
 
-const _expressiveMotion = MotionSpec(
+const _zineMotion = MotionSpec(
   short: Duration(milliseconds: 180),
   medium: Duration(milliseconds: 320),
   long: Duration(milliseconds: 480),
@@ -63,7 +63,7 @@ const _expressiveMotion = MotionSpec(
   staggerStep: Duration(milliseconds: 38),
 );
 
-const _glasshouseMotion = MotionSpec(
+const _linerNotesMotion = MotionSpec(
   short: Duration(milliseconds: 220),
   medium: Duration(milliseconds: 380),
   long: Duration(milliseconds: 620),
@@ -71,11 +71,11 @@ const _glasshouseMotion = MotionSpec(
   emphasized: Curves.easeInOutCubic,
   enterExit: Curves.easeOutSine,
   useContainerTransform: true,
-  // Glasshouse drifts rather than cascades — a slower, softer stagger.
+  // Liner Notes drifts rather than cascades: a slower, softer stagger.
   staggerStep: Duration(milliseconds: 55),
 );
 
-const _consoleMotion = MotionSpec(
+const _signalMotion = MotionSpec(
   short: Duration(milliseconds: 90),
   medium: Duration(milliseconds: 130),
   long: Duration(milliseconds: 170),
@@ -88,13 +88,13 @@ const _consoleMotion = MotionSpec(
 );
 
 const Map<Flavour, MotionSpec> motionSpecs = {
-  Flavour.expressive: _expressiveMotion,
-  Flavour.glasshouse: _glasshouseMotion,
-  Flavour.console: _consoleMotion,
+  Flavour.linerNotes: _linerNotesMotion,
+  Flavour.signal: _signalMotion,
+  Flavour.zine: _zineMotion,
 };
 
 MotionSpec get activeMotion =>
-    motionSpecs[flavourNotifier.value] ?? _expressiveMotion;
+    motionSpecs[flavourNotifier.value] ?? _zineMotion;
 
 /// Honours the platform's reduced-motion setting by collapsing every duration.
 /// Call with the ambient [MediaQuery] where one is available.

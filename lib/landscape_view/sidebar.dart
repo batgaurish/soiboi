@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/utils/media_query.dart';
@@ -132,12 +133,16 @@ class Sidebar extends StatelessWidget {
                             child: AppIcon(iconImage, size: 28),
                           ),
                           SizedBox(width: 5),
+                          // The wordmark is set in the flavour's display face,
+                          // in its accent, like the mockups' masthead.
                           Text(
-                            l10n.soiboi,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                              color: value,
+                            activeFlavour.heading(l10n.soiboi),
+                            style: activeFlavour.headingStyle(
+                              TextStyle(
+                                fontSize: 22,
+                                color: _wordmarkColor(),
+                              ),
+                              userFont: fontFamilyNotifier.value,
                             ),
                           ),
                         ],
@@ -611,4 +616,14 @@ class Sidebar extends StatelessWidget {
       },
     );
   }
+}
+
+/// The accent, unless it would be hard to read on the sidebar's own colour.
+Color _wordmarkColor() {
+  final accent = seekBarColor.value;
+  final ground = sidebarColor.value;
+  double lum(Color c) => c.computeLuminance();
+  final hi = lum(accent) > lum(ground) ? lum(accent) : lum(ground);
+  final lo = lum(accent) > lum(ground) ? lum(ground) : lum(accent);
+  return (hi + 0.05) / (lo + 0.05) >= 3 ? accent : highlightTextColor.value;
 }

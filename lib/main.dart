@@ -144,13 +144,24 @@ Future<void> _start() async {
         prebuiltPaletteNotifier,
         dynamicLightNotifier,
         dynamicDarkNotifier,
+        // Material's own scheme follows the accent, so stock widgets
+        // (filled buttons, progress indicators) match the flavour.
+        seekBarColor.valueNotifier,
+        pageBackgroundColor.valueNotifier,
       ]),
       builder: (context, child) {
         if (!immersiveWideLayoutNotifier.value) {
           WidgetsBinding.instance.addPersistentFrameCallback((_) {
+            // Light flavour palettes need dark status bar icons.
             SystemChrome.setSystemUIOverlayStyle(
-              const SystemUiOverlayStyle(
-                statusBarIconBrightness: Brightness.light,
+              SystemUiOverlayStyle(
+                statusBarIconBrightness:
+                    ThemeData.estimateBrightnessForColor(
+                          pageBackgroundColor.value,
+                        ) ==
+                        Brightness.light
+                    ? Brightness.dark
+                    : Brightness.light,
               ),
             );
           });
@@ -165,22 +176,25 @@ Future<void> _start() async {
           navigatorKey: globalNavigatorKey,
           title: 'Soiboi',
           theme: ThemeData(
+            colorScheme: _accentScheme(),
             focusColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)
                 : Colors.black.withAlpha(20),
             hoverColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)
                 : Colors.black.withAlpha(15),
-            textTheme: Theme.of(context).textTheme.apply(
-              fontFamily: fontFamilyNotifier.value,
-              bodyColor: textColor.value,
-              displayColor: textColor.value,
-            ),
+            textTheme: _flavouredTextTheme(Theme.of(context).textTheme),
             appBarTheme: AppBarTheme(
-              titleTextStyle: TextStyle(
-                color: textColor.value,
-                fontSize: 24,
-                fontFamily: fontFamilyNotifier.value,
+              systemOverlayStyle:
+                  ThemeData.estimateBrightnessForColor(
+                        pageBackgroundColor.value,
+                      ) ==
+                      Brightness.light
+                  ? SystemUiOverlayStyle.dark
+                  : SystemUiOverlayStyle.light,
+              titleTextStyle: activeFlavour.headingStyle(
+                TextStyle(color: textColor.value, fontSize: 24),
+                userFont: fontFamilyNotifier.value,
               ),
               iconTheme: IconThemeData(color: iconColor.value),
             ),
@@ -436,7 +450,58 @@ Future<void> _setupTray() async {
   trayManager.addListener(MyTrayListener());
 }
 
+ColorScheme _accentScheme() {
+  final accent = seekBarColor.value;
+  final brightness = ThemeData.estimateBrightnessForColor(
+    pageBackgroundColor.value,
+  );
+  return ColorScheme.fromSeed(
+    seedColor: accent,
+    brightness: brightness,
+  ).copyWith(
+    primary: accent,
+    onPrimary: ThemeData.estimateBrightnessForColor(accent) == Brightness.dark
+        ? Colors.white
+        : Colors.black,
+  );
+}
+
+/// Running text in the flavour's body face and headings in its display face.
+/// A font the user picked replaces both.
+TextTheme _flavouredTextTheme(TextTheme base) {
+  final user = fontFamilyNotifier.value;
+  final themed = base.apply(
+    fontFamily: user ?? activeFlavour.bodyFont,
+    bodyColor: textColor.value,
+    displayColor: textColor.value,
+  );
+  TextStyle? head(TextStyle? s) =>
+      s == null ? null : activeFlavour.headingStyle(s, userFont: user);
+  return themed.copyWith(
+    displayLarge: head(themed.displayLarge),
+    displayMedium: head(themed.displayMedium),
+    displaySmall: head(themed.displaySmall),
+    headlineLarge: head(themed.headlineLarge),
+    headlineMedium: head(themed.headlineMedium),
+    headlineSmall: head(themed.headlineSmall),
+    titleLarge: head(themed.titleLarge),
+  );
+}
+
 void _registerLicenses() {
+  for (final (name, file) in const [
+    ('Fraunces', 'fraunces'),
+    ('IBM Plex Sans', 'ibmplexsans'),
+    ('Space Grotesk', 'spacegrotesk'),
+    ('JetBrains Mono', 'jetbrainsmono'),
+    ('Bricolage Grotesque', 'bricolagegrotesque'),
+  ]) {
+    LicenseRegistry.addLicense(() async* {
+      final text = await rootBundle.loadString('assets/licenses/$file-OFL.txt');
+      yield LicenseEntryWithLineBreaks([name], text);
+    });
+  }
+
   LicenseRegistry.addLicense(() async* {
     final text = await rootBundle.loadString(
       'assets/licenses/libmpv-license.txt',
