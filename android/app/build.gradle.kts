@@ -16,6 +16,16 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
+    // The lossless wrapper's two programs ship as libwrapperd.so and
+    // libwrapperworker.so (tools/build_android_wrapper.sh). Android runs
+    // executables only from the extracted native library folder, so native
+    // libraries must be extracted at install rather than read from the APK.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     namespace = "com.batgaurish.soiboi"
     compileSdk = 37
     ndkVersion = flutter.ndkVersion

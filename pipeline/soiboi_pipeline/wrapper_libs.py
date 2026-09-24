@@ -12,9 +12,18 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import zipfile
 
+try:
+    import certifi
+except ImportError:  # the bundled environment is incomplete
+    certifi = None
+
 from .protocol import Emit, Event, Payload, done, error, missing_fields, progress
+
+# wrapper-v2's LIBS_VERSION.json at the pinned commit, copied in by the build.
+BUNDLED_LIBS_VERSION = os.path.join(os.path.dirname(__file__), "wrapper_libs_version.json")
 
 # APKMirror names a split by ABI with the hyphen swapped for an underscore.
 _SPLIT_NAMES = {"x86_64": "split_config.x86_64.apk", "arm64-v8a": "split_config.arm64_v8a.apk"}
@@ -76,14 +85,22 @@ def install(apk_path: str, libs_version_path: str, arch: str, out_dir: str) -> l
 
 
 def handle_install(payload: Payload, emit: Emit) -> Event:
-    problem = missing_fields(payload, "apk_path", "libs_version", "arch", "out_dir")
+    problem = missing_fields(payload, "apk_path", "arch", "out_dir")
     if problem:
         return problem
     emit(progress(20, "Checking the Apple Music file"))
+    out_dir = payload["out_dir"]
     try:
         installed = install(
-            payload["apk_path"], payload["libs_version"], payload["arch"], payload["out_dir"]
+            payload["apk_path"],
+            payload.get("libs_version") or BUNDLED_LIBS_VERSION,
+            payload["arch"],
+            out_dir,
         )
+        # Apple's libcurl needs a CA bundle it can read; Android keeps its
+        # certificates in a format curl cannot use.
+        if certifi is not None:
+            shutil.copyfile(certifi.where(), os.path.join(out_dir, "cacert.pem"))
     except WrongApk as exc:
         return error("wrong_apk", str(exc))
     except OSError as exc:

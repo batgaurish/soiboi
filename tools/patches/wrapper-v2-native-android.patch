@@ -1,0 +1,22 @@
+diff --git a/src/daemon/apple/runtime.cpp b/src/daemon/apple/runtime.cpp
+index c7802e2..6fa8204 100644
+--- a/src/daemon/apple/runtime.cpp
++++ b/src/daemon/apple/runtime.cpp
+@@ -324,9 +324,14 @@ bool Runtime::init_dns_and_foothill(const Symbols& s,
+     // Bionic's resolver inside the chroot has no /etc/resolv.conf to
+     // read. Set Alibaba's public DNS so the bundled libcurl can
+     // reach api.itunes.apple.com etc. Upstream uses the same hosts.
+-    trace("init_dns_and_foothill: resolv_set_nameservers_for_net");
+-    static const char* resolvers[2] = {"223.5.5.5", "223.6.6.6"};
+-    s.resolv_set_nameservers_for_net(0, resolvers, 2, ".");
++    // Running natively inside an Android app (Soiboi), the system resolver
++    // already works, and this private bionic call from the chroot's old libc
++    // does not exist in that shape on a current device: calling it crashes.
++    if (std::getenv("WRAPPER_NATIVE_ANDROID") == nullptr) {
++        trace("init_dns_and_foothill: resolv_set_nameservers_for_net");
++        static const char* resolvers[2] = {"223.5.5.5", "223.6.6.6"};
++        s.resolv_set_nameservers_for_net(0, resolvers, 2, ".");
++    }
+ 
+     // FootHillConfig::config(android_id). Android ID is part 8 of
+     // the device-info tuple.

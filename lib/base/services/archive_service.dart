@@ -94,7 +94,7 @@ Future<void> syncArchivedToLibrary() async {
 }
 
 Future<Map<String, Object>?> _bundledWrapperPayload() async {
-  wrapperService.refresh();
+  await wrapperService.refresh();
   if (!wrapperService.librariesInstalled) return null;
   await wrapperService.start();
   return wrapperService.downloadPayload;
