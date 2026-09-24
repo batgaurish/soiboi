@@ -20,11 +20,12 @@ import queue
 import re
 import shutil
 import threading
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TextIO
 
-from . import acoustic
+from . import acoustic, lyrics
 from .protocol import Emit, Event, Payload, done, error, ignore, missing_fields
 from .protocol import progress, warning
 
@@ -448,6 +449,7 @@ def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
         return error("no_gamdl", f"Downloader unavailable: {_GAMDL_IMPORT_ERROR}")
 
     _cancel_requested.clear()
+    started = time.time()
     temp_dir, log_path = _prepare_dirs(request)
     emit(progress(8, "Starting"))
 
@@ -469,6 +471,7 @@ def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
         return failure
 
     _analyse_output(request.output_dir, emit)
+    lyrics.fetch_for_directory(request.cookies_path, request.output_dir, emit, since=started)
     emit(progress(100, "Done"))
     return done(output_dir=request.output_dir, log_path=log_path)
 

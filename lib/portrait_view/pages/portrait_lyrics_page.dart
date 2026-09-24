@@ -48,6 +48,18 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
 
   final enableAllNotifier = ValueNotifier(Platform.isAndroid ? false : true);
 
+  /// Art only, art with lyrics, or lyrics only. Kept for the session, so the
+  /// player opens the way it was left.
+  static int _lastMode = 1;
+  late final _modes = PageController(initialPage: _lastMode);
+  late final _modeNotifier = ValueNotifier(_lastMode);
+
+  @override
+  void dispose() {
+    _modes.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -257,9 +269,16 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                       ),
                       SizedBox(height: 10),
 
+                      _modeSwitcher(),
                       Expanded(
                         child: PageView(
+                          controller: _modes,
+                          onPageChanged: (page) {
+                            _lastMode = page;
+                            _modeNotifier.value = page;
+                          },
                           children: [
+                            artOnlyPage(context, currentSong),
                             artPage(context, currentSong),
                             ValueListenableBuilder(
                               valueListenable: enableAllNotifier,
@@ -280,6 +299,55 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
           ),
         );
       },
+    );
+  }
+
+  /// Art, Both, Lyrics: the same three pages a swipe reaches, made visible.
+  Widget _modeSwitcher() {
+    const modes = [
+      (Icons.image_rounded, 'Art'),
+      (Icons.vertical_split_rounded, 'Both'),
+      (Icons.lyrics_rounded, 'Lyrics'),
+    ];
+    return ValueListenableBuilder<int>(
+      valueListenable: _modeNotifier,
+      builder: (context, current, _) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (final (index, (icon, label)) in modes.indexed)
+              TextButton.icon(
+                onPressed: () => _modes.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                ),
+                icon: Icon(icon, size: 18),
+                label: Text(label),
+                style: TextButton.styleFrom(
+                  foregroundColor: lyricsPageForegroundColor.value.withValues(
+                    alpha: index == current ? 1 : 0.45,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The cover alone, as large as the screen allows.
+  Widget artOnlyPage(BuildContext context, MyAudioMetadata? currentSong) {
+    final size = MediaQuery.widthOf(context) * 0.9;
+    return Center(
+      child: CoverArtWidget(
+        size: size,
+        borderRadius: size * 0.04,
+        picture: currentSong?.picture,
+        elevation: 15,
+        color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
+      ),
     );
   }
 
