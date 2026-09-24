@@ -282,6 +282,17 @@ class LayersManager {
         detailLayer = FontPickerLayer();
       }
     }
+    // The tab's navigator exists only once the tab has been built. Opening an
+    // album from Home before ever visiting Albums pushed onto nothing, so the
+    // tap did nothing at all. Build the tab first, then push.
+    if (rootKey.currentState == null) {
+      final from = sidebarHighlighLabel.value;
+      switchRootLayer(label);
+      if (from.isNotEmpty && from != label) _openedFrom[label] = from;
+      await WidgetsBinding.instance.endOfFrame;
+      await WidgetsBinding.instance.endOfFrame;
+    }
+
     if (detailWidgetMap[rootLayer] == null) {
       parentWidgetMap[detailLayer] = rootLayer;
     } else {
@@ -358,8 +369,19 @@ class LayersManager {
       visibleNotifier.value = true;
     });
 
+    // Leaving the last detail of a tab that was opened only to show it goes
+    // back to the page the tap came from, not the tab's own list.
+    final from = _openedFrom[label];
+    if (from != null && detailWidgetMap[rootLayer] == null) {
+      _openedFrom.remove(label);
+      switchRootLayer(from, remember: false);
+    }
+
     return true;
   }
+
+  /// Tabs opened only to show a detail, and the page each was opened from.
+  final Map<String, String> _openedFrom = {};
 
   Future<void> pushDetailIfNeed(dynamic detail) async {
     if (detail is Artist) {

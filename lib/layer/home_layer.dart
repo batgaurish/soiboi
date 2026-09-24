@@ -16,6 +16,8 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/services/ai_features.dart';
 import 'package:soiboi/base/services/ai_service.dart';
 import 'package:soiboi/base/services/apple_catalog_service.dart';
@@ -72,6 +74,12 @@ class _HomeLayerState extends State<HomeLayer> {
     super.dispose();
   }
 
+  Future<void> _pullToRefresh() async {
+    if (!Loader.busy) await Loader.sync();
+    await _loadRemote();
+    loadAiRecommendations();
+  }
+
   Future<void> _loadRemote() async {
     // Every registered source, not just ListenBrainz. All of them are public
     // and need no account, so this works on a device with nothing configured;
@@ -111,90 +119,111 @@ class _HomeLayerState extends State<HomeLayer> {
     // Flutter's '_dependents.isEmpty' assertion when an element with
     // registered dependents was torn down mid-rebuild. Keeping the shape
     // fixed and rebuilding only the content avoids that entirely.
-    final body = ListenableBuilder(
-      listenable: Listenable.merge([
-        history.recentlyChangeNotifier,
-        history.rankingChangeNotifier,
-        artistAlbumManager.updateNotifier,
-        currentSongNotifier,
-        library.changeNotifier,
-      ]),
-      builder: (context, _) {
-        final moods = autoMoodPlaylists();
-        final upNext = playNextSongs();
-        final recent = history.recentlySongList.take(shelfLimit).toList();
-        final added = recentlyAddedSongs();
-        final addedAlbums = recentlyAddedAlbums();
-        final favourites = favouriteSongs();
-        final most = history.rankingSongList.take(shelfLimit).toList();
+    //
+    // A library sync replaces `history` and `artistAlbumManager` with new
+    // objects, so a listener list built once kept watching the old ones and
+    // Home never showed what a download had just added. Rebuilding the list
+    // on each sync keeps it pointed at the live objects.
+    final body = ValueListenableBuilder(
+      valueListenable: Loader.stateNotifier,
+      builder: (context, _, _) => ListenableBuilder(
+        listenable: Listenable.merge([
+          history.recentlyChangeNotifier,
+          history.rankingChangeNotifier,
+          artistAlbumManager.updateNotifier,
+          currentSongNotifier,
+          library.changeNotifier,
+        ]),
+        builder: (context, _) {
+          final moods = autoMoodPlaylists();
+          final upNext = playNextSongs();
+          final recent = history.recentlySongList.take(shelfLimit).toList();
+          final added = recentlyAddedSongs();
+          final addedAlbums = recentlyAddedAlbums();
+          final favourites = favouriteSongs();
+          final most = history.rankingSongList.take(shelfLimit).toList();
 
-        // ListenBrainz wins when connected and reachable; local rankings are
-        // the fallback, never a blank shelf.
-        final artistEntries = _lbArtists;
-        final albumEntries = _lbAlbums;
-        final localArtists = topArtists();
-        final localAlbums = topAlbums();
+          // ListenBrainz wins when connected and reachable; local rankings are
+          // the fallback, never a blank shelf.
+          final artistEntries = _lbArtists;
+          final albumEntries = _lbAlbums;
+          final localArtists = topArtists();
+          final localAlbums = topAlbums();
 
-        final anything = upNext.isNotEmpty ||
-            recent.isNotEmpty ||
-            added.isNotEmpty ||
-            _discover.isNotEmpty ||
-            favourites.isNotEmpty ||
-            most.isNotEmpty ||
-            localArtists.isNotEmpty ||
-            (artistEntries?.isNotEmpty ?? false);
+          final anything =
+              upNext.isNotEmpty ||
+              recent.isNotEmpty ||
+              added.isNotEmpty ||
+              _discover.isNotEmpty ||
+              favourites.isNotEmpty ||
+              most.isNotEmpty ||
+              localArtists.isNotEmpty ||
+              (artistEntries?.isNotEmpty ?? false);
 
-        return CustomScrollView(
-          slivers: [
-            const SliverToBoxAdapter(child: SizedBox(height: 18)),
+          return RefreshIndicator(
+            // Pull down to rescan the music folders, so fresh downloads and
+            // files copied in by hand show up without a restart.
+            onRefresh: _pullToRefresh,
+            color: seekBarColor.value,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                const SliverToBoxAdapter(child: SizedBox(height: 18)),
 
-            if (upNext.isNotEmpty)
-              _sliver(_songShelf('Up next', upNext)),
+                if (upNext.isNotEmpty) _sliver(_songShelf('Up next', upNext)),
 
-            if (recent.isNotEmpty)
-              _sliver(_songShelf(l10n.recently, recent)),
+                if (recent.isNotEmpty)
+                  _sliver(_songShelf(l10n.recently, recent)),
 
-            if (added.isNotEmpty)
-              _sliver(_songShelf('Recently added', added)),
+                if (added.isNotEmpty)
+                  _sliver(
+                    _songShelf('Recently added', added, opensAlbum: true),
+                  ),
 
-            if (_discover.isNotEmpty) _sliver(_discoverShelf()),
+                if (_discover.isNotEmpty) _sliver(_discoverShelf()),
 
-            if (favourites.isNotEmpty)
-              _sliver(_songShelf(l10n.favorites, favourites)),
+                if (favourites.isNotEmpty)
+                  _sliver(_songShelf(l10n.favorites, favourites)),
 
-            if (moods.isNotEmpty)
-              _sliver(_moodShelf(moods))
-            else if (moodsNeedAnalysis())
-              _sliver(const _AnalysePrompt()),
+                if (moods.isNotEmpty)
+                  _sliver(_moodShelf(moods))
+                else if (moodsNeedAnalysis())
+                  _sliver(const _AnalysePrompt()),
 
-            if (artistEntries != null && artistEntries.isNotEmpty)
-              _sliver(_lbShelf('Top artists', artistEntries, circular: true))
-            else if (localArtists.isNotEmpty)
-              _sliver(_collectionShelf(
-                'Top artists',
-                localArtists,
-                circular: true,
-              )),
+                if (artistEntries != null && artistEntries.isNotEmpty)
+                  _sliver(
+                    _lbShelf('Top artists', artistEntries, circular: true),
+                  )
+                else if (localArtists.isNotEmpty)
+                  _sliver(
+                    _collectionShelf(
+                      'Top artists',
+                      localArtists,
+                      circular: true,
+                    ),
+                  ),
 
-            // Separate from the ListenBrainz shelves: these come from the
-            // person's own AI key.
-            _sliver(const _AiRecsShelf()),
+                // Separate from the ListenBrainz shelves: these come from the
+                // person's own AI key.
+                _sliver(const _AiRecsShelf()),
 
-            if (albumEntries != null && albumEntries.isNotEmpty)
-              _sliver(_lbShelf('Top albums', albumEntries, circular: false))
-            else if (localAlbums.isNotEmpty)
-              _sliver(_collectionShelf('Top albums', localAlbums)),
+                if (albumEntries != null && albumEntries.isNotEmpty)
+                  _sliver(_lbShelf('Top albums', albumEntries, circular: false))
+                else if (localAlbums.isNotEmpty)
+                  _sliver(_collectionShelf('Top albums', localAlbums)),
 
-            if (addedAlbums.isNotEmpty)
-              _sliver(_collectionShelf('New albums', addedAlbums)),
+                if (addedAlbums.isNotEmpty)
+                  _sliver(_collectionShelf('New albums', addedAlbums)),
 
-            if (most.isNotEmpty) _sliver(_songShelf(l10n.ranking, most)),
+                if (most.isNotEmpty) _sliver(_songShelf(l10n.ranking, most)),
 
-            if (!anything) SliverFillRemaining(child: _emptyState()),
-            const SliverToBoxAdapter(child: SizedBox(height: 90)),
-          ],
-        );
-      },
+                if (!anything) SliverFillRemaining(child: _emptyState()),
+                const SliverToBoxAdapter(child: SizedBox(height: 90)),
+              ],
+            ),
+          );
+        },
+      ),
     );
 
     // On a narrow layout the drawer is the only navigation, and every other
@@ -209,7 +238,12 @@ class _HomeLayerState extends State<HomeLayer> {
     // no way to reach Settings at all, not even indirectly through another
     // page, because there was nothing to click.
     if (!isTooNarrow(context)) {
-      return Column(children: [const TitleBar(), Expanded(child: body)]);
+      return Column(
+        children: [
+          const TitleBar(),
+          Expanded(child: body),
+        ],
+      );
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -236,7 +270,11 @@ class _HomeLayerState extends State<HomeLayer> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.library_music_outlined, size: 42, color: textColor.value),
+            Icon(
+              Icons.library_music_outlined,
+              size: 42,
+              color: textColor.value,
+            ),
             const SizedBox(height: 12),
             Text(
               activeFlavour.heading('Nothing here yet'),
@@ -330,7 +368,13 @@ class _HomeLayerState extends State<HomeLayer> {
   double _shelfHeight(BuildContext context, double textBlock) =>
       124 + MediaQuery.textScalerOf(context).scale(textBlock);
 
-  Widget _songShelf(String title, List<MyAudioMetadata> songs) => _shelf(
+  /// [opensAlbum]: a tap opens the song's album instead of playing it, for
+  /// shelves about what arrived rather than what to hear next.
+  Widget _songShelf(
+    String title,
+    List<MyAudioMetadata> songs, {
+    bool opensAlbum = false,
+  }) => _shelf(
     title: title,
     // Title, artist, quality badge, and the gaps between them.
     height: _shelfHeight(context, 66),
@@ -338,7 +382,14 @@ class _HomeLayerState extends State<HomeLayer> {
     builder: (context, i) => _SongCard(
       song: songs[i],
       index: i,
-      onTap: () => audioHandler.singlePlay(songs[i]),
+      onTap: () {
+        final album = artistAlbumManager.albumMap[getAlbum(songs[i])];
+        if (opensAlbum && album != null) {
+          layersManager.pushDetail('albums', album);
+        } else {
+          audioHandler.singlePlay(songs[i]);
+        }
+      },
     ),
   );
 
@@ -347,10 +398,7 @@ class _HomeLayerState extends State<HomeLayer> {
     title: 'Made for you',
     height: _shelfHeight(context, 46),
     count: moods.length,
-    builder: (context, i) => _MoodCard(
-      mood: moods[i],
-      index: i,
-    ),
+    builder: (context, i) => _MoodCard(mood: moods[i], index: i),
   );
 
   /// Local artists or albums, ranked by plays on this device.
@@ -362,17 +410,18 @@ class _HomeLayerState extends State<HomeLayer> {
     title: title,
     height: _shelfHeight(context, circular ? 46 : 52),
     count: items.length,
-    builder: (context, i) => _CollectionCard(
-      item: items[i],
-      index: i,
-      circular: circular,
-    ),
+    builder: (context, i) =>
+        _CollectionCard(item: items[i], index: i, circular: circular),
   );
 
   /// ListenBrainz rankings. Entries missing from the library are dimmed and
   /// marked, because "you listen to this and don't own it" is exactly the gap
   /// the archival pipeline exists to close.
-  Widget _lbShelf(String title, List<LbEntry> entries, {required bool circular}) {
+  Widget _lbShelf(
+    String title,
+    List<LbEntry> entries, {
+    required bool circular,
+  }) {
     final missing = entries.where((e) => !e.isInLibrary).length;
     // The range is named whenever it is not the default month, because these
     // shelves widen to a year or all time when the month has no stats — and a
@@ -386,11 +435,8 @@ class _HomeLayerState extends State<HomeLayer> {
       trailing: missing == 0 ? source : '$missing not in your library',
       height: _shelfHeight(context, circular ? 46 : 52),
       count: entries.length,
-      builder: (context, i) => _LbCard(
-        entry: entries[i],
-        index: i,
-        circular: circular,
-      ),
+      builder: (context, i) =>
+          _LbCard(entry: entries[i], index: i, circular: circular),
     );
   }
 }
@@ -417,7 +463,11 @@ class _StaggeredIn extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: motion.medium + motion.staggerStep * index,
-      curve: Interval((index * 0.06).clamp(0.0, 0.6), 1, curve: motion.enterExit),
+      curve: Interval(
+        (index * 0.06).clamp(0.0, 0.6),
+        1,
+        curve: motion.enterExit,
+      ),
       builder: (context, t, child) => Opacity(
         opacity: t,
         child: Transform.translate(
@@ -521,9 +571,7 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                           ),
                           const SizedBox(height: 5),
                           Text(
-                            _total == null
-                                ? 'Loading…'
-                                : '$_total tracks',
+                            _total == null ? 'Loading…' : '$_total tracks',
                             style: TextStyle(
                               fontSize: 11,
                               color: textColor.value,
@@ -545,7 +593,8 @@ class _DiscoverCardState extends State<_DiscoverCard> {
   Widget _mosaic() {
     const side = 92.0;
     final tracks = _tracks;
-    final art = tracks
+    final art =
+        tracks
             ?.map((t) => t.artwork)
             .where((a) => a != null && a.isNotEmpty)
             .take(4)
@@ -790,7 +839,8 @@ class _LbCard extends StatelessWidget {
   }
 
   Widget _artwork(double radius, bool owned) {
-    final localPicture = entry.localArtist?.picture ?? entry.localAlbum?.picture;
+    final localPicture =
+        entry.localArtist?.picture ?? entry.localAlbum?.picture;
     if (localPicture != null) {
       return CoverArtWidget(
         size: 124,
@@ -869,11 +919,7 @@ class _MoodCard extends StatelessWidget {
                     ),
                   ),
                   child: Center(
-                    child: Icon(
-                      mood.icon,
-                      size: 48,
-                      color: seekBarColor.value,
-                    ),
+                    child: Icon(mood.icon, size: 48, color: seekBarColor.value),
                   ),
                 ),
               ),
@@ -1121,10 +1167,8 @@ class _AiRecCard extends StatelessWidget {
                     return Image.network(
                       art,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Icon(
-                        Icons.album_outlined,
-                        color: textColor.value,
-                      ),
+                      errorBuilder: (_, _, _) =>
+                          Icon(Icons.album_outlined, color: textColor.value),
                     );
                   },
                 ),
