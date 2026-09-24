@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class ZoomPageRoute<T> extends PageRoute<T> {
   ZoomPageRoute({required this.builder});
@@ -7,8 +8,9 @@ class ZoomPageRoute<T> extends PageRoute<T> {
   final WidgetBuilder builder;
 
   @override
-  DelegatedTransitionBuilder? get delegatedTransition =>
-      const ZoomPageTransitionsBuilder().delegatedTransition;
+  DelegatedTransitionBuilder? get delegatedTransition => reduceMotion
+      ? null
+      : const ZoomPageTransitionsBuilder().delegatedTransition;
 
   @override
   Widget buildPage(
@@ -26,6 +28,12 @@ class ZoomPageRoute<T> extends PageRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    if (reduceMotion) {
+      return reducedMotionTransition(
+        animation,
+        immersiveWideLayoutNotifier.value ? child : SafeArea(child: child),
+      );
+    }
     return const ZoomPageTransitionsBuilder().buildTransitions(
       this,
       context,
@@ -51,5 +59,7 @@ class ZoomPageRoute<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 600);
+  Duration get transitionDuration => reduceMotion
+      ? reducedTransitionDuration
+      : const Duration(milliseconds: 600);
 }

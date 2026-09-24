@@ -32,6 +32,7 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class BigPictureView extends StatefulWidget {
   const BigPictureView({super.key});
@@ -104,7 +105,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                       sigmaY: pageHight * 0.03,
                     ),
                     child: AnimatedContainer(
-                      duration: Duration(milliseconds: 500),
+                      duration: motionDuration(Duration(milliseconds: 500)),
                       curve: Curves.easeInOutCubic,
                       color: currentCoverArtColor.withAlpha(180),
                     ),
@@ -378,7 +379,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                                         },
                                         child: ScaleWidget(
                                           onTap: () {
-                                            _pageController.animateToPage(
+                                            _pageController.glideToPage(
                                               index,
                                               duration: const Duration(
                                                 milliseconds: 300,

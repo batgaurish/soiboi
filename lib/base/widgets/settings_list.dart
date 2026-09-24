@@ -54,6 +54,7 @@ import 'package:soiboi/base/services/acoustic_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class SettingsList extends StatefulWidget {
   final double? iconSize;
@@ -202,6 +203,7 @@ class _SettingsListState extends State<SettingsList> {
 
         sliverBox(paddingIfNeed(isLandscape, widevineListTile(context, l10n))),
 
+        sliverBox(paddingIfNeed(isLandscape, reduceMotionListTile())),
         sliverBox(paddingIfNeed(isLandscape, downloadLogsListTile())),
         if (notifications.supported)
           sliverBox(paddingIfNeed(isLandscape, notificationsListTile())),
@@ -868,6 +870,64 @@ class _SettingsListState extends State<SettingsList> {
           onToggleCallBack: () {
             setting.save();
           },
+        ),
+      ),
+    );
+  }
+
+  Widget reduceMotionListTile() {
+    String describe(MotionPreference preference, bool systemReduces) =>
+        switch (preference) {
+          MotionPreference.system =>
+            'Following the system (${systemReduces ? 'reduced' : 'full'})',
+          MotionPreference.reduced => 'On: no sliding, zooming or scrolling',
+          MotionPreference.full => 'Off: all animations',
+        };
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        motionPreferenceNotifier,
+        systemReducesMotionNotifier,
+      ]),
+      builder: (context, _) => ListTile(
+        leading: Icon(Icons.motion_photos_off_outlined, size: iconSize),
+        title: const Text('Reduce motion'),
+        subtitle: Text(
+          describe(
+            motionPreferenceNotifier.value,
+            systemReducesMotionNotifier.value,
+          ),
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+        onTap: () => showAnimationDialog(
+          context: context,
+          child: SizedBox(
+            width: 340,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final (preference, title) in [
+                    (MotionPreference.system, 'Follow the system'),
+                    (MotionPreference.reduced, 'Reduce motion'),
+                    (MotionPreference.full, 'Full motion'),
+                  ])
+                    ListTile(
+                      title: Text(title),
+                      selected: motionPreferenceNotifier.value == preference,
+                      trailing: motionPreferenceNotifier.value == preference
+                          ? const Icon(Icons.check)
+                          : null,
+                      onTap: () {
+                        motionPreferenceNotifier.value = preference;
+                        setting.save();
+                        Navigator.pop(context);
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -11,6 +11,7 @@ import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class PlayQueueSheet extends StatefulWidget {
   const PlayQueueSheet({super.key});
@@ -116,7 +117,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                         final position = scrollController.position;
                         final maxScrollExtent = position.maxScrollExtent;
                         final minScrollExtent = position.minScrollExtent;
-                        scrollController.animateTo(
+                        scrollController.glideTo(
                           (scaledExtent(context, 54) *
                                   audioHandler.currentIndex)
                               .clamp(minScrollExtent, maxScrollExtent),

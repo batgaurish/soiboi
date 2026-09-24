@@ -10,6 +10,7 @@ import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 abstract class BigSongListBasePanel extends StatefulWidget {
   const BigSongListBasePanel({super.key});
@@ -72,7 +73,7 @@ abstract class BigSongListBasePanelState extends State<BigSongListBasePanel> {
                         viewport.getOffsetToReveal(box, 0.5).offset +
                         itemExtent / 2;
 
-                    scrollController.animateTo(
+                    scrollController.glideTo(
                       target.clamp(
                         scrollController.position.minScrollExtent,
                         scrollController.position.maxScrollExtent,

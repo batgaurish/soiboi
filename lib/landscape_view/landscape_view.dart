@@ -8,6 +8,7 @@ import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/landscape_view/bottom_control.dart';
 import 'package:soiboi/landscape_view/sidebar.dart';
 import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class LandscapeView extends StatelessWidget {
   const LandscapeView({super.key});
@@ -59,7 +60,7 @@ class LandscapeView extends StatelessWidget {
                   valueListenable: layersManager.backgroundChangeNotifier,
                   builder: (context, value, child) {
                     return AnimatedContainer(
-                      duration: Duration(milliseconds: 500),
+                      duration: motionDuration(Duration(milliseconds: 500)),
                       curve: Curves.easeInOutCubic,
                       color: backgroundCoverArtColor.withAlpha(180),
                     );

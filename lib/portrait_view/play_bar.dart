@@ -12,9 +12,9 @@ import 'package:soiboi/layer/lyrics_page_layer.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/utils/semantics_labels.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
-import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/widgets/marquee_text.dart';
 
 class PlayBar extends StatelessWidget {
   const PlayBar({super.key});
@@ -78,7 +78,7 @@ class PlayBar extends StatelessWidget {
                         '${songLabel(title: getTitle(currentSong), artist: getArtist(currentSong))}',
                     hint: 'Opens the player',
                     excludeSemantics: true,
-                    child: TextScroll(
+                    child: MarqueeText(
                       "${getTitle(currentSong)} - ${getArtist(currentSong)}",
                       key: ValueKey(
                         currentSong.hashCode + MediaQuery.widthOf(context),

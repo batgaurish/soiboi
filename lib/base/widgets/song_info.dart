@@ -10,6 +10,7 @@ import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class SongInfo extends StatefulWidget {
   final MyAudioMetadata song;
@@ -45,7 +46,7 @@ class _SongInfoState extends State<SongInfo> {
       _ => position.pixels,
     };
 
-    _scrollController.animateTo(
+    _scrollController.glideTo(
       target,
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOut,

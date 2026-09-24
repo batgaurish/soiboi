@@ -457,10 +457,10 @@ class _StaggeredIn extends StatelessWidget {
     // which is what tripped Flutter's '_dependents.isEmpty' assertion when a
     // ListenBrainz fetch swapped the shelf contents mid-animation.
     //
-    // Reduced-motion is honoured through the flavour's own stagger setting
-    // instead, which needs no context.
+    // Reduced motion is read from its notifier instead, which needs no
+    // context either.
     final motion = activeMotion;
-    if (motion.staggerStep == Duration.zero) return child;
+    if (motion.staggerStep == Duration.zero || reduceMotion) return child;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: motion.medium + motion.staggerStep * index,

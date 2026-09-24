@@ -112,6 +112,13 @@ shortcuts, and every palette comes from album art with no contrast check.
   backgrounds, hero transitions and lyric scrolling effects, and replace
   slides with plain fades.
   *Done when:* the toggle removes all non-essential motion.
+  *Status:* built. Settings > Reduce motion: follow the system, on or off.
+  With it on, page changes are a 150 ms fade instead of a slide or zoom,
+  covers do not fly between pages, background tints change at once, long
+  titles stop scrolling sideways, lyrics jump to the current line, the
+  now-playing animation holds still, Home's cards appear without stagger,
+  and scroll-to-top and show-the-playing-song jump. Checked in tests and in
+  the Linux build's Settings; not yet on a phone.
 - [ ] **1.5 Keyboard navigation and shortcuts** (M). Visible focus outlines
   and a sensible Tab order in Downloads and Settings. Shortcuts: Space
   (play/pause), ←/→ (seek 5 s), Shift+←/→ (previous/next), ↑/↓ (volume),

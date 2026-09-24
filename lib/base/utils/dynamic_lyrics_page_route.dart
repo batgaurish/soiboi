@@ -1,14 +1,17 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class DynamicLyricsPageRoute<T> extends PageRouteBuilder<T> {
   DynamicLyricsPageRoute({required super.pageBuilder});
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 500);
+  Duration get transitionDuration => reduceMotion
+      ? reducedTransitionDuration
+      : const Duration(milliseconds: 500);
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 500);
+  Duration get reverseTransitionDuration => transitionDuration;
 
   void revealRoutesBelow() {
     if (overlayEntries.isNotEmpty) {
@@ -31,6 +34,7 @@ class DynamicLyricsPageRoute<T> extends PageRouteBuilder<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    if (reduceMotion) return reducedMotionTransition(animation, child);
     final curved = CurvedAnimation(
       parent: animation,
       curve: Curves.easeInOutCubic,

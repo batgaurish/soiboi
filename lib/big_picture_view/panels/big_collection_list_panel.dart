@@ -6,6 +6,7 @@ import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/my_gird_delegate.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/scale_widget.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 abstract class BigCollectionListPanel extends StatefulWidget {
   const BigCollectionListPanel({super.key});
@@ -101,7 +102,7 @@ abstract class BigCollectionListPanelState
 
                 final target = viewport.getOffsetToReveal(box, 0.5).offset;
 
-                scrollController.animateTo(
+                scrollController.glideTo(
                   target.clamp(
                     scrollController.position.minScrollExtent,
                     scrollController.position.maxScrollExtent,

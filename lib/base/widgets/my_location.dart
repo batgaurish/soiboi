@@ -5,6 +5,7 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class MyLocation extends StatelessWidget {
   final ScrollController scrollController;
@@ -45,7 +46,7 @@ class MyLocation extends StatelessWidget {
             final position = scrollController.position;
             final maxScrollExtent = position.maxScrollExtent;
             final minScrollExtent = position.minScrollExtent;
-            scrollController.animateTo(
+            scrollController.glideTo(
               (scaledExtent(context, 60) * index + offset).clamp(
                 minScrollExtent,
                 maxScrollExtent,

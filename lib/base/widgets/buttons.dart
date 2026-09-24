@@ -12,6 +12,7 @@ import 'package:soiboi/landscape_view/pages/play_queue_page.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 Widget playModeButton(double? size, {Color? iconColor}) {
   return ValueListenableBuilder(
@@ -236,7 +237,7 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
                             ),
                             clipBehavior: Clip.antiAliasWithSaveLayer,
                             child: AnimatedContainer(
-                              duration: Duration(milliseconds: 250),
+                              duration: motionDuration(Duration(milliseconds: 250)),
                               color: Color.alphaBlend(
                                 colorManager.getSpecificBgColor(),
                                 colorManager.getSpecificBgBaseColor(),
@@ -254,6 +255,9 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
                   );
                 },
                 transitionsBuilder: (_, animation, _, child) {
+                  if (reduceMotion) {
+                    return reducedMotionTransition(animation, child);
+                  }
                   return SlideTransition(
                     position: Tween(begin: const Offset(1, 0), end: Offset.zero)
                         .animate(
