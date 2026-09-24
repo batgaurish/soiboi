@@ -15,6 +15,7 @@ import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 class PlayQueuePage extends StatefulWidget {
   const PlayQueuePage({super.key});
@@ -88,6 +89,9 @@ class PlayQueuePageState extends State<PlayQueuePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Rows grow with large text; scrolling to the playing song uses the
+    // same height, so it keeps landing on it.
+    itemExtend = scaledExtent(context, 64);
     return Column(
       children: [
         SizedBox(height: 10),
@@ -143,15 +147,18 @@ class PlayQueuePageState extends State<PlayQueuePage> {
     return Row(
       children: [
         SizedBox(width: 15),
-        Text(
-          l10n.playQueue,
-          style: TextStyle(
-            fontSize: viewModeNotifier.value == .mini ? 18 : 20,
-            fontWeight: FontWeight.bold,
-            color: specificTextColor,
+        Expanded(
+          child: Text(
+            l10n.playQueue,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: viewModeNotifier.value == .mini ? 18 : 20,
+              fontWeight: FontWeight.bold,
+              color: specificTextColor,
+            ),
           ),
         ),
-        Spacer(),
 
         IconButton(
           tooltip: 'Reverse queue',

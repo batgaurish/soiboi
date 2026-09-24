@@ -29,6 +29,7 @@ import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/utils/semantics_labels.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 class PortraitLyricsPage extends StatefulWidget {
   const PortraitLyricsPage({super.key});
@@ -210,7 +211,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: SizedBox(
-                        height: 36,
+                        height: scaledExtent(context, 36, textShare: 0.8),
                         child: ValueListenableBuilder(
                           valueListenable: enableAllNotifier,
                           builder: (context, value, child) {
@@ -242,7 +243,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 30),
                       child: SizedBox(
-                        height: 28,
+                        height: scaledExtent(context, 28, textShare: 0.8),
                         child: ValueListenableBuilder(
                           valueListenable: enableAllNotifier,
                           builder: (context, value, child) {
@@ -444,7 +445,30 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
   }
 
   Widget artPage(BuildContext context, MyAudioMetadata? currentSong) {
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _artPageColumn(context, currentSong, constraints.maxHeight),
+    );
+  }
+
+  Widget _artPageColumn(
+    BuildContext context,
+    MyAudioMetadata? currentSong,
+    double height,
+  ) {
     final mobileWidth = MediaQuery.widthOf(context);
+    // The cover gives way to the controls below it: with large text, or on
+    // a short screen, a full-width cover would push them off the bottom.
+    // Room is kept for the gap, the button row, seek bar, transport and, with
+    // large text, a line of lyrics.
+    final reserved =
+        30 +
+        scaledExtent(context, 48, textShare: 0.3) +
+        scaledExtent(context, 60, textShare: 0.5) +
+        64 +
+        40 +
+        (textGrowth(context) > 1 ? 40 : 0);
+    final coverSize = (height - reserved).clamp(120.0, mobileWidth * 0.84);
 
     return Column(
       children: [
@@ -459,8 +483,8 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 toHeroContext,
               ) => FittedBox(child: toHeroContext.widget),
           child: CoverArtWidget(
-            size: mobileWidth * 0.84,
-            borderRadius: mobileWidth * 0.04,
+            size: coverSize,
+            borderRadius: coverSize * 0.05,
             picture: currentSong?.picture,
             elevation: 15,
             color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),

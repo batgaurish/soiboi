@@ -17,6 +17,7 @@ import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/portrait_view/my_search_field.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 part '../../landscape_view/panels/collection_list_panel.dart';
 part '../../portrait_view/pages/collection_list_page.dart';

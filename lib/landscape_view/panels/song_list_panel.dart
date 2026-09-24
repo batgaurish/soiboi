@@ -52,10 +52,10 @@ extension _SongListPanel on _SongListState {
               final maxScrollExtent = position.maxScrollExtent;
               final minScrollExtent = position.minScrollExtent;
               scrollController.animateTo(
-                (60 * index + 355 - (MediaQuery.heightOf(context) / 2)).clamp(
-                  minScrollExtent,
-                  maxScrollExtent,
-                ),
+                (scaledExtent(context, 60) * index +
+                        355 -
+                        (MediaQuery.heightOf(context) / 2))
+                    .clamp(minScrollExtent, maxScrollExtent),
                 duration: Duration(milliseconds: 250),
                 curve: Curves.linear,
               );
@@ -102,7 +102,7 @@ extension _SongListPanel on _SongListState {
                 );
               }
               return SliverReorderableList(
-                itemExtent: 60,
+                itemExtent: scaledExtent(context, 60),
                 itemBuilder: (context, index) {
                   if (hideOthers) {
                     return SizedBox(key: ValueKey(index));
@@ -178,6 +178,11 @@ extension _SongListPanel on _SongListState {
     );
   }
 
+  /// Width of a column that holds text (quality, duration, play count),
+  /// widened for large text so the headings and values still fit.
+  double _textColumn(double width) =>
+      scaledExtent(context, width, textShare: 0.9);
+
   Widget panelHeader() {
     final l10n = AppLocalizations.of(context);
 
@@ -187,7 +192,9 @@ extension _SongListPanel on _SongListState {
     bool isPhone = shortSide < 600;
 
     return SizedBox(
-      height: isPhone ? 160 : 200,
+      // Taller with large text: the title, count and buttons beside the
+      // cover would otherwise run out of room.
+      height: scaledExtent(context, isPhone ? 160 : 200, textShare: 0.35),
       child: Row(
         children: [
           mainCover(isPhone ? 120 : 160),
@@ -537,7 +544,7 @@ extension _SongListPanel on _SongListState {
           ),
 
           SizedBox(
-            width: 78,
+            width: _textColumn(78),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 5),
               child: Text(l10n.quality, overflow: TextOverflow.ellipsis),
@@ -550,7 +557,7 @@ extension _SongListPanel on _SongListState {
           ),
 
           SizedBox(
-            width: 80,
+            width: _textColumn(80),
             child: InkWell(
               mouseCursor: canSort
                   ? SystemMouseCursors.click
@@ -591,7 +598,7 @@ extension _SongListPanel on _SongListState {
           ),
           if (isRanking)
             SizedBox(
-              width: 50,
+              width: _textColumn(50),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Text(l10n.times, overflow: TextOverflow.ellipsis),
@@ -693,7 +700,7 @@ extension _SongListPanel on _SongListState {
                           ),
 
                           SizedBox(
-                            width: 78,
+                            width: _textColumn(78),
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: ExcludeSemantics(
@@ -708,7 +715,7 @@ extension _SongListPanel on _SongListState {
                           ),
 
                           SizedBox(
-                            width: 80,
+                            width: _textColumn(80),
                             child: ExcludeSemantics(
                               child: Text(
                                 formatDuration(getDuration(song)),
@@ -719,7 +726,7 @@ extension _SongListPanel on _SongListState {
 
                           if (widget.isRanking)
                             SizedBox(
-                              width: 50,
+                              width: _textColumn(50),
                               child: ExcludeSemantics(
                                 child: Text(
                                   song.playCount.toString(),

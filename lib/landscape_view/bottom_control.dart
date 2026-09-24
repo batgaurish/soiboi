@@ -16,6 +16,7 @@ import 'package:soiboi/base/utils/semantics_labels.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 class BottomControl extends StatelessWidget {
   const BottomControl({super.key});
@@ -28,7 +29,8 @@ class BottomControl extends StatelessWidget {
         return Material(
           color: value,
           child: SizedBox(
-            height: 75,
+            // Grows with large text, which it holds three lines of.
+            height: scaledExtent(context, 75, textShare: 0.45),
             child: Row(
               children: [
                 Expanded(flex: 2, child: currentSongTile(context)),

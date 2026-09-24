@@ -13,6 +13,7 @@ import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 class Add2PlaylistPanel extends StatefulWidget {
   final List<MyAudioMetadata> songList;
@@ -75,7 +76,7 @@ class _Add2PlaylistPanelState extends State<Add2PlaylistPanel> {
             Expanded(
               child: ListView.builder(
                 itemCount: playlistManager.playlists.length,
-                itemExtent: 54,
+                itemExtent: scaledExtent(context, 54),
                 itemBuilder: (_, index) {
                   final playlist = playlistManager.getPlaylistByIndex(index);
                   return ListTile(

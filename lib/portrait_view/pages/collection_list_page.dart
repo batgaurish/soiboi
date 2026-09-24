@@ -190,7 +190,7 @@ extension _CollectionListPage on CollectionListState {
 
   Widget listView() {
     return ListView.builder(
-      itemExtent: 64,
+      itemExtent: scaledExtent(context, 64),
       itemCount: currentPictureList.length,
       itemBuilder: (context, index) {
         final picture = currentPictureList[index];

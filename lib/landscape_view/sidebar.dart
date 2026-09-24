@@ -21,6 +21,11 @@ import 'package:soiboi/base/widgets/icon_label.dart';
 
 final ValueNotifier<String> sidebarHighlighLabel = ValueNotifier('');
 
+/// The sidebar's width: 220, a little wider with large text so the labels
+/// still mostly fit.
+double sidebarWidth(BuildContext context) =>
+    scaledExtent(context, 220, textShare: 0.35);
+
 class Sidebar extends StatelessWidget {
   final ScrollController _scrollController = ScrollController();
   final void Function()? closeDrawer;
@@ -56,23 +61,27 @@ class Sidebar extends StatelessWidget {
         },
         child: InkWell(
           mouseCursor: SystemMouseCursors.click,
-          child: SizedBox(
-            height: 40,
+          // Grows with large text instead of clipping it, and the label
+          // shortens with an ellipsis before it pushes anything off.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 40),
             child: Row(
               children: [
                 SizedBox(width: 20),
                 leading,
                 SizedBox(width: 10),
 
-                Text(
-                  content,
-                  style: TextStyle(
-                    fontSize: 15,
-                    overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Text(
+                    content,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 15,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
 
-                Spacer(),
                 if (trailing != null) ...[trailing, SizedBox(width: 5)],
               ],
             ),
@@ -100,7 +109,7 @@ class Sidebar extends StatelessWidget {
         return Material(color: value, child: child);
       },
       child: SizedBox(
-        width: 220,
+        width: sidebarWidth(context),
         child: Column(
           children: [
             GestureDetector(
