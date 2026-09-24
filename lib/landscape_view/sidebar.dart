@@ -17,6 +17,7 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 final ValueNotifier<String> sidebarHighlighLabel = ValueNotifier('');
 
@@ -138,10 +139,7 @@ class Sidebar extends StatelessWidget {
                           Text(
                             activeFlavour.heading(l10n.soiboi),
                             style: activeFlavour.headingStyle(
-                              TextStyle(
-                                fontSize: 22,
-                                color: _wordmarkColor(),
-                              ),
+                              TextStyle(fontSize: 22, color: _wordmarkColor()),
                               userFont: fontFamilyNotifier.value,
                             ),
                           ),
@@ -332,10 +330,16 @@ class Sidebar extends StatelessWidget {
                               contentPadding: EdgeInsets.fromLTRB(16, 0, 8, 0),
 
                               trailing: IconButton(
+                                tooltip: AppLocalizations.of(
+                                  context,
+                                ).createPlaylist,
                                 onPressed: () {
                                   showCreatePlaylistDialog(context);
                                 },
-                                icon: AppIcon(addImage, size: 20),
+                                icon: labelIcon(
+                                  AppLocalizations.of(context).createPlaylist,
+                                  AppIcon(addImage, size: 20),
+                                ),
                               ),
 
                               onTap: () {

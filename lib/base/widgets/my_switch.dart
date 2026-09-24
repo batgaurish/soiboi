@@ -11,6 +11,10 @@ class MySwitch extends StatelessWidget {
   final void Function()? onToggleCallBack;
   final bool inLyricsPage;
 
+  /// What the switch controls, for screen readers: usually the title of the
+  /// row it sits in. Without one, [trueText] names it.
+  final String? semanticLabel;
+
   const MySwitch({
     super.key,
     this.trueText,
@@ -18,10 +22,43 @@ class MySwitch extends StatelessWidget {
     required this.valueNotifier,
     this.onToggleCallBack,
     this.inLyricsPage = false,
+    this.semanticLabel,
   });
 
+  void _toggle() {
+    tryVibrate();
+    valueNotifier.value = !valueNotifier.value;
+    onToggleCallBack?.call();
+  }
+
+  /// The switch draws no semantics of its own (flutter_switch has none), so
+  /// it is described here: a plain on/off switch, or, when its two states
+  /// are named ("List" / "Grid"), a button that says which one is showing.
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: valueNotifier,
+      builder: (context, value, child) {
+        final choice =
+            trueText != null && falseText != null && trueText != falseText;
+        final current = value ? trueText : falseText;
+        final other = value ? falseText : trueText;
+        final name = semanticLabel ?? (choice ? null : trueText);
+        return Semantics(
+          container: true,
+          button: choice,
+          toggled: choice ? null : value,
+          label: choice ? [?name, ?current].join(': ') : name,
+          hint: choice ? 'Switches to $other' : null,
+          onTap: _toggle,
+          child: ExcludeSemantics(child: child),
+        );
+      },
+      child: _visual(),
+    );
+  }
+
+  Widget _visual() {
     if (trueText == null) {
       return switcher();
     }

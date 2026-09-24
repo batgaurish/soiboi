@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/keyboard.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class MySearchField extends StatefulWidget {
   final String hintText;
@@ -49,13 +51,14 @@ class _MySearchFieldState extends State<MySearchField> {
       builder: (context, value, child) {
         if (!value) {
           return IconButton(
+            tooltip: 'Search',
             onPressed: () {
               isSearchNotifier.value = true;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 focusNode.requestFocus();
               });
             },
-            icon: const Icon(Icons.search),
+            icon: labelIcon('Search', const Icon(Icons.search)),
           );
         }
         return Expanded(
@@ -81,13 +84,17 @@ class _MySearchFieldState extends State<MySearchField> {
                       ),
                       prefixIcon: Icon(Icons.search),
                       suffixIcon: IconButton(
+                        tooltip: AppLocalizations.of(context).clear,
                         onPressed: () {
                           isSearchNotifier.value = false;
                           widget.textController.clear();
                           FocusScope.of(context).unfocus();
                           widget.onSearchTextChanged?.call();
                         },
-                        icon: const Icon(Icons.clear),
+                        icon: labelIcon(
+                          AppLocalizations.of(context).clear,
+                          const Icon(Icons.clear),
+                        ),
                         padding: EdgeInsets.zero,
                       ),
                       filled: true,

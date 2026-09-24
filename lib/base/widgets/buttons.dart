@@ -11,22 +11,28 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/pages/play_queue_page.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 Widget playModeButton(double? size, {Color? iconColor}) {
   return ValueListenableBuilder(
     valueListenable: playModeNotifier,
     builder: (context, playMode, _) {
       final l10n = AppLocalizations.of(context);
+      final modeName = [l10n.loop, l10n.shuffle, l10n.repeat][playMode % 3];
 
       return IconButton(
         color: iconColor,
-        icon: AppIcon(
-          playMode == 0
-              ? loopImage
-              : playMode == 1
-              ? shuffleImage
-              : repeatImage,
-          size: size,
+        tooltip: 'Play mode: $modeName',
+        icon: labelIcon(
+          'Play mode: $modeName',
+          AppIcon(
+            playMode == 0
+                ? loopImage
+                : playMode == 1
+                ? shuffleImage
+                : repeatImage,
+            size: size,
+          ),
         ),
         onPressed: () {
           if (playQueue.isEmpty) {
@@ -108,7 +114,8 @@ Widget playModeButton(double? size, {Color? iconColor}) {
 Widget rewindButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: AppIcon(rewindImage, size: size),
+    tooltip: 'Back 15 seconds',
+    icon: labelIcon('Back 15 seconds', AppIcon(rewindImage, size: size)),
     onPressed: () {
       if (playQueue.isEmpty) {
         return;
@@ -125,7 +132,8 @@ Widget rewindButton(double size, {Color? iconColor}) {
 Widget skip2PreviousButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: AppIcon(previousButtonImage, size: size),
+    tooltip: 'Previous',
+    icon: labelIcon('Previous', AppIcon(previousButtonImage, size: size)),
     onPressed: () {
       audioHandler.skipToPrevious();
     },
@@ -133,23 +141,27 @@ Widget skip2PreviousButton(double size, {Color? iconColor}) {
 }
 
 Widget playOrPauseButton(double size, {Color? iconColor}) {
-  return IconButton(
-    autofocus: viewModeNotifier.value == .bigPicture,
-    color: iconColor,
-    icon: ValueListenableBuilder(
-      valueListenable: isPlayingNotifier,
-      builder: (_, isPlaying, _) {
-        return Icon(
-          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-          size: size,
-        );
-      },
-    ),
-    onPressed: () {
-      if (playQueue.isEmpty) {
-        return;
-      }
-      audioHandler.togglePlay();
+  return ValueListenableBuilder(
+    valueListenable: isPlayingNotifier,
+    builder: (_, isPlaying, _) {
+      return IconButton(
+        autofocus: viewModeNotifier.value == .bigPicture,
+        color: iconColor,
+        tooltip: isPlaying ? 'Pause' : 'Play',
+        icon: labelIcon(
+          isPlaying ? 'Pause' : 'Play',
+          Icon(
+            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: size,
+          ),
+        ),
+        onPressed: () {
+          if (playQueue.isEmpty) {
+            return;
+          }
+          audioHandler.togglePlay();
+        },
+      );
     },
   );
 }
@@ -157,7 +169,8 @@ Widget playOrPauseButton(double size, {Color? iconColor}) {
 Widget forwardButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: AppIcon(forwardImage, size: size),
+    tooltip: 'Forward 15 seconds',
+    icon: labelIcon('Forward 15 seconds', AppIcon(forwardImage, size: size)),
     onPressed: () {
       if (playQueue.isEmpty) {
         return;
@@ -175,7 +188,8 @@ Widget forwardButton(double size, {Color? iconColor}) {
 Widget skip2NextButton(double size, {Color? iconColor}) {
   return IconButton(
     color: iconColor,
-    icon: AppIcon(nextButtonImage, size: size),
+    tooltip: 'Next',
+    icon: labelIcon('Next', AppIcon(nextButtonImage, size: size)),
     onPressed: () {
       audioHandler.skipToNext();
     },
@@ -187,7 +201,11 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
     builder: (context) {
       return IconButton(
         color: iconColor,
-        icon: AppIcon(playQueueImage, size: size),
+        tooltip: AppLocalizations.of(context).playQueue,
+        icon: labelIcon(
+          AppLocalizations.of(context).playQueue,
+          AppIcon(playQueueImage, size: size),
+        ),
         onPressed: () {
           if (playQueue.isEmpty) {
             return;

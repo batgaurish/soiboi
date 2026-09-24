@@ -5,6 +5,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/utils/common_utils.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
 import 'package:soiboi/base/widgets/full_width_track_shape.dart';
 
 class SeekBar extends StatefulWidget {
@@ -54,145 +55,168 @@ class SeekBarState extends State<SeekBar> {
             if (playQueue.isEmpty) {
               sliderValue = 0;
             }
-            return SizedBox(
-              height: widget.widgetHeight,
-              child: Stack(
-                alignment: Alignment.centerLeft,
-                children: [
-                  // Duration labels
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: isMobile ? 0 : 2,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          formatDuration(
-                            Duration(milliseconds: sliderValue.toInt()),
-                          ),
-                          style: TextStyle(
-                            color: widget.color,
-                            fontSize: isMobile
-                                ? null
-                                : widget.isMiniMode
-                                ? 10.5
-                                : 12.5,
-                          ),
-                        ),
-                        Text(
-                          formatDuration(duration),
-                          style: TextStyle(
-                            color: widget.color,
-                            fontSize: isMobile
-                                ? null
-                                : widget.isMiniMode
-                                ? 10.5
-                                : 12.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Slider visuals
-                  SizedBox(
-                    height: widget.seekBarHeight,
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        thumbColor: widget.color ?? seekBarColor.value,
-                        trackHeight: isDragging ? 4 : 2,
-                        trackShape: const FullWidthTrackShape(),
-                        thumbShape: RoundSliderThumbShape(
-                          enabledThumbRadius: 0,
-                        ),
-                        overlayShape: SliderComponentShape.noOverlay,
-                        activeTrackColor: widget.color ?? seekBarColor.value,
-                        inactiveTrackColor: Colors.black12,
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: horizontalPadding,
-                        ),
-                        child: ExcludeFocus(
-                          child: Slider(
-                            min: 0.0,
-                            max: durationMs,
-                            value: sliderValue.clamp(0.0, durationMs),
-                            onChanged: (value) {},
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Full-track GestureDetector to capture touches anywhere on the track
-                  Positioned.fill(
-                    top: (widget.widgetHeight - widget.seekBarHeight) / 2,
-                    bottom: (widget.widgetHeight - widget.seekBarHeight) / 2,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onVerticalDragStart: (_) {
-                        setState(() => isDragging = false);
-                      },
-                      onTapDown: (_) {
-                        if (currentSongNotifier.value == null) {
-                          return;
-                        }
-                        setState(() => isDragging = true);
-                      },
-                      onHorizontalDragUpdate: (details) {
-                        if (currentSongNotifier.value == null) {
-                          return;
-                        }
-                        seekByTouch(
-                          details.localPosition.dx,
-                          context,
-                          durationMs,
-                        );
-                        setState(() {
-                          isDragging = true;
-                        });
-                      },
-                      onHorizontalDragEnd: (_) async {
-                        if (currentSongNotifier.value == null) {
-                          return;
-                        }
-                        if (dragValue != null) {
-                          await audioHandler.seek(
-                            Duration(milliseconds: dragValue!.toInt()),
-                          );
-                        }
-                        setState(() {
-                          dragValue = null;
-                          isDragging = false;
-                        });
-                      },
-                      onTapUp: (details) async {
-                        if (currentSongNotifier.value == null) {
-                          return;
-                        }
-                        seekByTouch(
-                          details.localPosition.dx,
-                          context,
-                          durationMs,
-                        );
-                        await audioHandler.seek(
-                          Duration(milliseconds: dragValue!.toInt()),
-                        );
-                        setState(() {
-                          dragValue = null;
-                          isDragging = false;
-                        });
-                      },
-                    ),
-                  ),
-                ],
+            // One adjustable control for screen readers, "Position, 1:23 of
+            // 3:21", instead of a slider nobody can operate (the touch
+            // handling below is a gesture detector) and two loose times.
+            final shown = Duration(
+              milliseconds: sliderValue.clamp(0.0, durationMs).toInt(),
+            );
+            const step = Duration(seconds: 5);
+            Duration clampToTrack(Duration value) => value < Duration.zero
+                ? Duration.zero
+                : value > duration
+                ? duration
+                : value;
+            String of(Duration value) =>
+                '${durationLabel(value)} of ${durationLabel(duration)}';
+            final canSeek = playQueue.isNotEmpty && duration > Duration.zero;
+            // Whole five-second steps in the name, the seek step: Orca
+            // re-reads a focused item whenever its name changes.
+            final coarse = Duration(seconds: shown.inSeconds ~/ 5 * 5);
+            return Semantics(
+              slider: true,
+              label: nameWithValue('Position', of(coarse)),
+              value: of(shown),
+              increasedValue: canSeek ? of(clampToTrack(shown + step)) : null,
+              decreasedValue: canSeek ? of(clampToTrack(shown - step)) : null,
+              onIncrease: canSeek
+                  ? () => audioHandler.seek(clampToTrack(shown + step))
+                  : null,
+              onDecrease: canSeek
+                  ? () => audioHandler.seek(clampToTrack(shown - step))
+                  : null,
+              child: ExcludeSemantics(
+                child: _bar(sliderValue, duration, durationMs),
               ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _bar(double sliderValue, Duration duration, double durationMs) {
+    return SizedBox(
+      height: widget.widgetHeight,
+      child: Stack(
+        alignment: Alignment.centerLeft,
+        children: [
+          // Duration labels
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: isMobile ? 0 : 2,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formatDuration(Duration(milliseconds: sliderValue.toInt())),
+                  style: TextStyle(
+                    color: widget.color,
+                    fontSize: isMobile
+                        ? null
+                        : widget.isMiniMode
+                        ? 10.5
+                        : 12.5,
+                  ),
+                ),
+                Text(
+                  formatDuration(duration),
+                  style: TextStyle(
+                    color: widget.color,
+                    fontSize: isMobile
+                        ? null
+                        : widget.isMiniMode
+                        ? 10.5
+                        : 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Slider visuals
+          SizedBox(
+            height: widget.seekBarHeight,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                thumbColor: widget.color ?? seekBarColor.value,
+                trackHeight: isDragging ? 4 : 2,
+                trackShape: const FullWidthTrackShape(),
+                thumbShape: RoundSliderThumbShape(enabledThumbRadius: 0),
+                overlayShape: SliderComponentShape.noOverlay,
+                activeTrackColor: widget.color ?? seekBarColor.value,
+                inactiveTrackColor: Colors.black12,
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: ExcludeFocus(
+                  child: Slider(
+                    min: 0.0,
+                    max: durationMs,
+                    value: sliderValue.clamp(0.0, durationMs),
+                    onChanged: (value) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Full-track GestureDetector to capture touches anywhere on the track
+          Positioned.fill(
+            top: (widget.widgetHeight - widget.seekBarHeight) / 2,
+            bottom: (widget.widgetHeight - widget.seekBarHeight) / 2,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onVerticalDragStart: (_) {
+                setState(() => isDragging = false);
+              },
+              onTapDown: (_) {
+                if (currentSongNotifier.value == null) {
+                  return;
+                }
+                setState(() => isDragging = true);
+              },
+              onHorizontalDragUpdate: (details) {
+                if (currentSongNotifier.value == null) {
+                  return;
+                }
+                seekByTouch(details.localPosition.dx, context, durationMs);
+                setState(() {
+                  isDragging = true;
+                });
+              },
+              onHorizontalDragEnd: (_) async {
+                if (currentSongNotifier.value == null) {
+                  return;
+                }
+                if (dragValue != null) {
+                  await audioHandler.seek(
+                    Duration(milliseconds: dragValue!.toInt()),
+                  );
+                }
+                setState(() {
+                  dragValue = null;
+                  isDragging = false;
+                });
+              },
+              onTapUp: (details) async {
+                if (currentSongNotifier.value == null) {
+                  return;
+                }
+                seekByTouch(details.localPosition.dx, context, durationMs);
+                await audioHandler.seek(
+                  Duration(milliseconds: dragValue!.toInt()),
+                );
+                setState(() {
+                  dragValue = null;
+                  isDragging = false;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

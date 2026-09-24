@@ -4,6 +4,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:path/path.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class WebdavDirPicker extends StatefulWidget {
   const WebdavDirPicker({super.key});
@@ -57,13 +58,14 @@ class _WebdavDirPickerState extends State<WebdavDirPicker> {
           Row(
             children: [
               IconButton(
+                tooltip: 'Back',
                 onPressed: () {
                   if (currentPath == root) {
                     return;
                   }
                   loadDirectories(dirname(currentPath));
                 },
-                icon: Icon(Icons.arrow_back_ios_rounded),
+                icon: labelIcon('Back', Icon(Icons.arrow_back_ios_rounded)),
               ),
               Transform.translate(
                 offset: Offset(0, isMobile ? 0 : -1.5),

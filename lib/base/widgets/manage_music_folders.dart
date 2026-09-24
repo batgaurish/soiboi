@@ -22,6 +22,7 @@ import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 final ValueNotifier<bool> recursiveScanNotifier = ValueNotifier(false);
 
@@ -106,11 +107,15 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
                 contentPadding: .fromLTRB(20, 0, 0, 0),
                 title: Text(currentFolderIdList[index]),
                 trailing: IconButton(
+                  tooltip: 'Remove ${currentFolderIdList[index]}',
                   onPressed: () {
                     currentFolderIdList.removeAt(index);
                     updateNotifier.value++;
                   },
-                  icon: AppIcon(deleteImage),
+                  icon: labelIcon(
+                    'Remove ${currentFolderIdList[index]}',
+                    AppIcon(deleteImage),
+                  ),
                   iconSize: 20,
                 ),
               ),
@@ -289,7 +294,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
             dense: !firstLaunch,
             trailing: SizedBox(
               width: 70,
-              child: MySwitch(valueNotifier: tmpRecursiveScanNotifier),
+              child: MySwitch(semanticLabel: l10n.recursiveScan, valueNotifier: tmpRecursiveScanNotifier),
             ),
           ),
         ),
@@ -343,11 +348,15 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
           contentPadding: .fromLTRB(15, 0, 0, 0),
           title: Text(currentFolderIdList[index]),
           trailing: IconButton(
+            tooltip: 'Remove ${currentFolderIdList[index]}',
             onPressed: () {
               currentFolderIdList.removeAt(index);
               updateNotifier.value++;
             },
-            icon: AppIcon(deleteImage),
+            icon: labelIcon(
+              'Remove ${currentFolderIdList[index]}',
+              AppIcon(deleteImage),
+            ),
             iconSize: 20,
           ),
         );
@@ -363,11 +372,15 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
           contentPadding: .fromLTRB(20, 0, 0, 0),
           title: Text(currentFolderIdList[index]),
           trailing: IconButton(
+            tooltip: 'Remove ${currentFolderIdList[index]}',
             onPressed: () {
               currentFolderIdList.removeAt(index);
               updateNotifier.value++;
             },
-            icon: AppIcon(deleteImage),
+            icon: labelIcon(
+              'Remove ${currentFolderIdList[index]}',
+              AppIcon(deleteImage),
+            ),
             iconSize: 20,
           ),
         );

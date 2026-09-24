@@ -20,6 +20,8 @@ import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/preview_player.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
 
 /// Opens an album, resolving it from artist and title.
 Future<void> showCatalogAlbumSheet(
@@ -313,12 +315,18 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
               children: [
                 Expanded(
                   child: _sending
-                      ? _ArchiveProgress(done: _archivedInBatch, total: _batchSize)
+                      ? _ArchiveProgress(
+                          done: _archivedInBatch,
+                          total: _batchSize,
+                        )
                       : Text(
                           selecting
                               ? '${chosen.length} selected'
                               : 'Long press to pick tracks',
-                          style: TextStyle(fontSize: 12, color: textColor.value),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textColor.value,
+                          ),
                         ),
                 ),
                 // Plays what is already here: an album half owned is still
@@ -327,7 +335,10 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                   IconButton(
                     tooltip: 'Play the ${owned.length} tracks you have',
                     onPressed: () => audioHandler.setPlayQueue(owned, 0),
-                    icon: const Icon(Icons.play_circle_fill_rounded),
+                    icon: labelIcon(
+                      'Play the ${owned.length} tracks you have',
+                      const Icon(Icons.play_circle_fill_rounded),
+                    ),
                   ),
                   const SizedBox(width: 4),
                 ],
@@ -444,11 +455,14 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                         tooltip: active ? 'Stop' : 'Preview',
                         onPressed: () =>
                             togglePreview(track.url, track.previewUrl),
-                        icon: Icon(
-                          active
-                              ? Icons.stop_circle_outlined
-                              : Icons.play_circle_outline,
-                          color: active ? seekBarColor.value : null,
+                        icon: labelIcon(
+                          active ? 'Stop' : 'Preview',
+                          Icon(
+                            active
+                                ? Icons.stop_circle_outlined
+                                : Icons.play_circle_outline,
+                            color: active ? seekBarColor.value : null,
+                          ),
                         ),
                       );
                     },
@@ -458,9 +472,12 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                   visualDensity: VisualDensity.compact,
                   tooltip: 'Archive this track',
                   onPressed: _sending || done ? null : () => _archive([track]),
-                  icon: Icon(
-                    done ? Icons.check_rounded : Icons.download_outlined,
-                    color: done ? seekBarColor.value : null,
+                  icon: labelIcon(
+                    'Archive this track',
+                    Icon(
+                      done ? Icons.check_rounded : Icons.download_outlined,
+                      color: done ? seekBarColor.value : null,
+                    ),
                   ),
                 ),
               ],
@@ -624,7 +641,14 @@ class _ArchiveProgress extends StatelessWidget {
             const SizedBox(height: 6),
             LinearProgressIndicator(
               // Whole tracks plus the fraction of the current one.
-              value: total == 0 ? null : (done + (job?.progress ?? 0) / 100) / total,
+              value: total == 0
+                  ? null
+                  : (done + (job?.progress ?? 0) / 100) / total,
+              semanticsLabel: nameWithValue(
+                'Archive progress',
+                '$done of $total',
+              ),
+              semanticsValue: '$done of $total',
             ),
           ],
         );

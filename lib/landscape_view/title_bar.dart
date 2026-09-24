@@ -15,6 +15,7 @@ import 'package:soiboi/mini_view/mini_view.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class TitleBar extends StatefulWidget {
   final bool isMainPage;
@@ -118,10 +119,14 @@ class _TitleBarState extends State<TitleBar> {
             child: Opacity(
               opacity: widget.backToRoot != null ? 1 : 0,
               child: IconButton(
+                tooltip: 'Back',
                 onPressed: () {
                   widget.backToRoot?.call();
                 },
-                icon: Icon(Icons.arrow_back_ios_rounded, size: 20),
+                icon: labelIcon(
+                  'Back',
+                  Icon(Icons.arrow_back_ios_rounded, size: 20),
+                ),
               ),
             ),
           ),
@@ -138,11 +143,15 @@ class _TitleBarState extends State<TitleBar> {
                       builder: (context, value, child) {
                         return IconButton(
                           color: value,
+                          tooltip: 'Close lyrics',
                           onPressed: () {
                             displayLyricsPage = false;
                             Navigator.pop(context);
                           },
-                          icon: AppIcon(arrowDownImage),
+                          icon: labelIcon(
+                            'Close lyrics',
+                            AppIcon(arrowDownImage),
+                          ),
                         );
                       },
                     );
@@ -158,6 +167,9 @@ class _TitleBarState extends State<TitleBar> {
             builder: (context, value, child) {
               return IconButton(
                 color: value,
+                tooltip: isFullScreenNotifier.value
+                    ? 'Exit full screen'
+                    : 'Full screen',
                 onPressed: () async {
                   if (isFullScreenNotifier.value) {
                     await windowManager.setFullScreen(false);
@@ -167,13 +179,18 @@ class _TitleBarState extends State<TitleBar> {
                     isFullScreenNotifier.value = true;
                   }
                 },
-                icon: ValueListenableBuilder(
-                  valueListenable: isFullScreenNotifier,
-                  builder: (context, isFullScreen, child) {
-                    return AppIcon(
-                      isFullScreen ? fullscreenExitImage : fullscreenImage,
-                    );
-                  },
+                icon: labelIcon(
+                  isFullScreenNotifier.value
+                      ? 'Exit full screen'
+                      : 'Full screen',
+                  ValueListenableBuilder(
+                    valueListenable: isFullScreenNotifier,
+                    builder: (context, isFullScreen, child) {
+                      return AppIcon(
+                        isFullScreen ? fullscreenExitImage : fullscreenImage,
+                      );
+                    },
+                  ),
                 ),
               );
             },
@@ -183,26 +200,33 @@ class _TitleBarState extends State<TitleBar> {
 
         if (widget.scrollToTop != null)
           IconButton(
+            tooltip: 'Scroll to top',
             onPressed: widget.scrollToTop,
-            icon: AppIcon(topArrowImage),
+            icon: labelIcon('Scroll to top', AppIcon(topArrowImage)),
           ),
 
         if (widget.findLocation != null)
           IconButton(
+            tooltip: 'Show the playing song',
             onPressed: widget.findLocation,
-            icon: AppIcon(locationImage),
+            icon: labelIcon('Show the playing song', AppIcon(locationImage)),
           ),
 
         if (widget.isMainPage)
           IconButton(
+            tooltip: AppLocalizations.of(context).settings,
             onPressed: () {
               layersManager.switchRootLayer('settings');
             },
-            icon: AppIcon(settingImage),
+            icon: labelIcon(
+              AppLocalizations.of(context).settings,
+              AppIcon(settingImage),
+            ),
           ),
 
         if (widget.isMainPage)
           IconButton(
+            tooltip: AppLocalizations.of(context).bigPictureMode,
             onPressed: () async {
               if (!isPremiumNotifier.value) {
                 showPremiumDialog(context);
@@ -225,7 +249,10 @@ class _TitleBarState extends State<TitleBar> {
                 layersManager.clearAll();
               });
             },
-            icon: AppIcon(bigPictureModeImage),
+            icon: labelIcon(
+              AppLocalizations.of(context).bigPictureMode,
+              AppIcon(bigPictureModeImage),
+            ),
           ),
 
         if (!isMobile) windowControls(),
@@ -274,13 +301,17 @@ class _TitleBarState extends State<TitleBar> {
                     builder: (context, value, child) {
                       return value
                           ? IconButton(
+                              tooltip: AppLocalizations.of(context).clear,
                               onPressed: () {
                                 widget.textController!.clear();
                               },
-                              icon: Icon(
-                                Icons.close,
-                                size: 20,
-                                color: iconColor.value,
+                              icon: labelIcon(
+                                AppLocalizations.of(context).clear,
+                                Icon(
+                                  Icons.close,
+                                  size: 20,
+                                  color: iconColor.value,
+                                ),
                               ),
                             )
                           : SizedBox.shrink();
@@ -315,6 +346,7 @@ class _TitleBarState extends State<TitleBar> {
                 if (widget.isMainPage && !isMaximizedNotifier.value)
                   IconButton(
                     color: iconColor.value,
+                    tooltip: 'Mini player',
                     onPressed: () async {
                       await windowManager.hide();
                       miniModeSwitching = true;
@@ -357,16 +389,17 @@ class _TitleBarState extends State<TitleBar> {
                       layersManager.popDetail('playlists');
                       while (await layersManager.popDetail('settings')) {}
                     },
-                    icon: AppIcon(miniModeImage),
+                    icon: labelIcon('Mini player', AppIcon(miniModeImage)),
                   ),
                 IconButton(
                   color: widget.isMainPage
                       ? iconColor.value
                       : lyricsPageForegroundColor.value,
+                  tooltip: 'Minimize',
                   onPressed: () {
                     windowManager.minimize();
                   },
-                  icon: AppIcon(minimizeImage),
+                  icon: labelIcon('Minimize', AppIcon(minimizeImage)),
                 ),
                 ValueListenableBuilder(
                   valueListenable: isMaximizedNotifier,
@@ -375,12 +408,16 @@ class _TitleBarState extends State<TitleBar> {
                       color: widget.isMainPage
                           ? iconColor.value
                           : lyricsPageForegroundColor.value,
+                      tooltip: value ? 'Restore' : 'Maximize',
                       onPressed: () async {
                         isMaximizedNotifier.value
                             ? windowManager.unmaximize()
                             : windowManager.maximize();
                       },
-                      icon: AppIcon(value ? unmaximizeImage : maximizeImage),
+                      icon: labelIcon(
+                        value ? 'Restore' : 'Maximize',
+                        AppIcon(value ? unmaximizeImage : maximizeImage),
+                      ),
                     );
                   },
                 ),
@@ -388,10 +425,14 @@ class _TitleBarState extends State<TitleBar> {
                   color: widget.isMainPage
                       ? iconColor.value
                       : lyricsPageForegroundColor.value,
+                  tooltip: AppLocalizations.of(context).close,
                   onPressed: () {
                     windowManager.close();
                   },
-                  icon: AppIcon(closeImage),
+                  icon: labelIcon(
+                    AppLocalizations.of(context).close,
+                    AppIcon(closeImage),
+                  ),
                 ),
               ],
             );

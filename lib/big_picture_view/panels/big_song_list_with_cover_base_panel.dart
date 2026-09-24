@@ -25,6 +25,7 @@ import 'package:soiboi/base/widgets/my_divider.dart';
 import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 abstract class BigSongListWithCoverBasePanel extends StatefulWidget {
   final Color baseColor;
@@ -146,16 +147,25 @@ abstract class BigSongListWithCoverBasePanelState<
                     ),
 
                     IconButton(
+                      tooltip: AppLocalizations.of(context).shuffle,
                       onPressed: () => audioHandler.setPlayQueue(songList, 1),
 
-                      icon: AppIcon(shuffleImage),
+                      icon: labelIcon(
+                        AppLocalizations.of(context).shuffle,
+                        AppIcon(shuffleImage),
+                      ),
                     ),
                     IconButton(
+                      tooltip: AppLocalizations.of(context).playAll,
                       onPressed: () => audioHandler.setPlayQueue(songList, 0),
-                      icon: Icon(Icons.play_arrow_rounded),
+                      icon: labelIcon(
+                        AppLocalizations.of(context).playAll,
+                        Icon(Icons.play_arrow_rounded),
+                      ),
                       iconSize: 30,
                     ),
                     IconButton(
+                      tooltip: AppLocalizations.of(context).select,
                       onPressed: () {
                         for (var e in isSelectedNotifierMap.values) {
                           e.value = false;
@@ -177,9 +187,12 @@ abstract class BigSongListWithCoverBasePanelState<
                           ),
                         );
                       },
-                      icon: Transform.scale(
-                        scale: 0.95,
-                        child: AppIcon(selectImage),
+                      icon: labelIcon(
+                        AppLocalizations.of(context).select,
+                        Transform.scale(
+                          scale: 0.95,
+                          child: AppIcon(selectImage),
+                        ),
                       ),
                     ),
                   ],
@@ -212,11 +225,12 @@ abstract class BigSongListWithCoverBasePanelState<
             shape: LiquidRoundedSuperellipse(borderRadius: 30),
             clipBehavior: .antiAlias,
             child: IconButton(
+              tooltip: 'Back',
               autofocus: true,
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              icon: Icon(Icons.arrow_back_ios_rounded),
+              icon: labelIcon('Back', Icon(Icons.arrow_back_ios_rounded)),
             ),
           ),
         ),

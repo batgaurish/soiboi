@@ -27,6 +27,8 @@ import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class PortraitLyricsPage extends StatefulWidget {
   const PortraitLyricsPage({super.key});
@@ -512,23 +514,32 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
             SizedBox(width: 25),
             FavoriteButton(),
             IconButton(
+              tooltip: AppLocalizations.of(context).sleepTimer,
               color: lyricsPageForegroundColor.value,
               onPressed: () {
                 displayTimedPauseSetting(context);
               },
-              icon: AppIcon(timerImage, size: 25),
+              icon: labelIcon(
+                AppLocalizations.of(context).sleepTimer,
+                AppIcon(timerImage, size: 25),
+              ),
             ),
             remainTimesText(textColor: lyricsPageForegroundColor.value),
             Spacer(),
             IconButton(
+              tooltip: 'Larger lyrics',
               color: lyricsPageForegroundColor.value,
               onPressed: () {
                 lyricsFontSizeOffsetNotifier.value += 2;
                 setting.save();
               },
-              icon: Icon(Icons.text_increase_rounded),
+              icon: labelIcon(
+                'Larger lyrics',
+                Icon(Icons.text_increase_rounded),
+              ),
             ),
             IconButton(
+              tooltip: 'Smaller lyrics',
               color: lyricsPageForegroundColor.value,
               onPressed: () {
                 if (lyricsFontSizeOffsetNotifier.value < -2) {
@@ -537,7 +548,10 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 lyricsFontSizeOffsetNotifier.value -= 2;
                 setting.save();
               },
-              icon: Icon(Icons.text_decrease_rounded),
+              icon: labelIcon(
+                'Smaller lyrics',
+                Icon(Icons.text_decrease_rounded),
+              ),
             ),
 
             moreButton(currentSong),
@@ -565,6 +579,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
   Widget moreButton(MyAudioMetadata? currentSong) {
     final l10n = AppLocalizations.of(context);
     return IconButton(
+      tooltip: AppLocalizations.of(context).more,
       onPressed: () {
         tryVibrate();
         showModalBottomSheet(
@@ -690,7 +705,10 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
           },
         );
       },
-      icon: Icon(Icons.more_vert, color: lyricsPageForegroundColor.value),
+      icon: labelIcon(
+        AppLocalizations.of(context).more,
+        Icon(Icons.more_vert, color: lyricsPageForegroundColor.value),
+      ),
     );
   }
 
@@ -719,6 +737,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                       Spacer(),
 
                       IconButton(
+                        tooltip: 'Smaller lyrics',
                         color: value,
                         onPressed: () {
                           if (lyricsFontSizeOffsetNotifier.value < -2) {
@@ -727,7 +746,10 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                           lyricsFontSizeOffsetNotifier.value -= 2;
                           setting.save();
                         },
-                        icon: AppIcon(minimizeImage),
+                        icon: labelIcon(
+                          'Smaller lyrics',
+                          AppIcon(minimizeImage),
+                        ),
                       ),
                       ValueListenableBuilder(
                         valueListenable: lyricsFontSizeOffsetNotifier,
@@ -743,12 +765,13 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         },
                       ),
                       IconButton(
+                        tooltip: 'Larger lyrics',
                         color: value,
                         onPressed: () {
                           lyricsFontSizeOffsetNotifier.value += 2;
                           setting.save();
                         },
-                        icon: Icon(Icons.add),
+                        icon: labelIcon('Larger lyrics', Icon(Icons.add)),
                       ),
                       SizedBox(width: 20),
                     ],
@@ -764,11 +787,15 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                       Spacer(),
 
                       IconButton(
+                        tooltip: 'Offset minus 0.1 seconds',
                         color: value,
                         onPressed: () {
                           lyricsTimeOffsetNotifier.value -= 100;
                         },
-                        icon: AppIcon(minimizeImage),
+                        icon: labelIcon(
+                          'Offset minus 0.1 seconds',
+                          AppIcon(minimizeImage),
+                        ),
                       ),
                       ValueListenableBuilder(
                         valueListenable: lyricsTimeOffsetNotifier,
@@ -784,11 +811,15 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         },
                       ),
                       IconButton(
+                        tooltip: 'Offset plus 0.1 seconds',
                         color: value,
                         onPressed: () {
                           lyricsTimeOffsetNotifier.value += 100;
                         },
-                        icon: Icon(Icons.add),
+                        icon: labelIcon(
+                          'Offset plus 0.1 seconds',
+                          Icon(Icons.add),
+                        ),
                       ),
 
                       SizedBox(width: 20),
@@ -846,15 +877,25 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                                   enabledThumbRadius: 4,
                                 ),
                               ),
-                              child: Slider(
-                                value: index.toDouble(),
-                                min: 0,
-                                max: (fontWeights.length - 1).toDouble(),
-                                divisions: fontWeights.length - 1,
-                                onChanged: (value) {
-                                  lyricsFontWeightNotifier.value =
-                                      fontWeights[value.round()];
-                                },
+                              child: MergeSemantics(
+                                child: Semantics(
+                                  label: nameWithValue(
+                                    AppLocalizations.of(context).fontWeight,
+                                    '${index + 1} of ${fontWeights.length}',
+                                  ),
+                                  child: Slider(
+                                    value: index.toDouble(),
+                                    min: 0,
+                                    max: (fontWeights.length - 1).toDouble(),
+                                    divisions: fontWeights.length - 1,
+                                    semanticFormatterCallback: (value) =>
+                                        '${value.round() + 1} of ${fontWeights.length}',
+                                    onChanged: (value) {
+                                      lyricsFontWeightNotifier.value =
+                                          fontWeights[value.round()];
+                                    },
+                                  ),
+                                ),
                               ),
                             );
                           },
@@ -989,18 +1030,26 @@ class FavoriteButton extends StatelessWidget {
           valueListenable: currentSong.isFavoriteNotifier,
           builder: (_, value, _) {
             return IconButton(
+              tooltip: currentSong.isFavoriteNotifier.value
+                  ? 'Remove from favorites'
+                  : 'Add to favorites',
               color: lyricsPageForegroundColor.value,
 
               onPressed: () {
                 tryVibrate();
                 toggleFavoriteState(currentSong);
               },
-              icon: Transform.scale(
-                scale: 1.1,
-                child: Icon(
-                  value ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: value ? Colors.red : null,
-                  size: 25,
+              icon: labelIcon(
+                currentSong.isFavoriteNotifier.value
+                    ? 'Remove from favorites'
+                    : 'Add to favorites',
+                Transform.scale(
+                  scale: 1.1,
+                  child: Icon(
+                    value ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: value ? Colors.red : null,
+                    size: 25,
+                  ),
                 ),
               ),
             );

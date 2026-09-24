@@ -14,6 +14,12 @@ class CoverArtWidget extends StatelessWidget {
   final String? picturePath;
   final double elevation;
   final Color? color;
+
+  /// What a screen reader says for this cover. Null, the usual case, leaves
+  /// the cover out: it sits beside the title and artist that already say
+  /// what it shows.
+  final String? semanticLabel;
+
   const CoverArtWidget({
     super.key,
     this.size,
@@ -22,11 +28,12 @@ class CoverArtWidget extends StatelessWidget {
     this.picturePath,
     this.elevation = 0,
     this.color,
+    this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final cover = Material(
       key: ValueKey(picture?.changeNotifier.value),
       elevation: elevation,
       color: color ?? Colors.transparent,
@@ -36,6 +43,13 @@ class CoverArtWidget extends StatelessWidget {
       ),
       clipBehavior: .antiAlias,
       child: content(context),
+    );
+    final label = semanticLabel;
+    if (label == null) return ExcludeSemantics(child: cover);
+    return Semantics(
+      image: true,
+      label: label,
+      child: ExcludeSemantics(child: cover),
     );
   }
 

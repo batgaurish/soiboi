@@ -34,6 +34,8 @@ import 'package:soiboi/base/widgets/my_sheet.dart';
 import 'package:soiboi/base/widgets/playlist_widgets.dart';
 import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/base/widgets/song_info.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/widgets/song_semantics.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/layer/albums_layer.dart';
@@ -162,7 +164,8 @@ class _SongListState extends State<SongList> {
   }
 
   MyPicture? get mainPicture {
-    MyPicture? picture = playlist?.customCover ?? getFirstSong(songList)?.picture;
+    MyPicture? picture =
+        playlist?.customCover ?? getFirstSong(songList)?.picture;
     if (isStreamSource) {
       if (artist != null) {
         picture = artist!.picture;

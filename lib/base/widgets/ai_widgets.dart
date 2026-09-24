@@ -15,6 +15,7 @@ import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/layer/catalog_sheet.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class AskAiPanel extends StatefulWidget {
   const AskAiPanel({super.key, this.compact = false});
@@ -274,7 +275,8 @@ class _AiSetupState extends State<AiSetupPanel> {
     var config = _config;
     final models = await aiListModels(config);
     if (_model.text.trim().isEmpty) {
-      final pick = config.info.defaultModel != null &&
+      final pick =
+          config.info.defaultModel != null &&
               (models.isEmpty || models.contains(config.info.defaultModel))
           ? config.info.defaultModel
           : pickDefaultModel(_provider, models);
@@ -426,7 +428,10 @@ class _AiSetupState extends State<AiSetupPanel> {
     );
   }
 
-  Widget _group(String title, Iterable<MapEntry<AiProvider, AiProviderInfo>> e) {
+  Widget _group(
+    String title,
+    Iterable<MapEntry<AiProvider, AiProviderInfo>> e,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -505,9 +510,7 @@ Future<void> showAskAiSheet(BuildContext context) {
     useSafeArea: true,
     backgroundColor: pageBackgroundColor.value,
     builder: (context) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(context).height * 0.85,
@@ -544,7 +547,7 @@ class AskAiFab extends StatelessWidget {
       heroTag: 'askAi',
       tooltip: 'Ask AI',
       onPressed: () => showAskAiSheet(context),
-      child: const Icon(Icons.auto_awesome_rounded),
+      child: labelIcon('Ask AI', const Icon(Icons.auto_awesome_rounded)),
     );
   }
 }

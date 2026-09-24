@@ -20,6 +20,7 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class LandscapeLyricsPage extends StatefulWidget {
   const LandscapeLyricsPage({super.key});
@@ -213,14 +214,19 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                   builder: (context, value, child) {
                     List<Widget> children = [
                       IconButton(
+                        tooltip: 'Larger lyrics',
                         color: lyricsPageForegroundColor.value,
                         onPressed: () {
                           lyricsFontSizeOffsetNotifier.value += 2;
                           setting.save();
                         },
-                        icon: Icon(Icons.text_increase_rounded, size: 20),
+                        icon: labelIcon(
+                          'Larger lyrics',
+                          Icon(Icons.text_increase_rounded, size: 20),
+                        ),
                       ),
                       IconButton(
+                        tooltip: 'Smaller lyrics',
                         color: lyricsPageForegroundColor.value,
                         onPressed: () {
                           if (lyricsFontSizeOffsetNotifier.value < -2) {
@@ -229,7 +235,10 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                           lyricsFontSizeOffsetNotifier.value -= 2;
                           setting.save();
                         },
-                        icon: Icon(Icons.text_decrease_rounded, size: 18),
+                        icon: labelIcon(
+                          'Smaller lyrics',
+                          Icon(Icons.text_decrease_rounded, size: 18),
+                        ),
                       ),
                     ];
                     return Offstage(
@@ -372,10 +381,14 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                     SizedBox(
                       width: 40,
                       child: IconButton(
+                        tooltip: 'Desktop lyrics',
                         onPressed: () async {
                           showCenterMessage('Desktop lyrics has been removed');
                         },
-                        icon: const AppIcon(desktopLyricsImage, size: 25),
+                        icon: labelIcon(
+                          'Desktop lyrics',
+                          const AppIcon(desktopLyricsImage, size: 25),
+                        ),
 
                         color: value,
                       ),

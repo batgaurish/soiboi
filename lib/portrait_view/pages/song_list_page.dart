@@ -30,25 +30,25 @@ extension _SongListPage on _SongListState {
       playlist != null && playlist!.canModify && !playlist!.isFavorite;
 
   void _addSongs(BuildContext context) {
-      final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
-      for (final song in library.songList) {
-        selectionMap[song] = ValueNotifier(false);
-      }
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SelectableSongListPage(
-            songList: library.songList,
-            playlist: null,
-            addTo: playlist,
-            folder: null,
-            isRanking: false,
-            isRecently: false,
-            isLibrary: false,
-            reorderable: false,
-            isSelectedNotifierMap: selectionMap,
-          ),
+    final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
+    for (final song in library.songList) {
+      selectionMap[song] = ValueNotifier(false);
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SelectableSongListPage(
+          songList: library.songList,
+          playlist: null,
+          addTo: playlist,
+          folder: null,
+          isRanking: false,
+          isRecently: false,
+          isLibrary: false,
+          reorderable: false,
+          isSelectedNotifierMap: selectionMap,
         ),
-      );
+      ),
+    );
   }
 
   PreferredSizeWidget customAppBar(BuildContext context) {
@@ -77,7 +77,8 @@ extension _SongListPage on _SongListState {
 
   Widget moreButton(BuildContext context) {
     return IconButton(
-      icon: Icon(Icons.more_vert),
+      tooltip: AppLocalizations.of(context).more,
+      icon: labelIcon(AppLocalizations.of(context).more, Icon(Icons.more_vert)),
       onPressed: () {
         tryVibrate();
         showModalBottomSheet(
@@ -312,6 +313,7 @@ extension _SongListPage on _SongListState {
                 return SizedBox.shrink();
               }
               return IconButton(
+                tooltip: 'Scroll to top',
                 onPressed: () {
                   scrollController.animateTo(
                     0,
@@ -319,7 +321,7 @@ extension _SongListPage on _SongListState {
                     curve: Curves.linear,
                   );
                 },
-                icon: AppIcon(topArrowImage),
+                icon: labelIcon('Scroll to top', AppIcon(topArrowImage)),
               );
             },
           ),
@@ -427,7 +429,8 @@ extension _SongListPage on _SongListState {
     // Only playlists that can be modified get an "add songs" button.
     // Artists, albums, rankings and the library itself are read-only
     // collections, so showing a prompt to add would be misleading.
-    final canAdd = playlist != null && playlist!.canModify && !playlist!.isFavorite;
+    final canAdd =
+        playlist != null && playlist!.canModify && !playlist!.isFavorite;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -478,52 +481,60 @@ extension _SongListPage on _SongListState {
             borderRadius: 4,
             picture: song.picture,
           ),
-          title: ValueListenableBuilder(
-            valueListenable: currentSongNotifier,
-            builder: (_, currentSong, _) {
-              return ValueListenableBuilder(
-                valueListenable: highlightTextColor.valueNotifier,
-                builder: (context, value, child) {
-                  return Text(
-                    getTitle(song),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: song == currentSong ? value : null,
-                      fontWeight: song == currentSong ? FontWeight.bold : null,
-                    ),
-                  );
-                },
-              );
-            },
+          title: SongSemantics.title(
+            song: song,
+            extra: isRanking ? 'played ${song.playCount} times' : null,
+            child: ValueListenableBuilder(
+              valueListenable: currentSongNotifier,
+              builder: (_, currentSong, _) {
+                return ValueListenableBuilder(
+                  valueListenable: highlightTextColor.valueNotifier,
+                  builder: (context, value, child) {
+                    return Text(
+                      getTitle(song),
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: song == currentSong ? value : null,
+                        fontWeight: song == currentSong
+                            ? FontWeight.bold
+                            : null,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
 
-          subtitle: Row(
-            children: [
-              ValueListenableBuilder(
-                valueListenable: song.isFavoriteNotifier,
-                builder: (_, value, _) {
-                  return value
-                      ? SizedBox(
-                          width: 20,
-                          child: Icon(
-                            Icons.star_rounded,
-                            color: Colors.red,
-                            size: 15,
-                          ),
-                        )
-                      : SizedBox();
-                },
-              ),
-              Expanded(
-                child: Text(
-                  "${getArtist(song)} - ${getAlbum(song)}",
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12),
+          subtitle: ExcludeSemantics(
+            child: Row(
+              children: [
+                ValueListenableBuilder(
+                  valueListenable: song.isFavoriteNotifier,
+                  builder: (_, value, _) {
+                    return value
+                        ? SizedBox(
+                            width: 20,
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: Colors.red,
+                              size: 15,
+                            ),
+                          )
+                        : SizedBox();
+                  },
                 ),
-              ),
-              const SizedBox(width: 6),
-              QualityBadge(song),
-            ],
+                Expanded(
+                  child: Text(
+                    "${getArtist(song)} - ${getAlbum(song)}",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                QualityBadge(song),
+              ],
+            ),
           ),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
           onTap: () =>
@@ -534,8 +545,10 @@ extension _SongListPage on _SongListState {
                   child: Row(
                     children: [
                       Spacer(),
-                      AppIcon(playOutlinedImage, size: 15),
-                      Text(song.playCount.toString()),
+                      ExcludeSemantics(
+                        child: AppIcon(playOutlinedImage, size: 15),
+                      ),
+                      ExcludeSemantics(child: Text(song.playCount.toString())),
                       songOptionsButton(index, song),
                     ],
                   ),
@@ -563,7 +576,11 @@ extension _SongListPage on _SongListState {
     final l10n = AppLocalizations.of(context);
 
     return IconButton(
-      icon: Icon(Icons.more_vert, size: 15),
+      tooltip: 'More options for ${getTitle(song)}',
+      icon: labelIcon(
+        'More options for ${getTitle(song)}',
+        Icon(Icons.more_vert, size: 15),
+      ),
       onPressed: () {
         tryVibrate();
         showModalBottomSheet(

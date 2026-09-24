@@ -31,6 +31,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class BigPictureView extends StatefulWidget {
   const BigPictureView({super.key});
@@ -172,6 +173,7 @@ class _BigPictureViewState extends State<BigPictureView> {
             children: [
               if (!isFullScreenNotifier.value)
                 IconButton(
+                  tooltip: 'Leave Big Picture mode',
                   onPressed: () async {
                     if (!await showConfirmDialog(context, l10n.switchMode)) {
                       return;
@@ -180,31 +182,45 @@ class _BigPictureViewState extends State<BigPictureView> {
                     viewModeNotifier.value = .normal;
                     layersManager.switchRootLayer('songs');
                   },
-                  icon: AppIcon(bigPictureModeImage),
+                  icon: labelIcon(
+                    'Leave Big Picture mode',
+                    AppIcon(bigPictureModeImage),
+                  ),
                 ),
 
               if (!isMobile && !isFullScreenNotifier.value) ...[
                 IconButton(
+                  tooltip: 'Minimize',
                   onPressed: () {
                     windowManager.minimize();
                   },
-                  icon: AppIcon(minimizeImage),
+                  icon: labelIcon('Minimize', AppIcon(minimizeImage)),
                 ),
                 IconButton(
+                  tooltip: isMaximizedNotifier.value ? 'Restore' : 'Maximize',
                   onPressed: () async {
                     isMaximizedNotifier.value
                         ? windowManager.unmaximize()
                         : windowManager.maximize();
                   },
-                  icon: AppIcon(
-                    isMaximizedNotifier.value ? unmaximizeImage : maximizeImage,
+                  icon: labelIcon(
+                    isMaximizedNotifier.value ? 'Restore' : 'Maximize',
+                    AppIcon(
+                      isMaximizedNotifier.value
+                          ? unmaximizeImage
+                          : maximizeImage,
+                    ),
                   ),
                 ),
                 IconButton(
+                  tooltip: AppLocalizations.of(context).close,
                   onPressed: () {
                     windowManager.close();
                   },
-                  icon: AppIcon(closeImage),
+                  icon: labelIcon(
+                    AppLocalizations.of(context).close,
+                    AppIcon(closeImage),
+                  ),
                 ),
               ],
             ],
@@ -259,6 +275,9 @@ class _BigPictureViewState extends State<BigPictureView> {
                               borderRadius: 30,
                             ),
                             child: IconButton(
+                              tooltip: isFullScreenNotifier.value
+                                  ? 'Exit full screen'
+                                  : 'Full screen',
                               onPressed: () async {
                                 if (isFullScreenNotifier.value) {
                                   isFullScreenNotifier.value = false;
@@ -268,10 +287,15 @@ class _BigPictureViewState extends State<BigPictureView> {
                                   await windowManager.setFullScreen(true);
                                 }
                               },
-                              icon: AppIcon(
+                              icon: labelIcon(
                                 isFullScreenNotifier.value
-                                    ? fullscreenExitImage
-                                    : fullscreenImage,
+                                    ? 'Exit full screen'
+                                    : 'Full screen',
+                                AppIcon(
+                                  isFullScreenNotifier.value
+                                      ? fullscreenExitImage
+                                      : fullscreenImage,
+                                ),
                               ),
                             ),
                           ),
@@ -495,6 +519,7 @@ class _BigPictureViewState extends State<BigPictureView> {
                             borderRadius: 30,
                           ),
                           child: IconButton(
+                            tooltip: AppLocalizations.of(context).more,
                             onPressed: () {
                               switch (value) {
                                 case 1:
@@ -519,7 +544,10 @@ class _BigPictureViewState extends State<BigPictureView> {
                                 default:
                               }
                             },
-                            icon: AppIcon(optionImage),
+                            icon: labelIcon(
+                              AppLocalizations.of(context).more,
+                              AppIcon(optionImage),
+                            ),
                           ),
                         ),
                         SizedBox(width: isMobile ? 10 : 20),

@@ -20,6 +20,8 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 
 final miniModeDisplayOverlayNotifier = ValueNotifier(true);
 Timer? miniModeHideOverlayTimer;
@@ -307,6 +309,7 @@ class _MiniViewState extends State<MiniView> {
               ),
               Spacer(),
               IconButton(
+                tooltip: 'Leave mini player',
                 color: foregroundColor,
                 onPressed: () async {
                   await windowManager.hide();
@@ -337,24 +340,26 @@ class _MiniViewState extends State<MiniView> {
                   await windowManager.show();
                   await windowManager.setAlwaysOnTop(false);
                 },
-                icon: AppIcon(miniModeImage),
+                icon: labelIcon('Leave mini player', AppIcon(miniModeImage)),
               ),
               IconButton(
+                tooltip: 'Minimize',
                 color: foregroundColor,
 
                 onPressed: () {
                   windowManager.minimize();
                 },
-                icon: AppIcon(minimizeImage),
+                icon: labelIcon('Minimize', AppIcon(minimizeImage)),
               ),
 
               IconButton(
+                tooltip: 'Close',
                 color: foregroundColor,
 
                 onPressed: () {
                   windowManager.close();
                 },
-                icon: AppIcon(closeImage),
+                icon: labelIcon('Close', AppIcon(closeImage)),
               ),
             ],
           );
@@ -465,6 +470,7 @@ class _MiniViewState extends State<MiniView> {
               Spacer(),
 
               IconButton(
+                tooltip: AppLocalizations.of(context).lyrics,
                 onPressed: () async {
                   final size = await windowManager.getSize();
                   if (miniViewDisplayBottom) {
@@ -493,7 +499,10 @@ class _MiniViewState extends State<MiniView> {
                   }
                   myWindowListener.saveConfig();
                 },
-                icon: AppIcon(lyricsImage),
+                icon: labelIcon(
+                  AppLocalizations.of(context).lyrics,
+                  AppIcon(lyricsImage),
+                ),
                 color: foregroundColor,
               ),
               Spacer(),
@@ -511,6 +520,7 @@ class _MiniViewState extends State<MiniView> {
               Spacer(),
 
               IconButton(
+                tooltip: AppLocalizations.of(context).playQueue,
                 onPressed: () async {
                   final size = await windowManager.getSize();
                   if (miniViewDisplayBottom) {
@@ -540,16 +550,23 @@ class _MiniViewState extends State<MiniView> {
 
                   myWindowListener.saveConfig();
                 },
-                icon: const AppIcon(playQueueImage, size: 25),
+                icon: labelIcon(
+                  AppLocalizations.of(context).playQueue,
+                  const AppIcon(playQueueImage, size: 25),
+                ),
                 color: foregroundColor,
               ),
               Spacer(),
 
               IconButton(
+                tooltip: 'Desktop lyrics',
                 onPressed: () async {
                   showCenterMessage('Desktop lyrics has been removed');
                 },
-                icon: const AppIcon(desktopLyricsImage, size: 25),
+                icon: labelIcon(
+                  'Desktop lyrics',
+                  const AppIcon(desktopLyricsImage, size: 25),
+                ),
 
                 color: foregroundColor,
               ),

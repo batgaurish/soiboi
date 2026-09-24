@@ -35,6 +35,7 @@ import 'package:soiboi/layer/download_queue_sheet.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/apple_library_service.dart';
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class DownloadsLayer extends StatefulWidget {
   const DownloadsLayer({super.key});
@@ -151,7 +152,12 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     // Wide layouts get window controls, the drag region and Settings from
     // each page's own TitleBar; without one this page had none (see Home).
     if (!isTooNarrow(context)) {
-      return Column(children: [const TitleBar(), Expanded(child: body)]);
+      return Column(
+        children: [
+          const TitleBar(),
+          Expanded(child: body),
+        ],
+      );
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -363,12 +369,17 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                         builder: (context, paused, _) => IconButton(
                           iconSize: 18,
                           visualDensity: VisualDensity.compact,
-                          tooltip: paused ? 'Resume downloads' : 'Pause downloads',
+                          tooltip: paused
+                              ? 'Resume downloads'
+                              : 'Pause downloads',
                           onPressed: () => downloadQueue.setPaused(!paused),
-                          icon: Icon(
-                            paused
-                                ? Icons.play_arrow_rounded
-                                : Icons.pause_rounded,
+                          icon: labelIcon(
+                            paused ? 'Resume downloads' : 'Pause downloads',
+                            Icon(
+                              paused
+                                  ? Icons.play_arrow_rounded
+                                  : Icons.pause_rounded,
+                            ),
                           ),
                         ),
                       ),
@@ -377,7 +388,10 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                         visualDensity: VisualDensity.compact,
                         tooltip: 'Stop all downloads',
                         onPressed: downloadQueue.stopAll,
-                        icon: const Icon(Icons.stop_rounded),
+                        icon: labelIcon(
+                          'Stop all downloads',
+                          const Icon(Icons.stop_rounded),
+                        ),
                       ),
                     ],
                     IconButton(
@@ -385,7 +399,10 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Open queue',
                       onPressed: () => showDownloadQueueSheet(context),
-                      icon: const Icon(Icons.open_in_full_rounded),
+                      icon: labelIcon(
+                        'Open queue',
+                        const Icon(Icons.open_in_full_rounded),
+                      ),
                     ),
                   ],
                 ),
@@ -411,7 +428,8 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                         TextSpan(
                           children: [
                             TextSpan(
-                              text: failed.last.failure?.title ??
+                              text:
+                                  failed.last.failure?.title ??
                                   'Download failed',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
@@ -421,10 +439,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                               TextSpan(text: '\n${failure.detail}'),
                           ],
                         ),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.red,
-                        ),
+                        style: const TextStyle(fontSize: 12, color: Colors.red),
                       ),
                     ),
                   ],
@@ -450,7 +465,10 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       title: 'Your Apple Music playlists',
       action: _appleLoaded && !_appleLoading
           ? IconButton(
-              icon: const Icon(Icons.refresh_rounded, size: 20),
+              icon: labelIcon(
+                'Refresh',
+                const Icon(Icons.refresh_rounded, size: 20),
+              ),
               tooltip: 'Refresh',
               onPressed: _loadApplePlaylists,
             )
@@ -519,8 +537,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               style: TextStyle(fontSize: 12, color: textColor.value),
             ),
             const SizedBox(height: 6),
-            for (final playlist in _applePlaylists)
-              _applePlaylistRow(playlist),
+            for (final playlist in _applePlaylists) _applePlaylistRow(playlist),
           ],
         ],
       ),
@@ -574,12 +591,18 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.playlist_add_rounded, size: 20),
+            icon: labelIcon(
+              'Save as local playlist',
+              const Icon(Icons.playlist_add_rounded, size: 20),
+            ),
             tooltip: 'Save as local playlist',
             onPressed: () => _linkApplePlaylist(playlist),
           ),
           IconButton(
-            icon: const Icon(Icons.download_rounded, size: 20),
+            icon: labelIcon(
+              'Archive',
+              const Icon(Icons.download_rounded, size: 20),
+            ),
             tooltip: 'Archive',
             onPressed: () => _archiveApplePlaylist(playlist),
           ),
@@ -688,15 +711,16 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                       borderRadius: BorderRadius.circular(
                         8 * activeFlavour.cornerScale,
                       ),
-                      borderSide: BorderSide(
-                        color: dividerColor.value,
-                      ),
+                      borderSide: BorderSide(color: dividerColor.value),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(
                         8 * activeFlavour.cornerScale,
                       ),
-                      borderSide: BorderSide(color: seekBarColor.value, width: 1.5),
+                      borderSide: BorderSide(
+                        color: seekBarColor.value,
+                        width: 1.5,
+                      ),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(
@@ -749,7 +773,8 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   String _importSourceNames() {
     final names = [
       for (final source in playlistSources)
-        if (source.acceptsLinks && source is! TracklistSource) source.displayName,
+        if (source.acceptsLinks && source is! TracklistSource)
+          source.displayName,
     ];
     if (names.isEmpty) return 'playlist';
     if (names.length == 1) return names.single;
@@ -1088,7 +1113,10 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
         ],
         if (!selecting && !_sending)
           IconButton(
-            icon: const Icon(Icons.playlist_add_rounded, size: 20),
+            icon: labelIcon(
+              'Save as local playlist',
+              const Icon(Icons.playlist_add_rounded, size: 20),
+            ),
             tooltip: 'Save as local playlist',
             onPressed: _resolving != null ? null : _linkWholePlaylist,
           ),
@@ -1116,7 +1144,8 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     final tracks = _tracks;
     // Only resolved tracks can be fetched; the rest are shown with their
     // warning so the gap is visible rather than a silent no-op.
-    final downloadable = tracks?.where((t) => t.isResolved).toList() ?? const [];
+    final downloadable =
+        tracks?.where((t) => t.isResolved).toList() ?? const [];
 
     return SafeArea(
       child: Padding(
@@ -1235,11 +1264,14 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                                   tooltip: active ? 'Stop' : 'Preview',
                                   onPressed: () =>
                                       togglePreview(key, track.previewUrl),
-                                  icon: Icon(
-                                    active
-                                        ? Icons.stop_circle_outlined
-                                        : Icons.play_circle_outline,
-                                    color: active ? seekBarColor.value : null,
+                                  icon: labelIcon(
+                                    active ? 'Stop' : 'Preview',
+                                    Icon(
+                                      active
+                                          ? Icons.stop_circle_outlined
+                                          : Icons.play_circle_outline,
+                                      color: active ? seekBarColor.value : null,
+                                    ),
                                   ),
                                 );
                               },
@@ -1249,16 +1281,20 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                               iconSize: 18,
                               visualDensity: VisualDensity.compact,
                               tooltip: 'Archive this track',
-                              onPressed: _sending || _queued.contains(track.title)
+                              onPressed:
+                                  _sending || _queued.contains(track.title)
                                   ? null
                                   : () => _archive([track]),
-                              icon: Icon(
-                                _queued.contains(track.title)
-                                    ? Icons.check_rounded
-                                    : Icons.download_outlined,
-                                color: _queued.contains(track.title)
-                                    ? seekBarColor.value
-                                    : null,
+                              icon: labelIcon(
+                                'Archive this track',
+                                Icon(
+                                  _queued.contains(track.title)
+                                      ? Icons.check_rounded
+                                      : Icons.download_outlined,
+                                  color: _queued.contains(track.title)
+                                      ? seekBarColor.value
+                                      : null,
+                                ),
                               ),
                             ),
                         ],

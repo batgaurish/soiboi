@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/widgets/full_width_track_shape.dart';
 
@@ -42,18 +43,26 @@ class VolumeBar extends StatelessWidget {
         child: ValueListenableBuilder(
           valueListenable: volumeNotifier,
           builder: (context, value, child) {
+            // Merged so the name lands on the slider's own item rather
+            // than on whatever encloses it.
             return ExcludeFocus(
-              child: Slider(
-                value: value,
-                min: 0,
-                max: 1,
-                onChanged: (value) {
-                  volumeNotifier.value = value;
-                  audioHandler.setVolume(value);
-                },
-                onChangeEnd: (value) {
-                  audioHandler.savePlayState();
-                },
+              child: MergeSemantics(
+                child: Semantics(
+                  label: nameWithValue('Volume', percentLabel(value)),
+                  child: Slider(
+                    value: value,
+                    min: 0,
+                    max: 1,
+                    semanticFormatterCallback: percentLabel,
+                    onChanged: (value) {
+                      volumeNotifier.value = value;
+                      audioHandler.setVolume(value);
+                    },
+                    onChangeEnd: (value) {
+                      audioHandler.savePlayState();
+                    },
+                  ),
+                ),
               ),
             );
           },

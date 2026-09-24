@@ -44,7 +44,8 @@ extension _FontPickerPage on _FontPickerLayerState {
 
   Widget moreButton(BuildContext context) {
     return IconButton(
-      icon: Icon(Icons.more_vert),
+      tooltip: AppLocalizations.of(context).more,
+      icon: labelIcon(AppLocalizations.of(context).more, Icon(Icons.more_vert)),
       onPressed: () {
         tryVibrate();
 

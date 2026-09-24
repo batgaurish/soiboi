@@ -47,7 +47,8 @@ extension _CollectionListPage on CollectionListState {
 
   Widget moreButton(BuildContext context) {
     return IconButton(
-      icon: Icon(Icons.more_vert),
+      tooltip: AppLocalizations.of(context).more,
+      icon: labelIcon(AppLocalizations.of(context).more, Icon(Icons.more_vert)),
       onPressed: () {
         tryVibrate();
 
@@ -93,6 +94,7 @@ extension _CollectionListPage on CollectionListState {
                       vertical: -4,
                     ),
                     trailing: MySwitch(
+                      semanticLabel: l10n.view,
                       trueText: l10n.list,
                       falseText: l10n.grid,
                       valueNotifier: isListViewNotifier!,
@@ -115,6 +117,7 @@ extension _CollectionListPage on CollectionListState {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       trailing: MySwitch(
+                        semanticLabel: l10n.pictureSize,
                         trueText: l10n.large,
                         falseText: l10n.small,
                         valueNotifier: useLargePictureNotifier,
@@ -138,6 +141,7 @@ extension _CollectionListPage on CollectionListState {
                       vertical: -4,
                     ),
                     trailing: MySwitch(
+                      semanticLabel: l10n.order,
                       trueText: l10n.randomize,
                       falseText: l10n.normal,
                       valueNotifier: randomizeNotifier!,
@@ -165,6 +169,7 @@ extension _CollectionListPage on CollectionListState {
                         vertical: -4,
                       ),
                       trailing: MySwitch(
+                        semanticLabel: l10n.order,
                         trueText: l10n.ascending,
                         falseText: l10n.descending,
                         valueNotifier: isAscendingNotifier!,
@@ -240,35 +245,52 @@ extension _CollectionListPage on CollectionListState {
 
             return LayoutBuilder(
               builder: (context, constraints) {
-                return Column(
-                  children: [
-                    GestureDetector(
-                      child: Hero(
-                        tag: (picture?.id ?? '') + label + text,
-                        transitionOnUserGestures: true,
-                        child: CoverArtWidget(
-                          size: constraints.maxWidth,
-                          borderRadius: constraints.maxWidth / 10,
-                          picture: picture,
+                // One item for a screen reader, as on the desktop grid.
+                return Semantics(
+                  container: true,
+                  button: true,
+                  label: text,
+                  onTap: () => currentOnTapList[index].call(),
+                  onLongPress: () => openItemMenu(context, index),
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        excludeFromSemantics: true,
+                        child: Hero(
+                          tag: (picture?.id ?? '') + label + text,
+                          transitionOnUserGestures: true,
+                          child: CoverArtWidget(
+                            size: constraints.maxWidth,
+                            borderRadius: constraints.maxWidth / 10,
+                            picture: picture,
+                          ),
+                        ),
+                        onTap: () {
+                          currentOnTapList[index].call();
+                        },
+                        onLongPressStart: (details) => openItemMenu(
+                          context,
+                          index,
+                          details.globalPosition,
+                        ),
+                        onSecondaryTapUp: (details) => openItemMenu(
+                          context,
+                          index,
+                          details.globalPosition,
                         ),
                       ),
-                      onTap: () {
-                        currentOnTapList[index].call();
-                      },
-                      onLongPressStart: (details) =>
-                          openItemMenu(context, index, details.globalPosition),
-                      onSecondaryTapUp: (details) =>
-                          openItemMenu(context, index, details.globalPosition),
-                    ),
-                    SizedBox(
-                      width: constraints.maxWidth - 10,
-                      child: Text(
-                        text,
-                        textAlign: .center,
-                        style: TextStyle(overflow: TextOverflow.ellipsis),
+                      SizedBox(
+                        width: constraints.maxWidth - 10,
+                        child: ExcludeSemantics(
+                          child: Text(
+                            text,
+                            textAlign: .center,
+                            style: TextStyle(overflow: TextOverflow.ellipsis),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 );
               },
             );
