@@ -6,18 +6,17 @@ are holding. It runs on Linux and Android with no server, no Docker and no
 sync service.
 
 Soiboi plays local files. It will not stream from Spotify, Apple Music or
-anyone else, and the plan stays that way. Plenty of apps stream; this one
-keeps copies.
+anyone else.
 
-## What you get
+## Features
 
 - **Local playback** on Linux and Android, with synced lyrics from `.lrc`
   files or [LRCLIB](https://lrclib.net).
 - **Archiving from a link.** Hand Soiboi an Apple Music track, album or
   playlist. It queues the download, resumes at the last finished track after
   an interruption, and drops tagged files with artwork into your library.
-- **Playlist import from other services.** Paste a Spotify, Deezer or YouTube
-  Music playlist link, or pick a playlist from your Apple Music account.
+- **Playlist import from other services.** Paste a Spotify, Deezer, YouTube
+  Music, Tidal, SoundCloud or Qobuz playlist link, or pick a playlist from your Apple Music account.
   Soiboi matches each track to Apple's catalog by ISRC first, then by artist
   and title, and archives the matches. None of these sources ask you to log
   in.
@@ -26,6 +25,13 @@ keeps copies.
 - **Smart playlists** built on BPM, energy, danceability, play count, date
   added and more. [bliss-audio](https://github.com/Polochon-street/bliss-rs)
   computes the audio features on the device.
+- **Lossless ALAC** through a bundled
+  [wrapper-v2](https://github.com/glomatico/wrapper-v2). Soiboi ships no
+  Apple code: setup asks for an Apple Music APK you supply and checks the
+  libraries it extracts from it.
+- **Optional AI** with your own key (Gemini, OpenRouter, Groq, Anthropic,
+  OpenAI, Ollama or any OpenAI-compatible endpoint): make playlists from a
+  prompt and get album picks on Home. Off until you add a key.
 - **Codec and bitrate on every track**, so you can see ALAC versus AAC at a
   glance.
 - **Self-hosted servers**: browse Navidrome, Emby and WebDAV libraries next to
@@ -34,10 +40,6 @@ keeps copies.
   updater that installs new releases from this repo.
 - **Theming**: three UI flavours, light and dark, Material You on Android,
   matugen on Linux, and six prebuilt palettes.
-
-Soiboi downloads AAC today. Lossless ALAC needs a FairPlay decryption service
-([wrapper-v2](https://github.com/glomatico/wrapper-v2)), and in-app setup for
-it is in progress.
 
 Soiboi does not scrobble. Pair it with
 [Pano Scrobbler](https://github.com/kawaiiDango/pScrobbler) or any other
@@ -66,9 +68,9 @@ between devices.
 ## Install
 
 Grab the Android APK or the Linux x64 tarball from
-[Releases](https://github.com/batgaurish/soiboi/releases). Android builds are
-debug-signed, so Android will ask you to allow installs from your browser or
-file manager.
+[Releases](https://github.com/batgaurish/soiboi/releases). Android will ask
+you to allow installs from your browser or file manager. Updates install from
+inside the app.
 
 ## Build from source
 
