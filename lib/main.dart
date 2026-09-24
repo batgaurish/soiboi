@@ -35,6 +35,11 @@ import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/youtube_playlist_source.dart';
 import 'package:soiboi/base/services/deezer_playlist_source.dart';
 import 'package:soiboi/base/services/spotify_playlist_source.dart';
+import 'package:soiboi/base/services/tidal_playlist_source.dart';
+import 'package:soiboi/base/services/jiosaavn_playlist_source.dart';
+import 'package:soiboi/base/services/soundcloud_playlist_source.dart';
+import 'package:soiboi/base/services/page_playlist_sources.dart';
+import 'package:soiboi/base/services/tracklist_source.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,6 +85,15 @@ Future<void> _start() async {
   // keyword.
   registerPlaylistSource(DeezerPlaylistSource());
   registerPlaylistSource(SpotifyPlaylistSource());
+  // Tidal carries ISRCs like Deezer, so it resolves exactly.
+  registerPlaylistSource(TidalPlaylistSource());
+  registerPlaylistSource(JioSaavnPlaylistSource());
+  registerPlaylistSource(SoundcloudPlaylistSource());
+  registerPlaylistSource(qobuzPlaylistSource());
+  registerPlaylistSource(gaanaPlaylistSource());
+  registerPlaylistSource(BandcampAlbumSource());
+  // Last, so a link always reaches its own source first.
+  registerPlaylistSource(TracklistSource());
 
   await logger.init();
   if (isMobile) {

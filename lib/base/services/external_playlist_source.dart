@@ -16,6 +16,11 @@
 /// returns an empty list from [playlists] and recognises URLs instead.
 library;
 
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:soiboi/base/services/logger.dart';
+
 /// Whether [host] is [domain] or a subdomain of it.
 ///
 /// `host.endsWith(domain)` is the obvious spelling and it is wrong: it also
@@ -98,6 +103,41 @@ abstract class ExternalPlaylistSource {
   /// A human title for a playlist known only by id — used after an import by
   /// link, where there was no listing to take a title from.
   Future<String?> titleFor(String playlistId) async => null;
+
+  /// Why the last [titleFor] or [tracks] call came back empty, in the
+  /// platform's own words when it gave any. Null when nothing went wrong.
+  String? get lastError => null;
+}
+
+/// A browser-like User-Agent. Several services serve a stripped page, or
+/// none, to anything that does not look like a browser.
+const browserUserAgent =
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) '
+    'Chrome/128.0 Safari/537.36';
+
+/// GETs [uri] as text, or null on any failure. Sources treat an unreachable
+/// playlist as empty rather than as a crash.
+Future<String?> fetchText(Uri uri, {Map<String, String>? headers}) async {
+  try {
+    final response = await http
+        .get(uri, headers: {'User-Agent': browserUserAgent, ...?headers})
+        .timeout(const Duration(seconds: 20));
+    return response.statusCode == 200 ? response.body : null;
+  } on Exception catch (e) {
+    logger.output('fetch $uri: $e');
+    return null;
+  }
+}
+
+/// [fetchText], decoded as JSON, or null.
+Future<Object?> fetchJson(Uri uri, {Map<String, String>? headers}) async {
+  final body = await fetchText(uri, headers: headers);
+  if (body == null) return null;
+  try {
+    return jsonDecode(body);
+  } on FormatException {
+    return null;
+  }
 }
 
 /// Every source the app knows about.

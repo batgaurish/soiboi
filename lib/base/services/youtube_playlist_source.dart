@@ -178,6 +178,7 @@ class YouTubePlaylistSource extends ExternalPlaylistSource {
 
   /// The last failure, so the sheet can say what went wrong rather than
   /// showing an empty playlist and letting the user guess.
+  @override
   String? lastError;
 
   Future<Map<String, dynamic>?> _fetch(String playlistId, {int? limit}) async {
