@@ -138,8 +138,17 @@ class Setting {
 
     mainPageThemeNotifier.value = ThemeType.values.firstWhere(
       (e) => e.name == json['mainPageTheme'],
-      orElse: () => ThemeType.vivid,
+      orElse: systemThemeType,
     );
+
+    // Vivid on the main page takes every colour from album art, which hid
+    // the flavour palettes and colour sources and left the app grey with
+    // nothing playing. Move a vivid main page to light or dark once; anyone
+    // who picks vivid again afterwards keeps it.
+    if (json['mainThemeMigrated'] != true &&
+        mainPageThemeNotifier.value == .vivid) {
+      mainPageThemeNotifier.value = systemThemeType();
+    }
 
     if (!isPremiumNotifier.value && mainPageThemeNotifier.value == .vivid) {
       mainPageThemeNotifier.value = .light;
@@ -185,11 +194,9 @@ class Setting {
       await autoLoadDynamicPalette();
     }
 
-    listenBrainzUserNotifier.value =
-        json['listenBrainzUser'] as String? ?? '';
+    listenBrainzUserNotifier.value = json['listenBrainzUser'] as String? ?? '';
 
-    lrclibEnabledNotifier.value =
-        json['lrclibEnabled'] as bool? ?? true;
+    lrclibEnabledNotifier.value = json['lrclibEnabled'] as bool? ?? true;
 
     exitOnCloseNotifier.value =
         json['exitOnClose'] as bool? ?? exitOnCloseNotifier.value;
@@ -198,8 +205,9 @@ class Setting {
     // earlier build offered "flac", which is not one of its codecs, so a
     // saved 'flac' would otherwise fail every download until found by hand.
     final savedCodec = json['downloadCodec'] as String?;
-    downloadCodecNotifier.value =
-        downloadCodecLabels.containsKey(savedCodec) ? savedCodec! : 'aac';
+    downloadCodecNotifier.value = downloadCodecLabels.containsKey(savedCodec)
+        ? savedCodec!
+        : 'aac';
     downloadFolderNotifier.value = json['downloadFolder'] as String? ?? '';
     wvdPathNotifier.value = json['wvdPath'] as String?;
     useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
@@ -233,6 +241,7 @@ class Setting {
 
         'flavour': flavourNotifier.value.name,
         'mainPageTheme': mainPageThemeNotifier.value.name,
+        'mainThemeMigrated': true,
         'lyricsPageTheme': lyricsPageThemeNotifier.value.name,
 
         'lyricsFontSizeOffset': lyricsFontSizeOffsetNotifier.value,

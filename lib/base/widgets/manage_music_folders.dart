@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/asset_images.dart';
@@ -404,7 +405,9 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
   void _addFolder(BuildContext context) async {
     String? result;
 
-    if (isTV) {
+    final browsePaths = isTV || await _canBrowsePaths();
+    if (!context.mounted) return;
+    if (browsePaths) {
       result = await showAnimationDialog(
         context: context,
         child: SizedBox(
@@ -441,7 +444,9 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
   void _addFolders(BuildContext context) async {
     String? result;
-    if (isTV) {
+    final browsePaths = isTV || await _canBrowsePaths();
+    if (!context.mounted) return;
+    if (browsePaths) {
       result = await showAnimationDialog(
         context: context,
         child: SizedBox(
@@ -467,6 +472,13 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
         .listSync(recursive: true)
         .whereType<Directory>()
         .map((d) => d.path)
+        // Hidden folders (.thumbnails, .trash) hold no music worth scanning.
+        .where(
+          (path) => !path
+              .substring(result!.length)
+              .split('/')
+              .any((part) => part.startsWith('.')),
+        )
         .toList();
 
     pathList.insert(0, result);
@@ -545,4 +557,12 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     }
     updateNotifier.value++;
   }
+}
+
+/// On Android with All files access, browse real paths in-app. The system
+/// folder picker refuses the storage root and, on some phones, lists nothing
+/// at all, so a music folder could not be chosen.
+Future<bool> _canBrowsePaths() async {
+  if (!Platform.isAndroid) return false;
+  return (await Permission.manageExternalStorage.request()).isGranted;
 }
