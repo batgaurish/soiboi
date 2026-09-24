@@ -59,6 +59,10 @@ Pieces several later items need. Built once, first.
   a helper that enforces minimum contrast, generalised from the sidebar's
   `_wordmarkColor`.
   *Done when:* both are available from `setting.dart` and `color_manager.dart`.
+  *Status:* built. `motion.dart` has `reduceMotionNotifier` (system setting,
+  or the saved "motion" override); `color_manager.dart` has `contrastRatio`,
+  `ensureContrast` (moves lightness only) and `readableOr`, which the
+  sidebar wordmark now uses. The Settings switch comes with 1.4.
 
 ## Phase 1: Accessibility (v1.2.0)
 

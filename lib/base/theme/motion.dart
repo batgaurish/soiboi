@@ -9,6 +9,9 @@
 /// absence of movement is as deliberate as Zine's spring.
 library;
 
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 
@@ -96,20 +99,117 @@ const Map<Flavour, MotionSpec> motionSpecs = {
 MotionSpec get activeMotion =>
     motionSpecs[flavourNotifier.value] ?? _zineMotion;
 
-/// Honours the platform's reduced-motion setting by collapsing every duration.
-/// Call with the ambient [MediaQuery] where one is available.
+/// Collapses every duration of [base]: what the app looks like with motion
+/// reduced.
+MotionSpec reducedMotion(MotionSpec base) => MotionSpec(
+  short: Duration.zero,
+  medium: Duration.zero,
+  long: Duration.zero,
+  standard: base.standard,
+  emphasized: base.emphasized,
+  enterExit: base.enterExit,
+  useContainerTransform: false,
+  staggerStep: Duration.zero,
+);
+
+/// The active flavour's motion, collapsed when motion is reduced.
+///
+/// Reads the system setting through [MediaQuery], so a widget that calls
+/// this rebuilds when the system setting changes. Widgets that must not
+/// depend on MediaQuery can use [activeMotion] with [reduceMotion] instead.
 MotionSpec motionFor(BuildContext context) {
-  final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-  if (!reduce) return activeMotion;
-  final base = activeMotion;
-  return MotionSpec(
-    short: Duration.zero,
-    medium: Duration.zero,
-    long: Duration.zero,
-    standard: base.standard,
-    emphasized: base.emphasized,
-    enterExit: base.enterExit,
-    useContainerTransform: false,
-    staggerStep: Duration.zero,
+  final system =
+      MediaQuery.maybeDisableAnimationsOf(context) ??
+      systemReducesMotionNotifier.value;
+  final reduce = resolveReduceMotion(
+    motionPreferenceNotifier.value,
+    systemReduces: system,
   );
+  return reduce ? reducedMotion(activeMotion) : activeMotion;
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------
+
+/// How much the app may move.
+enum MotionPreference {
+  /// Follow the system: Android's "Remove animations", or animations turned
+  /// off in the desktop's settings (GTK's `gtk-enable-animations`).
+  system,
+
+  /// No non-essential motion, whatever the system says.
+  reduced,
+
+  /// All motion, whatever the system says.
+  full,
+}
+
+/// The user's choice. Persisted by `setting.dart`.
+final motionPreferenceNotifier = ValueNotifier(MotionPreference.system);
+
+/// Whether the platform currently asks apps to drop animations. Kept up to
+/// date by [watchSystemMotionSetting].
+final systemReducesMotionNotifier = ValueNotifier(
+  PlatformDispatcher.instance.accessibilityFeatures.disableAnimations,
+);
+
+bool resolveReduceMotion(
+  MotionPreference preference, {
+  required bool systemReduces,
+}) => switch (preference) {
+  MotionPreference.system => systemReduces,
+  MotionPreference.reduced => true,
+  MotionPreference.full => false,
+};
+
+/// Whether to drop non-essential motion right now: the one answer every
+/// animated widget should use. Listen to it to rebuild when it changes.
+final ValueListenable<bool> reduceMotionNotifier = _ReduceMotion();
+
+bool get reduceMotion => reduceMotionNotifier.value;
+
+/// [duration], or none when motion is reduced.
+Duration motionDuration(Duration duration) =>
+    reduceMotion ? Duration.zero : duration;
+
+class _ReduceMotion extends ChangeNotifier implements ValueListenable<bool> {
+  _ReduceMotion() {
+    motionPreferenceNotifier.addListener(_update);
+    systemReducesMotionNotifier.addListener(_update);
+    _value = _compute();
+  }
+
+  late bool _value;
+
+  bool _compute() => resolveReduceMotion(
+    motionPreferenceNotifier.value,
+    systemReduces: systemReducesMotionNotifier.value,
+  );
+
+  void _update() {
+    final next = _compute();
+    if (next == _value) return;
+    _value = next;
+    notifyListeners();
+  }
+
+  @override
+  bool get value => _value;
+}
+
+/// Follows the system's animation setting as it changes. Call once, after
+/// the binding exists.
+void watchSystemMotionSetting() {
+  WidgetsBinding.instance.addObserver(_SystemMotionObserver());
+  systemReducesMotionNotifier.value =
+      PlatformDispatcher.instance.accessibilityFeatures.disableAnimations;
+}
+
+class _SystemMotionObserver with WidgetsBindingObserver {
+  @override
+  void didChangeAccessibilityFeatures() {
+    systemReducesMotionNotifier.value =
+        PlatformDispatcher.instance.accessibilityFeatures.disableAnimations;
+  }
 }
