@@ -4,7 +4,10 @@ import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
+import 'package:soiboi/base/utils/contrast.dart';
 import 'package:soiboi/base/utils/contrast_color_generator.dart';
+
+export 'package:soiboi/base/utils/contrast.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
 
 final colorManager = ColorManager();
@@ -20,89 +23,6 @@ ContrastColorTextTheme contrastColorTheme = ContrastColorGenerator.generate(
 );
 
 final lightHoverFocusColorNotifier = ValueNotifier(false);
-
-// ---------------------------------------------------------------------------
-// Contrast
-// ---------------------------------------------------------------------------
-
-/// WCAG 2's minimum for body text.
-const double kTextContrast = 4.5;
-
-/// WCAG 2's minimum for large text, icons and other non-text marks.
-const double kLargeContrast = 3.0;
-
-/// The WCAG 2 contrast ratio of [foreground] drawn on [background], from 1
-/// (identical) to 21 (black on white).
-///
-/// A translucent foreground is blended onto the background first, since that
-/// is what reaches the eye. The background is taken as opaque: when it is
-/// itself translucent, pass the colour it ends up as on screen.
-double contrastRatio(Color foreground, Color background) {
-  final ground = background.withAlpha(255);
-  final a = Color.alphaBlend(foreground, ground).computeLuminance();
-  final b = ground.computeLuminance();
-  final hi = a > b ? a : b;
-  final lo = a > b ? b : a;
-  return (hi + 0.05) / (lo + 0.05);
-}
-
-/// [color], or the nearest colour of the same hue and saturation that reads
-/// on [background] at [minRatio].
-///
-/// Only lightness moves, and only as far as it must, so a palette taken
-/// from artwork keeps its character instead of collapsing to black and
-/// white. It moves away from the background (darker on light grounds,
-/// lighter on dark ones), and tries the other way only when that cannot
-/// reach [minRatio]. Where neither can, black or white, whichever reads
-/// better.
-Color ensureContrast(
-  Color color,
-  Color background, {
-  double minRatio = kTextContrast,
-}) {
-  final opaque = color.withAlpha(255);
-  if (contrastRatio(opaque, background) >= minRatio) return color;
-
-  final hsl = HSLColor.fromColor(opaque);
-  final ground = background.withAlpha(255);
-  final darkerFirst =
-      contrastRatio(Colors.black, ground) >= contrastRatio(Colors.white, ground);
-
-  Color? search(double target) {
-    final extreme = hsl.withLightness(target).toColor();
-    if (contrastRatio(extreme, ground) < minRatio) return null;
-    // Luminance rises with HSL lightness at a fixed hue and saturation, so
-    // the smallest move that passes can be bisected for.
-    var passing = target;
-    var failing = hsl.lightness;
-    for (var i = 0; i < 24; i++) {
-      final middle = (passing + failing) / 2;
-      if (contrastRatio(hsl.withLightness(middle).toColor(), ground) >=
-          minRatio) {
-        passing = middle;
-      } else {
-        failing = middle;
-      }
-    }
-    return hsl.withLightness(passing).toColor();
-  }
-
-  final found =
-      search(darkerFirst ? 0 : 1) ??
-      search(darkerFirst ? 1 : 0) ??
-      (darkerFirst ? Colors.black : Colors.white);
-  return found.withAlpha((color.a * 255).round());
-}
-
-/// [preferred] if it reads on [background] at [minRatio], else [fallback].
-/// For when only a known-good alternative will do, rather than a nudged
-/// version of the preferred colour.
-Color readableOr(
-  Color preferred,
-  Color background,
-  Color fallback, {
-  double minRatio = kLargeContrast,
-}) => contrastRatio(preferred, background) >= minRatio ? preferred : fallback;
 
 void updateHoverFocusColor() {
   if ((displayLyricsPage && lyricsPageThemeNotifier.value == .vivid) ||
@@ -409,11 +329,101 @@ class ColorManager {
     for (final color in myMainPageColors) {
       color.updateColor();
     }
+    _keepMainPageReadable();
   }
 
   void updateLyricsPageColors() {
     for (final color in myLyricsPageColors) {
       color.updateColor();
+    }
+    _keepLyricsPageReadable();
+  }
+
+  /// Text and icons, nudged to read on every surface they appear on.
+  ///
+  /// Palettes come from many places (flavours, prebuilt themes, matugen,
+  /// Material You, album art) and several of them put text on a sidebar or
+  /// bottom bar it cannot be read on. Checking here, after every palette has
+  /// been resolved, covers them all, including ones added later. Only
+  /// lightness moves, and only as far as needed.
+  ///
+  /// The text moves first. Where the surfaces differ so much that no text
+  /// colour reads on all of them (a Material You sidebar in the wallpaper's
+  /// own red beside a near-white page, or vivid pages over a black cover),
+  /// the text keeps to the page and panel, and the odd surface out gives way
+  /// instead: its lightness moves until the text reads on it.
+  void _keepMainPageReadable() {
+    final vivid = mainPageThemeNotifier.value == .vivid;
+    // Vivid surfaces are translucent over the artwork's colour: that blend
+    // is what the text sits on.
+    Color ground(MyColor surface) => vivid
+        ? Color.alphaBlend(surface.value, backgroundCoverArtColor)
+        : Color.alphaBlend(surface.value, pageBackgroundColor.value);
+    final primary = [
+      if (vivid)
+        ground(pageBackgroundColor)
+      else
+        pageBackgroundColor.value.withAlpha(255),
+      ground(panelColor),
+    ];
+    final secondary = [sidebarColor, bottomColor, menuColor];
+    final everywhere = [
+      ...primary,
+      for (final surface in secondary) ground(surface),
+      Color.alphaBlend(selectedItemColor.value, ground(sidebarColor)),
+    ];
+
+    final inks = [
+      (textColor, kTextContrast),
+      (highlightTextColor, kTextContrast),
+      (iconColor, kLargeContrast),
+    ];
+    for (final (color, minRatio) in inks) {
+      final onAll = ensureContrastOnAll(
+        color.value,
+        everywhere,
+        minRatio: minRatio,
+      );
+      color.valueNotifier.value =
+          everywhere.every((g) => contrastRatio(onAll, g) >= minRatio)
+          ? onAll
+          : ensureContrastOnAll(color.value, primary, minRatio: minRatio);
+    }
+
+    bool reads(Color ground) =>
+        inks.every((ink) => contrastRatio(ink.$1.value, ground) >= ink.$2);
+    Color givenWay(Color ground) => ensureContrastOnAll(
+      ensureContrastOnAll(ground, [textColor.value, highlightTextColor.value]),
+      [iconColor.value],
+      minRatio: kLargeContrast,
+    );
+    for (final surface in secondary) {
+      final g = ground(surface);
+      if (!reads(g)) surface.valueNotifier.value = givenWay(g);
+    }
+    final selected = Color.alphaBlend(
+      selectedItemColor.value,
+      ground(sidebarColor),
+    );
+    if (!reads(selected)) {
+      selectedItemColor.valueNotifier.value = givenWay(selected);
+    }
+  }
+
+  /// The same for the lyrics page. Vivid lyrics take their colours from
+  /// [ContrastColorGenerator], which checks them itself.
+  void _keepLyricsPageReadable() {
+    if (lyricsPageThemeNotifier.value == .vivid) return;
+    final background = lyricsPageBackgroundColor.value.withAlpha(255);
+    final grounds = [
+      background,
+      Color.alphaBlend(lyricsPageMenuColor.value, background),
+    ];
+    for (final color in [
+      lyricsPageForegroundColor,
+      lyricsPageHighlightTextColor,
+    ]) {
+      color.valueNotifier.value = ensureContrastOnAll(color.value, grounds);
     }
   }
 
@@ -430,6 +440,7 @@ class ColorManager {
     buttonColor.updateColor();
     dividerColor.updateColor();
     selectedItemColor.updateColor();
+    if (mainPageThemeNotifier.value == .vivid) _keepMainPageReadable();
   }
 
   void updateColors() {
@@ -590,13 +601,15 @@ class MyColor {
         // Resolution order: a colour source (matugen/system, or a prebuilt
         // palette, mutually exclusive, see color_source.dart), then the
         // flavour's own colours, then upstream for tokens nobody themes.
-        valueNotifier.value = dynamicColor(token, isDark: false) ??
+        valueNotifier.value =
+            dynamicColor(token, isDark: false) ??
             prebuiltColor(token, isDark: false) ??
             flavourColor(token, isDark: false) ??
             lightModeValue;
         break;
       default:
-        valueNotifier.value = dynamicColor(token, isDark: true) ??
+        valueNotifier.value =
+            dynamicColor(token, isDark: true) ??
             prebuiltColor(token, isDark: true) ??
             flavourColor(token, isDark: true) ??
             darkModeValue;

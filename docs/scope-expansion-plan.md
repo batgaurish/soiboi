@@ -100,6 +100,14 @@ shortcuts, and every palette comes from album art with no contrast check.
   3:1. Nudge the lightness instead of throwing the palette away.
   *Done when:* a test runs 50 real covers through the palette code and every
   pair passes.
+  *Status:* built. Album-art text is checked against every average colour on
+  a 32-step RGB grid (32,768 covers), and flavours, prebuilt palettes,
+  Material You (16 seeds, 3 variants) and vivid pages against every surface
+  their text sits on: all pass. Where no one text colour can read on every
+  surface, the odd surface out has its lightness nudged instead. The 50
+  real covers: no artwork could be downloaded here, so
+  `tools/cover_colors.py ~/Music` writes `test/fixtures/cover_colors.json`
+  (colours only) and the test runs it when present.
 - [ ] **1.4 Reduce motion** (S). Use 0.3 to turn off the animated
   backgrounds, hero transitions and lyric scrolling effects, and replace
   slides with plain fades.
