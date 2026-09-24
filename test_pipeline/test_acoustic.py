@@ -205,3 +205,16 @@ def test_one_unwritable_file_does_not_stop_the_folder(tmp_path, monkeypatch):
     result = acoustic.analyze_directory(str(tmp_path))
     assert result["analysed"] == 2
     assert result["unwritable"] == 2
+
+
+def test_a_download_analyses_only_what_it_wrote(tmp_path, monkeypatch):
+    import os
+    old, new = tmp_path / "old.m4a", tmp_path / "new.m4a"
+    old.write_bytes(b"")
+    new.write_bytes(b"")
+    os.utime(old, (1000, 1000))
+    monkeypatch.setattr(acoustic, "ANALYSIS_AVAILABLE", True)
+    monkeypatch.setattr(acoustic, "_analyze", lambda path: ({"bpm": 90.0}, None))
+    result = acoustic.analyze_directory(str(tmp_path), since=2000)
+    assert result["total"] == 1
+    assert acoustic.has_sidecar(str(new)) and not acoustic.has_sidecar(str(old))

@@ -390,7 +390,7 @@ def _run_gamdl(args: list[str], tap: _StreamTap, emit: Emit) -> Event | None:
     return None
 
 
-def _analyse_output(output_dir: str, emit: Emit) -> None:
+def _analyse_output(output_dir: str, emit: Emit, since: float) -> None:
     """Write mood sidecars for what was just downloaded.
 
     Analysis is a bonus, not a gate: a download that succeeded reports
@@ -399,7 +399,7 @@ def _analyse_output(output_dir: str, emit: Emit) -> None:
     if not acoustic.ANALYSIS_AVAILABLE:
         return
     try:
-        acoustic.analyze_directory(output_dir, emit=emit)
+        acoustic.analyze_directory(output_dir, emit=emit, since=since)
     except OSError as exc:
         logger.warning("Audio analysis failed in %s", output_dir, exc_info=True)
         emit(warning(f"Audio analysis skipped: {exc}"))
@@ -470,7 +470,7 @@ def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
             _discard_partial_files(temp_dir, log_path)
         return failure
 
-    _analyse_output(request.output_dir, emit)
+    _analyse_output(request.output_dir, emit, since=started)
     lyrics.fetch_for_directory(request.cookies_path, request.output_dir, emit, since=started)
     emit(progress(100, "Done"))
     return done(output_dir=request.output_dir, log_path=log_path)

@@ -259,6 +259,7 @@ def analyze_directory(
     limit: int | None = None,
     store_dir: str | None = None,
     progress_range: tuple[int, int] = (90, 100),
+    since: float = 0.0,
 ) -> dict[str, JsonValue]:
     """Analyse files without a settled sidecar and write one for each.
 
@@ -270,7 +271,13 @@ def analyze_directory(
     if not ANALYSIS_AVAILABLE:
         return {"total": 0, "analysed": 0, "skipped": 0, "analysis_available": False}
 
-    files = list(iter_audio_files(directory))
+    # [since] limits a download's pass to the files it just wrote: the output
+    # folder can be the user's whole library, and analysing all of it held
+    # the download queue for hours.
+    files = [
+        path for path in iter_audio_files(directory)
+        if not since or os.path.getmtime(path) >= since
+    ]
     pending = [path for path in files if not has_sidecar(path, store_dir)]
     if limit is not None:
         pending = pending[:limit]
