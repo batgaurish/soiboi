@@ -120,6 +120,8 @@ class _MiniViewState extends State<MiniView> {
                                       lines: currentSong.parsedLyrics!.lines,
                                       isKaraoke:
                                           currentSong.parsedLyrics!.isKaraoke,
+                                      isSynced:
+                                          currentSong.parsedLyrics!.isSynced,
                                     ),
                             );
                           }

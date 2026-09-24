@@ -185,8 +185,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                 // The artwork is dimmed by an overlay so lyrics stay legible.
                 CoverArtWidget(
                   picture: currentSong?.picture,
-                  color: colorManager
-                      .getSpecificLyricsPageCoverArtBaseColor(),
+                  color: colorManager.getSpecificLyricsPageCoverArtBaseColor(),
                 ),
                 RepaintBoundary(
                   child: BackdropFilter(
@@ -207,119 +206,122 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   children: [
                     SizedBox(height: 60),
                     Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30),
-                        child: SizedBox(
-                          height: 36,
-                          child: ValueListenableBuilder(
-                            valueListenable: enableAllNotifier,
-                            builder: (context, value, child) {
-                              final data = getTitle(currentSong);
-                              final textStyle = TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: lyricsPageHighlightTextColor.value,
-                                overflow: .ellipsis,
-                              );
-                              if (!value) {
-                                return Text(data, style: textStyle);
-                              }
-                              return TextScroll(
-                                textAlign: .center,
-                                getTitle(currentSong),
-                                velocity: const Velocity(
-                                  pixelsPerSecond: Offset(40, 0),
-                                ),
-                                style: textStyle,
-                                intervalSpaces: 10,
-                                pauseBetween: Duration(seconds: 2),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30),
-                        child: SizedBox(
-                          height: 28,
-                          child: ValueListenableBuilder(
-                            valueListenable: enableAllNotifier,
-                            builder: (context, value, child) {
-                              final data =
-                                  '${getArtist(currentSong)} - ${getAlbum(currentSong)}';
-                              final textStyle = TextStyle(
-                                fontSize: 14,
-                                color: lyricsPageForegroundColor.value,
-                                overflow: .ellipsis,
-                              );
-                              if (!value) {
-                                return Text(data, style: textStyle);
-                              }
-                              return TextScroll(
-                                textAlign: .center,
-                                data,
-                                velocity: const Velocity(
-                                  pixelsPerSecond: Offset(40, 0),
-                                ),
-                                style: textStyle,
-                                intervalSpaces: 10,
-                                pauseBetween: Duration(seconds: 2),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 10),
-
-                      _modeSwitcher(),
-                      Expanded(
-                        // Art and Lyrics have no controls of their own, so a
-                        // tap or a scroll brings them up over the page.
-                        child: NotificationListener<ScrollNotification>(
-                          onNotification: (n) {
-                            if (n is ScrollUpdateNotification &&
-                                n.metrics.axis == Axis.vertical) {
-                              _showControls();
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: SizedBox(
+                        height: 36,
+                        child: ValueListenableBuilder(
+                          valueListenable: enableAllNotifier,
+                          builder: (context, value, child) {
+                            final data = getTitle(currentSong);
+                            final textStyle = TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: lyricsPageHighlightTextColor.value,
+                              overflow: .ellipsis,
+                            );
+                            if (!value) {
+                              return Text(data, style: textStyle);
                             }
-                            return false;
+                            return TextScroll(
+                              textAlign: .center,
+                              getTitle(currentSong),
+                              velocity: const Velocity(
+                                pixelsPerSecond: Offset(40, 0),
+                              ),
+                              style: textStyle,
+                              intervalSpaces: 10,
+                              pauseBetween: Duration(seconds: 2),
+                            );
                           },
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onTap: _showControls,
-                            child: Stack(
-                              children: [
-                                PageView(
-                                  controller: _modes,
-                                  onPageChanged: (page) {
-                                    _lastMode = page;
-                                    _modeNotifier.value = page;
-                                    _controlsShown.value = false;
-                                  },
-                                  children: [
-                                    artOnlyPage(context, currentSong),
-                                    artPage(context, currentSong),
-                                    ValueListenableBuilder(
-                                      valueListenable: enableAllNotifier,
-                                      builder: (context, value, child) {
-                                        if (!value) {
-                                          return SizedBox.shrink();
-                                        }
-                                        return expandedLyricsPage(
-                                          context,
-                                          currentSong,
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                _overlayControls(),
-                              ],
-                            ),
+                        ),
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30),
+                      child: SizedBox(
+                        height: 28,
+                        child: ValueListenableBuilder(
+                          valueListenable: enableAllNotifier,
+                          builder: (context, value, child) {
+                            final data =
+                                '${getArtist(currentSong)} - ${getAlbum(currentSong)}';
+                            final textStyle = TextStyle(
+                              fontSize: 14,
+                              color: lyricsPageForegroundColor.value,
+                              overflow: .ellipsis,
+                            );
+                            if (!value) {
+                              return Text(data, style: textStyle);
+                            }
+                            return TextScroll(
+                              textAlign: .center,
+                              data,
+                              velocity: const Velocity(
+                                pixelsPerSecond: Offset(40, 0),
+                              ),
+                              style: textStyle,
+                              intervalSpaces: 10,
+                              pauseBetween: Duration(seconds: 2),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                    _modeSwitcher(),
+                    Expanded(
+                      // Art and Lyrics have no controls of their own, so a
+                      // tap or a scroll brings them up over the page.
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          // Only a finger counts: synced lyrics scroll
+                          // themselves, which would keep the controls up.
+                          if (n is ScrollUpdateNotification &&
+                              n.dragDetails != null &&
+                              n.metrics.axis == Axis.vertical) {
+                            _showControls();
+                          }
+                          return false;
+                        },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: _showControls,
+                          child: Stack(
+                            children: [
+                              PageView(
+                                controller: _modes,
+                                onPageChanged: (page) {
+                                  _lastMode = page;
+                                  _modeNotifier.value = page;
+                                  _controlsShown.value = false;
+                                },
+                                children: [
+                                  artOnlyPage(context, currentSong),
+                                  artPage(context, currentSong),
+                                  ValueListenableBuilder(
+                                    valueListenable: enableAllNotifier,
+                                    builder: (context, value, child) {
+                                      if (!value) {
+                                        return SizedBox.shrink();
+                                      }
+                                      return expandedLyricsPage(
+                                        context,
+                                        currentSong,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                              _overlayControls(),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -363,7 +365,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
               end: Alignment.bottomCenter,
               colors: [
                 Colors.black.withValues(alpha: 0),
-                Colors.black.withValues(alpha: 0.45),
+                Colors.black.withValues(alpha: 0.7),
               ],
             ),
           ),
@@ -497,6 +499,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                           expanded: false,
                           lines: currentSong.parsedLyrics!.lines,
                           isKaraoke: currentSong.parsedLyrics!.isKaraoke,
+                          isSynced: currentSong.parsedLyrics!.isSynced,
                         );
                       },
                     ),
@@ -930,6 +933,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                         expanded: true,
                         lines: currentSong.parsedLyrics!.lines,
                         isKaraoke: currentSong.parsedLyrics!.isKaraoke,
+                        isSynced: currentSong.parsedLyrics!.isSynced,
                       ),
               ),
             ),
@@ -940,25 +944,31 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         Positioned(
           right: 25,
           bottom: 40,
+          // The tap-up controls carry their own play button.
           child: ValueListenableBuilder(
-            valueListenable: lyricsPageForegroundColor.valueNotifier,
-            builder: (context, value, child) {
-              return IconButton(
-                color: value,
-                icon: ValueListenableBuilder(
-                  valueListenable: isPlayingNotifier,
-                  builder: (_, isPlaying, _) {
-                    return Icon(
-                      isPlaying
-                          ? Icons.pause_circle_rounded
-                          : Icons.play_circle_rounded,
-                      size: 48,
-                    );
-                  },
-                ),
-                onPressed: () => audioHandler.togglePlay(),
-              );
-            },
+            valueListenable: _controlsShown,
+            builder: (context, shown, child) =>
+                shown ? const SizedBox() : child!,
+            child: ValueListenableBuilder(
+              valueListenable: lyricsPageForegroundColor.valueNotifier,
+              builder: (context, value, child) {
+                return IconButton(
+                  color: value,
+                  icon: ValueListenableBuilder(
+                    valueListenable: isPlayingNotifier,
+                    builder: (_, isPlaying, _) {
+                      return Icon(
+                        isPlaying
+                            ? Icons.pause_circle_rounded
+                            : Icons.play_circle_rounded,
+                        size: 48,
+                      );
+                    },
+                  ),
+                  onPressed: () => audioHandler.togglePlay(),
+                );
+              },
+            ),
           ),
         ),
       ],
