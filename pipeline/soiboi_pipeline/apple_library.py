@@ -26,6 +26,7 @@ Nothing here downloads anything; it only reports what exists.
 import asyncio
 import logging
 
+from .apple_auth import open_api
 from .protocol import Emit, Event, JsonValue, Payload, done, error, ignore
 from .protocol import missing_fields, progress
 
@@ -107,9 +108,9 @@ def _track_entry(item: dict) -> Row:
     }
 
 
-async def _collect(cookies_path: str) -> tuple[str, list]:
+async def _collect(cookies_path: str, wrapper_url: str | None) -> tuple[str, list]:
     """The account's storefront and its raw library playlists."""
-    api = await AppleMusicApi.create_from_netscape_cookies(cookies_path)
+    api = await open_api(cookies_path, wrapper_url)
     if not api.active_subscription:
         raise PermissionError("This Apple Music account has no active subscription.")
     storefront = getattr(api, "storefront", None) or DEFAULT_STOREFRONT
@@ -117,8 +118,10 @@ async def _collect(cookies_path: str) -> tuple[str, list]:
     return storefront, response.get("data") or []
 
 
-async def _collect_tracks(cookies_path: str, library_id: str) -> list:
-    api = await AppleMusicApi.create_from_netscape_cookies(cookies_path)
+async def _collect_tracks(
+    cookies_path: str, library_id: str, wrapper_url: str | None
+) -> list:
+    api = await open_api(cookies_path, wrapper_url)
     response = await api.get_library_playlist(library_id)
     data = response.get("data") or []
     if not data:
@@ -131,7 +134,9 @@ def _unavailable() -> Event:
     return error("no_gamdl", "Apple Music client unavailable: gamdl is missing")
 
 
-def list_playlists(cookies_path: str, emit: Emit = ignore) -> Event:
+def list_playlists(
+    cookies_path: str, emit: Emit = ignore, wrapper_url: str | None = None
+) -> Event:
     """Every playlist in the signed-in account's library."""
     if AppleMusicApi is None:
         return _unavailable()
@@ -139,7 +144,7 @@ def list_playlists(cookies_path: str, emit: Emit = ignore) -> Event:
     emit(progress(10, "Reading your library"))
 
     try:
-        storefront, raw = asyncio.run(_collect(cookies_path))
+        storefront, raw = asyncio.run(_collect(cookies_path, wrapper_url))
     except PermissionError as exc:
         return error("no_subscription", str(exc))
     except FileNotFoundError:
@@ -159,7 +164,12 @@ def list_playlists(cookies_path: str, emit: Emit = ignore) -> Event:
     return done(playlists=playlists, storefront=storefront, total=len(playlists))
 
 
-def list_tracks(cookies_path: str, library_id: str, emit: Emit = ignore) -> Event:
+def list_tracks(
+    cookies_path: str,
+    library_id: str,
+    emit: Emit = ignore,
+    wrapper_url: str | None = None,
+) -> Event:
     """Tracks of one library playlist, for the ones with no catalog URL."""
     if AppleMusicApi is None:
         return _unavailable()
@@ -167,7 +177,7 @@ def list_tracks(cookies_path: str, library_id: str, emit: Emit = ignore) -> Even
     emit(progress(10, "Reading playlist"))
 
     try:
-        raw = asyncio.run(_collect_tracks(cookies_path, library_id))
+        raw = asyncio.run(_collect_tracks(cookies_path, library_id, wrapper_url))
     except Exception as exc:
         # Same spread of gamdl HTTP errors as above; the message is the
         # useful part.
@@ -182,11 +192,18 @@ def handle_playlists(payload: Payload, emit: Emit) -> Event:
     problem = missing_fields(payload, "cookies_path")
     if problem:
         return problem
-    return list_playlists(payload["cookies_path"], emit=emit)
+    return list_playlists(
+        payload["cookies_path"], emit=emit, wrapper_url=payload.get("wrapper_url")
+    )
 
 
 def handle_playlist_tracks(payload: Payload, emit: Emit) -> Event:
     problem = missing_fields(payload, "cookies_path", "library_id")
     if problem:
         return problem
-    return list_tracks(payload["cookies_path"], payload["library_id"], emit=emit)
+    return list_tracks(
+        payload["cookies_path"],
+        payload["library_id"],
+        emit=emit,
+        wrapper_url=payload.get("wrapper_url"),
+    )

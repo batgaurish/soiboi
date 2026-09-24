@@ -30,6 +30,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'base/audio_handler.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
+import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
@@ -132,6 +133,7 @@ Future<void> _start() async {
   downloadTempDir = '${appSupportDir.path}/download-temp';
 
   unawaited(refreshSessionState());
+  unawaited(wrapperService.refresh());
 
   runApp(
     ListenableBuilder(

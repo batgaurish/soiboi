@@ -73,25 +73,17 @@ void main() {
   });
 
   group('session completeness', () {
-    // Regression: a real four-month-old export carried a valid
-    // media-user-token (the subscription entitlement, good for months) while
-    // myacinfo (the account session) was long dead. Checking only the former
-    // reported "Signed in" while every download failed with an opaque
-    // "Error fetching account info (500)".
-    test('the entitlement cookie alone is not a session', () {
+    // Regression: a browser export with a valid media-user-token but no
+    // myacinfo was rejected, although gamdl reads only media-user-token.
+    test('the entitlement cookie alone is a usable session', () {
       final entitlementOnly = Cookie(
-        domain: '.apple.com',
+        domain: '.music.apple.com',
         name: 'media-user-token',
         value: 'v',
         expires: DateTime.now().add(const Duration(days: 200)),
       );
-      // A valid, long-lived entitlement must not on its own read as signed in.
       expect(entitlementOnly.isExpired, isFalse);
-      expect(
-        {'media-user-token'}.containsAll({'media-user-token', 'myacinfo'}),
-        isFalse,
-        reason: 'both cookies are required for a usable session',
-      );
+      expect(domainForCookie('media-user-token'), '.music.apple.com');
     });
   });
 

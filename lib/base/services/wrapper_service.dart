@@ -63,6 +63,15 @@ class WrapperState {
 class WrapperService {
   final state = ValueNotifier(const WrapperState(WrapperStage.stopped));
 
+  /// Whether the wrapper holds a signed-in Apple Music session.
+  ///
+  /// The wrapper runs only on demand, so [state] alone cannot say this at
+  /// startup. Apple keeps the session in the wrapper's own storage, and a
+  /// marker beside it remembers what the wrapper last reported. A signed-in
+  /// wrapper is Apple's own client logged into the account, so it stands in
+  /// for browser cookies everywhere the app talks to Apple.
+  final signedIn = ValueNotifier(false);
+
   Process? _process;
   int? _httpPort;
   int? _decryptPort;
@@ -90,6 +99,21 @@ class WrapperService {
 
   String get _baseUrl => 'http://127.0.0.1:$_httpPort';
 
+  File get _signedInMarker => File(p.join(installDir, 'signed_in'));
+
+  void _setSignedIn(bool value) {
+    signedIn.value = value;
+    try {
+      if (value) {
+        _signedInMarker.createSync(recursive: true);
+      } else if (_signedInMarker.existsSync()) {
+        _signedInMarker.deleteSync();
+      }
+    } on FileSystemException catch (e) {
+      logger.output('wrapper sign-in marker: $e');
+    }
+  }
+
   bool get librariesInstalled =>
       File(p.join(_libDir, 'libandroidappmusic.so')).existsSync();
 
@@ -115,6 +139,8 @@ class WrapperService {
   /// Sets [state] from what is on disk, without starting anything.
   Future<void> refresh() async {
     await _loadPlatform();
+    signedIn.value =
+        supported && librariesInstalled && _signedInMarker.existsSync();
     if (!supported || _bundleDir == null) {
       state.value = const WrapperState(
         WrapperStage.unsupported,
@@ -238,6 +264,7 @@ class WrapperService {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final auth = body['auth'] as Map<String, dynamic>?;
       if (auth == null) return false;
+      _setSignedIn(auth['state'] != 'logged_out');
       state.value = auth['state'] == 'logged_out'
           ? const WrapperState(WrapperStage.signedOut)
           : WrapperState(
@@ -319,6 +346,15 @@ class WrapperService {
           'wrapper_decrypt_port': _decryptPort!,
         }
       : null;
+
+  /// Starts a signed-in wrapper and returns its [downloadPayload], or null
+  /// when the wrapper is not set up or not signed in.
+  Future<Map<String, Object>?> ensureReady() async {
+    await refresh();
+    if (!librariesInstalled || !signedIn.value) return null;
+    await start();
+    return downloadPayload;
+  }
 
   static Future<int> _freePort() async {
     final socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);

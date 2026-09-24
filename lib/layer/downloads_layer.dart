@@ -13,6 +13,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
+import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
@@ -114,7 +115,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   Widget build(BuildContext context) {
     final body = ListenableBuilder(
       listenable: Listenable.merge([
-        signedInNotifier,
+        appleAuthListenable,
         pipelineCapabilitiesNotifier,
       ]),
       builder: (context, _) => RefreshIndicator(
@@ -201,7 +202,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   /// is actually wrong, and they have completely different fixes.
   Widget _readinessCard() {
     final caps = pipelineCapabilitiesNotifier.value;
-    final signedIn = signedInNotifier.value;
+    final signedIn = hasAppleAuth;
     final runtimeOk = caps?.canDownload ?? false;
     if (signedIn && runtimeOk) return const SizedBox.shrink();
 
@@ -213,7 +214,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           _requirement(
             ok: signedIn,
             label: 'Apple Music account',
-            detail: signedIn ? 'Signed in' : 'Sign in to download',
+            detail: wrapperService.signedIn.value
+                ? 'Signed in through the lossless wrapper'
+                : signedIn
+                ? 'Signed in'
+                : 'Sign in to download',
             action: signedIn
                 ? null
                 : () async {
@@ -276,7 +281,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
 
   Widget _archiveCard() {
     final ready =
-        signedInNotifier.value &&
+        hasAppleAuth &&
         (pipelineCapabilitiesNotifier.value?.canDownload ?? false);
     final busy = _submitting;
     return _card(

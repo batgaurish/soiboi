@@ -16,6 +16,7 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 
+from .apple_auth import has_credentials, open_api
 from .protocol import Emit, progress, warning
 
 try:
@@ -97,8 +98,13 @@ def _catalog_id(path: str) -> str | None:
     return str(ids[0]) if ids else None
 
 
-async def _fetch_all(cookies_path: str, tracks: list[tuple[str, str]], emit: Emit) -> int:
-    api = await AppleMusicApi.create_from_netscape_cookies(cookies_path)
+async def _fetch_all(
+    cookies_path: str,
+    tracks: list[tuple[str, str]],
+    emit: Emit,
+    wrapper_url: str | None = None,
+) -> int:
+    api = await open_api(cookies_path, wrapper_url)
     written = 0
     for index, (path, song_id) in enumerate(tracks):
         emit(progress(96, f"Fetching word-timed lyrics ({index + 1}/{len(tracks)})"))
@@ -123,7 +129,11 @@ async def _fetch_all(cookies_path: str, tracks: list[tuple[str, str]], emit: Emi
 
 
 def fetch_for_directory(
-    cookies_path: str, directory: str, emit: Emit, since: float = 0.0
+    cookies_path: str,
+    directory: str,
+    emit: Emit,
+    since: float = 0.0,
+    wrapper_url: str | None = None,
 ) -> int:
     """Write word-timed lyrics for tracks written since [since] that have none.
 
@@ -133,7 +143,7 @@ def fetch_for_directory(
     Returns how many were written. Never raises: lyrics are a bonus on a
     download that has already succeeded.
     """
-    if AppleMusicApi is None or not os.path.exists(cookies_path):
+    if AppleMusicApi is None or not has_credentials(cookies_path, wrapper_url):
         return 0
     tracks = []
     for root, _dirs, files in os.walk(directory):
@@ -149,7 +159,7 @@ def fetch_for_directory(
         wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL)
     )
     try:
-        return asyncio.run(_fetch_all(cookies_path, tracks, emit))
+        return asyncio.run(_fetch_all(cookies_path, tracks, emit, wrapper_url))
     except Exception as exc:
         # A dead session or no network: the download itself still stands.
         emit(warning(f"Word-timed lyrics skipped: {exc}"))

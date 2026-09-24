@@ -20,6 +20,7 @@ library;
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
+import 'package:soiboi/base/services/wrapper_service.dart';
 
 /// One playlist in the account's library.
 class ApplePlaylist {
@@ -116,6 +117,7 @@ Future<ApplePlaylistsResult> fetchApplePlaylists() async {
 
     await for (final event in pipelineRunner.run('apple_playlists', {
       'cookies_path': cookie_store.cookiesPath,
+      ...await _wrapperAuth(),
     })) {
       if (event.isError) {
         error = event.message;
@@ -163,6 +165,7 @@ Future<List<AppleLibraryTrack>> fetchApplePlaylistTracks(
   final tracks = <AppleLibraryTrack>[];
   await for (final event in pipelineRunner.run('apple_playlist_tracks', {
     'cookies_path': cookie_store.cookiesPath,
+    ...await _wrapperAuth(),
     'library_id': libraryId,
   })) {
     if (event.isError) throw AppleLibraryException(event.message);
@@ -255,4 +258,12 @@ Future<AppleImportOutcome> archiveApplePlaylist(
     queued: archivable.length,
     skipped: tracks.length - archivable.length,
   );
+}
+
+/// The signed-in wrapper's address, which the pipeline prefers over the
+/// cookies file. Empty when the wrapper is not signed in.
+Future<Map<String, Object>> _wrapperAuth() async {
+  final payload = await wrapperService.ensureReady();
+  final url = payload?['wrapper_url'];
+  return url == null ? const {} : {'wrapper_url': url};
 }

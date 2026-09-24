@@ -50,14 +50,14 @@ def test_track_without_a_catalog_id_is_library_only():
 
 
 def _collect_returning(storefront, raw):
-    async def collect(cookies_path):
+    async def collect(cookies_path, wrapper_url=None):
         return storefront, raw
 
     return collect
 
 
 def _collect_raising(exc):
-    async def collect(cookies_path):
+    async def collect(cookies_path, wrapper_url=None):
         raise exc
 
     return collect

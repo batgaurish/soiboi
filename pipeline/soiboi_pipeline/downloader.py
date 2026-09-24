@@ -527,7 +527,13 @@ def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
         return failure
 
     _analyse_output(request.output_dir, emit, since=started)
-    lyrics.fetch_for_directory(request.cookies_path, request.output_dir, emit, since=started)
+    lyrics.fetch_for_directory(
+        request.cookies_path,
+        request.output_dir,
+        emit,
+        since=started,
+        wrapper_url=request.wrapper_url if request.use_wrapper else None,
+    )
     emit(progress(100, "Done"))
     return done(output_dir=request.output_dir, log_path=log_path)
 
