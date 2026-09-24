@@ -162,7 +162,7 @@ class _SongListState extends State<SongList> {
   }
 
   MyPicture? get mainPicture {
-    MyPicture? picture = getFirstSong(songList)?.picture;
+    MyPicture? picture = playlist?.customCover ?? getFirstSong(songList)?.picture;
     if (isStreamSource) {
       if (artist != null) {
         picture = artist!.picture;

@@ -214,6 +214,7 @@ extension _CollectionListPage on CollectionListState {
             onTap: () {
               currentOnTapList[index].call();
             },
+            onLongPress: () => openItemMenu(context, index),
           ),
         );
       },
@@ -254,6 +255,10 @@ extension _CollectionListPage on CollectionListState {
                       onTap: () {
                         currentOnTapList[index].call();
                       },
+                      onLongPressStart: (details) =>
+                          openItemMenu(context, index, details.globalPosition),
+                      onSecondaryTapUp: (details) =>
+                          openItemMenu(context, index, details.globalPosition),
                     ),
                     SizedBox(
                       width: constraints.maxWidth - 10,

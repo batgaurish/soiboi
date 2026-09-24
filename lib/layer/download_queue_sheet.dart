@@ -79,20 +79,32 @@ class DownloadQueueView extends StatelessWidget {
             ],
             _controls(active.length, finished.length),
             const SizedBox(height: 8),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final job in active) _row(job),
-                  if (active.isNotEmpty && finished.isNotEmpty)
-                    const SizedBox(height: 6),
-                  for (final job in finished) _row(job),
-                ],
+            // Inline, the page around this scrolls with unbounded height, so
+            // an uncapped list grows to every row and, being a scrollable
+            // itself, swallows each drag without moving: a long queue froze
+            // the whole Downloads page. Capped, it scrolls in its own box and
+            // drags elsewhere scroll the page.
+            if (showTitle)
+              Flexible(child: _list(active, finished))
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 360),
+                child: _list(active, finished),
               ),
-            ),
           ],
         );
       },
+    );
+  }
+
+  Widget _list(List<DownloadJob> active, List<DownloadJob> finished) {
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        for (final job in active) _row(job),
+        if (active.isNotEmpty && finished.isNotEmpty) const SizedBox(height: 6),
+        for (final job in finished) _row(job),
+      ],
     );
   }
 

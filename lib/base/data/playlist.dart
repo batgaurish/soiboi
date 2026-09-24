@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/services/picture_service.dart';
+import 'package:crypto/crypto.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/interaction.dart';
@@ -21,6 +23,29 @@ class PlaylistManager {
   List<Playlist> playlists = [];
   Map<String, Playlist> playlistMap = {};
   ValueNotifier<int> updateNotifier = ValueNotifier(0);
+
+  /// Playlists shown in the sidebar. Every playlist is on the Playlists tab;
+  /// only pinned ones (and Favorite, always) also get a sidebar entry, so a
+  /// library with dozens of imported playlists keeps a usable sidebar.
+  final Set<String> _pinned = {};
+  late File _pinnedFile;
+
+  bool isPinned(Playlist playlist) =>
+      playlist.isFavorite || _pinned.contains(playlist.name);
+
+  /// Favorite first, then pinned playlists in the user's order.
+  List<Playlist> get sidebarPlaylists => playlists.where(isPinned).toList();
+
+  void setPinned(Playlist playlist, bool pinned) {
+    if (playlist.isFavorite) return;
+    pinned ? _pinned.add(playlist.name) : _pinned.remove(playlist.name);
+    _savePinned();
+    updateNotifier.value++;
+  }
+
+  void _savePinned() {
+    _pinnedFile.writeAsStringSync(jsonEncode(_pinned.toList()));
+  }
 
   PlaylistManager() {
     addPlaylist(Playlist(name: 'Favorite'));
@@ -42,6 +67,19 @@ class PlaylistManager {
     for (final name in playlistNames) {
       final playlist = Playlist(name: name);
       addPlaylist(playlist);
+    }
+
+    _pinnedFile = File(
+      "${getPlaylistConfigPath(sourceType)}/soiboi_pinned_playlists.json",
+    );
+    _pinned.clear();
+    if (_pinnedFile.existsSync()) {
+      _pinned.addAll((await readJsonListFile(_pinnedFile)).cast<String>());
+    } else {
+      // First run with pinning: everything already in the sidebar stays
+      // there. Playlists made from now on start unpinned.
+      _pinned.addAll(playlistNames.cast<String>());
+      _savePinned();
     }
     if (isStreamSource) {
       final tmpPlaylist = await streamClient?.getPlaylists();
@@ -116,6 +154,8 @@ class PlaylistManager {
       }
     }
     playlist.songListFile?.deleteSync();
+    playlist.removeCover();
+    if (_pinned.remove(playlist.name)) _savePinned();
 
     playlists.remove(playlist);
     playlistMap.remove(playlist.name);
@@ -167,10 +207,68 @@ class Playlist {
 
     isFavorite = name == 'Favorite';
     isNotFavorite = !isFavorite;
+    if (isNotStreamSource) _loadCover();
   }
 
   MyAudioMetadata? getCoverSong() {
     return getFirstSong(songList);
+  }
+
+  /// An image the user chose (or an import brought), shown instead of the
+  /// first song's artwork.
+  ///
+  /// Stored with the app's other pictures under a name that changes on every
+  /// replacement: image caches key on the path, so reusing one path would
+  /// keep showing the old cover.
+  MyPicture? customCover;
+
+  MyPicture? get coverPicture => customCover ?? getCoverSong()?.picture;
+
+  String get _coverPrefix =>
+      'playlist-cover-${md5.convert(utf8.encode(name))}-';
+
+  Iterable<File> _coverFiles() {
+    final dir = Directory(getPicturesPath(sourceType));
+    if (!dir.existsSync()) return const [];
+    return dir.listSync().whereType<File>().where(
+      (f) => f.uri.pathSegments.last.startsWith(_coverPrefix),
+    );
+  }
+
+  void _loadCover() {
+    final files = _coverFiles().toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
+    customCover = files.isEmpty
+        ? null
+        : MyPicture(name, md5Hash: files.last.uri.pathSegments.last);
+  }
+
+  /// Copies the image at [imagePath] in as this playlist's cover.
+  Future<void> setCover(String imagePath) async {
+    final hash = '$_coverPrefix${DateTime.now().millisecondsSinceEpoch}';
+    final target = File('${getPicturesPath(sourceType)}/$hash');
+    await target.parent.create(recursive: true);
+    await File(imagePath).copy(target.path);
+    for (final old in _coverFiles()) {
+      if (old.path != target.path) old.deleteSync();
+    }
+    customCover = MyPicture(name, md5Hash: hash);
+    _coverChanged();
+  }
+
+  void removeCover() {
+    for (final file in _coverFiles()) {
+      file.deleteSync();
+    }
+    if (customCover == null) return;
+    customCover = null;
+    _coverChanged();
+  }
+
+  void _coverChanged() {
+    changeNotifier.value++;
+    playlistManager.updateNotifier.value++;
+    layersManager.updateBackground();
   }
 
   int get totalCount => songList.length;

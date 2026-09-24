@@ -423,7 +423,7 @@ class LayersManager {
     } else if (layer is RecentlyLayer && sourceType != .navidrome) {
       return getFirstSong(history.recentlySongList)?.picture;
     } else if (layer is SinglePlaylistLayer) {
-      return layer.playlist.getCoverSong()?.picture;
+      return layer.playlist.coverPicture;
     } else {
       return currentSongNotifier.value?.picture;
     }

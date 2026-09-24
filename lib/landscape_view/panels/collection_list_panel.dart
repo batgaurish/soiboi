@@ -188,6 +188,12 @@ extension _CollectionListPanel on CollectionListState {
                             onTap: () {
                               currentOnTapList[index].call();
                             },
+                            onLongPress: () => openItemMenu(context, index),
+                            onSecondaryTapUp: (details) => openItemMenu(
+                              context,
+                              index,
+                              details.globalPosition,
+                            ),
                           ),
                           SizedBox(height: 5),
 

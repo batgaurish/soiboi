@@ -11,6 +11,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/services/linked_playlists.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/services/system_fonts.dart';
 import 'package:soiboi/base/data/playlist.dart';
@@ -72,6 +73,7 @@ class Loader {
     history.load();
 
     await playlistManager.load();
+    await linkedPlaylists.refreshAll();
 
     if (isNotStreamSource) {
       artistAlbumManager.classify();
@@ -117,6 +119,7 @@ class Loader {
     history.load();
 
     await playlistManager.load();
+    await linkedPlaylists.refreshAll();
 
     if (isNotStreamSource) {
       artistAlbumManager.classify();
@@ -143,6 +146,7 @@ class Loader {
     history.load();
 
     await playlistManager.load();
+    await linkedPlaylists.refreshAll();
 
     if (isNotStreamSource) {
       artistAlbumManager.classify();

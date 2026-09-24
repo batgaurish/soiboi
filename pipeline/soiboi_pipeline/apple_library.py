@@ -60,9 +60,9 @@ def _artwork_url(attributes: dict) -> str | None:
     url = (attributes.get("artwork") or {}).get("url")
     if not url:
         return None
-    # Apple templates the size into the URL. A list row needs 300px, not the
-    # 1200px original.
-    for placeholder, value in (("{w}", "300"), ("{h}", "300"), ("{c}", "bb"), ("{f}", "jpg")):
+    # Apple templates the size into the URL. 600px is enough for both a list
+    # row and the playlist cover it becomes, without the 1200px original.
+    for placeholder, value in (("{w}", "600"), ("{h}", "600"), ("{c}", "bb"), ("{f}", "jpg")):
         url = url.replace(placeholder, value)
     return url
 
@@ -108,14 +108,38 @@ def _track_entry(item: dict) -> Row:
     }
 
 
+async def _follow_pages(api, relation: dict) -> list:
+    """Every item of a paged relation, not just Apple's first page.
+
+    Apple returns at most 100 items per request and a `next` link for the
+    rest, so without this a 250-song playlist silently came back as 100.
+    Same loop gamdl's own playlist download uses.
+    """
+    items = list(relation.get("data") or [])
+    next_uri = relation.get("next")
+    href_uri = relation.get("href") or ""
+    while next_uri:
+        page = await api.get_extended_api_data(next_uri, href_uri) or {}
+        items.extend(page.get("data") or [])
+        next_uri = page.get("next")
+    return items
+
+
 async def _collect(cookies_path: str, wrapper_url: str | None) -> tuple[str, list]:
-    """The account's storefront and its raw library playlists."""
+    """The account's storefront and all of its raw library playlists."""
     api = await open_api(cookies_path, wrapper_url)
     if not api.active_subscription:
         raise PermissionError("This Apple Music account has no active subscription.")
     storefront = getattr(api, "storefront", None) or DEFAULT_STOREFRONT
-    response = await api.get_library_playlists()
-    return storefront, response.get("data") or []
+    playlists = []
+    offset = 0
+    while True:
+        page = (await api.get_library_playlists(offset=offset)).get("data") or []
+        playlists.extend(page)
+        if len(page) < 100:
+            break
+        offset += len(page)
+    return storefront, playlists
 
 
 async def _collect_tracks(
@@ -127,7 +151,7 @@ async def _collect_tracks(
     if not data:
         return []
     relationships = data[0].get("relationships") or {}
-    return (relationships.get("tracks") or {}).get("data") or []
+    return await _follow_pages(api, relationships.get("tracks") or {})
 
 
 def _unavailable() -> Event:

@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'dart:math';
+
+import 'package:file_picker/file_picker.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/color_manager.dart';
@@ -79,7 +82,7 @@ class _Add2PlaylistPanelState extends State<Add2PlaylistPanel> {
                     leading: CoverArtWidget(
                       size: 40,
                       borderRadius: 4,
-                      picture: playlist.getCoverSong()?.picture,
+                      picture: playlist.coverPicture,
                     ),
                     title: Text(
                       index == 0 ? l10n.favorites : playlist.name,
@@ -205,7 +208,7 @@ Widget _playlistListTile(Playlist playlist) {
       leading: CoverArtWidget(
         size: 50,
         borderRadius: 5,
-        picture: playlist.getCoverSong()?.picture,
+        picture: playlist.coverPicture,
       ),
       title: Text(playlist.name),
       subtitle: Builder(
@@ -217,4 +220,43 @@ Widget _playlistListTile(Playlist playlist) {
       ),
     ),
   );
+}
+
+/// Pin and cover actions for [playlist], shared by the sidebar's and the
+/// Playlists tab's context menus.
+List<MenuItem> playlistOptionItems(Playlist playlist) {
+  final pinned = playlistManager.isPinned(playlist);
+  return [
+    if (playlist.isNotFavorite)
+      MenuItem(
+        iconData: pinned ? Icons.push_pin_outlined : Icons.push_pin,
+        text: pinned ? 'Unpin from sidebar' : 'Pin to sidebar',
+        callback: () => playlistManager.setPinned(playlist, !pinned),
+      ),
+    MenuItem(
+      iconData: Icons.image_outlined,
+      text: 'Set cover image',
+      callback: () => pickPlaylistCover(playlist),
+    ),
+    if (playlist.customCover != null)
+      MenuItem(
+        iconData: Icons.hide_image_outlined,
+        text: 'Remove cover image',
+        callback: playlist.removeCover,
+      ),
+  ];
+}
+
+Future<void> pickPlaylistCover(Playlist playlist) async {
+  final result = await FilePicker.pickFiles(
+    dialogTitle: 'Choose a cover for ${playlist.name}',
+    type: FileType.image,
+  );
+  final path = result?.files.single.path;
+  if (path == null) return;
+  try {
+    await playlist.setCover(path);
+  } on FileSystemException catch (e) {
+    showCenterMessage('Could not set the cover: ${e.message}');
+  }
 }
