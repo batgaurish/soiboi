@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:soiboi/base/services/archive_service.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 
 /// A queue wired to a fake downloader, so the tests are about queue mechanics
@@ -17,9 +18,10 @@ DownloadQueueManager _manager({
         void Function(int, String)? onProgress,
         void Function(String)? onLog,
         String? logPath,
-      }) {
+      }) async {
         onProgress?.call(50, 'Downloading');
-        return archive(url);
+        final message = await archive(url);
+        return message == null ? null : DownloadFailure(message);
       };
   manager.sync = () async => onSync?.call();
   manager.stopActive = () async {};

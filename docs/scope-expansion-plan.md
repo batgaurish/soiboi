@@ -49,6 +49,11 @@ Pieces several later items need. Built once, first.
   from v1.1.7 are how new entries get found.
   *Done when:* the Downloads screen and notifications show the catalog's text
   instead of raw exception text for every known failure.
+  *Status:* built (`error_catalog.dart`, 25 entries from gamdl 3.9's
+  exceptions and the pipeline's codes). Queue rows, the failure banner, the
+  playlist and album sheets and the Apple playlists card use it; the raw text
+  and the matched entry go to the job's log. No download notification exists
+  yet: 3.1 posts them through `describeFailure`.
 - [ ] **0.3 Motion and contrast settings** (S). A `reduceMotion` flag that
   follows the system's "remove animations" setting with a manual override, and
   a helper that enforces minimum contrast, generalised from the sidebar's

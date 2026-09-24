@@ -250,8 +250,8 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
     setState(() {
       _sending = false;
       _archived.addAll(batch.succeeded.map((job) => job.url));
-      final errors = batch.errors;
-      if (errors.isNotEmpty) _error = errors.last;
+      final failures = batch.failures;
+      if (failures.isNotEmpty) _error = failures.last.sentence;
       _selected.clear();
     });
   }

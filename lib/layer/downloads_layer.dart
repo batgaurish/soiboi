@@ -20,6 +20,7 @@ import 'package:soiboi/base/services/linked_playlists.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
+import 'package:soiboi/base/services/error_catalog.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
 import 'package:soiboi/base/services/tracklist_source.dart';
 import 'package:soiboi/base/services/interaction.dart';
@@ -406,8 +407,20 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        failed.last.error ?? 'Download failed',
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: failed.last.failure?.title ??
+                                  'Download failed',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (failed.last.failure case final failure?)
+                              TextSpan(text: '\n${failure.detail}'),
+                          ],
+                        ),
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.red,
@@ -595,7 +608,9 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       _appleLoaded = true;
       _applePlaylists = result.playlists;
       _appleStorefront = result.storefront;
-      _appleError = result.error;
+      _appleError = result.error == null
+          ? null
+          : explainFailure(result.error!)?.sentence ?? result.error;
       _appleNeedsSignIn = result.needsSignIn;
     });
   }
@@ -604,8 +619,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     showCenterMessage('Queueing ${playlist.name}…');
     final outcome = await archiveApplePlaylist(playlist, _appleStorefront);
     if (!mounted) return;
-    if (outcome.error != null) {
-      showCenterMessage(outcome.error!, duration: 4000);
+    if (outcome.error case final error?) {
+      showCenterMessage(
+        explainFailure(error)?.sentence ?? error,
+        duration: 4000,
+      );
       return;
     }
     showCenterMessage(
@@ -996,8 +1014,8 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     if (!mounted) return;
     setState(() {
       _sending = false;
-      final errors = batch.errors;
-      if (errors.isNotEmpty) _error = errors.last;
+      final failures = batch.failures;
+      if (failures.isNotEmpty) _error = failures.last.sentence;
       // Cleared either way: leaving the selection behind invites archiving the
       // same tracks twice, and the failures are retryable from the queue.
       _selected.clear();
