@@ -29,6 +29,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 DateTime? _lastShowTime;
 
@@ -1216,7 +1217,7 @@ Future<String?> _selectArtist(
         child: ListView.builder(
           shrinkWrap: true,
           itemCount: artists.length,
-          itemExtent: 60,
+          itemExtent: scaledExtent(context, 60),
           itemBuilder: (context, index) {
             String name = artists[index];
 

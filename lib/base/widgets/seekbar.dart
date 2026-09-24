@@ -34,7 +34,8 @@ class SeekBarState extends State<SeekBar> {
   Widget build(BuildContext context) {
     horizontalPadding = 0;
     if (!isTooNarrow(context) && !widget.isMiniMode) {
-      horizontalPadding = 45;
+      // Room for the times either side of the bar, which grow with text.
+      horizontalPadding = scaledExtent(context, 45, textShare: 0.9);
     }
 
     return StreamBuilder(
@@ -96,8 +97,14 @@ class SeekBarState extends State<SeekBar> {
   }
 
   Widget _bar(double sliderValue, Duration duration, double durationMs) {
+    // Taller with large text, so the times below stay clear of the bar.
+    final widgetHeight = scaledExtent(
+      context,
+      widget.widgetHeight,
+      textShare: 0.5,
+    );
     return SizedBox(
-      height: widget.widgetHeight,
+      height: widgetHeight,
       child: Stack(
         alignment: Alignment.centerLeft,
         children: [
@@ -164,8 +171,8 @@ class SeekBarState extends State<SeekBar> {
 
           // Full-track GestureDetector to capture touches anywhere on the track
           Positioned.fill(
-            top: (widget.widgetHeight - widget.seekBarHeight) / 2,
-            bottom: (widget.widgetHeight - widget.seekBarHeight) / 2,
+            top: (widgetHeight - widget.seekBarHeight) / 2,
+            bottom: (widgetHeight - widget.seekBarHeight) / 2,
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onVerticalDragStart: (_) {

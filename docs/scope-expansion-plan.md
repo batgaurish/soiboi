@@ -89,6 +89,12 @@ shortcuts, and every palette comes from album art with no contrast check.
   cards by letting fixed-height rows grow and removing hard `itemExtent`s
   where text lives.
   *Done when:* nothing overflows at 200% on a 360-dp-wide phone.
+  *Status:* built. Checked with a debug build of the phone layout at 360 by
+  780 and 200% text (Home, drawer, Songs, Downloads, Settings, player, queue,
+  song menu) and the desktop layout at 200% (sidebar, Songs, Settings,
+  player): no overflow reported. `scaledExtent` grows fixed rows by the part
+  that holds text, so lists keep their fixed row height (and scroll-to-song)
+  at every size; nothing changes at 100%. Not yet checked on a phone.
 - [ ] **1.3 Readable palettes** (M). Apply the 0.3 contrast helper to every
   generated palette: body text at least 4.5:1, icons and large text at least
   3:1. Nudge the lightness instead of throwing the palette away.

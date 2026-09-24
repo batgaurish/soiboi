@@ -410,7 +410,7 @@ extension _SongListPage on _SongListState {
               );
             }
             return SliverFixedExtentList.builder(
-              itemExtent: 60,
+              itemExtent: scaledExtent(context, 60),
               itemCount: currentSongList.length,
               itemBuilder: (context, index) {
                 return Center(child: songListTile(index, currentSongList));

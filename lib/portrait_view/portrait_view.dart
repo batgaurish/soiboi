@@ -171,7 +171,7 @@ class _PortraitViewState extends State<PortraitView>
       builder: (context, value, child) {
         return Drawer(
           backgroundColor: backgroundCoverArtColor,
-          width: 220,
+          width: sidebarWidth(context),
           child: Column(
             children: [
               ValueListenableBuilder(

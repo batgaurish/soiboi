@@ -10,6 +10,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 class PlayQueueSheet extends StatefulWidget {
   const PlayQueueSheet({super.key});
@@ -26,7 +27,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
     final maxScrollExtent = position.maxScrollExtent;
     final minScrollExtent = position.minScrollExtent;
     scrollController.jumpTo(
-      (54.0 * audioHandler.currentIndex).clamp(
+      (scaledExtent(context, 54) * audioHandler.currentIndex).clamp(
         minScrollExtent,
         maxScrollExtent,
       ),
@@ -81,15 +82,20 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                 child: Row(
                   children: [
                     SizedBox(width: 15),
-                    Text(
-                      l10n.playQueue,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: specificTextColor,
+                    // Shortens rather than pushing the buttons off screen
+                    // at large text sizes.
+                    Expanded(
+                      child: Text(
+                        l10n.playQueue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: specificTextColor,
+                        ),
                       ),
                     ),
-                    Spacer(),
 
                     IconButton(
                       tooltip: 'Reverse queue',
@@ -111,10 +117,9 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                         final maxScrollExtent = position.maxScrollExtent;
                         final minScrollExtent = position.minScrollExtent;
                         scrollController.animateTo(
-                          (54.0 * audioHandler.currentIndex).clamp(
-                            minScrollExtent,
-                            maxScrollExtent,
-                          ),
+                          (scaledExtent(context, 54) *
+                                  audioHandler.currentIndex)
+                              .clamp(minScrollExtent, maxScrollExtent),
                           duration: Duration(milliseconds: 300),
                           curve: Curves.linear,
                         );
@@ -150,7 +155,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
               Expanded(
                 child: ReorderableListView.builder(
                   scrollController: scrollController,
-                  itemExtent: 54,
+                  itemExtent: scaledExtent(context, 54),
                   onReorderItem: (oldIndex, newIndex) {
                     if (oldIndex == audioHandler.currentIndex) {
                       audioHandler.currentIndex = newIndex;

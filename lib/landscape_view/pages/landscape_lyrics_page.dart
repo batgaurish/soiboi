@@ -21,6 +21,7 @@ import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/utils/media_query.dart';
 
 class LandscapeLyricsPage extends StatefulWidget {
   const LandscapeLyricsPage({super.key});
@@ -281,7 +282,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
         SizedBox(height: pageHight * 0.01),
         SizedBox(
           width: width - 30,
-          height: 36,
+          height: scaledExtent(context, 36, textShare: 0.8),
           child: Center(
             child: ValueListenableBuilder(
               valueListenable: lyricsPageHighlightTextColor.valueNotifier,
@@ -305,7 +306,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
 
         SizedBox(
           width: width - 30,
-          height: 28,
+          height: scaledExtent(context, 28, textShare: 0.8),
           child: Center(
             child: ValueListenableBuilder(
               valueListenable: lyricsPageForegroundColor.valueNotifier,
