@@ -4,7 +4,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:material_ui/material_ui.dart';
 import 'package:screen_corner_radius/screen_corner_radius.dart';
 
-const String versionNumber = '1.1.3';
+const String versionNumber = '1.1.4';
 
 late final Directory appDocsDir;
 late final Directory appSupportDir;
