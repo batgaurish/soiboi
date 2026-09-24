@@ -70,6 +70,11 @@ final downloadFolderNotifier = ValueNotifier<String>('');
 /// a private one is the only fix. Null = use the bundled device.
 final wvdPathNotifier = ValueNotifier<String?>(null);
 
+/// Shows a log button on each download in the queue: the app's own steps
+/// for that download and the downloader's raw output. Off by default; it is
+/// for finding out why something is stuck or failing.
+final showDownloadLogsNotifier = ValueNotifier(false);
+
 /// Whether to use a Widevine wrapper service instead of a local .wvd file.
 final useWrapperNotifier = ValueNotifier(false);
 
@@ -211,6 +216,8 @@ class Setting {
     downloadFolderNotifier.value = json['downloadFolder'] as String? ?? '';
     wvdPathNotifier.value = json['wvdPath'] as String?;
     useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
+    showDownloadLogsNotifier.value =
+        json['showDownloadLogs'] as bool? ?? false;
     wrapperUrlNotifier.value = json['wrapperUrl'] as String? ?? '';
 
     recursiveScanNotifier.value = json['recursiveScan'] as bool? ?? false;
@@ -257,6 +264,7 @@ class Setting {
         'downloadFolder': downloadFolderNotifier.value,
         'wvdPath': wvdPathNotifier.value,
         'useWrapper': useWrapperNotifier.value,
+        'showDownloadLogs': showDownloadLogsNotifier.value,
         'wrapperUrl': wrapperUrlNotifier.value,
 
         'recursiveScan': recursiveScanNotifier.value,
