@@ -3,6 +3,25 @@ part of '../../base/widgets/song_list.dart';
 extension _SongListPanel on _SongListState {
   Widget panelView(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    return Stack(
+      children: [
+        _panelBody(context, l10n),
+        if (_canAddSongs && songList.isNotEmpty)
+          Positioned(
+            right: 32,
+            bottom: 32,
+            child: FloatingActionButton.extended(
+              heroTag: 'addSongsPanel',
+              onPressed: () => _addSongs(context),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add songs'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _panelBody(BuildContext context, AppLocalizations l10n) {
     return Column(
       children: [
         Opacity(
@@ -147,26 +166,7 @@ extension _SongListPanel on _SongListState {
             if (canAdd) ...[
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: () {
-                  final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
-                  for (final song in library.songList) {
-                    selectionMap[song] = ValueNotifier(false);
-                  }
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SelectableSongListPage(
-                        songList: library.songList,
-                        playlist: playlist,
-                        folder: null,
-                        isRanking: false,
-                        isRecently: false,
-                        isLibrary: false,
-                        reorderable: false,
-                        isSelectedNotifierMap: selectionMap,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _addSongs(context),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Add songs'),
               ),

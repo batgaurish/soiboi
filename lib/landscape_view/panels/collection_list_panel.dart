@@ -2,6 +2,17 @@ part of "../../base/widgets/collection_list.dart";
 
 extension _CollectionListPanel on CollectionListState {
   Widget panelView(BuildContext context) {
+    final fab = floatingAction(context);
+    if (fab == null) return _panelBody(context);
+    return Stack(
+      children: [
+        _panelBody(context),
+        Positioned(right: 32, bottom: 32, child: fab),
+      ],
+    );
+  }
+
+  Widget _panelBody(BuildContext context) {
     return Column(
       children: [
         TitleBar(

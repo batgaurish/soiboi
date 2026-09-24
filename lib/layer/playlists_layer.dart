@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/widgets/collection_list.dart';
+import 'package:soiboi/base/widgets/playlist_widgets.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/asset_images.dart';
@@ -74,6 +75,14 @@ class _PlaylistsLayerState extends CollectionListState {
     playlistManager.updateNotifier.removeListener(updateCurrentList);
     super.dispose();
   }
+
+  @override
+  Widget? floatingAction(BuildContext context) => FloatingActionButton.extended(
+    heroTag: 'newPlaylist',
+    onPressed: () => showCreatePlaylistDialog(context),
+    icon: const Icon(Icons.add_rounded),
+    label: const Text('New playlist'),
+  );
 
   @override
   Widget build(BuildContext context) {

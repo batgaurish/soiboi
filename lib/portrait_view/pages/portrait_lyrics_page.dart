@@ -57,6 +57,8 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
   @override
   void dispose() {
     _modes.dispose();
+    _hideControls?.cancel();
+    _controlsShown.dispose();
     super.dispose();
   }
 
@@ -271,25 +273,49 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
 
                       _modeSwitcher(),
                       Expanded(
-                        child: PageView(
-                          controller: _modes,
-                          onPageChanged: (page) {
-                            _lastMode = page;
-                            _modeNotifier.value = page;
+                        // Art and Lyrics have no controls of their own, so a
+                        // tap or a scroll brings them up over the page.
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: (n) {
+                            if (n is ScrollUpdateNotification &&
+                                n.metrics.axis == Axis.vertical) {
+                              _showControls();
+                            }
+                            return false;
                           },
-                          children: [
-                            artOnlyPage(context, currentSong),
-                            artPage(context, currentSong),
-                            ValueListenableBuilder(
-                              valueListenable: enableAllNotifier,
-                              builder: (context, value, child) {
-                                if (!value) {
-                                  return SizedBox.shrink();
-                                }
-                                return expandedLyricsPage(context, currentSong);
-                              },
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: _showControls,
+                            child: Stack(
+                              children: [
+                                PageView(
+                                  controller: _modes,
+                                  onPageChanged: (page) {
+                                    _lastMode = page;
+                                    _modeNotifier.value = page;
+                                    _controlsShown.value = false;
+                                  },
+                                  children: [
+                                    artOnlyPage(context, currentSong),
+                                    artPage(context, currentSong),
+                                    ValueListenableBuilder(
+                                      valueListenable: enableAllNotifier,
+                                      builder: (context, value, child) {
+                                        if (!value) {
+                                          return SizedBox.shrink();
+                                        }
+                                        return expandedLyricsPage(
+                                          context,
+                                          currentSong,
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                _overlayControls(),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ],
@@ -299,6 +325,68 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
           ),
         );
       },
+    );
+  }
+
+  final _controlsShown = ValueNotifier(false);
+  Timer? _hideControls;
+
+  void _showControls() {
+    if (_modeNotifier.value == 1) return; // Both has its own controls
+    _controlsShown.value = true;
+    _hideControls?.cancel();
+    _hideControls = Timer(
+      const Duration(seconds: 4),
+      () => _controlsShown.value = false,
+    );
+  }
+
+  Widget _overlayControls() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: ValueListenableBuilder(
+        valueListenable: _controlsShown,
+        builder: (context, shown, child) => IgnorePointer(
+          ignoring: !shown,
+          child: AnimatedOpacity(
+            opacity: shown ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: child,
+          ),
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0),
+                Colors.black.withValues(alpha: 0.45),
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: ValueListenableBuilder(
+                  valueListenable: lyricsPageForegroundColor.valueNotifier,
+                  builder: (context, value, child) => SeekBar(
+                    color: value,
+                    widgetHeight: 60,
+                    seekBarHeight: 40,
+                  ),
+                ),
+              ),
+              playControls(),
+              const SizedBox(height: 30),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

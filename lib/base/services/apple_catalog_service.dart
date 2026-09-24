@@ -232,8 +232,10 @@ Future<AppleAlbum?> resolveAppleAlbum(
         await Future.delayed(const Duration(milliseconds: 500));
         continue;
       }
-      _albumCache[key] = match;
-      return match;
+      final found =
+          match ?? await _albumViaSongs(artist, album, storefront);
+      _albumCache[key] = found;
+      return found;
     } on TimeoutException {
       if (attempt == 0) continue; // retry once
       return null; // not cached: worth retrying later
@@ -241,6 +243,45 @@ Future<AppleAlbum?> resolveAppleAlbum(
       logger.output('apple album: $e');
       return null;
     }
+  }
+  return null;
+}
+
+/// Album search misses some catalog albums outright (som.'s "LOVER ON RENT:
+/// HEAVY DEPOSIT" returns nothing), while song search finds their tracks. So
+/// look for a song on an album of that name by that artist, then fetch the
+/// album itself by its id.
+Future<AppleAlbum?> _albumViaSongs(
+  String artist,
+  String album,
+  String storefront,
+) async {
+  String norm(String s) =>
+      s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+  final wantAlbum = norm(album);
+  final wantArtist = norm(artist);
+  final search = Uri.https(_host, '/search', {
+    'term': album,
+    'entity': 'song',
+    'limit': '50',
+    'country': storefront,
+  });
+  final resp = await http.get(search).timeout(_timeout);
+  if (resp.statusCode != 200) return null;
+  final results =
+      (jsonDecode(utf8.decode(resp.bodyBytes))['results'] as List?) ?? [];
+  for (final r in results.cast<Map>()) {
+    final name = norm(r['collectionName'] as String? ?? '');
+    final by = norm(r['artistName'] as String? ?? '');
+    final artistOk =
+        wantArtist.isEmpty || by.contains(wantArtist) || wantArtist.contains(by);
+    if (name != wantAlbum || !artistOk || r['collectionId'] == null) continue;
+    final lookup = Uri.https(_host, '/lookup', {
+      'id': r['collectionId'].toString(),
+      'country': storefront,
+    });
+    final first = _firstResult(await http.get(lookup).timeout(_timeout));
+    return first == null ? null : _albumFrom(first);
   }
   return null;
 }

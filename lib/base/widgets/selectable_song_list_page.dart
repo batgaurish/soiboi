@@ -20,6 +20,10 @@ class SelectableSongListPage extends StatelessWidget {
   final bool isLibrary;
   final bool reorderable;
 
+  /// Set when picking songs to add to this playlist: Complete adds the
+  /// selection to it, and the other bulk actions are hidden.
+  final Playlist? addTo;
+
   final ValueNotifier<bool> allSelected = ValueNotifier(false);
   final ValueNotifier<int> selectedNumNotifier = ValueNotifier(0);
 
@@ -34,6 +38,7 @@ class SelectableSongListPage extends StatelessWidget {
     this.isRecently = false,
     this.isLibrary = false,
     this.reorderable = false,
+    this.addTo,
     required this.isSelectedNotifierMap,
   }) {
     for (final song in songList) {
@@ -101,10 +106,19 @@ class SelectableSongListPage extends StatelessWidget {
                   Text(l10n.selectAll, style: TextStyle(fontSize: 16)),
                   Spacer(),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
+                    onTap: () async {
+                      if (addTo != null) {
+                        final chosen = songList
+                            .where((s) => isSelectedNotifierMap[s]!.value)
+                            .toList();
+                        if (chosen.isNotEmpty) await addTo!.add(chosen);
+                      }
+                      if (context.mounted) Navigator.of(context).pop();
                     },
-                    child: Text(l10n.complete, style: TextStyle(fontSize: 16)),
+                    child: Text(
+                      addTo == null ? l10n.complete : 'Add',
+                      style: TextStyle(fontSize: 16),
+                    ),
                   ),
                   SizedBox(width: 20),
                 ],
@@ -162,7 +176,7 @@ class SelectableSongListPage extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: bottomButtons(l10n),
+        bottomNavigationBar: addTo == null ? bottomButtons(l10n) : null,
       ),
     );
   }

@@ -28,11 +28,17 @@ Artist? matchArtist(String name) {
   return null;
 }
 
+/// Album names without Apple's release-type suffix, so "White Keys - Single"
+/// in the library matches "White Keys" from ListenBrainz.
+String _albumKey(String name) => normaliseForMatch(
+  name.replaceAll(RegExp(r'\s+-\s+(Single|EP)\s*$', caseSensitive: false), ''),
+);
+
 Album? matchAlbum(String name, {String? artist}) {
-  final target = normaliseForMatch(name);
+  final target = _albumKey(name);
   final artistTarget = artist == null ? null : normaliseForMatch(artist);
   for (final album in artistAlbumManager.albumList) {
-    if (normaliseForMatch(album.name) != target) continue;
+    if (_albumKey(album.name) != target) continue;
     // When an artist is given, a bare name match is not enough: album
     // titles collide across artists constantly ("Greatest Hits"), so only
     // accept the album if that artist actually has tracks on it.

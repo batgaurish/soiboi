@@ -38,6 +38,9 @@ abstract class CollectionListState extends State<CollectionList> {
   final ScrollController scrollController = ScrollController();
 
   ValueNotifier<bool>? randomizeNotifier;
+
+  /// A floating button over the list itself, not the pages it opens.
+  Widget? floatingAction(BuildContext context) => null;
   ValueNotifier<bool>? isAscendingNotifier;
   ValueNotifier<bool> useLargePictureNotifier = ValueNotifier(false);
 

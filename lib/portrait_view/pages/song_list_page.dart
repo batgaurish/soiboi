@@ -6,6 +6,17 @@ extension _SongListPage on _SongListState {
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
+      floatingActionButton: _canAddSongs && songList.isNotEmpty
+          ? Padding(
+              padding: kFabAboveMiniPlayer,
+              child: FloatingActionButton.extended(
+                heroTag: 'addSongs',
+                onPressed: () => _addSongs(context),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Add songs'),
+              ),
+            )
+          : null,
       body: Column(
         children: [
           customAppBar(context),
@@ -13,6 +24,31 @@ extension _SongListPage on _SongListState {
         ],
       ),
     );
+  }
+
+  bool get _canAddSongs =>
+      playlist != null && playlist!.canModify && !playlist!.isFavorite;
+
+  void _addSongs(BuildContext context) {
+      final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
+      for (final song in library.songList) {
+        selectionMap[song] = ValueNotifier(false);
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SelectableSongListPage(
+            songList: library.songList,
+            playlist: null,
+            addTo: playlist,
+            folder: null,
+            isRanking: false,
+            isRecently: false,
+            isLibrary: false,
+            reorderable: false,
+            isSelectedNotifierMap: selectionMap,
+          ),
+        ),
+      );
   }
 
   PreferredSizeWidget customAppBar(BuildContext context) {
@@ -334,9 +370,10 @@ extension _SongListPage on _SongListState {
                   valueListenable: currentSongListNotifier,
                   builder: (context, currentSongList, child) {
                     String prefix = getSourceTypeDisplayName(l10n, sourceType);
-                    return Text(
+                    final count = Text(
                       "$prefix: ${l10n.songCount(currentSongList.length)}",
                     );
+                    return count;
                   },
                 ),
               ),
@@ -418,26 +455,7 @@ extension _SongListPage on _SongListState {
             if (canAdd) ...[
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: () {
-                  final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
-                  for (final song in library.songList) {
-                    selectionMap[song] = ValueNotifier(false);
-                  }
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SelectableSongListPage(
-                        songList: library.songList,
-                        playlist: playlist,
-                        folder: null,
-                        isRanking: false,
-                        isRecently: false,
-                        isLibrary: false,
-                        reorderable: false,
-                        isSelectedNotifierMap: selectionMap,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _addSongs(context),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Add songs'),
               ),
