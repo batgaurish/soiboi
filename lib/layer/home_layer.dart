@@ -16,7 +16,9 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/widgets/ai_widgets.dart';
+import 'package:soiboi/base/services/ai_features.dart';
+import 'package:soiboi/base/services/ai_service.dart';
+import 'package:soiboi/base/services/apple_catalog_service.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/history.dart';
@@ -146,10 +148,6 @@ class _HomeLayerState extends State<HomeLayer> {
           slivers: [
             const SliverToBoxAdapter(child: SizedBox(height: 18)),
 
-            // First on Home, and separate from the ListenBrainz shelves: these
-            // come from the person's own AI key, and only when they ask.
-            _sliver(_aiSection()),
-
             if (upNext.isNotEmpty)
               _sliver(_songShelf('Up next', upNext)),
 
@@ -177,6 +175,10 @@ class _HomeLayerState extends State<HomeLayer> {
                 localArtists,
                 circular: true,
               )),
+
+            // Separate from the ListenBrainz shelves: these come from the
+            // person's own AI key.
+            _sliver(const _AiRecsShelf()),
 
             if (albumEntries != null && albumEntries.isNotEmpty)
               _sliver(_lbShelf('Top albums', albumEntries, circular: false))
@@ -278,19 +280,6 @@ class _HomeLayerState extends State<HomeLayer> {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _aiSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader('AI picks', trailing: 'on your own key'),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: const AskAiPanel(compact: true),
-        ),
-      ],
     );
   }
 
@@ -985,6 +974,178 @@ class _AnalysePromptState extends State<_AnalysePrompt> {
             FilledButton(
               onPressed: busy ? null : _analyse,
               child: Text(busy ? 'Analysing' : 'Analyse'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// AI album recommendations on Home: cards like the other shelves, each
+/// opening the catalog sheet to archive it. Hidden until AI is set up.
+class _AiRecsShelf extends StatefulWidget {
+  const _AiRecsShelf();
+
+  @override
+  State<_AiRecsShelf> createState() => _AiRecsShelfState();
+}
+
+class _AiRecsShelfState extends State<_AiRecsShelf> {
+  @override
+  void initState() {
+    super.initState();
+    loadAiRecommendations();
+    aiConfigNotifier.addListener(_configChanged);
+  }
+
+  @override
+  void dispose() {
+    aiConfigNotifier.removeListener(_configChanged);
+    super.dispose();
+  }
+
+  void _configChanged() => loadAiRecommendations(force: true);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        aiConfigNotifier,
+        aiRecsNotifier,
+        aiRecsBusyNotifier,
+        aiRecsErrorNotifier,
+      ]),
+      builder: (context, _) {
+        if (aiConfigNotifier.value == null) return const SizedBox.shrink();
+        final picks = aiRecsNotifier.value;
+        final busy = aiRecsBusyNotifier.value;
+        final error = aiRecsErrorNotifier.value;
+        if (picks.isEmpty && !busy && error == null) {
+          return const SizedBox.shrink();
+        }
+        final height = 124 + MediaQuery.textScalerOf(context).scale(52);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 12, 8),
+              child: Row(
+                children: [
+                  Text(
+                    activeFlavour.heading('AI recommendations'),
+                    style: activeFlavour.headingStyle(
+                      TextStyle(
+                        fontSize: 19,
+                        letterSpacing: -0.3,
+                        color: highlightTextColor.value,
+                      ),
+                      userFont: fontFamilyNotifier.value,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (busy)
+                    const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  else
+                    IconButton(
+                      tooltip: 'New recommendations',
+                      icon: Icon(Icons.refresh_rounded, color: iconColor.value),
+                      onPressed: () => loadAiRecommendations(force: true),
+                    ),
+                ],
+              ),
+            ),
+            if (error != null && picks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  error,
+                  style: TextStyle(fontSize: 12, color: textColor.value),
+                ),
+              )
+            else
+              SizedBox(
+                height: height,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: picks.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 14),
+                  itemBuilder: (context, i) => _AiRecCard(pick: picks[i]),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AiRecCard extends StatelessWidget {
+  const _AiRecCard({required this.pick});
+  final AiAlbumPick pick;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = 12 * activeFlavour.cornerScale;
+    return SizedBox(
+      width: 124,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(radius),
+        onTap: () => showCatalogAlbumSheet(context, pick.artist, pick.album),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: Container(
+                width: 124,
+                height: 124,
+                color: buttonColor.value,
+                // Artwork from the Apple catalog, which also proves the
+                // album is really there to archive.
+                child: FutureBuilder(
+                  future: resolveAppleAlbum(pick.artist, pick.album),
+                  builder: (context, snap) {
+                    final art = snap.data?.artwork;
+                    if (art == null) {
+                      return Icon(Icons.album_outlined, color: textColor.value);
+                    }
+                    return Image.network(
+                      art,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.album_outlined,
+                        color: textColor.value,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              pick.album,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: highlightTextColor.value,
+              ),
+            ),
+            Text(
+              pick.artist,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: textColor.value),
             ),
           ],
         ),
