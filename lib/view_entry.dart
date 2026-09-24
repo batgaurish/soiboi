@@ -35,8 +35,6 @@ class ViewEntry extends StatefulWidget {
 }
 
 class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
-  bool systemCanPop = false;
-  Timer? _exitTimer;
   int keyValue = 0;
 
   @override
@@ -81,8 +79,6 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (Platform.isAndroid) {
       if (state == .resumed) {
-        systemCanPop = false;
-        _exitTimer?.cancel();
         applySystemUiMode(forceApply: true);
         // rebuild PopScope to allow it to handle pop
         setState(() {
@@ -106,27 +102,34 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         if (didPop | isTyping | isTV) {
           return;
         }
-        if (portraitKey.currentState?.isDrawerOpen ?? false) {
-          portraitKey.currentState?.closeDrawer();
+        // Back walks the app the way it was walked: close the drawer, close
+        // a detail page, return to the previous section, and with nothing
+        // left, show the sidebar. Back once more from that sidebar leaves.
+        final scaffold = portraitKey.currentState;
+        final drawerOpen =
+            (scaffold?.isDrawerOpen ?? false) || (scaffold?.isEndDrawerOpen ?? false);
+        if (drawerOpen) {
+          if (drawerOpenedByBack) {
+            drawerOpenedByBack = false;
+            SystemNavigator.pop();
+          } else {
+            scaffold?.closeDrawer();
+            scaffold?.closeEndDrawer();
+          }
           return;
         }
         if (await layersManager.popDetail(sidebarHighlighLabel.value)) {
           return;
         }
-
-        if (systemCanPop) {
-          systemCanPop = false;
-          _exitTimer?.cancel();
-          SystemNavigator.pop();
-        } else {
-          systemCanPop = true;
-          if (context.mounted) {
-            showCenterMessage(AppLocalizations.of(context).tapAgain);
-          }
-          _exitTimer = Timer(const Duration(seconds: 2), () {
-            systemCanPop = false;
-          });
+        if (layersManager.popRootLayer()) {
+          return;
         }
+        if (scaffold != null) {
+          drawerOpenedByBack = true;
+          endDrawerNotifier.value ? scaffold.openEndDrawer() : scaffold.openDrawer();
+          return;
+        }
+        SystemNavigator.pop();
       },
       child: view(),
     );

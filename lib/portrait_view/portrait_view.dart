@@ -7,6 +7,11 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/play_bar.dart';
 
 final GlobalKey<ScaffoldState> portraitKey = GlobalKey();
+
+/// Set when the back button, with nowhere left to go, opened the sidebar.
+/// Back again then leaves the app; the sidebar closing any other way clears
+/// it, so a sidebar opened by hand never quits on back.
+bool drawerOpenedByBack = false;
 bool isDrawerOpen = false;
 final endDrawerNotifier = ValueNotifier(false);
 
@@ -99,7 +104,11 @@ class _PortraitViewState extends State<PortraitView>
       drawer: !endDrawerNotifier.value ? myDrawer() : null,
       endDrawer: endDrawerNotifier.value ? myDrawer() : null,
       drawerEnableOpenDragGesture: !Platform.isIOS,
+      onEndDrawerChanged: (isOpened) {
+        if (!isOpened) drawerOpenedByBack = false;
+      },
       onDrawerChanged: (isOpened) async {
+        if (!isOpened) drawerOpenedByBack = false;
         // ensure popscope gets correct drawer state
         if (!isOpened) {
           await Future.delayed(Duration(milliseconds: 250));
