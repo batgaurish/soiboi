@@ -21,19 +21,17 @@ import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/services/wrapper_service.dart';
 
-/// Cookies Apple Music actually needs, and why both matter.
+/// The one cookie Apple Music actually needs.
 ///
-/// `media-user-token` is the Apple Music *subscription* entitlement and is
-/// long-lived — typically months. `myacinfo` is the Apple ID *account* session
-/// and is usually a session cookie, so it dies when the browser session that
-/// produced it ends.
-///
-/// Checking only the first is a trap worth avoiding: a months-old export will
-/// still carry a valid media-user-token while myacinfo is long dead, so the app
-/// reports "Signed in" and every download fails with an opaque "Error fetching
-/// account info (500)". Observed on a real four-month-old export.
-const _requiredCookies = {'media-user-token', 'myacinfo'};
+/// `media-user-token` is the Apple Music subscription entitlement, and it is
+/// all gamdl reads from the file: it builds the client from this token plus a
+/// developer token it fetches itself. An earlier build also demanded
+/// `myacinfo`, the Apple ID web session, which browsers often do not export
+/// at all. That rejected perfectly usable files, so it is no longer required;
+/// a dead token surfaces as an auth error from Apple instead.
+const _requiredCookies = {'media-user-token'};
 
 /// Cookies the downloader looks up by name *and* exact domain.
 ///
@@ -154,6 +152,16 @@ class Cookie {
 
 /// Whether a usable Apple Music session is stored.
 final signedInNotifier = ValueNotifier<bool>(false);
+
+/// Whether the app can talk to Apple as the user: a signed-in wrapper or a
+/// usable cookies file. Either one is enough.
+bool get hasAppleAuth => signedInNotifier.value || wrapperService.signedIn.value;
+
+/// Notifies when [hasAppleAuth] may have changed.
+final appleAuthListenable = Listenable.merge([
+  signedInNotifier,
+  wrapperService.signedIn,
+]);
 
 /// When the session's earliest important cookie expires, if known.
 final sessionExpiryNotifier = ValueNotifier<DateTime?>(null);

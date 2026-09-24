@@ -48,11 +48,13 @@ Future<String?> archiveUrl(
     // its own only skips an identical output path.
     if (!redownload) 'owned': ownedSongKeys(),
   };
-  // ALAC goes through the bundled wrapper when it is set up. Starting it
-  // here means it only runs when someone actually downloads lossless.
-  final bundled =
-      downloadCodecNotifier.value == 'alac' && wrapperService.supported
-      ? await _bundledWrapperPayload()
+  // The bundled wrapper takes every download it can: it is needed for ALAC,
+  // and once signed in it is the account's own session, so no cookies file
+  // is involved. Starting it here means it only runs when someone downloads.
+  final bundled = wrapperService.supported
+      ? (downloadCodecNotifier.value == 'alac'
+            ? await _bundledWrapperPayload()
+            : await wrapperService.ensureReady())
       : null;
   if (bundled != null) {
     payload.addAll(bundled);

@@ -1647,11 +1647,14 @@ class _SettingsListState extends State<SettingsList> {
         listenable: Listenable.merge([
           cookie_store.signedInNotifier,
           cookie_store.sessionExpiryNotifier,
+          wrapperService.signedIn,
         ]),
         builder: (context, child) {
           final signedIn = cookie_store.signedInNotifier.value;
           final expiry = cookie_store.sessionExpiryNotifier.value;
-          final detail = signedIn && expiry != null
+          final detail = wrapperService.signedIn.value
+              ? 'Signed in through the lossless wrapper · cookies not needed'
+              : signedIn && expiry != null
               ? 'Signed in · expires ${expiry.toLocal().toString().split(' ').first}'
               : signedIn
               ? 'Signed in'

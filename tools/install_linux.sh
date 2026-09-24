@@ -91,13 +91,13 @@ ln -sfn "$APP_DIR/soiboi" "$BIN_LINK"
 # StartupWMClass is the APPLICATION_ID from linux/CMakeLists.txt, which the
 # runner passes to GTK. Without it the running window is not associated with
 # this entry and docks show a second, unnamed icon.
-cat > "$DESKTOP" <<'ENTRY'
+cat > "$DESKTOP" <<ENTRY
 [Desktop Entry]
 Type=Application
 Name=Soiboi
 GenericName=Music Player
 Comment=Local music player with streaming-to-offline archival
-Exec=soiboi %U
+Exec=$APP_DIR/soiboi %U
 Icon=soiboi
 Terminal=false
 Categories=AudioVideo;Audio;Player;Music;
