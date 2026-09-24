@@ -7,6 +7,7 @@ import 'package:flutter_gamepads/flutter_gamepads.dart';
 import 'package:liquid_glass_widgets/liquid_glass_setup.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/services/ai_service.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/color_source.dart';
@@ -336,6 +337,7 @@ Future<void> _start() async {
   );
   logger.output('App start');
   await Loader.load();
+  await loadAiConfig();
 }
 
 Future<void> _setupWindow() async {

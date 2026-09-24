@@ -20,9 +20,12 @@ late final ScreenRadius? screenRadius;
 
 enum ThemeType { vivid, light, dark, custom }
 
-/// Lifts a floating button a clear gap above the phone's mini player
-/// (about 90 logical pixels tall from the screen edge, plus 24 of air).
-const kFabAboveMiniPlayer = EdgeInsets.only(bottom: 100);
+/// Lifts a page's floating button clear of the phone's mini player and of the
+/// global Ask AI button, which sits just above the mini player.
+const kFabAboveMiniPlayer = EdgeInsets.only(bottom: 172);
+
+/// The same on desktop: above the Ask AI button in the panel's corner.
+const double kPanelFabBottom = 104;
 
 final mainPageThemeNotifier = ValueNotifier(systemThemeType());
 

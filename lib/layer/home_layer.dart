@@ -16,6 +16,7 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/widgets/ai_widgets.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/history.dart';
@@ -145,6 +146,10 @@ class _HomeLayerState extends State<HomeLayer> {
           slivers: [
             const SliverToBoxAdapter(child: SizedBox(height: 18)),
 
+            // First on Home, and separate from the ListenBrainz shelves: these
+            // come from the person's own AI key, and only when they ask.
+            _sliver(_aiSection()),
+
             if (upNext.isNotEmpty)
               _sliver(_songShelf('Up next', upNext)),
 
@@ -273,6 +278,19 @@ class _HomeLayerState extends State<HomeLayer> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _aiSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader('AI picks', trailing: 'on your own key'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: const AskAiPanel(compact: true),
+        ),
+      ],
     );
   }
 

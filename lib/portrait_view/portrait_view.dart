@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/widgets/ai_widgets.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/landscape_view/sidebar.dart';
 import 'package:soiboi/layer/layers_manager.dart';
@@ -156,6 +157,9 @@ class _PortraitViewState extends State<PortraitView>
           ),
 
           Positioned(left: 20, right: 20, bottom: 40, child: PlayBar()),
+          // Ask AI from anywhere, just above the mini player. Page buttons
+          // (New playlist, Add songs) stack above this one.
+          const Positioned(right: 20, bottom: 116, child: AskAiFab()),
         ],
       ),
     );

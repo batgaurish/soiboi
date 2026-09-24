@@ -7,7 +7,7 @@ extension _CollectionListPanel on CollectionListState {
     return Stack(
       children: [
         _panelBody(context),
-        Positioned(right: 32, bottom: 32, child: fab),
+        Positioned(right: 32, bottom: kPanelFabBottom, child: fab),
       ],
     );
   }
