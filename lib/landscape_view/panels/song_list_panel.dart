@@ -31,7 +31,7 @@ extension _SongListPanel on _SongListState {
             textController: textController,
             backToRoot: backToRoot,
             scrollToTop: () {
-              scrollController.animateTo(
+              scrollController.glideTo(
                 0,
                 duration: Duration(milliseconds: 250),
                 curve: Curves.linear,
@@ -51,7 +51,7 @@ extension _SongListPanel on _SongListState {
               final position = scrollController.position;
               final maxScrollExtent = position.maxScrollExtent;
               final minScrollExtent = position.minScrollExtent;
-              scrollController.animateTo(
+              scrollController.glideTo(
                 (scaledExtent(context, 60) * index +
                         355 -
                         (MediaQuery.heightOf(context) / 2))
@@ -838,6 +838,7 @@ extension _SongListPanel on _SongListState {
             listenable: Listenable.merge([
               isPlayingNotifier,
               iconColor.valueNotifier,
+              reduceMotionNotifier,
             ]),
             builder: (context, child) {
               return RiveAnimatedIcon(
@@ -848,7 +849,7 @@ extension _SongListPanel on _SongListState {
                 riveIcon: .sound,
                 width: 30,
                 height: 30,
-                loopAnimation: isPlayingNotifier.value,
+                loopAnimation: isPlayingNotifier.value && !reduceMotion,
                 color: iconColor.value,
               );
             },

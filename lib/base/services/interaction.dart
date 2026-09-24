@@ -30,6 +30,7 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 DateTime? _lastShowTime;
 
@@ -323,7 +324,7 @@ Future<T?> showAnimationDialog<T>({
 
               Center(
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
+                  duration: motionDuration(Duration(milliseconds: 250)),
                   curve: Curves.easeOutCubic,
                   transform: Matrix4.translationValues(0, offset.dy, 0),
                   child: GestureDetector(
@@ -353,9 +354,12 @@ Future<T?> showAnimationDialog<T>({
                     },
 
                     child: SlideTransition(
+                      // A plain fade, below, when motion is reduced.
                       position:
                           Tween<Offset>(
-                            begin: const Offset(0, 1),
+                            begin: reduceMotion
+                                ? Offset.zero
+                                : const Offset(0, 1),
                             end: Offset.zero,
                           ).animate(
                             CurvedAnimation(

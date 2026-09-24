@@ -24,6 +24,7 @@ import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class BigSingleAlbumPanel extends StatefulWidget {
   final Album album;
@@ -115,7 +116,7 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
                 sigmaY: appHeight * 0.03,
               ),
               child: AnimatedContainer(
-                duration: Duration(milliseconds: 500),
+                duration: motionDuration(Duration(milliseconds: 500)),
                 curve: Curves.easeInOutCubic,
                 color: baseColor.withAlpha(180),
               ),
@@ -264,7 +265,7 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
                   final target =
                       viewport.getOffsetToReveal(box, 0.5).offset + 40;
 
-                  _scrollController.animateTo(
+                  _scrollController.glideTo(
                     target.clamp(
                       _scrollController.position.minScrollExtent,
                       _scrollController.position.maxScrollExtent,
@@ -296,7 +297,7 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
                                     riveIcon: .sound,
                                     width: 35,
                                     height: 35,
-                                    loopAnimation: isPlayingNotifier.value,
+                                    loopAnimation: isPlayingNotifier.value && !reduceMotion,
                                     color: iconColor.value,
                                   );
                                 },

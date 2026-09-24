@@ -6,6 +6,7 @@ import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/landscape_view/sidebar.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/play_bar.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 final GlobalKey<ScaffoldState> portraitKey = GlobalKey();
 
@@ -29,7 +30,8 @@ class _PortraitViewState extends State<PortraitView>
   late Animation<Offset> _slideAnimation;
 
   void slideBegin() {
-    _controller.forward(from: 0);
+    // From the end when motion is reduced: the new page is simply there.
+    _controller.forward(from: reduceMotion ? 1 : 0);
   }
 
   void statusListener(AnimationStatus status) {

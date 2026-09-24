@@ -10,6 +10,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/lyric.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 final lyricsFontSizeOffsetNotifier = ValueNotifier(0.0);
 final lyricsTimeOffsetNotifier = ValueNotifier(0);
@@ -74,7 +75,7 @@ class LyricsListViewState extends State<LyricsListView>
       userDragged = false;
 
       if (itemScrollController.isAttached) {
-        if (jump) {
+        if (jump || reduceMotion) {
           itemScrollController.jumpTo(
             index: current + 1,
             alignment: widget.expanded ? 0.25 : 0.4,
@@ -275,7 +276,9 @@ class LyricLineWidget extends StatelessWidget {
 
               return AnimatedScale(
                 scale: !isSynced ? 1 : (isCurrent ? 1.05 : 0.95),
-                duration: Duration(milliseconds: 300),
+                // The current line still stands out; it just does not grow
+                // into place when motion is reduced.
+                duration: motionDuration(const Duration(milliseconds: 300)),
                 alignment: expanded ? .centerLeft : .center,
                 child: Column(
                   crossAxisAlignment: expanded ? .start : .center,

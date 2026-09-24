@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/layer/layers_manager.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class DynamicDetailRoute extends PageRoute with MaterialRouteTransitionMixin {
   DynamicDetailRoute({required this.builder, required this.label});
@@ -12,12 +13,12 @@ class DynamicDetailRoute extends PageRoute with MaterialRouteTransitionMixin {
   final String label;
 
   @override
-  Duration get transitionDuration =>
-      Duration(milliseconds: isMobile ? 400 : 500);
+  Duration get transitionDuration => reduceMotion
+      ? reducedTransitionDuration
+      : Duration(milliseconds: isMobile ? 400 : 500);
 
   @override
-  Duration get reverseTransitionDuration =>
-      Duration(milliseconds: isMobile ? 400 : 500);
+  Duration get reverseTransitionDuration => transitionDuration;
 
   @override
   Widget buildContent(BuildContext context) => builder(context);
@@ -37,7 +38,7 @@ class DynamicDetailRoute extends PageRoute with MaterialRouteTransitionMixin {
   @override
   DelegatedTransitionBuilder? get delegatedTransition =>
       (context, animation, secondaryAnimation, allowSnapshotting, child) {
-        if (!Platform.isIOS || !isTooNarrow(context)) {
+        if (!Platform.isIOS || !isTooNarrow(context) || reduceMotion) {
           return child;
         }
 
@@ -85,6 +86,7 @@ class DynamicDetailRoute extends PageRoute with MaterialRouteTransitionMixin {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    if (reduceMotion) return reducedMotionTransition(animation, child);
     if (isTooNarrow(context)) {
       if (Platform.isIOS) {
         return super.buildTransitions(

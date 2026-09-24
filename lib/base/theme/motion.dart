@@ -213,3 +213,46 @@ class _SystemMotionObserver with WidgetsBindingObserver {
         PlatformDispatcher.instance.accessibilityFeatures.disableAnimations;
   }
 }
+
+/// With motion reduced, a page change is a short fade instead of a slide
+/// or zoom. Routes return this from `buildTransitions` when [reduceMotion]
+/// is set.
+Widget reducedMotionTransition(Animation<double> animation, Widget child) =>
+    FadeTransition(
+      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      child: child,
+    );
+
+/// How long a route takes with motion reduced: long enough to read as a
+/// change of page, too short to be movement.
+const reducedTransitionDuration = Duration(milliseconds: 150);
+
+extension ReducedMotionScrolling on ScrollController {
+  /// [animateTo], or a jump when motion is reduced.
+  Future<void> glideTo(
+    double offset, {
+    required Duration duration,
+    required Curve curve,
+  }) async {
+    if (reduceMotion) {
+      jumpTo(offset);
+      return;
+    }
+    await animateTo(offset, duration: duration, curve: curve);
+  }
+}
+
+extension ReducedMotionPaging on PageController {
+  /// [animateToPage], or a jump when motion is reduced.
+  Future<void> glideToPage(
+    int page, {
+    required Duration duration,
+    required Curve curve,
+  }) async {
+    if (reduceMotion) {
+      jumpToPage(page);
+      return;
+    }
+    await animateToPage(page, duration: duration, curve: curve);
+  }
+}

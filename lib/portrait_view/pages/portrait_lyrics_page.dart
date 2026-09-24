@@ -25,11 +25,12 @@ import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/widgets/seekbar.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:smooth_corner/smooth_corner.dart';
-import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/utils/semantics_labels.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/theme/motion.dart';
+import 'package:soiboi/base/widgets/marquee_text.dart';
 
 class PortraitLyricsPage extends StatefulWidget {
   const PortraitLyricsPage({super.key});
@@ -147,7 +148,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         valueListenable: dragOffsetNotifier,
         builder: (context, value, child) {
           return AnimatedContainer(
-            duration: Duration(milliseconds: _animationDuration),
+            duration: motionDuration(Duration(milliseconds: _animationDuration)),
             curve: Curves.easeOutCubic,
             transform: Matrix4.translationValues(0, value, 0),
             child: child,
@@ -194,7 +195,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                     child: AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
+                      duration: motionDuration(Duration(milliseconds: 300)),
                       curve: Curves.easeInOutCubic,
                       // In vivid mode, the overlay uses the cover art colour;
                       // otherwise it uses the lyrics page background colour,
@@ -225,7 +226,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                             if (!value) {
                               return Text(data, style: textStyle);
                             }
-                            return TextScroll(
+                            return MarqueeText(
                               textAlign: .center,
                               getTitle(currentSong),
                               velocity: const Velocity(
@@ -257,7 +258,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                             if (!value) {
                               return Text(data, style: textStyle);
                             }
-                            return TextScroll(
+                            return MarqueeText(
                               textAlign: .center,
                               data,
                               velocity: const Velocity(
@@ -411,7 +412,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
           children: [
             for (final (index, (icon, label)) in modes.indexed)
               TextButton.icon(
-                onPressed: () => _modes.animateToPage(
+                onPressed: () => _modes.glideToPage(
                   index,
                   duration: const Duration(milliseconds: 280),
                   curve: Curves.easeOutCubic,

@@ -17,6 +17,7 @@ import 'package:soiboi/big_picture_view/panels/big_single_artist_panel.dart';
 import 'package:soiboi/big_picture_view/panels/big_single_folder_panel.dart';
 import 'package:soiboi/big_picture_view/panels/big_single_playlist_panel.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class BigHomePanel extends StatefulWidget {
   const BigHomePanel({super.key});
@@ -470,7 +471,7 @@ class _ListViewState extends State<_ListView> {
                               .offset +
                           itemBox.size.width / 2;
 
-                      controller.animateTo(
+                      controller.glideTo(
                         horizontalTarget.clamp(
                           controller.position.minScrollExtent,
                           controller.position.maxScrollExtent,
@@ -492,7 +493,7 @@ class _ListViewState extends State<_ListView> {
                               .offset +
                           rowBox.size.height / 2;
 
-                      widget.verticalController.animateTo(
+                      widget.verticalController.glideTo(
                         verticalTarget.clamp(
                           widget.verticalController.position.minScrollExtent,
                           widget.verticalController.position.maxScrollExtent,

@@ -117,7 +117,7 @@ extension _SongListPage on _SongListState {
                   Text("${l10n.folders}: ", style: TextStyle(fontSize: 15)),
 
                 Expanded(
-                  child: TextScroll(
+                  child: MarqueeText(
                     getTitleText(l10n),
                     style: TextStyle(fontSize: 15),
                     velocity: const .new(pixelsPerSecond: .new(40, 0)),
@@ -315,7 +315,7 @@ extension _SongListPage on _SongListState {
               return IconButton(
                 tooltip: 'Scroll to top',
                 onPressed: () {
-                  scrollController.animateTo(
+                  scrollController.glideTo(
                     0,
                     duration: Duration(milliseconds: 250),
                     curve: Curves.linear,

@@ -174,6 +174,12 @@ Future<void> _start() async {
           });
         }
         return MaterialApp(
+          // With motion reduced, covers do not fly between pages.
+          builder: (context, child) => ValueListenableBuilder(
+            valueListenable: reduceMotionNotifier,
+            builder: (context, reduce, _) =>
+                HeroMode(enabled: !reduce, child: child!),
+          ),
           locale: localeNotifier.value,
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: [
@@ -561,7 +567,6 @@ $text
   });
 }
 
-
 /// Shown when startup throws, so a crash is readable and reportable.
 class _StartupFailure extends StatelessWidget {
   const _StartupFailure({required this.error, required this.stack});
@@ -589,12 +594,16 @@ class _StartupFailure extends StatelessWidget {
                   child: SingleChildScrollView(
                     child: SelectableText(
                       report,
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
                 FilledButton(
-                  onPressed: () => Clipboard.setData(ClipboardData(text: report)),
+                  onPressed: () =>
+                      Clipboard.setData(ClipboardData(text: report)),
                   child: const Text('Copy error'),
                 ),
               ],

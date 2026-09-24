@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class CustomPageTransitionBuilder extends PageTransitionsBuilder {
   const CustomPageTransitionBuilder();
@@ -11,6 +12,7 @@ class CustomPageTransitionBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    if (reduceMotion) return reducedMotionTransition(animation, child);
     return SlideTransition(
       position: Tween<Offset>(
         begin: Offset(-1, 0),

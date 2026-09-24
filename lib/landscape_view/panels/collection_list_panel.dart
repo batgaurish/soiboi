@@ -19,7 +19,7 @@ extension _CollectionListPanel on CollectionListState {
           hintText: searchHint,
           textController: textController,
           scrollToTop: () {
-            scrollController.animateTo(
+            scrollController.glideTo(
               0,
               duration: Duration(milliseconds: 250),
               curve: Curves.linear,

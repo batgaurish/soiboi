@@ -13,7 +13,7 @@ extension _FontPickerPanel on _FontPickerLayerState {
             layersManager.popDetail('settings');
           },
           scrollToTop: () {
-            scrollController.animateTo(
+            scrollController.glideTo(
               0,
               duration: Duration(milliseconds: 250),
               curve: Curves.linear,

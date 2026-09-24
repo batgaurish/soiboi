@@ -18,10 +18,11 @@ import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/widgets/seekbar.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
-import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/widgets/marquee_text.dart';
+import 'package:soiboi/base/theme/motion.dart';
 
 class LandscapeLyricsPage extends StatefulWidget {
   const LandscapeLyricsPage({super.key});
@@ -100,7 +101,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                       sigmaY: pageHight * 0.03,
                     ),
                     child: AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
+                      duration: motionDuration(Duration(milliseconds: 300)),
                       curve: Curves.easeInOutCubic,
                       color: currentCoverArtColor.withAlpha(180),
                     ),
@@ -287,7 +288,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
             child: ValueListenableBuilder(
               valueListenable: lyricsPageHighlightTextColor.valueNotifier,
               builder: (context, value, child) {
-                return TextScroll(
+                return MarqueeText(
                   key: UniqueKey(),
                   getTitle(currentSong),
                   style: TextStyle(
@@ -311,7 +312,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
             child: ValueListenableBuilder(
               valueListenable: lyricsPageForegroundColor.valueNotifier,
               builder: (context, value, child) {
-                return TextScroll(
+                return MarqueeText(
                   key: UniqueKey(),
                   '${getArtist(currentSong)} - ${getAlbum(currentSong)}',
                   style: TextStyle(fontSize: 14, color: value),
