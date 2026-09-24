@@ -6,6 +6,9 @@
 /// directory, and registering the archive folder afterwards.
 library;
 
+import 'dart:io';
+
+import 'package:permission_handler/permission_handler.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
@@ -29,6 +32,8 @@ Future<String?> archiveUrl(
   bool redownload = false,
   void Function(int progress, String status)? onProgress,
 }) async {
+  await _ensureDownloadFolderWritable();
+
   // Pull the current settings at call time, not at startup: the user may
   // have changed quality or Widevine config between downloads.
   final payload = <String, dynamic>{
@@ -98,4 +103,19 @@ Future<Map<String, Object>?> _bundledWrapperPayload() async {
   if (!wrapperService.librariesInstalled) return null;
   await wrapperService.start();
   return wrapperService.downloadPayload;
+}
+
+/// On Android, asks for All files access when the chosen download folder
+/// needs it.
+///
+/// Writing into shared storage such as /storage/emulated/0/Music takes All
+/// files access; the Music and audio permission only reads. Without it the
+/// folder fails the write test and downloads silently fall back to the app's
+/// private folder, where no other app can see them.
+Future<void> _ensureDownloadFolderWritable() async {
+  if (!Platform.isAndroid) return;
+  final chosen = downloadFolderNotifier.value.trim();
+  if (chosen.isEmpty || downloadDirIsUsable(chosen)) return;
+  final status = await Permission.manageExternalStorage.request();
+  if (status.isGranted) downloadOutputDir = resolveDownloadDir();
 }

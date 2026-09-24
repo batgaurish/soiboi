@@ -277,7 +277,16 @@ def analyze_directory(
 
     analysed = failed = unwritable = 0
     start, end = progress_range
+    if emit:
+        emit(progress(start, f"{len(pending)} tracks to analyse"))
     for i, path in enumerate(pending):
+        if emit:
+            # Before, not after: one track can take seconds on a phone, and
+            # a status that only moves once it finishes looks stuck.
+            emit(progress(
+                start + int((end - start) * i / len(pending)),
+                f"Analysing {i + 1}/{len(pending)}: {os.path.basename(path)}",
+            ))
         features, reason = _analyze(path)
         try:
             write_sidecar(path, features, error_reason=reason, store_dir=store_dir)
@@ -287,11 +296,6 @@ def analyze_directory(
             analysed += 1
         else:
             failed += 1
-        if emit:
-            emit(progress(
-                start + int((end - start) * (i + 1) / len(pending)),
-                f"Analyzing audio ({i + 1}/{len(pending)})",
-            ))
 
     return {
         "total": len(files),

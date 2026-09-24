@@ -31,8 +31,12 @@ const LOUDNESS_MIN: f32 = -90.0;
 /// analysis space). Raises on any decode failure -- the caller decides
 /// whether that means "skip this track" or "retry later".
 #[pyfunction]
-fn analyze(path: &str) -> PyResult<HashMap<String, f64>> {
-    let song = Decoder::song_from_path(Path::new(path))
+fn analyze(py: Python<'_>, path: &str) -> PyResult<HashMap<String, f64>> {
+    // Decoding and analysing a track takes seconds on a phone. Release the
+    // GIL meanwhile, or every other Python thread (a download on Android,
+    // where everything shares one interpreter) stalls for the whole library.
+    let song = py
+        .detach(|| Decoder::song_from_path(Path::new(path)))
         .map_err(|e| PyRuntimeError::new_err(format!("{e}")))?;
 
     let raw = song.analysis.as_vec();
