@@ -2,9 +2,13 @@ part of "../../base/widgets/collection_list.dart";
 
 extension _CollectionListPage on CollectionListState {
   Widget pageView(BuildContext context) {
+    final fab = floatingAction(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
+      floatingActionButton: fab == null
+          ? null
+          : Padding(padding: kFabAboveMiniPlayer, child: fab),
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: customAppBarLeading(context),

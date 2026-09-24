@@ -45,6 +45,16 @@ void main() {
     expect(matchAlbum('No Such Album'), isNull);
   });
 
+  test('matchAlbum ignores Apple\'s Single and EP suffixes', () {
+    final single = albumWith('White Keys - Single', 'Dominic Fike', 1);
+    final ep = albumWith('Parvana - EP', 'Someone', 4);
+
+    expect(matchAlbum('White Keys'), single);
+    expect(matchAlbum('White Keys', artist: 'Dominic Fike'), single);
+    expect(matchAlbum('Parvana'), ep);
+    expect(matchAlbum('Parvana - EP'), ep);
+  });
+
   test('matchAlbum scoped by artist ignores same-titled other artists', () {
     final seger = albumWith('Greatest Hits', 'Bob Seger', 10);
     final queen = albumWith('Greatest Hits', 'Queen', 17);
