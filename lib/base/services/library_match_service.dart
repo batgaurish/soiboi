@@ -10,6 +10,7 @@
 library;
 
 import 'package:soiboi/base/data/artist_album.dart';
+import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 
 /// Case- and punctuation-insensitive comparison, because tags and catalog
@@ -78,3 +79,24 @@ MyAudioMetadata? matchSong(String title, {Album? album, String? artist}) {
   }
   return null;
 }
+
+/// Artist + title keys for every local song, for the pipeline to skip. Must
+/// agree with `owned_key` in `pipeline/soiboi_pipeline/downloader.py`,
+/// including keeping non-Latin names instead of reducing them to nothing.
+String ownedSongKey(String artist, String title) =>
+    '${_ownedPart(artist)}|${_ownedPart(title)}';
+
+String _ownedPart(String value) {
+  final latin = normaliseForMatch(value);
+  if (latin.isNotEmpty) return latin;
+  return value
+      .toLowerCase()
+      .replaceAll('&', 'and')
+      .replaceAll(RegExp(r'\s+'), '');
+}
+
+List<String> ownedSongKeys() => {
+  for (final song in library.songList)
+    if ((song.title ?? '').isNotEmpty)
+      ownedSongKey(song.artist ?? '', song.title!),
+}.toList();
