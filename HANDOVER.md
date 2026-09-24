@@ -36,12 +36,15 @@ Standing constraints, already decided, not up for re-litigation:
 ## State (2026-09-24)
 
 Last release: **v1.0.2** (Android arm64 APK). `main` is pushed up to
-`70c7055`. **Seven commits since are local only, not pushed or released**:
-the new playlist sources, the phone bug fixes, word-timed lyrics, the player
-modes, the back button, and the Android progress fix (`ea6296b..360ffc3`).
+`70c7055`. **Everything since is local only, not pushed or released**
+(`ea6296b..HEAD`): the new playlist sources, the phone bug fixes,
+word-timed lyrics, the player modes, the back button, the Android progress
+fix, and `a0371cc` (a download analyses only the files it wrote; it used to
+analyse the whole Music folder, 1,089 tracks, and hold the queue). The
+phone does not have `a0371cc` yet.
 Next step: push `main`, build, release **v1.0.3**.
 
-Tests: 219 Dart, 84 Python (`.pipeline-venv/bin/python -m pytest`, root
+Tests: 219 Dart, 85 Python (`.pipeline-venv/bin/python -m pytest`, root
 `pytest.ini` sets the path). Analyzer: only 6 pre-existing `RadioGroup`
 deprecation infos.
 
@@ -201,6 +204,9 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
 - **Android pipeline events carry a runId** over one permanent EventChannel
   listener; downloads, analysis and everything else each have their own
   executor in `PipelineChannel.kt`.
+- **Post-download work must be scoped to the files the download wrote**
+  (`since=` start time). The output folder is often the user's whole
+  library. Both analysis and the lyrics fetch follow this rule.
 - **bliss must release the GIL** (`py.detach`) or analysis starves downloads.
 - **bliss decoders**: symphonia 0.6.1's mp3 bundle is not on crates.io; the
   whole symphonia family is patched to the git tag `v0.6.1`. Opus has no
