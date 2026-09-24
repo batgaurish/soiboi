@@ -8,8 +8,14 @@ builds on the one before, and each phase ships as its own release.
 
 ## How we work through it
 
-- **One phase per release.** Phase 1 ships as v1.2.0, Phase 2 as v1.3.0, and
-  so on. Bug fixes still go to `main` as patch releases in between.
+- **Plan work stays on `scope-expansion`.** No commit from this plan goes to
+  `main` until the owner has debugged the final release and says to merge.
+  `main` only gets bug fixes for the current release line, which are then
+  merged into this branch.
+- **Phases are milestones, not public releases.** Each phase ends with test
+  builds from this branch (and, only if the owner asks, a GitHub pre-release
+  from `scope-expansion`). The version numbers below are targets for when the
+  work reaches `main`.
 - **One item per commit.** Each commit is small enough to review and to undo.
 - **Every item has a "done when".** It is not done until that holds on both
   Linux and Android.
