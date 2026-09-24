@@ -41,6 +41,9 @@ fi
 echo "==> pipeline sources into the bundle"
 copy_pipeline_sources "$DATA/pipeline" "$ROOT"
 
+echo "==> lossless wrapper"
+copy_wrapper "$DATA" "$ROOT"
+
 echo "==> runtime venv, built at its final path"
 VENV="$DATA/.pipeline-venv"
 build_runtime_venv "$VENV" "$ROOT"

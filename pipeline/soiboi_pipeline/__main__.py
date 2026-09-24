@@ -15,6 +15,7 @@ import sys
 from collections.abc import Callable
 
 from . import __version__, acoustic, apple_library, downloader, playlist, runtime
+from . import wrapper_libs
 from .protocol import Emit, Event, Payload, done, error, ignore
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ _HANDLERS: dict[str, Handler] = {
     "apple_playlist_tracks": apple_library.handle_playlist_tracks,
     "download": downloader.handle_download,
     "cancel": downloader.handle_cancel,
+    "wrapper_install": wrapper_libs.handle_install,
 }
 
 

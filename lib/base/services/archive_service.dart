@@ -6,6 +6,7 @@
 /// directory, and registering the archive folder afterwards.
 library;
 
+import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/data/setting.dart';
@@ -38,7 +39,14 @@ Future<String?> archiveUrl(
     'overwrite': redownload,
     'codec': downloadCodecNotifier.value,
   };
-  if (useWrapperNotifier.value) {
+  // ALAC goes through the bundled wrapper when it is set up. Starting it
+  // here means it only runs when someone actually downloads lossless.
+  final bundled = downloadCodecNotifier.value == 'alac' && wrapperService.supported
+      ? await _bundledWrapperPayload()
+      : null;
+  if (bundled != null) {
+    payload.addAll(bundled);
+  } else if (useWrapperNotifier.value) {
     payload['use_wrapper'] = true;
     final wrapperUrl = wrapperUrlNotifier.value.trim();
     if (wrapperUrl.isNotEmpty) payload['wrapper_url'] = wrapperUrl;
@@ -83,4 +91,11 @@ Future<void> syncArchivedToLibrary() async {
   // Synced regardless: the folder may already be registered from an earlier
   // download, and the new file still has to be picked up.
   if (!Loader.busy) await Loader.sync();
+}
+
+Future<Map<String, Object>?> _bundledWrapperPayload() async {
+  wrapperService.refresh();
+  if (!wrapperService.librariesInstalled) return null;
+  await wrapperService.start();
+  return wrapperService.downloadPayload;
 }

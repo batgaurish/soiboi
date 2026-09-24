@@ -279,6 +279,7 @@ class DownloadRequest:
     wvd_path: str | None = None
     use_wrapper: bool = False
     wrapper_url: str | None = None
+    wrapper_decrypt_port: int | None = None
     # Off is what makes a retry cheap; see download().
     overwrite: bool = False
 
@@ -294,6 +295,7 @@ class DownloadRequest:
             wvd_path=payload.get("wvd_path"),
             use_wrapper=bool(payload.get("use_wrapper")),
             wrapper_url=payload.get("wrapper_url"),
+            wrapper_decrypt_port=payload.get("wrapper_decrypt_port"),
             overwrite=bool(payload.get("overwrite")),
         )
 
@@ -334,6 +336,12 @@ def _gamdl_args(request: DownloadRequest, temp_dir: str) -> list[str]:
         args.append("--use-wrapper")
         if request.wrapper_url:
             args += ["--wrapper-url", request.wrapper_url]
+        if request.wrapper_decrypt_port:
+            # The bundled wrapper listens on a free port chosen at start.
+            args += [
+                "--wrapper-decrypt-host", "127.0.0.1",
+                "--wrapper-decrypt-port", str(request.wrapper_decrypt_port),
+            ]
     else:
         args += ["-c", request.cookies_path]
     if request.wvd_path:

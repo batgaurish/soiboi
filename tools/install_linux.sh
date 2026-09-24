@@ -69,6 +69,9 @@ mkdir -p "$(dirname "$APP_DIR")"
 echo "==> pipeline sources"
 copy_pipeline_sources "$APP_DIR/data/pipeline" "$ROOT"
 
+echo "==> lossless wrapper"
+copy_wrapper "$APP_DIR/data" "$ROOT"
+
 echo "==> python runtime, built at its final path"
 build_runtime_venv "$APP_DIR/data/.pipeline-venv" "$ROOT"
 

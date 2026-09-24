@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/services/wrapper_service.dart';
+import 'package:soiboi/base/widgets/lossless_setup.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/backup_service.dart';
 import 'package:soiboi/base/data/config.dart';
@@ -189,6 +191,8 @@ class _SettingsListState extends State<SettingsList> {
         sliverBox(
           paddingIfNeed(isLandscape, downloadQualityListTile(context, l10n)),
         ),
+
+        sliverBox(paddingIfNeed(isLandscape, losslessListTile(context))),
 
         sliverBox(
           paddingIfNeed(isLandscape, widevineListTile(context, l10n)),
@@ -1713,11 +1717,34 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  /// Widevine configuration for ALAC downloads.
+  /// Guided setup for the bundled lossless wrapper.
+  Widget losslessListTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.high_quality_rounded, size: 30),
+      title: const Text('Lossless (ALAC)'),
+      subtitle: ValueListenableBuilder<WrapperState>(
+        valueListenable: wrapperService.state,
+        builder: (context, state, _) => Text(
+          switch (state.stage) {
+            WrapperStage.ready => 'Ready',
+            WrapperStage.needsLibraries => 'Needs setup',
+            WrapperStage.signedOut || WrapperStage.needsCode => 'Needs sign-in',
+            WrapperStage.unsupported => 'Not available in this build',
+            _ => 'Set up',
+          },
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () => showAnimationDialog(context: context, child: const LosslessSetup()),
+    );
+  }
+
+  /// Advanced: a .wvd for AAC, or an external wrapper-v2 you run yourself.
   Widget widevineListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.lock_outline, size: 30),
-      title: const Text('Widevine device'),
+      title: const Text('Widevine device (advanced)'),
       subtitle: ValueListenableBuilder(
         valueListenable: useWrapperNotifier,
         builder: (context, _, child) {

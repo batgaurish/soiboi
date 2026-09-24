@@ -63,3 +63,19 @@ copy_pipeline_sources() {
     && tar --exclude='__pycache__' --exclude='native/*/target' -cf - .) \
     | (cd "$dest" && tar -xf -)
 }
+
+# The lossless wrapper (see tools/build_wrapper.sh). Built on demand when the
+# NDK it needs is present; without it the app still works and its Lossless
+# setup says the wrapper is not part of this build.
+copy_wrapper() {
+  local data="$1" root="$2"
+  if [[ ! -x "$root/build/wrapper/x86_64/wrapperd" ]]; then
+    if ! bash "$root/tools/build_wrapper.sh" x86_64; then
+      echo "warning: lossless wrapper not built; skipping it" >&2
+      return 0
+    fi
+  fi
+  rm -rf "$data/wrapper"
+  mkdir -p "$data/wrapper"
+  cp -a "$root/build/wrapper/x86_64" "$data/wrapper/"
+}
