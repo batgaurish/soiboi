@@ -661,9 +661,12 @@ class _CollectionCard extends StatelessWidget {
       child: SizedBox(
         width: 124,
         child: InkWell(
-          onTap: () {
-            layersManager.switchRootLayer(item.isArtist ? 'artists' : 'albums');
-          },
+          // Opens this artist or album, the way search does, rather than
+          // dropping the user on the whole Albums tab.
+          onTap: () => layersManager.pushDetail(
+            item.isArtist ? 'artists' : 'albums',
+            item,
+          ),
           borderRadius: BorderRadius.circular(
             circular ? 62 : 10 * activeFlavour.cornerScale,
           ),

@@ -12,6 +12,7 @@ library;
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/services/apple_catalog_service.dart';
+import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
@@ -285,6 +286,10 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
 
     // Owned tracks have nothing to archive, so they never enter the default
     // "archive everything" set -- only the actual gaps in this album do.
+    // In album order, so Play sounds like the record.
+    final owned = [
+      for (final track in tracks ?? const <AppleTrack>[]) ?_localCopyOf(track),
+    ];
     final archivable = (tracks ?? const <AppleTrack>[])
         .where((t) => _localCopyOf(t) == null)
         .toList();
@@ -307,15 +312,25 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
           : Row(
               children: [
                 Expanded(
-                  child: Text(
-                    _sending
-                        ? 'Archiving $_archivedInBatch of $_batchSize…'
-                        : selecting
-                        ? '${chosen.length} selected'
-                        : 'Long press to pick tracks',
-                    style: TextStyle(fontSize: 12, color: textColor.value),
-                  ),
+                  child: _sending
+                      ? _ArchiveProgress(done: _archivedInBatch, total: _batchSize)
+                      : Text(
+                          selecting
+                              ? '${chosen.length} selected'
+                              : 'Long press to pick tracks',
+                          style: TextStyle(fontSize: 12, color: textColor.value),
+                        ),
                 ),
+                // Plays what is already here: an album half owned is still
+                // worth listening to while the rest downloads.
+                if (!selecting && owned.isNotEmpty) ...[
+                  IconButton(
+                    tooltip: 'Play the ${owned.length} tracks you have',
+                    onPressed: () => audioHandler.setPlayQueue(owned, 0),
+                    icon: const Icon(Icons.play_circle_fill_rounded),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 if (selecting && !_sending) ...[
                   TextButton(
                     onPressed: () => setState(() {
@@ -577,6 +592,43 @@ class _CatalogArtistSheetState extends State<_CatalogArtistSheet> {
                 );
               },
             ),
+    );
+  }
+}
+
+/// Archive progress for the sheet footer: tracks done, and what the one in
+/// flight is doing right now, from the shared download queue.
+class _ArchiveProgress extends StatelessWidget {
+  const _ArchiveProgress({required this.done, required this.total});
+
+  final int done;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<DownloadJob>>(
+      valueListenable: downloadQueue.jobs,
+      builder: (context, _, _) {
+        final job = downloadQueue.active.value;
+        final detail = job == null ? '' : ' · ${job.label}: ${job.status}';
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Archiving ${done + 1} of $total$detail',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12, color: textColor.value),
+            ),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(
+              // Whole tracks plus the fraction of the current one.
+              value: total == 0 ? null : (done + (job?.progress ?? 0) / 100) / total,
+            ),
+          ],
+        );
+      },
     );
   }
 }

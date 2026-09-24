@@ -34,6 +34,9 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
     // their own thread so a library analyse (which can run for an hour) never
     // holds one up, and neither blocks a capabilities check or playlist fetch.
     private val downloads = Executors.newSingleThreadExecutor()
+    // A library analyse can run for hours; on the shared thread it held up
+    // the engine check ("Checking..." forever) and every playlist read.
+    private val analysis = Executors.newSingleThreadExecutor()
     private val background = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private var events: EventChannel.EventSink? = null
@@ -79,7 +82,11 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
     }
 
     private fun run(runId: Int, command: String, payload: String, result: MethodChannel.Result) {
-        val executor = if (command == "download") downloads else background
+        val executor = when (command) {
+            "download" -> downloads
+            "analyze" -> analysis
+            else -> background
+        }
         executor.execute {
             val terminal: String = try {
                 ensureStarted()

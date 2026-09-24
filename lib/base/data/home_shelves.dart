@@ -45,12 +45,21 @@ List<MyAudioMetadata> recentlyAddedSongs() {
 }
 
 /// Albums whose newest track arrived most recently.
+/// Albums newest release first.
+///
+/// Tags carry only a release year, so albums from the same year fall back to
+/// when they arrived here. Ordering by arrival alone put a 2016 soundtrack
+/// downloaded today ahead of this year's releases.
 List<Album> recentlyAddedAlbums() {
-  final albums = artistAlbumManager.albumList.where((album) {
-    return album.songList.any((s) => s.modified != null);
-  }).toList();
+  final albums = artistAlbumManager.albumList
+      .where((album) => album.songList.isNotEmpty)
+      .toList();
 
-  DateTime newest(Album album) {
+  int year(Album album) => album.songList
+      .map((s) => s.year ?? 0)
+      .fold(0, (best, y) => y > best ? y : best);
+
+  DateTime added(Album album) {
     DateTime? best;
     for (final song in album.songList) {
       final m = song.modified;
@@ -59,7 +68,10 @@ List<Album> recentlyAddedAlbums() {
     return best ?? DateTime.fromMillisecondsSinceEpoch(0);
   }
 
-  albums.sort((a, b) => newest(b).compareTo(newest(a)));
+  albums.sort((a, b) {
+    final byYear = year(b).compareTo(year(a));
+    return byYear != 0 ? byYear : added(b).compareTo(added(a));
+  });
   return albums.take(shelfLimit).toList();
 }
 
