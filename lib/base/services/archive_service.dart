@@ -14,6 +14,7 @@ import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
+import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 
 /// Archives [url]. Returns null on success, or a message describing the
@@ -43,10 +44,14 @@ Future<String?> archiveUrl(
     'temp_dir': downloadTempDir,
     'overwrite': redownload,
     'codec': downloadCodecNotifier.value,
+    // The pipeline skips these whatever their codec or file name; gamdl on
+    // its own only skips an identical output path.
+    if (!redownload) 'owned': ownedSongKeys(),
   };
   // ALAC goes through the bundled wrapper when it is set up. Starting it
   // here means it only runs when someone actually downloads lossless.
-  final bundled = downloadCodecNotifier.value == 'alac' && wrapperService.supported
+  final bundled =
+      downloadCodecNotifier.value == 'alac' && wrapperService.supported
       ? await _bundledWrapperPayload()
       : null;
   if (bundled != null) {
@@ -55,7 +60,8 @@ Future<String?> archiveUrl(
     payload['use_wrapper'] = true;
     final wrapperUrl = wrapperUrlNotifier.value.trim();
     if (wrapperUrl.isNotEmpty) payload['wrapper_url'] = wrapperUrl;
-  } else if (wvdPathNotifier.value != null && wvdPathNotifier.value!.isNotEmpty) {
+  } else if (wvdPathNotifier.value != null &&
+      wvdPathNotifier.value!.isNotEmpty) {
     payload['wvd_path'] = wvdPathNotifier.value;
   }
 

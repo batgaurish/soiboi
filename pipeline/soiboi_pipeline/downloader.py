@@ -33,8 +33,10 @@ try:
     from gamdl.cli.cli import main as gamdl_main
     from gamdl.cli.utils import CustomOutputWriter
     from gamdl.downloader import base as gamdl_base
+    from gamdl.downloader import downloader as gamdl_downloader
+    from gamdl.downloader.exceptions import GamdlDownloaderMediaFileExistsError
 except ImportError as exc:  # the bundled environment is incomplete
-    gamdl_main = CustomOutputWriter = gamdl_base = None
+    gamdl_main = CustomOutputWriter = gamdl_base = gamdl_downloader = None
     _GAMDL_IMPORT_ERROR = str(exc)
 else:
     _GAMDL_IMPORT_ERROR = None
@@ -283,6 +285,8 @@ class DownloadRequest:
     wrapper_decrypt_port: int | None = None
     # Off is what makes a retry cheap; see download().
     overwrite: bool = False
+    # owned_key() of every song already in the library, whatever its codec.
+    owned: frozenset[str] = frozenset()
 
     @classmethod
     def from_payload(cls, payload: Payload) -> "DownloadRequest":
@@ -298,7 +302,56 @@ class DownloadRequest:
             wrapper_url=payload.get("wrapper_url"),
             wrapper_decrypt_port=payload.get("wrapper_decrypt_port"),
             overwrite=bool(payload.get("overwrite")),
+            owned=frozenset(payload.get("owned") or ()),
         )
+
+
+def _normalise(value: str) -> str:
+    """Same as the app's normaliseForMatch, except that a name with no
+    Latin letters or digits (Hindi, Japanese) keeps its own characters
+    rather than collapsing to an empty string that matches everything."""
+    lowered = value.lower().replace("&", "and")
+    latin = re.sub(r"[^a-z0-9]+", "", lowered)
+    return latin or re.sub(r"\s+", "", lowered)
+
+
+def owned_key(artist: str, title: str) -> str:
+    return f"{_normalise(artist)}|{_normalise(title)}"
+
+
+# The library as the app saw it when this download started. gamdl only skips
+# a track whose exact output path exists, so an AAC copy never stopped the
+# ALAC download of the same song, and neither did a file named differently.
+_owned: frozenset[str] = frozenset()
+_owned_patched = False
+
+
+def _skip_owned_tracks() -> None:
+    """Make gamdl treat a song the library already has as already downloaded.
+
+    Raising gamdl's own "file exists" error keeps its existing handling: a
+    warning, not a failure, so the stream tap reports success.
+    """
+    global _owned_patched
+    if _owned_patched or gamdl_downloader is None:
+        return
+    cls = gamdl_downloader.AppleMusicDownloader
+    original = cls._download
+
+    async def _download(self, item):
+        attrs = ((item.media.media_metadata or {}).get("attributes") or {})
+        if (
+            not self.overwrite
+            and attrs.get("name")
+            and owned_key(attrs.get("artistName") or "", attrs["name"]) in _owned
+        ):
+            raise GamdlDownloaderMediaFileExistsError(
+                f"{attrs['name']} (already in your library)"
+            )
+        return await original(self, item)
+
+    cls._download = _download
+    _owned_patched = True
 
 
 def _prepare_dirs(request: DownloadRequest) -> tuple[str, str]:
@@ -461,6 +514,9 @@ def download(request: DownloadRequest, emit: Emit = ignore) -> Event:
             "be applied.",
         )
 
+    global _owned
+    _owned = request.owned
+    _skip_owned_tracks()
     with _open_log(log_path) as log:
         failure = _run_gamdl(
             _gamdl_args(request, temp_dir), _StreamTap(emit, log=log), emit
