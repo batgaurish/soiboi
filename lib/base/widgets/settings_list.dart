@@ -1140,6 +1140,7 @@ class _SettingsListState extends State<SettingsList> {
                             dynamicColorSourceDescription =
                                 '${schemeLabel(scheme)} from your wallpaper';
                             colorSourceNotifier.value = ColorSource.matugen;
+                            leaveVividMainTheme();
                             setting.save();
                             colorManager.updateColors();
                           }
@@ -1198,6 +1199,7 @@ class _SettingsListState extends State<SettingsList> {
                           return;
                         }
                         colorSourceNotifier.value = ColorSource.matugen;
+                        leaveVividMainTheme();
                         setting.save();
                         colorManager.updateColors();
                         if (context.mounted) Navigator.of(context).pop();
@@ -1246,6 +1248,7 @@ class _SettingsListState extends State<SettingsList> {
                           onTap: () {
                             prebuiltPaletteNotifier.value = palette;
                             colorSourceNotifier.value = ColorSource.prebuilt;
+                            leaveVividMainTheme();
                             setting.save();
                             colorManager.updateColors();
                             Navigator.of(context).pop();

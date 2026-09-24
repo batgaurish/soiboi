@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:screen_corner_radius/screen_corner_radius.dart';
@@ -19,7 +20,23 @@ late final ScreenRadius? screenRadius;
 
 enum ThemeType { vivid, light, dark, custom }
 
-final mainPageThemeNotifier = ValueNotifier(ThemeType.vivid);
+final mainPageThemeNotifier = ValueNotifier(systemThemeType());
+
+/// Light or dark, following the system.
+ThemeType systemThemeType() =>
+    PlatformDispatcher.instance.platformBrightness == Brightness.dark
+    ? ThemeType.dark
+    : ThemeType.light;
+
+/// A colour source only paints light and dark pages, so choosing one moves a
+/// vivid main page to the system's brightness; otherwise the choice would
+/// look like it did nothing.
+void leaveVividMainTheme() {
+  if (mainPageThemeNotifier.value == ThemeType.vivid) {
+    mainPageThemeNotifier.value = systemThemeType();
+  }
+}
+
 final lyricsPageThemeNotifier = ValueNotifier(ThemeType.vivid);
 
 final ValueNotifier<Locale?> localeNotifier = ValueNotifier(null);
