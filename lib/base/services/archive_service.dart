@@ -17,8 +17,19 @@ import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 
-/// Archives [url]. Returns null on success, or a message describing the
-/// failure.
+/// Why a download failed: the pipeline's error code, where it gave one, and
+/// its message. `error_catalog.dart` turns both into words for people.
+class DownloadFailure {
+  const DownloadFailure(this.message, {this.code = ''});
+
+  final String code;
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// Archives [url]. Returns null on success, or what went wrong.
 ///
 /// Never throws: callers are UI code streaming a batch, and an exception
 /// halfway through a fifty-track playlist would lose the progress already made.
@@ -28,7 +39,7 @@ import 'package:soiboi/base/services/pipeline_runner.dart';
 /// track nine fetches the rest rather than the lot; the pipeline's own
 /// docstring explains why this is track-level and not byte-level. Pass
 /// [redownload] to deliberately replace a file that is already there.
-Future<String?> archiveUrl(
+Future<DownloadFailure?> archiveUrl(
   String url, {
   bool redownload = false,
   void Function(int progress, String status)? onProgress,
@@ -90,14 +101,14 @@ Future<String?> archiveUrl(
   }
   log('Handing over to the downloader');
 
-  String? error;
+  DownloadFailure? error;
   var finished = false;
   await for (final event in pipelineRunner.run('download', payload)) {
     if (event.isProgress) {
       onProgress?.call(event.progress, event.status);
     } else if (event.isError) {
-      error = event.message;
-      log('Error: ${event.message}');
+      error = DownloadFailure(event.message, code: event.code);
+      log('Error${event.code.isEmpty ? '' : ' (${event.code})'}: ${event.message}');
     } else if (event.isDone) {
       finished = true;
     }
@@ -106,7 +117,10 @@ Future<String?> archiveUrl(
   // closes the stream without a terminal event. That is a failure, not a
   // silent success.
   if (error == null && !finished) {
-    return 'The downloader stopped without finishing. See the log for details.';
+    return const DownloadFailure(
+      'The downloader stopped without finishing. See the log for details.',
+      code: 'no_result',
+    );
   }
   return error;
 }

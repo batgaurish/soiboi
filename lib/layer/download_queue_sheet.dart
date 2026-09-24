@@ -166,10 +166,12 @@ class DownloadQueueView extends StatelessWidget {
       ),
     };
 
-    // The failure message, else the pipeline's stage label, else the artist —
-    // in that order, because the most specific thing is always the one worth
-    // the one line a row has.
-    final detail = job.error ?? (job.status.isEmpty ? job.subtitle : job.status);
+    // What went wrong in plain words, else the pipeline's stage label, else
+    // the artist: the most specific thing is always the one worth the line a
+    // row has. The raw failure stays in the job's log.
+    final detail =
+        job.failure?.sentence ??
+        (job.status.isEmpty ? job.subtitle : job.status);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

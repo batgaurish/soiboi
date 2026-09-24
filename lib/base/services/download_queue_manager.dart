@@ -22,6 +22,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:soiboi/base/services/archive_service.dart';
+import 'package:soiboi/base/services/error_catalog.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 
 enum DownloadJobState {
@@ -60,7 +61,18 @@ class DownloadJob {
   DownloadJobState state = DownloadJobState.queued;
   int progress = 0;
   String status = '';
+
+  /// The failure as the pipeline reported it. Kept for the log; people are
+  /// shown [failure] instead.
   String? error;
+
+  /// The pipeline's error code for [error], or empty.
+  String errorCode = '';
+
+  /// [error] in plain words, with what fixes it. Null unless failed.
+  FailureExplanation? get failure => error == null
+      ? null
+      : describeFailure(error!, code: errorCode);
 
   /// What the app did for this job, timestamped: the steps before the
   /// downloader starts (wrapper, sign-in) as well as each stage it reports.
@@ -125,6 +137,10 @@ class DownloadBatch {
   List<String> get errors =>
       jobs.map((job) => job.error).whereType<String>().toList();
 
+  /// The same failures, explained for people.
+  List<FailureExplanation> get failures =>
+      jobs.map((job) => job.failure).whereType<FailureExplanation>().toList();
+
   /// Jobs that actually landed a file.
   List<DownloadJob> get succeeded =>
       jobs.where((job) => job.state == DownloadJobState.done).toList();
@@ -166,7 +182,7 @@ class DownloadQueueManager {
   /// Seams for tests. Real downloads need a signed-in session, a Python
   /// runtime and the network; none of that belongs in a unit test of queue
   /// mechanics.
-  Future<String?> Function(
+  Future<DownloadFailure?> Function(
     String url, {
     bool redownload,
     void Function(int progress, String status)? onProgress,
@@ -216,6 +232,7 @@ class DownloadQueueManager {
     if (job.isActive) return;
     job.state = DownloadJobState.queued;
     job.error = null;
+    job.errorCode = '';
     job.progress = 0;
     job.status = '';
     _notify();
@@ -313,7 +330,7 @@ class DownloadQueueManager {
     job.downloaderLogPath = p.join(logDir, '${job.id}.log');
     job.addLog('Starting ${job.url}');
 
-    String? error;
+    DownloadFailure? error;
     try {
       error = await archive(
         job.url,
@@ -329,10 +346,20 @@ class DownloadQueueManager {
     } catch (e) {
       // archiveUrl documents that it never throws, but a queue that dies on a
       // broken promise would strand every job behind it.
-      error = '$e';
+      error = DownloadFailure('$e');
     }
 
-    job.addLog(error == null ? 'Finished' : 'Failed: $error');
+    if (error == null) {
+      job.addLog('Finished');
+    } else {
+      job.addLog('Failed: ${error.message}');
+      final explained = explainFailure(error.message, code: error.code);
+      job.addLog(
+        explained == null
+            ? 'Not in the error catalog'
+            : 'Catalog: ${explained.id} (${explained.title})',
+      );
+    }
     final stoppedAs = _afterStop;
     _afterStop = null;
     if (stoppedAs != null) {
@@ -340,10 +367,12 @@ class DownloadQueueManager {
       job.state = stoppedAs;
       job.status = stoppedAs == DownloadJobState.queued ? 'Paused' : 'Stopped';
       job.error = null;
+      job.errorCode = '';
       _dirty = true; // tracks finished before the stop still need syncing
     } else if (error != null) {
       job.state = DownloadJobState.failed;
-      job.error = error;
+      job.error = error.message;
+      job.errorCode = error.code;
       job.status = 'Failed';
     } else {
       job.state = DownloadJobState.done;
