@@ -74,7 +74,18 @@ def lrc_path(audio_path: str) -> str:
 
 
 def _needs_lyrics(path: str) -> bool:
-    return path.lower().endswith(".m4a") and not os.path.exists(lrc_path(path))
+    """An .m4a without word-timed lyrics beside it.
+
+    gamdl writes its own line-timed .lrc during the download, so an existing
+    file only counts once it carries per-word <mm:ss.xx> tags.
+    """
+    if not path.lower().endswith(".m4a"):
+        return False
+    try:
+        with open(lrc_path(path), encoding="utf-8") as f:
+            return "<" not in f.read()
+    except OSError:
+        return True
 
 
 def _catalog_id(path: str) -> str | None:

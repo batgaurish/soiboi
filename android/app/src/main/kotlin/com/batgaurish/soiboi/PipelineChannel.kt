@@ -2,7 +2,6 @@ package com.batgaurish.soiboi
 
 import android.os.Handler
 import android.os.Looper
-import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import io.flutter.embedding.engine.FlutterEngine
@@ -96,10 +95,12 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
                 // Progress events are pushed straight to Dart as they happen.
                 // Anything thrown from the callback must not escape into Python,
                 // or a UI hiccup would abort a download.
-                val emit = object {
-                    @Suppress("unused")
-                    fun __call__(event: PyObject?) {
-                        val json = event?.toString() ?: return
+                // Chaquopy can call a Java object from Python only through a
+                // functional interface. The earlier anonymous object with a
+                // __call__ method was never callable, so on Android not one
+                // progress event reached the app: every download and analyse
+                // showed "Starting" until it finished.
+                val emit = java.util.function.Consumer<String> { json ->
                         main.post {
                             try {
                                 // Tagged, because several runs share this one
@@ -108,7 +109,6 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
                             } catch (_: Throwable) {
                             }
                         }
-                    }
                 }
 
                 val response = module.callAttr(
