@@ -219,9 +219,13 @@ class WrapperService {
         Directory(
           p.join(installDir, 'rootfs', 'data', 'data', 'com.apple.android.music', 'files'),
         ).createSync(recursive: true);
+        await _killLeftovers();
         process = await Process.start(
           'unshare',
-          ['-rmpf', p.join(installDir, 'wrapperd')],
+          // --kill-child: the wrapper is PID 1 in its namespace and ignores
+          // SIGTERM, so without this, stopping or losing the app left it
+          // running with nobody knowing its port.
+          ['-rmpf', '--kill-child', p.join(installDir, 'wrapperd')],
           workingDirectory: installDir,
           environment: {...ports, 'WRAPPER_LAUNCHER': p.join(installDir, 'wrapper')},
         );
@@ -354,6 +358,35 @@ class WrapperService {
     if (!librariesInstalled || !signedIn.value) return null;
     await start();
     return downloadPayload;
+  }
+
+  /// Force-stops wrappers from an earlier run of the app. Linux only: they
+  /// are found by their executable, which lives in this app's own storage.
+  Future<void> _killLeftovers() async {
+    final exe = p.join(installDir, 'wrapperd');
+    for (final entry in Directory('/proc').listSync()) {
+      final pid = int.tryParse(p.basename(entry.path));
+      if (pid == null) continue;
+      try {
+        final cmdline = File('${entry.path}/cmdline').readAsStringSync();
+        if (cmdline.split('\x00').contains(exe)) {
+          Process.killPid(pid, ProcessSignal.sigkill);
+        }
+      } on FileSystemException {
+        // Exited while we looked, or not ours to read.
+      }
+    }
+  }
+
+  /// At startup: a wrapper set up and signed in before the app remembered
+  /// sign-ins has no marker yet, so ask it once rather than wait for a
+  /// download to start it. Leaves it running, since signed in means it will
+  /// be used.
+  Future<void> probeSignIn() async {
+    await refresh();
+    if (!librariesInstalled || signedIn.value) return;
+    await start();
+    if (!signedIn.value) await stop();
   }
 
   static Future<int> _freePort() async {

@@ -12,6 +12,7 @@ library;
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
@@ -146,7 +147,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     // Same reason as Home: on a narrow layout the drawer is the only way out,
     // and this screen has no portrait wrapper to supply a menu button. Built
     // outside the ListenableBuilder so the tree shape never changes.
-    if (!isTooNarrow(context)) return body;
+    // Wide layouts get window controls, the drag region and Settings from
+    // each page's own TitleBar; without one this page had none (see Home).
+    if (!isTooNarrow(context)) {
+      return Column(children: [const TitleBar(), Expanded(child: body)]);
+    }
     return Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,

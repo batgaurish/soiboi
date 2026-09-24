@@ -18,6 +18,7 @@ library;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
@@ -109,7 +110,11 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
       ],
     );
 
-    if (!isTooNarrow(context)) return body;
+    // Wide layouts get window controls, the drag region and Settings from
+    // each page's own TitleBar; without one this page had none (see Home).
+    if (!isTooNarrow(context)) {
+      return Column(children: [const TitleBar(), Expanded(child: body)]);
+    }
     return Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
