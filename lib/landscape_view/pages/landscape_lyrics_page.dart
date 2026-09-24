@@ -183,6 +183,8 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                                       lines: currentSong.parsedLyrics!.lines,
                                       isKaraoke:
                                           currentSong.parsedLyrics!.isKaraoke,
+                                      isSynced:
+                                          currentSong.parsedLyrics!.isSynced,
                                     ),
                             ),
                           ),

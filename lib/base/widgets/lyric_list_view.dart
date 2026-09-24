@@ -21,11 +21,16 @@ class LyricsListView extends StatefulWidget {
   final bool expanded;
   final List<LyricLine> lines;
   final bool isKaraoke;
+
+  /// Plain lyrics have no timestamps, so no line is current and none is
+  /// highlighted.
+  final bool isSynced;
   const LyricsListView({
     super.key,
     required this.expanded,
     required this.lines,
     required this.isKaraoke,
+    this.isSynced = true,
   });
 
   @override
@@ -45,6 +50,7 @@ class LyricsListViewState extends State<LyricsListView>
   Timer? timer;
 
   void scroll2CurrentIndex(Duration position) async {
+    if (!widget.isSynced) return;
     position += Duration(milliseconds: lyricsTimeOffsetNotifier.value);
     // it's weird that the position is sometimes negative
     if (audioHandler.isLoading || position < Duration.zero) {
@@ -186,6 +192,7 @@ class LyricsListViewState extends State<LyricsListView>
                 currentIndexNotifier: currentIndexNotifier,
                 expanded: widget.expanded,
                 isKaraoke: widget.isKaraoke,
+                isSynced: widget.isSynced,
               );
             },
           ),
@@ -202,6 +209,7 @@ class LyricLineWidget extends StatelessWidget {
   final ValueNotifier<int> currentIndexNotifier;
   final bool expanded;
   final bool isKaraoke;
+  final bool isSynced;
 
   const LyricLineWidget({
     super.key,
@@ -210,6 +218,7 @@ class LyricLineWidget extends StatelessWidget {
     required this.currentIndexNotifier,
     required this.expanded,
     required this.isKaraoke,
+    this.isSynced = true,
   });
 
   @override
@@ -229,10 +238,12 @@ class LyricLineWidget extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         mouseCursor: SystemMouseCursors.click,
-        onTap: () {
-          // add 1ms offset to avoid seeking to last lyric
-          audioHandler.seek(line.start + Duration(milliseconds: 1));
-        },
+        onTap: !isSynced
+            ? null
+            : () {
+                // add 1ms offset to avoid seeking to last lyric
+                audioHandler.seek(line.start + Duration(milliseconds: 1));
+              },
         customBorder: SmoothRectangleBorder(
           smoothness: 1,
           borderRadius: BorderRadius.circular(10),
@@ -263,7 +274,7 @@ class LyricLineWidget extends StatelessWidget {
                   : lyricsPageForegroundColor.value;
 
               return AnimatedScale(
-                scale: isCurrent ? 1.05 : 0.95,
+                scale: !isSynced ? 1 : (isCurrent ? 1.05 : 0.95),
                 duration: Duration(milliseconds: 300),
                 alignment: expanded ? .centerLeft : .center,
                 child: Column(
@@ -289,7 +300,7 @@ class LyricLineWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: fontSize,
                           fontWeight: lyricsFontWeightNotifier.value,
-                          color: isCurrent
+                          color: isCurrent || !isSynced
                               ? textColor
                               : textColor.withAlpha(128),
                         ),
