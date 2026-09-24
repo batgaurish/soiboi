@@ -53,6 +53,7 @@ import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/services/acoustic_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class SettingsList extends StatefulWidget {
   final double? iconSize;
@@ -199,9 +200,7 @@ class _SettingsListState extends State<SettingsList> {
 
         sliverBox(paddingIfNeed(isLandscape, losslessListTile(context))),
 
-        sliverBox(
-          paddingIfNeed(isLandscape, widevineListTile(context, l10n)),
-        ),
+        sliverBox(paddingIfNeed(isLandscape, widevineListTile(context, l10n))),
 
         sliverBox(paddingIfNeed(isLandscape, downloadLogsListTile())),
         if (notifications.supported)
@@ -213,9 +212,7 @@ class _SettingsListState extends State<SettingsList> {
 
         sliverBox(paddingIfNeed(isLandscape, lrclibListTile(l10n))),
 
-        sliverBox(
-          paddingIfNeed(isLandscape, downloadQueueListTile(context)),
-        ),
+        sliverBox(paddingIfNeed(isLandscape, downloadQueueListTile(context))),
 
         sliverBox(
           paddingIfNeed(isLandscape, downloadFolderListTile(context, l10n)),
@@ -398,7 +395,9 @@ class _SettingsListState extends State<SettingsList> {
                             ),
                           ListTile(
                             dense: true,
-                            leading: const Icon(Icons.create_new_folder_outlined),
+                            leading: const Icon(
+                              Icons.create_new_folder_outlined,
+                            ),
                             title: const Text('Choose another folder…'),
                             onTap: () async {
                               final picked =
@@ -466,9 +465,7 @@ class _SettingsListState extends State<SettingsList> {
       subtitle: ValueListenableBuilder<String>(
         valueListenable: _analyseStatus,
         builder: (context, value, child) => Text(
-          value.isEmpty
-              ? 'Needed for smart playlists and mood shelves'
-              : value,
+          value.isEmpty ? 'Needed for smart playlists and mood shelves' : value,
           style: TextStyle(fontSize: 12, color: textColor.value),
         ),
       ),
@@ -845,6 +842,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
+          semanticLabel: l10n.menuOnRight,
           valueNotifier: endDrawerNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -865,6 +863,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
+          semanticLabel: 'Download logs',
           valueNotifier: showDownloadLogsNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -901,6 +900,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
+          semanticLabel: 'Notifications',
           valueNotifier: notificationsEnabledNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -956,6 +956,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
+          semanticLabel: l10n.vibration,
           valueNotifier: vibrationOnNoitifier,
           onToggleCallBack: () {
             setting.save();
@@ -1081,17 +1082,23 @@ class _SettingsListState extends State<SettingsList> {
           final loaded = dynamicDarkNotifier.value != null;
           final label = switch (source) {
             ColorSource.off => 'App colours (default)',
-            ColorSource.matugen => !loaded
-                ? 'No colours found — tap to set up'
-                // Says where the colours actually came from: with two routes
-                // (an existing matugen setup's file, or generating from the
-                // wallpaper) "it worked" is not enough to debug from.
-                : dynamicColorSourceDescription ??
-                      (Platform.isAndroid ? 'Material You' : 'Matched via matugen'),
+            ColorSource.matugen =>
+              !loaded
+                  ? 'No colours found — tap to set up'
+                  // Says where the colours actually came from: with two routes
+                  // (an existing matugen setup's file, or generating from the
+                  // wallpaper) "it worked" is not enough to debug from.
+                  : dynamicColorSourceDescription ??
+                        (Platform.isAndroid
+                            ? 'Material You'
+                            : 'Matched via matugen'),
             ColorSource.prebuilt =>
               'Prebuilt · ${prebuiltPaletteNotifier.value.label}',
           };
-          return Text(label, style: TextStyle(fontSize: 12, color: textColor.value));
+          return Text(
+            label,
+            style: TextStyle(fontSize: 12, color: textColor.value),
+          );
         },
       ),
       onTap: () => _openColorSourcePicker(context),
@@ -1228,10 +1235,7 @@ class _SettingsListState extends State<SettingsList> {
                         // sets, so it comes out white — and the app's own
                         // near-white text on it is unreadable.
                         dropdownColor: menuColor.value,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: textColor.value,
-                        ),
+                        style: TextStyle(fontSize: 12, color: textColor.value),
                         items: [
                           for (final scheme in matugenSchemes)
                             DropdownMenuItem(
@@ -1308,14 +1312,13 @@ class _SettingsListState extends State<SettingsList> {
                         final ok = await autoLoadDynamicPalette();
                         if (!ok) {
                           setDialogState(
-                            () => status =
-                                Platform.isAndroid
-                                    ? 'Android did not provide a palette. '
-                                          'Material You needs Android 12 '
-                                          'or newer.'
-                                    : 'No colours found, and matugen '
-                                          'could not generate any from '
-                                          'your wallpaper',
+                            () => status = Platform.isAndroid
+                                ? 'Android did not provide a palette. '
+                                      'Material You needs Android 12 '
+                                      'or newer.'
+                                : 'No colours found, and matugen '
+                                      'could not generate any from '
+                                      'your wallpaper',
                           );
                           return;
                         }
@@ -1618,6 +1621,7 @@ class _SettingsListState extends State<SettingsList> {
         child: Builder(
           builder: (context) {
             return MySwitch(
+              semanticLabel: l10n.immersiveWideLayout,
               valueNotifier: immersiveWideLayoutNotifier,
               onToggleCallBack: () {
                 if (!isTooNarrow(context)) {
@@ -1777,9 +1781,9 @@ class _SettingsListState extends State<SettingsList> {
             : const Icon(Icons.chevron_right_rounded),
       ),
       onTap: () async {
-        await Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AppleSignInLayer()),
-        );
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AppleSignInLayer()));
         await cookie_store.refreshSessionState();
       },
     );
@@ -1811,7 +1815,10 @@ class _SettingsListState extends State<SettingsList> {
                   children: [
                     const Text(
                       'Download quality',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -1851,19 +1858,17 @@ class _SettingsListState extends State<SettingsList> {
       title: const Text('Lossless (ALAC)'),
       subtitle: ValueListenableBuilder<WrapperState>(
         valueListenable: wrapperService.state,
-        builder: (context, state, _) => Text(
-          switch (state.stage) {
-            WrapperStage.ready => 'Ready',
-            WrapperStage.needsLibraries => 'Needs setup',
-            WrapperStage.signedOut || WrapperStage.needsCode => 'Needs sign-in',
-            WrapperStage.unsupported => 'Not available in this build',
-            _ => 'Set up',
-          },
-          style: TextStyle(fontSize: 12, color: textColor.value),
-        ),
+        builder: (context, state, _) => Text(switch (state.stage) {
+          WrapperStage.ready => 'Ready',
+          WrapperStage.needsLibraries => 'Needs setup',
+          WrapperStage.signedOut || WrapperStage.needsCode => 'Needs sign-in',
+          WrapperStage.unsupported => 'Not available in this build',
+          _ => 'Set up',
+        }, style: TextStyle(fontSize: 12, color: textColor.value)),
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () => showAnimationDialog(context: context, child: const LosslessSetup()),
+      onTap: () =>
+          showAnimationDialog(context: context, child: const LosslessSetup()),
     );
   }
 
@@ -1877,11 +1882,12 @@ class _SettingsListState extends State<SettingsList> {
         builder: (context, _, child) {
           final detail = useWrapperNotifier.value
               ? wrapperUrlNotifier.value.isEmpty
-                  ? 'Wrapper enabled — set URL'
-                  : 'Wrapper: ${wrapperUrlNotifier.value}'
-              : wvdPathNotifier.value != null && wvdPathNotifier.value!.isNotEmpty
-                  ? 'WVD file set'
-                  : 'Using the built-in device';
+                    ? 'Wrapper enabled — set URL'
+                    : 'Wrapper: ${wrapperUrlNotifier.value}'
+              : wvdPathNotifier.value != null &&
+                    wvdPathNotifier.value!.isNotEmpty
+              ? 'WVD file set'
+              : 'Using the built-in device';
           return Text(
             detail,
             style: TextStyle(fontSize: 12, color: textColor.value),
@@ -1890,8 +1896,12 @@ class _SettingsListState extends State<SettingsList> {
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: () async {
-        final wvdController = TextEditingController(text: wvdPathNotifier.value ?? '');
-        final wrapperController = TextEditingController(text: wrapperUrlNotifier.value);
+        final wvdController = TextEditingController(
+          text: wvdPathNotifier.value ?? '',
+        );
+        final wrapperController = TextEditingController(
+          text: wrapperUrlNotifier.value,
+        );
         await showAnimationDialog(
           context: context,
           child: StatefulBuilder(
@@ -1905,7 +1915,10 @@ class _SettingsListState extends State<SettingsList> {
                   children: [
                     const Text(
                       'Widevine configuration',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -1956,14 +1969,19 @@ class _SettingsListState extends State<SettingsList> {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.folder_open),
+                            tooltip: 'Choose a .wvd file',
+                            icon: labelIcon(
+                              'Choose a .wvd file',
+                              const Icon(Icons.folder_open),
+                            ),
                             onPressed: () async {
                               final result = await FilePicker.pickFiles(
                                 type: FileType.custom,
                                 allowedExtensions: ['wvd'],
                               );
                               if (result != null && result.files.isNotEmpty) {
-                                wvdController.text = result.files.first.path ?? '';
+                                wvdController.text =
+                                    result.files.first.path ?? '';
                               }
                             },
                           ),
@@ -1981,10 +1999,12 @@ class _SettingsListState extends State<SettingsList> {
                         FilledButton(
                           onPressed: () {
                             if (useWrapperNotifier.value) {
-                              wrapperUrlNotifier.value = wrapperController.text.trim();
+                              wrapperUrlNotifier.value = wrapperController.text
+                                  .trim();
                               wvdPathNotifier.value = null;
                             } else {
-                              wvdPathNotifier.value = wvdController.text.trim().isEmpty
+                              wvdPathNotifier.value =
+                                  wvdController.text.trim().isEmpty
                                   ? null
                                   : wvdController.text.trim();
                               wrapperUrlNotifier.value = '';
@@ -2017,6 +2037,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
+          semanticLabel: 'Fetch lyrics from LRCLIB',
           valueNotifier: lrclibEnabledNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -2034,6 +2055,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
+          semanticLabel: l10n.autoPlayOnStartup,
           valueNotifier: autoPlayOnStartupNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -2054,6 +2076,7 @@ class _SettingsListState extends State<SettingsList> {
           children: [
             Spacer(),
             MySwitch(
+              semanticLabel: l10n.closeAction,
               trueText: l10n.exit,
               falseText: l10n.hide,
               valueNotifier: exitOnCloseNotifier,

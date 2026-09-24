@@ -23,6 +23,7 @@ import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class BigSingleAlbumPanel extends StatefulWidget {
   final Album album;
@@ -142,11 +143,12 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
             child: GlassContainer(
               settings: LiquidGlassSettings(glassColor: glassColor.value),
               child: IconButton(
+                tooltip: 'Back',
                 autofocus: true,
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                icon: Icon(Icons.arrow_back_ios_rounded),
+                icon: labelIcon('Back', Icon(Icons.arrow_back_ios_rounded)),
               ),
             ),
           ),
@@ -377,20 +379,29 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
         mainAxisAlignment: .center,
         children: [
           IconButton(
+            tooltip: AppLocalizations.of(context).shuffle,
             onPressed: () async {
               await audioHandler.setPlayQueue(currentSongList, 1);
             },
-            icon: AppIcon(shuffleImage),
+            icon: labelIcon(
+              AppLocalizations.of(context).shuffle,
+              AppIcon(shuffleImage),
+            ),
             iconSize: 30,
           ),
           IconButton(
+            tooltip: AppLocalizations.of(context).playAll,
             onPressed: () async {
               await audioHandler.setPlayQueue(currentSongList, 0);
             },
-            icon: Icon(Icons.play_circle_fill_rounded),
+            icon: labelIcon(
+              AppLocalizations.of(context).playAll,
+              Icon(Icons.play_circle_fill_rounded),
+            ),
             iconSize: 50,
           ),
           IconButton(
+            tooltip: AppLocalizations.of(context).select,
             onPressed: () {
               Navigator.of(context).push(
                 ZoomPageRoute(
@@ -406,7 +417,10 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
                 ),
               );
             },
-            icon: Transform.scale(scale: 0.95, child: AppIcon(selectImage)),
+            icon: labelIcon(
+              AppLocalizations.of(context).select,
+              Transform.scale(scale: 0.95, child: AppIcon(selectImage)),
+            ),
             iconSize: 30,
           ),
         ],

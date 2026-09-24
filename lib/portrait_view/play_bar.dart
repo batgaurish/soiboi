@@ -10,8 +10,11 @@ import 'package:soiboi/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class PlayBar extends StatelessWidget {
   const PlayBar({super.key});
@@ -69,42 +72,54 @@ class PlayBar extends StatelessWidget {
 
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextScroll(
-                    "${getTitle(currentSong)} - ${getArtist(currentSong)}",
-                    key: ValueKey(
-                      currentSong.hashCode + MediaQuery.widthOf(context),
+                  child: Semantics(
+                    label:
+                        'Now playing: '
+                        '${songLabel(title: getTitle(currentSong), artist: getArtist(currentSong))}',
+                    hint: 'Opens the player',
+                    excludeSemantics: true,
+                    child: TextScroll(
+                      "${getTitle(currentSong)} - ${getArtist(currentSong)}",
+                      key: ValueKey(
+                        currentSong.hashCode + MediaQuery.widthOf(context),
+                      ),
+                      velocity: const Velocity(pixelsPerSecond: Offset(40, 0)),
+                      style: TextStyle(fontSize: 16),
+                      intervalSpaces: 10,
+                      pauseBetween: Duration(seconds: 2),
                     ),
-                    velocity: const Velocity(pixelsPerSecond: Offset(40, 0)),
-                    style: TextStyle(fontSize: 16),
-                    intervalSpaces: 10,
-                    pauseBetween: Duration(seconds: 2),
                   ),
                 ),
 
                 // Play/Pause Button
                 SizedBox(
                   width: 40,
-                  child: IconButton(
-                    icon: ValueListenableBuilder(
-                      valueListenable: isPlayingNotifier,
-                      builder: (_, isPlaying, _) {
-                        return AppIcon(
+                  child: ValueListenableBuilder(
+                    valueListenable: isPlayingNotifier,
+                    builder: (_, isPlaying, _) => IconButton(
+                      tooltip: isPlaying ? 'Pause' : 'Play',
+                      icon: labelIcon(
+                        isPlaying ? 'Pause' : 'Play',
+                        AppIcon(
                           isPlaying ? pauseCircleImage : playCircleFillImage,
                           size: 25,
-                        );
+                        ),
+                      ),
+                      onPressed: () {
+                        tryVibrate();
+                        audioHandler.togglePlay();
                       },
                     ),
-
-                    onPressed: () {
-                      tryVibrate();
-                      audioHandler.togglePlay();
-                    },
                   ),
                 ),
                 SizedBox(
                   width: 40,
                   child: IconButton(
-                    icon: Icon(Icons.playlist_play_rounded, size: 30),
+                    tooltip: AppLocalizations.of(context).playQueue,
+                    icon: labelIcon(
+                      AppLocalizations.of(context).playQueue,
+                      Icon(Icons.playlist_play_rounded, size: 30),
+                    ),
                     onPressed: () {
                       tryVibrate();
                       showModalBottomSheet(

@@ -9,6 +9,7 @@ import 'package:soiboi/base/widgets/my_sheet.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class PlayQueueSheet extends StatefulWidget {
   const PlayQueueSheet({super.key});
@@ -91,17 +92,19 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                     Spacer(),
 
                     IconButton(
+                      tooltip: 'Reverse queue',
                       color: specificIconColor,
                       onPressed: () {
                         audioHandler.reversePlayQueue();
                         updateQueue();
                       },
-                      icon: AppIcon(reverseImage),
+                      icon: labelIcon('Reverse queue', AppIcon(reverseImage)),
                     ),
 
                     playModeButton(null, iconColor: specificIconColor),
 
                     IconButton(
+                      tooltip: 'Show the playing song',
                       color: specificIconColor,
                       onPressed: () {
                         final position = scrollController.position;
@@ -116,9 +119,13 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                           curve: Curves.linear,
                         );
                       },
-                      icon: AppIcon(locationImage),
+                      icon: labelIcon(
+                        'Show the playing song',
+                        AppIcon(locationImage),
+                      ),
                     ),
                     IconButton(
+                      tooltip: 'Clear queue',
                       color: specificIconColor,
                       onPressed: () async {
                         if (await showConfirmDialog(context, l10n.clear)) {
@@ -131,7 +138,10 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                           }
                         }
                       },
-                      icon: const AppIcon(deleteImage),
+                      icon: labelIcon(
+                        'Clear queue',
+                        const AppIcon(deleteImage),
+                      ),
                     ),
                   ],
                 ),
@@ -217,6 +227,7 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                         },
 
                         trailing: IconButton(
+                          tooltip: AppLocalizations.of(context).remove,
                           color: specificIconColor,
 
                           onPressed: () async {
@@ -239,7 +250,10 @@ class PlayQueueSheetState extends State<PlayQueueSheet> {
                             }
                             audioHandler.saveAllStates();
                           },
-                          icon: Icon(Icons.clear_rounded, size: 20),
+                          icon: labelIcon(
+                            AppLocalizations.of(context).remove,
+                            Icon(Icons.clear_rounded, size: 20),
+                          ),
                         ),
                       ),
                     );

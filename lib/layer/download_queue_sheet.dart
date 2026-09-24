@@ -24,6 +24,7 @@ import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/theme/motion.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 Future<void> showDownloadQueueSheet(BuildContext context) {
   return showAnimationDialog(
@@ -156,14 +157,8 @@ class DownloadQueueView extends StatelessWidget {
       DownloadJobState.done => (Icons.check_rounded, seekBarColor.value),
       DownloadJobState.failed => (Icons.error_outline, Colors.red),
       DownloadJobState.cancelled => (Icons.remove_rounded, textColor.value),
-      DownloadJobState.running => (
-        Icons.download_rounded,
-        seekBarColor.value,
-      ),
-      DownloadJobState.queued => (
-        Icons.schedule_rounded,
-        textColor.value,
-      ),
+      DownloadJobState.running => (Icons.download_rounded, seekBarColor.value),
+      DownloadJobState.queued => (Icons.schedule_rounded, textColor.value),
     };
 
     // What went wrong in plain words, else the pipeline's stage label, else
@@ -180,40 +175,47 @@ class DownloadQueueView extends StatelessWidget {
           Icon(icon, size: 16, color: tint),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  job.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: highlightTextColor.value,
-                  ),
-                ),
-                if (detail != null && detail.isNotEmpty)
+            // One item for a screen reader: the download and where it is.
+            child: Semantics(
+              container: true,
+              label: _spoken(job, detail),
+              excludeSemantics: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    detail,
-                    maxLines: 2,
+                    job.label,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11,
-                      color: job.state == DownloadJobState.failed
-                          ? Colors.red
-                          : textColor.value,
+                      fontSize: 13,
+                      color: highlightTextColor.value,
                     ),
                   ),
-                if (job.state == DownloadJobState.running) ...[
-                  const SizedBox(height: 5),
-                  _bar(job.progress),
+                  if (detail != null && detail.isNotEmpty)
+                    Text(
+                      detail,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: job.state == DownloadJobState.failed
+                            ? Colors.red
+                            : textColor.value,
+                      ),
+                    ),
+                  if (job.state == DownloadJobState.running) ...[
+                    const SizedBox(height: 5),
+                    _bar(job.progress),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           ValueListenableBuilder<bool>(
             valueListenable: showDownloadLogsNotifier,
-            builder: (context, show, _) => !show || job.state == DownloadJobState.queued
+            builder: (context, show, _) =>
+                !show || job.state == DownloadJobState.queued
                 ? const SizedBox.shrink()
                 : IconButton(
                     iconSize: 17,
@@ -227,7 +229,7 @@ class DownloadQueueView extends StatelessWidget {
                         child: DownloadLogView(job: job),
                       ),
                     ),
-                    icon: const Icon(Icons.article_outlined),
+                    icon: labelIcon('Log', const Icon(Icons.article_outlined)),
                   ),
           ),
           if (job.state == DownloadJobState.failed)
@@ -236,7 +238,7 @@ class DownloadQueueView extends StatelessWidget {
               visualDensity: VisualDensity.compact,
               tooltip: 'Retry',
               onPressed: () => downloadQueue.retry(job),
-              icon: const Icon(Icons.refresh_rounded),
+              icon: labelIcon('Retry', const Icon(Icons.refresh_rounded)),
             ),
           if (job.state == DownloadJobState.queued ||
               job.state == DownloadJobState.running)
@@ -247,11 +249,31 @@ class DownloadQueueView extends StatelessWidget {
                   ? 'Stop this download'
                   : 'Remove from queue',
               onPressed: () => downloadQueue.cancel(job),
-              icon: const Icon(Icons.close_rounded),
+              icon: labelIcon(
+                job.state == DownloadJobState.running
+                    ? 'Stop this download'
+                    : 'Remove from queue',
+                const Icon(Icons.close_rounded),
+              ),
             ),
         ],
       ),
     );
+  }
+
+  static String _spoken(DownloadJob job, String? detail) {
+    final state = switch (job.state) {
+      DownloadJobState.queued => 'waiting',
+      DownloadJobState.running => [
+        'downloading',
+        if (job.status.isNotEmpty) job.status,
+        '${job.progress}%',
+      ].join(', '),
+      DownloadJobState.done => 'downloaded',
+      DownloadJobState.failed => 'failed. ${job.failure?.sentence ?? ''}',
+      DownloadJobState.cancelled => 'cancelled',
+    };
+    return '${job.label}, $state';
   }
 
   Widget _bar(int progress) {
@@ -374,7 +396,10 @@ class _DownloadLogViewState extends State<DownloadLogView> {
               ),
               IconButton(
                 tooltip: 'Copy',
-                icon: const Icon(Icons.copy_rounded, size: 18),
+                icon: labelIcon(
+                  'Copy',
+                  const Icon(Icons.copy_rounded, size: 18),
+                ),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: _text));
                   showCenterMessage('Log copied');

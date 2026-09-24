@@ -80,6 +80,7 @@ extension _CollectionListPanel on CollectionListState {
                               return SizedBox.shrink();
                             }
                             return MySwitch(
+                              semanticLabel: l10n.order,
                               trueText: l10n.ascending,
                               falseText: l10n.descending,
                               valueNotifier: isAscendingNotifier!,
@@ -93,6 +94,7 @@ extension _CollectionListPanel on CollectionListState {
                         SizedBox(width: 5),
                         if (randomizeNotifier != null) ...[
                           MySwitch(
+                            semanticLabel: l10n.order,
                             trueText: l10n.randomize,
                             falseText: l10n.normal,
                             valueNotifier: randomizeNotifier!,
@@ -105,6 +107,7 @@ extension _CollectionListPanel on CollectionListState {
                         ],
 
                         MySwitch(
+                          semanticLabel: l10n.pictureSize,
                           trueText: l10n.large,
                           falseText: l10n.small,
                           valueNotifier: useLargePictureNotifier,
@@ -168,48 +171,61 @@ extension _CollectionListPanel on CollectionListState {
                   final text = currentTextList[index];
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      return Column(
-                        children: [
-                          InkWell(
-                            mouseCursor: SystemMouseCursors.click,
-                            focusColor: Colors.transparent,
-                            splashColor: Colors.transparent,
-                            hoverColor: Colors.transparent,
-                            highlightColor: Colors.transparent,
+                      // One item for a screen reader: the name, opening on
+                      // activate, with the menu on long press. The cover
+                      // and caption below are not read separately.
+                      return Semantics(
+                        container: true,
+                        button: true,
+                        label: text,
+                        onTap: () => currentOnTapList[index].call(),
+                        onLongPress: () => openItemMenu(context, index),
+                        child: Column(
+                          children: [
+                            InkWell(
+                              excludeFromSemantics: true,
+                              mouseCursor: SystemMouseCursors.click,
+                              focusColor: Colors.transparent,
+                              splashColor: Colors.transparent,
+                              hoverColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
 
-                            child: Hero(
-                              tag: (picture?.id ?? '') + label + text,
-                              child: CoverArtWidget(
-                                size: constraints.maxWidth,
-                                borderRadius: constraints.maxWidth / 10,
-                                picture: picture,
+                              child: Hero(
+                                tag: (picture?.id ?? '') + label + text,
+                                child: CoverArtWidget(
+                                  size: constraints.maxWidth,
+                                  borderRadius: constraints.maxWidth / 10,
+                                  picture: picture,
+                                ),
+                              ),
+                              onTap: () {
+                                currentOnTapList[index].call();
+                              },
+                              onLongPress: () => openItemMenu(context, index),
+                              onSecondaryTapUp: (details) => openItemMenu(
+                                context,
+                                index,
+                                details.globalPosition,
                               ),
                             ),
-                            onTap: () {
-                              currentOnTapList[index].call();
-                            },
-                            onLongPress: () => openItemMenu(context, index),
-                            onSecondaryTapUp: (details) => openItemMenu(
-                              context,
-                              index,
-                              details.globalPosition,
-                            ),
-                          ),
-                          SizedBox(height: 5),
+                            SizedBox(height: 5),
 
-                          SizedBox(
-                            width: constraints.maxWidth - 10,
-                            child: Center(
-                              child: Text(
-                                text,
-                                textAlign: .center,
-                                style: TextStyle(
-                                  overflow: TextOverflow.ellipsis,
+                            SizedBox(
+                              width: constraints.maxWidth - 10,
+                              child: Center(
+                                child: ExcludeSemantics(
+                                  child: Text(
+                                    text,
+                                    textAlign: .center,
+                                    style: TextStyle(
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       );
                     },
                   );

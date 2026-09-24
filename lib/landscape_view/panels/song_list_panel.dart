@@ -138,7 +138,8 @@ extension _SongListPanel on _SongListState {
   /// Empty state for a playlist with no songs. Shows an "Add songs" button
   /// that opens the library's selectable song list for picking.
   Widget _emptyPlaylistState(BuildContext context) {
-    final canAdd = playlist != null && playlist!.canModify && !playlist!.isFavorite;
+    final canAdd =
+        playlist != null && playlist!.canModify && !playlist!.isFavorite;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -411,7 +412,10 @@ extension _SongListPanel on _SongListState {
                                   );
                                 },
                                 style: buttonStyle,
-                                child: Icon(Icons.sort),
+                                child: Icon(
+                                  Icons.sort,
+                                  semanticLabel: l10n.sortSongs,
+                                ),
                               ),
                             ],
                           ],
@@ -630,153 +634,187 @@ extension _SongListPanel on _SongListState {
         },
         child: Builder(
           builder: (context) {
-            return GestureDetector(
-              child: InkWell(
-                child: ValueListenableBuilder(
-                  valueListenable: song.updateNotifier,
-                  builder: (_, _, _) {
-                    return Row(
-                      children: [
-                        SizedBox(
-                          width: 60,
-                          child: Center(
-                            child: indexOrIcon(
-                              showPlayButtonNotifier,
-                              index,
-                              song,
-                            ),
-                          ),
-                        ),
-
-                        Expanded(flex: 4, child: mainInfo(song)),
-
-                        SizedBox(width: 10),
-
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            getAlbum(song),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-
-                        SizedBox(
-                          width: 78,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: QualityBadge(song),
-                          ),
-                        ),
-
-                        SizedBox(
-                          width: 60,
-                          child: Center(
-                            child: IconButton(
-                              onPressed: () {
-                                toggleFavoriteState(song);
-                              },
-                              icon: ValueListenableBuilder(
-                                valueListenable: song.isFavoriteNotifier,
-                                builder: (context, value, child) {
-                                  return value
-                                      ? Icon(
-                                          Icons.star_rounded,
-                                          color: Colors.red,
-                                          size: 22,
-                                        )
-                                      : Icon(
-                                          Icons.star_outline_rounded,
-                                          size: 22,
-                                        );
-                                },
+            // A screen reader gets the row as one item and cannot
+            // double-click, so activating it plays the song; the pointer
+            // keeps select-then-double-click.
+            return SongSemantics(
+              song: song,
+              extra: widget.isRanking ? 'played ${song.playCount} times' : null,
+              onTap: () => audioHandler.setPlayQueue(
+                currentSongList,
+                0,
+                targetIndex: index,
+              ),
+              onLongPress: () {
+                final box = context.findRenderObject() as RenderBox?;
+                popContextMenu(
+                  context,
+                  index,
+                  box == null
+                      ? Offset.zero
+                      : box.localToGlobal(box.size.center(Offset.zero)),
+                );
+              },
+              child: GestureDetector(
+                excludeFromSemantics: true,
+                child: InkWell(
+                  excludeFromSemantics: true,
+                  child: ValueListenableBuilder(
+                    valueListenable: song.updateNotifier,
+                    builder: (_, _, _) {
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: 60,
+                            child: Center(
+                              child: indexOrIcon(
+                                showPlayButtonNotifier,
+                                index,
+                                song,
                               ),
                             ),
                           ),
-                        ),
 
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            formatDuration(getDuration(song)),
-                            overflow: TextOverflow.ellipsis,
+                          Expanded(
+                            flex: 4,
+                            child: ExcludeSemantics(child: mainInfo(song)),
                           ),
-                        ),
 
-                        if (widget.isRanking)
-                          SizedBox(
-                            width: 50,
-                            child: Text(
-                              song.playCount.toString(),
-                              overflow: TextOverflow.ellipsis,
+                          SizedBox(width: 10),
+
+                          Expanded(
+                            flex: 3,
+                            child: ExcludeSemantics(
+                              child: Text(
+                                getAlbum(song),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
-                      ],
-                    );
+
+                          SizedBox(
+                            width: 78,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: ExcludeSemantics(
+                                child: QualityBadge(song),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(
+                            width: 60,
+                            child: Center(child: favoriteButton(song)),
+                          ),
+
+                          SizedBox(
+                            width: 80,
+                            child: ExcludeSemantics(
+                              child: Text(
+                                formatDuration(getDuration(song)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+
+                          if (widget.isRanking)
+                            SizedBox(
+                              width: 50,
+                              child: ExcludeSemantics(
+                                child: Text(
+                                  song.playCount.toString(),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  onTap: () async {
+                    if (ctrlIsPressed) {
+                      isSelectedNotifier.value = !isSelectedNotifier.value;
+                      continuousSelectBeginIndex = index;
+                    } else if (shiftIsPressed) {
+                      int left = continuousSelectBeginIndex < index
+                          ? continuousSelectBeginIndex
+                          : index;
+                      int right = continuousSelectBeginIndex > index
+                          ? continuousSelectBeginIndex
+                          : index;
+
+                      for (int i = 0; i < currentSongList.length; i++) {
+                        final song = currentSongList[i];
+                        if (i < left || i > right) {
+                          isSelectedNotifierMap[song]!.value = false;
+                        } else {
+                          isSelectedNotifierMap[song]!.value = true;
+                        }
+                      }
+                    } else {
+                      // clear select
+                      for (var tmp in isSelectedNotifierMap.values) {
+                        tmp.value = false;
+                      }
+                      isSelectedNotifier.value = true;
+                      continuousSelectBeginIndex = index;
+                    }
+
+                    if (isMobile || waitForSecondClick) {
+                      waitForSecondClick = false;
+                      doubleClicktimer?.cancel();
+                      await audioHandler.setPlayQueue(
+                        currentSongList,
+                        0,
+                        targetIndex: index,
+                      );
+                    } else {
+                      doubleClicktimer = Timer(Duration(milliseconds: 250), () {
+                        waitForSecondClick = false;
+                      });
+                      waitForSecondClick = true;
+                    }
+                  },
+                  onSecondaryTapUp: (details) {
+                    popContextMenu(context, index, details.globalPosition);
                   },
                 ),
-                onTap: () async {
-                  if (ctrlIsPressed) {
-                    isSelectedNotifier.value = !isSelectedNotifier.value;
-                    continuousSelectBeginIndex = index;
-                  } else if (shiftIsPressed) {
-                    int left = continuousSelectBeginIndex < index
-                        ? continuousSelectBeginIndex
-                        : index;
-                    int right = continuousSelectBeginIndex > index
-                        ? continuousSelectBeginIndex
-                        : index;
-
-                    for (int i = 0; i < currentSongList.length; i++) {
-                      final song = currentSongList[i];
-                      if (i < left || i > right) {
-                        isSelectedNotifierMap[song]!.value = false;
-                      } else {
-                        isSelectedNotifierMap[song]!.value = true;
-                      }
-                    }
-                  } else {
-                    // clear select
-                    for (var tmp in isSelectedNotifierMap.values) {
-                      tmp.value = false;
-                    }
-                    isSelectedNotifier.value = true;
-                    continuousSelectBeginIndex = index;
-                  }
-
-                  if (isMobile || waitForSecondClick) {
-                    waitForSecondClick = false;
-                    doubleClicktimer?.cancel();
-                    await audioHandler.setPlayQueue(
-                      currentSongList,
-                      0,
-                      targetIndex: index,
-                    );
-                  } else {
-                    doubleClicktimer = Timer(Duration(milliseconds: 250), () {
-                      waitForSecondClick = false;
-                    });
-                    waitForSecondClick = true;
+                onTapDown: (details) {
+                  if (Platform.isIOS) {
+                    popContextMenu(context, index, details.globalPosition);
                   }
                 },
-                onSecondaryTapUp: (details) {
-                  popContextMenu(context, index, details.globalPosition);
+                onLongPressStart: (details) {
+                  if (Platform.isAndroid) {
+                    tryVibrate();
+                    popContextMenu(context, index, details.globalPosition);
+                  }
                 },
               ),
-              onTapDown: (details) {
-                if (Platform.isIOS) {
-                  popContextMenu(context, index, details.globalPosition);
-                }
-              },
-              onLongPressStart: (details) {
-                if (Platform.isAndroid) {
-                  tryVibrate();
-                  popContextMenu(context, index, details.globalPosition);
-                }
-              },
             );
           },
         ),
       ),
+    );
+  }
+
+  Widget favoriteButton(MyAudioMetadata song) {
+    return ValueListenableBuilder(
+      valueListenable: song.isFavoriteNotifier,
+      builder: (context, isFavorite, _) {
+        return IconButton(
+          tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+          onPressed: () {
+            toggleFavoriteState(song);
+          },
+          icon: labelIcon(
+            isFavorite ? 'Remove from favorites' : 'Add to favorites',
+            isFavorite
+                ? Icon(Icons.star_rounded, color: Colors.red, size: 22)
+                : Icon(Icons.star_outline_rounded, size: 22),
+          ),
+        );
+      },
     );
   }
 
@@ -814,13 +852,22 @@ extension _SongListPanel on _SongListState {
           builder: (context, value, child) {
             return value
                 ? IconButton(
+                    tooltip: AppLocalizations.of(context).playNow,
                     onPressed: () {
                       audioHandler.singlePlay(song);
                       audioHandler.saveAllStates();
                     },
-                    icon: Icon(Icons.play_arrow_rounded),
+                    icon: labelIcon(
+                      AppLocalizations.of(context).playNow,
+                      Icon(Icons.play_arrow_rounded),
+                    ),
                   )
-                : Text((index + 1).toString(), overflow: TextOverflow.ellipsis);
+                : ExcludeSemantics(
+                    child: Text(
+                      (index + 1).toString(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
           },
         );
       },

@@ -48,6 +48,7 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:smooth_corner/smooth_corner.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class HomeLayer extends StatefulWidget {
   const HomeLayer({super.key});
@@ -1102,7 +1103,10 @@ class _AiRecsShelfState extends State<_AiRecsShelf> {
                   else
                     IconButton(
                       tooltip: 'New recommendations',
-                      icon: Icon(Icons.refresh_rounded, color: iconColor.value),
+                      icon: labelIcon(
+                        'New recommendations',
+                        Icon(Icons.refresh_rounded, color: iconColor.value),
+                      ),
                       onPressed: () => loadAiRecommendations(force: true),
                     ),
                 ],

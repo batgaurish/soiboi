@@ -32,6 +32,7 @@ import 'package:soiboi/base/widgets/song_list.dart';
 import 'package:soiboi/layer/catalog_sheet.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class GlobalSearchLayer extends StatefulWidget {
   const GlobalSearchLayer({super.key});
@@ -94,7 +95,11 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
               suffixIcon: _controller.text.isEmpty
                   ? null
                   : IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      tooltip: 'Clear search',
+                      icon: labelIcon(
+                        'Clear search',
+                        const Icon(Icons.close_rounded, size: 18),
+                      ),
                       onPressed: _controller.clear,
                     ),
               border: OutlineInputBorder(
@@ -113,7 +118,12 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
     // Wide layouts get window controls, the drag region and Settings from
     // each page's own TitleBar; without one this page had none (see Home).
     if (!isTooNarrow(context)) {
-      return Column(children: [const TitleBar(), Expanded(child: body)]);
+      return Column(
+        children: [
+          const TitleBar(),
+          Expanded(child: body),
+        ],
+      );
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -160,11 +170,9 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
       children: [
-        _section(
-          'Songs',
-          results.songs.length,
-          [for (final song in results.songs) _songRow(song, results.songs)],
-        ),
+        _section('Songs', results.songs.length, [
+          for (final song in results.songs) _songRow(song, results.songs),
+        ]),
         _section('Albums', results.albums.length, [
           for (final album in results.albums) _albumRow(album),
         ]),

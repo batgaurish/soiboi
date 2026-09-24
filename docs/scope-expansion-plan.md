@@ -41,8 +41,9 @@ Pieces several later items need. Built once, first.
   *Done when:* any feature can post, update and dismiss a notification with a
   single call on both platforms.
   *Status:* built (`notification_service.dart`, `NotificationBridge.kt`).
-  Linux tested against a D-Bus notification daemon; Android type-checked, not
-  yet run on a phone. Settings > Notifications > Send a test exercises it.
+  Linux checked end to end with a real notification daemon (dunst): shown,
+  updated in place, closed, result posted. Android type-checked, not yet run
+  on a phone. Settings > Notifications > Send a test exercises it.
 - [ ] **0.2 Error catalog** (S). One table that maps what the pipeline and
   wrapper report (error codes and known messages) to a plain explanation and a
   fix action, such as "sign in again", "skip" or "retry". The download logs
@@ -76,6 +77,13 @@ shortcuts, and every palette comes from album art with no contrast check.
   ("title, artist, 3:21"), and have progress bars report their value.
   *Done when:* TalkBack (Android) and Orca (Linux) can play a song, queue a
   download and open a playlist without sighted help.
+  *Status:* built. Checked on the Linux build through AT-SPI (what Orca
+  reads): the main, Songs, Albums and Downloads screens have no unnamed
+  controls (18 of 18 were unnamed before), and activating a song row plays
+  it. Flutter's Linux bridge ignores tooltips and values, so `labelIcon` and
+  `nameWithValue` put them in the label there. Queueing a real download
+  needs a signed-in Apple account, and TalkBack needs a phone: both not yet
+  checked.
 - [ ] **1.2 Text scaling** (M). Test at 200% system font on Android and at
   desktop zoom. Fix clipping in queue rows, the mini player, sidebar items and
   cards by letting fixed-height rows grow and removing hard `itemExtent`s

@@ -4,6 +4,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/widgets/full_width_track_shape.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
 
 final List<int> freqs = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 List<double> gains = List.filled(freqs.length, 0);
@@ -41,9 +42,11 @@ class _EqualizerWidgetState extends State<EqualizerWidget> {
   Widget _buildSlider(int i) {
     return Column(
       children: [
-        Text(
-          '${gains[i].toStringAsFixed(0)} dB',
-          style: TextStyle(fontSize: 12),
+        ExcludeSemantics(
+          child: Text(
+            '${gains[i].toStringAsFixed(0)} dB',
+            style: TextStyle(fontSize: 12),
+          ),
         ),
         SizedBox(height: 15),
         Expanded(
@@ -59,22 +62,34 @@ class _EqualizerWidgetState extends State<EqualizerWidget> {
                 activeTrackColor: iconColor.value,
                 inactiveTrackColor: Colors.black12,
               ),
-              child: Slider(
-                min: -12,
-                max: 12,
-                value: gains[i],
-                onChanged: (value) {
-                  setState(() {
-                    gains[i] = value;
-                  });
-                  _updateEQDebounced();
-                },
+              child: MergeSemantics(
+                child: Semantics(
+                  label: nameWithValue(
+                    _formatFreq(freqs[i]),
+                    '${gains[i].toStringAsFixed(0)} dB',
+                  ),
+                  child: Slider(
+                    min: -12,
+                    max: 12,
+                    value: gains[i],
+                    semanticFormatterCallback: (value) =>
+                        '${value.toStringAsFixed(0)} dB',
+                    onChanged: (value) {
+                      setState(() {
+                        gains[i] = value;
+                      });
+                      _updateEQDebounced();
+                    },
+                  ),
+                ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 15),
-        Text(_formatFreq(freqs[i]), style: TextStyle(fontSize: 12)),
+        ExcludeSemantics(
+          child: Text(_formatFreq(freqs[i]), style: TextStyle(fontSize: 12)),
+        ),
       ],
     );
   }

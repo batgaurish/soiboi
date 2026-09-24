@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/keyboard.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class CustomTextField extends StatefulWidget {
   final String? name;
@@ -94,8 +95,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
               ),
               suffixIcon: widget.needObscure
                   ? IconButton(
-                      icon: Icon(
-                        obscure ? Icons.visibility_off : Icons.visibility,
+                      tooltip: obscure ? 'Show password' : 'Hide password',
+                      icon: labelIcon(
+                        obscure ? 'Show password' : 'Hide password',
+                        Icon(obscure ? Icons.visibility_off : Icons.visibility),
                       ),
                       onPressed: () {
                         setState(() {

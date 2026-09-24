@@ -18,6 +18,7 @@ import 'package:soiboi/base/services/update_service.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:soiboi/base/widgets/release_notes.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
 
 Future<void> showUpdateSheet(BuildContext context, AppRelease release) {
   return showAnimationDialog(
@@ -177,6 +178,13 @@ class _UpdateSheetState extends State<_UpdateSheet> {
                     // Indeterminate until a total is known: a bar pinned at
                     // zero for a 600 MB download reads as a hang.
                     value: _total > 0 ? value : null,
+                    semanticsLabel: nameWithValue(
+                      'Update download',
+                      _total > 0 ? percentLabel(_received / _total) : '',
+                    ),
+                    semanticsValue: _total > 0
+                        ? percentLabel(_received / _total)
+                        : null,
                     minHeight: 4,
                     backgroundColor: buttonColor.value,
                     color: seekBarColor.value,
@@ -221,9 +229,8 @@ class _UpdateSheetState extends State<_UpdateSheet> {
             ),
           ),
           TextButton(
-            onPressed: () => launchUrl(
-              Uri.parse('https://github.com/$updateRepo/releases'),
-            ),
+            onPressed: () =>
+                launchUrl(Uri.parse('https://github.com/$updateRepo/releases')),
             child: const Text('Open releases'),
           ),
         ],

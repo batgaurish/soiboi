@@ -10,6 +10,7 @@ import 'package:soiboi/base/widgets/selectable_song_list_tile.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/data/playlist.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class SelectableSongListPage extends StatelessWidget {
   final List<MyAudioMetadata> songList;
@@ -207,6 +208,7 @@ class SelectableSongListPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
+                      tooltip: l10n.playNext,
                       onPressed: () async {
                         if (valid) {
                           tryVibrate();
@@ -222,7 +224,10 @@ class SelectableSongListPage extends StatelessWidget {
                           audioHandler.saveAllStates();
                         }
                       },
-                      icon: Icon(Icons.navigate_next_rounded),
+                      icon: labelIcon(
+                        l10n.playNext,
+                        Icon(Icons.navigate_next_rounded),
+                      ),
                       color: color,
                     ),
 
@@ -242,6 +247,7 @@ class SelectableSongListPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
+                      tooltip: l10n.add2Queue,
                       onPressed: () async {
                         if (valid) {
                           tryVibrate();
@@ -259,7 +265,10 @@ class SelectableSongListPage extends StatelessWidget {
                           audioHandler.saveAllStates();
                         }
                       },
-                      icon: Icon(Icons.playlist_add_rounded),
+                      icon: labelIcon(
+                        l10n.add2Queue,
+                        Icon(Icons.playlist_add_rounded),
+                      ),
                       color: color,
                     ),
 
@@ -281,6 +290,7 @@ class SelectableSongListPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
+                        tooltip: l10n.add2Playlist,
                         onPressed: () {
                           if (valid) {
                             tryVibrate();
@@ -291,7 +301,10 @@ class SelectableSongListPage extends StatelessWidget {
                             );
                           }
                         },
-                        icon: Icon(Icons.add_rounded),
+                        icon: labelIcon(
+                          l10n.add2Playlist,
+                          Icon(Icons.add_rounded),
+                        ),
                         color: color,
                       ),
 
@@ -312,6 +325,7 @@ class SelectableSongListPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
+                        tooltip: l10n.delete,
                         onPressed: () async {
                           if (valid) {
                             tryVibrate();
@@ -320,7 +334,10 @@ class SelectableSongListPage extends StatelessWidget {
                             }
                           }
                         },
-                        icon: Icon(Icons.delete_rounded),
+                        icon: labelIcon(
+                          l10n.delete,
+                          Icon(Icons.delete_rounded),
+                        ),
                         color: color,
                       ),
 

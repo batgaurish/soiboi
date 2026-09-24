@@ -12,8 +12,10 @@ import 'package:soiboi/landscape_view/volume_bar.dart';
 import 'package:soiboi/base/widgets/seekbar.dart';
 import 'package:soiboi/layer/lyrics_page_layer.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
+import 'package:soiboi/base/utils/semantics_labels.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class BottomControl extends StatelessWidget {
   const BottomControl({super.key});
@@ -95,15 +97,24 @@ class BottomControl extends StatelessWidget {
                       picture: currentSong?.picture,
                     ),
                   ),
-                  title: Text(
-                    getTitle(currentSong),
-                    overflow: TextOverflow.ellipsis,
+                  title: Semantics(
+                    label: currentSong == null
+                        ? 'Nothing playing'
+                        : 'Now playing: ${songLabel(title: getTitle(currentSong), artist: getArtist(currentSong))}',
+                    hint: currentSong == null ? null : 'Opens the player',
+                    excludeSemantics: true,
+                    child: Text(
+                      getTitle(currentSong),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   subtitle: currentSong != null
-                      ? Text(
-                          "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 13),
+                      ? ExcludeSemantics(
+                          child: Text(
+                            "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 13),
+                          ),
                         )
                       : null,
                   onTap: () {
@@ -156,10 +167,14 @@ class BottomControl extends StatelessWidget {
       children: [
         Spacer(),
         IconButton(
+          tooltip: 'Desktop lyrics',
           onPressed: () {
             showCenterMessage('Desktop lyrics has been removed');
           },
-          icon: const AppIcon(desktopLyricsImage, size: 25),
+          icon: labelIcon(
+            'Desktop lyrics',
+            const AppIcon(desktopLyricsImage, size: 25),
+          ),
         ),
         ValueListenableBuilder(
           valueListenable: iconColor.valueNotifier,

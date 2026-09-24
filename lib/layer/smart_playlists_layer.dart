@@ -16,6 +16,7 @@ import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/widgets/song_list.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class SmartPlaylistsLayer extends StatefulWidget {
   const SmartPlaylistsLayer({super.key});
@@ -45,7 +46,10 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
         scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_rounded),
+            icon: labelIcon(
+              'New smart playlist',
+              const Icon(Icons.add_rounded),
+            ),
             tooltip: 'New smart playlist',
             onPressed: () => _edit(null),
           ),
@@ -68,7 +72,12 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
     // Wide layouts get window controls, the drag region and Settings from
     // each page's own TitleBar; without one this page had none (see Home).
     if (isTooNarrow(context)) return page;
-    return Column(children: [const TitleBar(), Expanded(child: page)]);
+    return Column(
+      children: [
+        const TitleBar(),
+        Expanded(child: page),
+      ],
+    );
   }
 
   Widget _empty() => Center(
@@ -125,7 +134,10 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
         style: TextStyle(fontSize: 11.5, color: textColor.value),
       ),
       trailing: IconButton(
-        icon: const Icon(Icons.edit_outlined, size: 20),
+        icon: labelIcon(
+          'Edit rules',
+          const Icon(Icons.edit_outlined, size: 20),
+        ),
         tooltip: 'Edit rules',
         onPressed: () => _edit(playlist),
       ),
@@ -136,10 +148,8 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
         // hidden behind the sidebar on a wide layout.
         Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute(
-            builder: (_) => SongList(
-              playlist: SmartPlaylistView(playlist),
-              isRoot: false,
-            ),
+            builder: (_) =>
+                SongList(playlist: SmartPlaylistView(playlist), isRoot: false),
           ),
         );
       },
@@ -431,11 +441,14 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
                 IconButton(
                   tooltip: _descending ? 'Descending' : 'Ascending',
                   onPressed: () => setState(() => _descending = !_descending),
-                  icon: Icon(
-                    _descending
-                        ? Icons.arrow_downward_rounded
-                        : Icons.arrow_upward_rounded,
-                    size: 18,
+                  icon: labelIcon(
+                    _descending ? 'Descending' : 'Ascending',
+                    Icon(
+                      _descending
+                          ? Icons.arrow_downward_rounded
+                          : Icons.arrow_upward_rounded,
+                      size: 18,
+                    ),
                   ),
                 ),
               const SizedBox(width: 8),
@@ -551,7 +564,10 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
           Expanded(flex: 3, child: _valueField(index, rule)),
           IconButton(
             visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close_rounded, size: 18),
+            icon: labelIcon(
+              'Remove rule',
+              const Icon(Icons.close_rounded, size: 18),
+            ),
             tooltip: 'Remove rule',
             onPressed: () => setState(() => _rules.removeAt(index)),
           ),
@@ -592,7 +608,10 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
           ? TextInputType.text
           : TextInputType.number,
       style: const TextStyle(fontSize: 12),
-      decoration: const InputDecoration(isDense: true, border: UnderlineInputBorder()),
+      decoration: const InputDecoration(
+        isDense: true,
+        border: UnderlineInputBorder(),
+      ),
       onChanged: (value) {
         // No setState: rebuilding here would recreate the controller and drop
         // the caret. The match count updates on the next rebuild instead.

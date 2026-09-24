@@ -14,6 +14,7 @@ import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class PlayQueuePage extends StatefulWidget {
   const PlayQueuePage({super.key});
@@ -153,17 +154,19 @@ class PlayQueuePageState extends State<PlayQueuePage> {
         Spacer(),
 
         IconButton(
+          tooltip: 'Reverse queue',
           color: specificIconColor,
           onPressed: () {
             audioHandler.reversePlayQueue();
             updateQueue();
           },
-          icon: AppIcon(reverseImage),
+          icon: labelIcon('Reverse queue', AppIcon(reverseImage)),
         ),
 
         playModeButton(null, iconColor: specificIconColor),
 
         IconButton(
+          tooltip: 'Show the playing song',
           color: specificIconColor,
           onPressed: () {
             final position = scrollController.position;
@@ -178,9 +181,10 @@ class PlayQueuePageState extends State<PlayQueuePage> {
               curve: Curves.linear,
             );
           },
-          icon: AppIcon(locationImage),
+          icon: labelIcon('Show the playing song', AppIcon(locationImage)),
         ),
         IconButton(
+          tooltip: 'Clear queue',
           color: specificIconColor,
           onPressed: () async {
             if (await showConfirmDialog(context, l10n.clear)) {
@@ -193,7 +197,7 @@ class PlayQueuePageState extends State<PlayQueuePage> {
               }
             }
           },
-          icon: AppIcon(deleteImage),
+          icon: labelIcon('Clear queue', AppIcon(deleteImage)),
         ),
       ],
     );
@@ -253,15 +257,21 @@ class PlayQueuePageState extends State<PlayQueuePage> {
                     builder: (context, value, child) {
                       return value
                           ? IconButton(
+                              tooltip: AppLocalizations.of(context).playNow,
                               onPressed: () async {
                                 audioHandler.currentIndex = index;
                                 await audioHandler.load();
                                 await audioHandler.play();
                               },
-                              icon: Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: viewModeNotifier.value == .mini ? 20 : 30,
+                              icon: labelIcon(
+                                AppLocalizations.of(context).playNow,
+                                Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: viewModeNotifier.value == .mini
+                                      ? 20
+                                      : 30,
+                                ),
                               ),
                             )
                           : SizedBox.shrink();

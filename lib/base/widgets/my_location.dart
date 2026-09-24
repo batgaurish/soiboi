@@ -3,6 +3,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class MyLocation extends StatelessWidget {
   final ScrollController scrollController;
@@ -38,6 +39,7 @@ class MyLocation extends StatelessWidget {
         }
 
         return IconButton(
+          tooltip: 'Show the playing song',
           onPressed: () {
             final position = scrollController.position;
             final maxScrollExtent = position.maxScrollExtent;
@@ -48,7 +50,7 @@ class MyLocation extends StatelessWidget {
               curve: Curves.linear,
             );
           },
-          icon: AppIcon(locationImage),
+          icon: labelIcon('Show the playing song', AppIcon(locationImage)),
         );
       },
     );

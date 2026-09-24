@@ -24,6 +24,7 @@ import 'package:soiboi/base/widgets/my_divider.dart';
 import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class BigSingleArtistPanel extends StatefulWidget {
   final Artist artist;
@@ -144,25 +145,34 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                           ),
                         ),
                         IconButton(
+                          tooltip: AppLocalizations.of(context).shuffle,
                           onPressed: () async {
                             await audioHandler.setPlayQueue(
                               widget.artist.songList,
                               1,
                             );
                           },
-                          icon: AppIcon(shuffleImage),
+                          icon: labelIcon(
+                            AppLocalizations.of(context).shuffle,
+                            AppIcon(shuffleImage),
+                          ),
                         ),
                         IconButton(
+                          tooltip: AppLocalizations.of(context).playAll,
                           onPressed: () async {
                             await audioHandler.setPlayQueue(
                               widget.artist.songList,
                               0,
                             );
                           },
-                          icon: Icon(Icons.play_arrow_rounded),
+                          icon: labelIcon(
+                            AppLocalizations.of(context).playAll,
+                            Icon(Icons.play_arrow_rounded),
+                          ),
                           iconSize: 30,
                         ),
                         IconButton(
+                          tooltip: AppLocalizations.of(context).select,
                           onPressed: () {
                             Navigator.of(context).push(
                               ZoomPageRoute(
@@ -178,9 +188,12 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                               ),
                             );
                           },
-                          icon: Transform.scale(
-                            scale: 0.95,
-                            child: AppIcon(selectImage),
+                          icon: labelIcon(
+                            AppLocalizations.of(context).select,
+                            Transform.scale(
+                              scale: 0.95,
+                              child: AppIcon(selectImage),
+                            ),
                           ),
                         ),
                       ],
@@ -222,11 +235,12 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
             shape: LiquidRoundedSuperellipse(borderRadius: 30),
             clipBehavior: .antiAlias,
             child: IconButton(
+              tooltip: 'Back',
               autofocus: true,
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              icon: Icon(Icons.arrow_back_ios_rounded),
+              icon: labelIcon('Back', Icon(Icons.arrow_back_ios_rounded)),
             ),
           ),
         ),
@@ -335,12 +349,20 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
                   ),
                 ),
                 IconButton(
+                  tooltip: AppLocalizations.of(context).shuffle,
                   onPressed: () => audioHandler.setPlayQueue(songList, 1),
-                  icon: AppIcon(shuffleImage),
+                  icon: labelIcon(
+                    AppLocalizations.of(context).shuffle,
+                    AppIcon(shuffleImage),
+                  ),
                 ),
                 IconButton(
+                  tooltip: AppLocalizations.of(context).playAll,
                   onPressed: () => audioHandler.setPlayQueue(songList, 0),
-                  icon: Icon(Icons.play_arrow_rounded),
+                  icon: labelIcon(
+                    AppLocalizations.of(context).playAll,
+                    Icon(Icons.play_arrow_rounded),
+                  ),
                   iconSize: 30,
                 ),
               ],

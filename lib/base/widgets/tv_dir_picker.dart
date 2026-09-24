@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
 
 class TvDirPicker extends StatefulWidget {
   const TvDirPicker({super.key});
@@ -54,6 +55,7 @@ class _TvDirPickerState extends State<TvDirPicker> {
           Row(
             children: [
               IconButton(
+                tooltip: 'Back',
                 onPressed: () {
                   if (currentPath == root) {
                     return;
@@ -65,7 +67,7 @@ class _TvDirPickerState extends State<TvDirPicker> {
                   );
                   loadDirectories(currentPath);
                 },
-                icon: Icon(Icons.arrow_back_ios_rounded),
+                icon: labelIcon('Back', Icon(Icons.arrow_back_ios_rounded)),
               ),
               Text(
                 currentPath == root ? root : currentPath.split('/').last,
