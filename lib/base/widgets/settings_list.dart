@@ -29,6 +29,7 @@ import 'package:soiboi/base/services/emby_client.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/navidrome_client.dart';
+import 'package:soiboi/base/services/notification_service.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/services/system_ui_service.dart';
 import 'package:soiboi/base/utils/common_utils.dart';
@@ -203,6 +204,8 @@ class _SettingsListState extends State<SettingsList> {
         ),
 
         sliverBox(paddingIfNeed(isLandscape, downloadLogsListTile())),
+        if (notifications.supported)
+          sliverBox(paddingIfNeed(isLandscape, notificationsListTile())),
 
         sliverBox(
           paddingIfNeed(isLandscape, listenBrainzListTile(context, l10n)),
@@ -867,6 +870,81 @@ class _SettingsListState extends State<SettingsList> {
             setting.save();
           },
         ),
+      ),
+    );
+  }
+
+  Widget notificationsListTile() {
+    return ListTile(
+      leading: Icon(Icons.notifications_outlined, size: iconSize),
+      title: const Text('Notifications'),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Download progress and results, and app updates',
+            style: TextStyle(fontSize: 12, color: textColor.value),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              ),
+              onPressed: _sendTestNotification,
+              child: const Text('Send a test'),
+            ),
+          ),
+        ],
+      ),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: notificationsEnabledNotifier,
+          onToggleCallBack: () {
+            setting.save();
+            if (notificationsEnabledNotifier.value) {
+              notifications.requestPermission();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Shows, updates and dismisses a progress notification, then posts a
+  /// result: every call a feature makes, so both platforms can be checked
+  /// by hand.
+  Future<void> _sendTestNotification() async {
+    if (!notificationsEnabledNotifier.value) {
+      showCenterMessage('Notifications are turned off');
+      return;
+    }
+    if (!await notifications.requestPermission()) {
+      showCenterMessage('Notifications are not allowed for Soiboi');
+      return;
+    }
+    const key = 'settings-test';
+    for (var step = 0; step <= 5; step++) {
+      await notifications.show(
+        key,
+        AppNotification(
+          kind: NotificationKind.progress,
+          title: 'Test download',
+          body: 'Step ${step + 1} of 6',
+          progress: step * 20,
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+    }
+    await notifications.dismiss(key);
+    await notifications.show(
+      '$key-result',
+      const AppNotification(
+        kind: NotificationKind.result,
+        title: 'Test finished',
+        body: 'A progress notification was shown, updated and dismissed.',
       ),
     );
   }

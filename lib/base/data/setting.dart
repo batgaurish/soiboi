@@ -9,6 +9,7 @@ import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/notification_service.dart';
 import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/utils/path.dart';
@@ -218,6 +219,8 @@ class Setting {
     useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
     showDownloadLogsNotifier.value =
         json['showDownloadLogs'] as bool? ?? false;
+    notificationsEnabledNotifier.value =
+        json['notificationsEnabled'] as bool? ?? true;
     wrapperUrlNotifier.value = json['wrapperUrl'] as String? ?? '';
 
     recursiveScanNotifier.value = json['recursiveScan'] as bool? ?? false;
@@ -265,6 +268,7 @@ class Setting {
         'wvdPath': wvdPathNotifier.value,
         'useWrapper': useWrapperNotifier.value,
         'showDownloadLogs': showDownloadLogsNotifier.value,
+        'notificationsEnabled': notificationsEnabledNotifier.value,
         'wrapperUrl': wrapperUrlNotifier.value,
 
         'recursiveScan': recursiveScanNotifier.value,

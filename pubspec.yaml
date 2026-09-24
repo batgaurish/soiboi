@@ -78,6 +78,9 @@ dependencies:
   pool: ^1.5.2
   screen_corner_radius: ^3.0.0
   xml: ^7.0.1
+  # Desktop notifications on Linux (org.freedesktop.Notifications). Already
+  # in the tree through audio_service_mpris; listed because the app uses it.
+  dbus: ^0.7.15
   drift: ^2.33.0
   just_font_scan: ^0.3.0
   flutter_secure_storage: ^11.0.0

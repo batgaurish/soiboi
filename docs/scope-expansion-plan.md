@@ -40,6 +40,9 @@ Pieces several later items need. Built once, first.
   permission prompt.
   *Done when:* any feature can post, update and dismiss a notification with a
   single call on both platforms.
+  *Status:* built (`notification_service.dart`, `NotificationBridge.kt`).
+  Linux tested against a D-Bus notification daemon; Android type-checked, not
+  yet run on a phone. Settings > Notifications > Send a test exercises it.
 - [ ] **0.2 Error catalog** (S). One table that maps what the pipeline and
   wrapper report (error codes and known messages) to a plain explanation and a
   fix action, such as "sign in again", "skip" or "retry". The download logs

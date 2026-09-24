@@ -15,6 +15,7 @@ import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/my_tray_listener.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
+import 'package:soiboi/base/services/notification_service.dart';
 import 'package:soiboi/base/services/single_instance.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/l10n/generated/app_localizations_en.dart';
@@ -109,6 +110,7 @@ Future<void> _start() async {
 
     await _setupWindow();
     await _setupTray();
+    _raiseWindowOnNotificationClick();
   }
 
   _registerLicenses();
@@ -425,6 +427,18 @@ Future<void> _setTrayMemu(Locale locale) async {
       ],
     ),
   );
+}
+
+/// Clicking one of the app's desktop notifications brings the window back,
+/// even from the tray: that is what every desktop app does.
+void _raiseWindowOnNotificationClick() {
+  notifications.taps
+      .where((tap) => tap.action == NotificationTap.defaultAction)
+      .listen((_) async {
+        await windowManager.show();
+        await windowManager.focus();
+        windowIsClosed = false;
+      });
 }
 
 Future<void> _setupTray() async {
