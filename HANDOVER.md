@@ -33,48 +33,79 @@ Standing constraints, already decided, not up for re-litigation:
 
 ---
 
-## State: shipped, and there is no backlog
+## State (2026-09-24)
 
-**v4.2.1 is released** — `github.com/batgaurish/soiboi/releases/tag/v4.2.1`,
-prerelease, with an Android APK (debug keystore) and a Linux x64 **release**
-tarball. `main` is clean and pushed. 166 Dart tests, 29 pipeline tests,
-analyzer clean.
+Last release: **v1.0.2** (Android arm64 APK). `main` is pushed up to
+`70c7055`. **Seven commits since are local only, not pushed or released**:
+the new playlist sources, the phone bug fixes, word-timed lyrics, the player
+modes, the back button, and the Android progress fix (`ea6296b..360ffc3`).
+Next step: push `main`, build, release **v1.0.3**.
 
-An eleven-phase backlog (two bugs, a rebrand, nine features) was planned,
-implemented, verified and shipped. The plan lives at
-`~/.claude-personal/plans/optimized-watching-globe.md` and each phase there
-carries an **"As built"** block recording where the implementation diverged
-from the plan and why. Read it before touching any of that machinery — it is
-the reference for *why* things are shaped as they are, not just what they do.
+Tests: 219 Dart, 84 Python (`.pipeline-venv/bin/python -m pytest`, root
+`pytest.ini` sets the path). Analyzer: only 6 pre-existing `RadioGroup`
+deprecation infos.
 
-What landed, in one line each: the Weekly Exploration race; the rebrand;
-library backup/restore; the partial-ownership catalog fix plus
-`library_match_service.dart`; smart playlist templates; auto mood playlists on
-Home; the download queue with track-level resume and storage cleanup; a
-working update checker and in-app installer; YouTube Music playlist import
-behind `ExternalPlaylistSource`; global search; and Android Material You.
+### Done and verified on the user's phone (10BFCF11KB001YK)
 
-**There is no approved work left.** Get a new backlog from the user rather
-than inventing one.
+- Black screen fixed (`compareVersion('…','1.0b')` crash; the legacy 4.0.1
+  migration it guarded would also have wiped Navidrome/Emby data every
+  launch; both removed). Startup errors now render an error screen.
+- **Lossless ALAC works on-device.** A two-track album archive landed in
+  `/storage/emulated/0/Music` as ALAC 24-bit/48 kHz through the in-app
+  wrapper, with live progress in the album sheet.
+- Download engine check, downloads and analysis no longer hang; progress
+  shows live. Back button walks sections then opens the sidebar. New albums
+  opens the album and sorts by release year. Album sheet has Play + progress.
 
-### The two things still genuinely open
+### Built but not yet verified on a device
 
-1. **The Linux side of the auto-updater has never been run end-to-end.** It
-   was untestable while no Linux build would start; that is fixed, so it is
-   testable now and still has not been done. `linuxSwapScript` and
-   `findBundleDir` are pure and tested (one test executes the generated script
-   against real directories), but no Linux build has replaced itself for real.
-   Doing it means the installed app swapping its own directory, so ask first.
-2. **A running download cannot be cancelled**, on either platform — nothing
-   can interrupt the pipeline once a track has started. `cancel()` therefore
-   drops queued jobs only, and Pause takes effect after the current track. The
-   UI says so. **Do not "fix" this without changing the transport first.**
+- Word-timed lyrics (`pipeline/soiboi_pipeline/lyrics.py`): fetches Apple's
+  `syllable-lyrics` TTML per new track (by `cnID`), writes enhanced LRC
+  beside it. The last fix (replace gamdl's own line-only `.lrc`) is untested
+  live. Re-archive a track and check its `.lrc` contains `<mm:ss.xx>` tags.
+- Art / Both / Lyrics switcher in the fullscreen player.
+- Playlist import from Tidal, JioSaavn, SoundCloud, Qobuz, Gaana, Bandcamp
+  and pasted tracklists (parsers verified live against real playlists; the
+  in-app paste → sheet → archive flow is not). Last.fm (bot challenge),
+  Amazon Music and Wynk (no readable data) only via pasted tracklist.
+- Linux lossless: wrapper builds, runs under `unshare -rmpf` without root,
+  Apple runtime initialises; sign-in and an ALAC download not tried on Linux.
 
-Minor, noted not fixed: the smart playlist editor recreates a
-`TextEditingController` on every parent rebuild, so the cursor jumps to the
-end when a dropdown changes.
+### Still open (the user's plan, in order)
 
----
+1. Release v1.0.3 (above).
+2. **Distinct UI personality**: the user chose to see **three clickable
+   mockups** (Home + Now Playing + song row with codec badges + empty state)
+   as an Artifact before any app change. Not started.
+3. Desloppify leftovers (user said skip the big refactors for now): the
+   108-file import cycle, splitting `settings_list.dart` (2.1k LOC) and
+   `interaction.dart` (1.4k LOC), `isNotStreamSource` branching in 17 files,
+   hard-coded English strings, ~12 misspelled identifiers. Dart strict score
+   51.0 after 11 of 20 review dimensions; 9 dimensions never reviewed.
+4. Known minor: smart playlist editor recreates its TextEditingController on
+   rebuild; Qobuz page data may cap at 25 tracks; Tidal's public web token or
+   SoundCloud's page shape can change without notice.
+
+### How the lossless wrapper is put together (read before touching it)
+
+- wrapper-v2 (github.com/glomatico/wrapper-v2, Unlicense) pinned at
+  `100e0a8`, plus two patches in `tools/patches/`: `WRAPPER_LAUNCHER`
+  override, and `WRAPPER_NATIVE_ANDROID` (skips the chroot-only
+  `resolv_set_nameservers_for_net`, which crashes on real Android).
+- **Soiboi ships no Apple code.** Setup links the exact APK (Apple Music
+  3.6.0-beta build 1109, arm64-v8a + x86_64, APKMirror) and
+  `wrapper_libs.py` extracts and SHA-256-checks the 18 libraries from the
+  user's file. The worker links NDK r23b's libc++ for its SONAME only.
+- Needs **NDK r23b** (`~/Android/Sdk/ndk/23.1.7779620`) as well as NDK 28.
+- Android: `libwrapperd.so` / `libwrapperworker.so` in jniLibs with legacy
+  (extracted) packaging, since Android only execs from nativeLibraryDir;
+  Apple libs dlopen from app storage. Built by
+  `tools/build_android_wrapper.sh`, called from `build_android_pipeline.sh`.
+- Linux: `tools/build_wrapper.sh` → `build/wrapper/x86_64`, bundled by
+  `package_linux.sh` / `install_linux.sh`; runs under `unshare -rmpf`.
+- Dart: `lib/base/services/wrapper_service.dart` (start/stop/sign-in, free
+  localhost ports), `lib/base/widgets/lossless_setup.dart` (wizard).
+  ALAC downloads start it on demand (`archive_service.dart`).
 
 ## The Linux build works now — and the patch that makes it work is fragile
 
@@ -160,6 +191,32 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
 ---
 
 ## Traps already paid for
+
+**Paid for this session**
+
+- **Chaquopy can call a Java object only through a functional interface.**
+  The progress callback must be a `java.util.function.Consumer<String>`; an
+  object with `__call__` silently never fires (this hid all Android progress
+  for months).
+- **Android pipeline events carry a runId** over one permanent EventChannel
+  listener; downloads, analysis and everything else each have their own
+  executor in `PipelineChannel.kt`.
+- **bliss must release the GIL** (`py.detach`) or analysis starves downloads.
+- **bliss decoders**: symphonia 0.6.1's mp3 bundle is not on crates.io; the
+  whole symphonia family is patched to the git tag `v0.6.1`. Opus has no
+  decoder. Sidecar v2 retries files the AAC-only v1 analyser marked bad.
+- **Shared-storage downloads need All files access**; `READ_MEDIA_AUDIO`
+  only reads. `archive_service.dart` asks when the chosen folder needs it.
+- **uiautomator dumps list the hidden drawer's items**; trust screenshots
+  (`adb exec-out screencap -p`) to see what is actually on screen.
+- **Do not `pkill -f` from the agent shell**: the pattern matches the
+  shell's own command line and kills it. Kill by PID. Stopping a
+  `flutter build` leaves a Gradle daemon holding a lock; `./gradlew --stop`.
+- **desloppify's Dart unused-import detector is wrong** (1,374 false
+  positives; `flutter analyze` is authoritative). Suppressed in
+  `.desloppify/config.json`, scoped to `lib/`.
+- The phone sleeps during long tests; `adb shell svc power stayon true`
+  with the user's OK, and reset `stay_on_while_plugged_in` to 0 after.
 
 **The pipeline / gamdl**
 
