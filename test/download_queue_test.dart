@@ -11,7 +11,13 @@ DownloadQueueManager _manager({
 }) {
   final manager = DownloadQueueManager();
   manager.archive =
-      (url, {bool redownload = false, void Function(int, String)? onProgress}) {
+      (
+        url, {
+        bool redownload = false,
+        void Function(int, String)? onProgress,
+        void Function(String)? onLog,
+        String? logPath,
+      }) {
         onProgress?.call(50, 'Downloading');
         return archive(url);
       };

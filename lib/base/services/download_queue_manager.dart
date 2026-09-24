@@ -17,8 +17,10 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:path/path.dart' as p;
 import 'package:soiboi/base/services/archive_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 
@@ -59,6 +61,28 @@ class DownloadJob {
   int progress = 0;
   String status = '';
   String? error;
+
+  /// What the app did for this job, timestamped: the steps before the
+  /// downloader starts (wrapper, sign-in) as well as each stage it reports.
+  /// A job stuck on "Starting" is stuck in one of these, and the downloader's
+  /// own log would be empty.
+  final log = <String>[];
+
+  /// Notifies the log view as lines arrive.
+  final logChanged = ValueNotifier(0);
+
+  /// The downloader's raw output for this job, mirrored by the pipeline.
+  String? downloaderLogPath;
+
+  void addLog(String line) {
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    log.add('${two(now.hour)}:${two(now.minute)}:${two(now.second)}  $line');
+    // Bounded: a long download reports many stages, and this is kept for
+    // every job in the finished history.
+    if (log.length > 500) log.removeRange(0, log.length - 500);
+    logChanged.value++;
+  }
 
   bool get isTerminal =>
       state == DownloadJobState.done ||
@@ -146,6 +170,8 @@ class DownloadQueueManager {
     String url, {
     bool redownload,
     void Function(int progress, String status)? onProgress,
+    void Function(String line)? onLog,
+    String? logPath,
   })
   archive = archiveUrl;
   Future<void> Function() sync = syncArchivedToLibrary;
@@ -280,15 +306,25 @@ class DownloadQueueManager {
     active.value = job;
     _notify();
 
+    // Beside the temp folder, not in it: stopping a download clears the temp
+    // folder, and the log is what explains the stop.
+    final logDir = p.join(p.dirname(downloadTempDir), 'download-logs');
+    _pruneLogs(logDir);
+    job.downloaderLogPath = p.join(logDir, '${job.id}.log');
+    job.addLog('Starting ${job.url}');
+
     String? error;
     try {
       error = await archive(
         job.url,
         onProgress: (progress, status) {
+          if (status != job.status) job.addLog('$progress%  $status');
           job.progress = progress;
           job.status = status;
           _notify();
         },
+        onLog: job.addLog,
+        logPath: job.downloaderLogPath,
       );
     } catch (e) {
       // archiveUrl documents that it never throws, but a queue that dies on a
@@ -296,6 +332,7 @@ class DownloadQueueManager {
       error = '$e';
     }
 
+    job.addLog(error == null ? 'Finished' : 'Failed: $error');
     final stoppedAs = _afterStop;
     _afterStop = null;
     if (stoppedAs != null) {
@@ -317,6 +354,18 @@ class DownloadQueueManager {
     active.value = null;
     _notify();
     _refreshBatches();
+  }
+
+  /// Drops downloader logs older than a week, so they cannot pile up.
+  static void _pruneLogs(String dir) {
+    try {
+      final cutoff = DateTime.now().subtract(const Duration(days: 7));
+      for (final file in Directory(dir).listSync().whereType<File>()) {
+        if (file.lastModifiedSync().isBefore(cutoff)) file.deleteSync();
+      }
+    } on FileSystemException {
+      // No folder yet, or a file vanished: nothing to prune.
+    }
   }
 
   void _refreshBatches() {

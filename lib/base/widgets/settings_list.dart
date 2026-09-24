@@ -202,6 +202,8 @@ class _SettingsListState extends State<SettingsList> {
           paddingIfNeed(isLandscape, widevineListTile(context, l10n)),
         ),
 
+        sliverBox(paddingIfNeed(isLandscape, downloadLogsListTile())),
+
         sliverBox(
           paddingIfNeed(isLandscape, listenBrainzListTile(context, l10n)),
         ),
@@ -841,6 +843,26 @@ class _SettingsListState extends State<SettingsList> {
         width: 50,
         child: MySwitch(
           valueNotifier: endDrawerNotifier,
+          onToggleCallBack: () {
+            setting.save();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget downloadLogsListTile() {
+    return ListTile(
+      leading: Icon(Icons.article_outlined, size: iconSize),
+      title: const Text('Download logs'),
+      subtitle: Text(
+        'Adds a log button to each download in the queue',
+        style: TextStyle(fontSize: 12, color: textColor.value),
+      ),
+      trailing: SizedBox(
+        width: 50,
+        child: MySwitch(
+          valueNotifier: showDownloadLogsNotifier,
           onToggleCallBack: () {
             setting.save();
           },

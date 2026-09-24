@@ -12,7 +12,13 @@
 /// from inside a layer's nested navigator where a raw modal sheet does not.
 library;
 
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
@@ -203,6 +209,25 @@ class DownloadQueueView extends StatelessWidget {
               ],
             ),
           ),
+          ValueListenableBuilder<bool>(
+            valueListenable: showDownloadLogsNotifier,
+            builder: (context, show, _) => !show || job.state == DownloadJobState.queued
+                ? const SizedBox.shrink()
+                : IconButton(
+                    iconSize: 17,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Log',
+                    onPressed: () => showAnimationDialog(
+                      context: context,
+                      child: SizedBox(
+                        width: 640,
+                        height: 560,
+                        child: DownloadLogView(job: job),
+                      ),
+                    ),
+                    icon: const Icon(Icons.article_outlined),
+                  ),
+          ),
           if (job.state == DownloadJobState.failed)
             IconButton(
               iconSize: 17,
@@ -243,6 +268,134 @@ class DownloadQueueView extends StatelessWidget {
           backgroundColor: buttonColor.value,
           color: seekBarColor.value,
         ),
+      ),
+    );
+  }
+}
+
+/// One download's log, live: the app's own steps, then the downloader's raw
+/// output. Rereads the downloader's file every second while open.
+class DownloadLogView extends StatefulWidget {
+  const DownloadLogView({super.key, required this.job});
+
+  final DownloadJob job;
+
+  @override
+  State<DownloadLogView> createState() => _DownloadLogViewState();
+}
+
+class _DownloadLogViewState extends State<DownloadLogView> {
+  final _scroll = ScrollController();
+  Timer? _timer;
+  String _output = '';
+
+  @override
+  void initState() {
+    super.initState();
+    widget.job.logChanged.addListener(_refresh);
+    _refresh();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _refresh());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    widget.job.logChanged.removeListener(_refresh);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    final output = _readTail(widget.job.downloaderLogPath);
+    if (!mounted) return;
+    final atBottom =
+        !_scroll.hasClients ||
+        _scroll.position.pixels >= _scroll.position.maxScrollExtent - 40;
+    setState(() => _output = output);
+    // Follow new lines, unless the reader has scrolled up to look at one.
+    if (atBottom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scroll.hasClients) {
+          _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        }
+      });
+    }
+  }
+
+  /// The last 64 KB: a long download's output runs to megabytes of progress
+  /// lines, and the end is what explains a stall.
+  static String _readTail(String? path) {
+    if (path == null) return '';
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return '';
+      final raf = file.openSync();
+      try {
+        final length = raf.lengthSync();
+        const window = 64 * 1024;
+        raf.setPositionSync(length > window ? length - window : 0);
+        return utf8.decode(raf.readSync(window), allowMalformed: true);
+      } finally {
+        raf.closeSync();
+      }
+    } on FileSystemException {
+      return '';
+    }
+  }
+
+  String get _text =>
+      '${widget.job.label}\n${widget.job.url}\n\n'
+      '== Steps ==\n${widget.job.log.join('\n')}\n\n'
+      '== Downloader output ==\n'
+      '${_output.isEmpty ? '(nothing yet: the downloader has not started)' : _output}';
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Log: ${widget.job.label}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: highlightTextColor.value,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Copy',
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: _text));
+                  showCenterMessage('Log copied');
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _scroll,
+              child: SelectableText(
+                _text,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 11.5,
+                  height: 1.35,
+                  color: textColor.value,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -32,8 +32,14 @@ Future<String?> archiveUrl(
   String url, {
   bool redownload = false,
   void Function(int progress, String status)? onProgress,
+  void Function(String line)? onLog,
+  String? logPath,
 }) async {
+  void log(String line) => onLog?.call(line);
+
+  log('Checking the download folder');
   await _ensureDownloadFolderWritable();
+  log('Download folder: $downloadOutputDir');
 
   // Pull the current settings at call time, not at startup: the user may
   // have changed quality or Widevine config between downloads.
@@ -47,25 +53,42 @@ Future<String?> archiveUrl(
     // The pipeline skips these whatever their codec or file name; gamdl on
     // its own only skips an identical output path.
     if (!redownload) 'owned': ownedSongKeys(),
+    'log_path': ?logPath,
   };
+  log('Codec: ${downloadCodecNotifier.value}');
   // The bundled wrapper takes every download it can: it is needed for ALAC,
   // and once signed in it is the account's own session, so no cookies file
   // is involved. Starting it here means it only runs when someone downloads.
+  if (wrapperService.supported) {
+    log('Starting the lossless wrapper (can take up to 30 seconds)');
+  }
   final bundled = wrapperService.supported
       ? (downloadCodecNotifier.value == 'alac'
             ? await _bundledWrapperPayload()
             : await wrapperService.ensureReady())
       : null;
+  if (wrapperService.supported) {
+    final state = wrapperService.state.value;
+    log(
+      'Wrapper: ${state.stage.name}'
+      '${state.message == null ? '' : ' (${state.message})'}',
+    );
+  }
   if (bundled != null) {
     payload.addAll(bundled);
+    log('Signed in through the wrapper');
   } else if (useWrapperNotifier.value) {
     payload['use_wrapper'] = true;
     final wrapperUrl = wrapperUrlNotifier.value.trim();
     if (wrapperUrl.isNotEmpty) payload['wrapper_url'] = wrapperUrl;
-  } else if (wvdPathNotifier.value != null &&
-      wvdPathNotifier.value!.isNotEmpty) {
-    payload['wvd_path'] = wvdPathNotifier.value;
+    log('Using the external wrapper at $wrapperUrl');
+  } else {
+    if (wvdPathNotifier.value != null && wvdPathNotifier.value!.isNotEmpty) {
+      payload['wvd_path'] = wvdPathNotifier.value;
+    }
+    log('Signed in with cookies');
   }
+  log('Handing over to the downloader');
 
   String? error;
   var finished = false;
@@ -74,6 +97,7 @@ Future<String?> archiveUrl(
       onProgress?.call(event.progress, event.status);
     } else if (event.isError) {
       error = event.message;
+      log('Error: ${event.message}');
     } else if (event.isDone) {
       finished = true;
     }
