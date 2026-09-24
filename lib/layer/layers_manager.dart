@@ -160,10 +160,27 @@ class LayersManager {
     });
   }
 
-  void switchRootLayer(String label) {
+  /// Sections visited before the current one, newest last, for the back
+  /// button. Only distinct neighbours are kept, so bouncing between two
+  /// sections does not build a long trail.
+  final List<String> _rootHistory = [];
+
+  /// Returns to the previous section. False when there is none.
+  bool popRootLayer() {
+    if (_rootHistory.isEmpty) return false;
+    switchRootLayer(_rootHistory.removeLast(), remember: false);
+    return true;
+  }
+
+  void switchRootLayer(String label, {bool remember = true}) {
     Widget layer = getRootLayer(label);
     if (layer == topRootLayer) {
       return;
+    }
+    final previous = sidebarHighlighLabel.value;
+    if (remember && previous.isNotEmpty && previous != label) {
+      _rootHistory.remove(previous);
+      _rootHistory.add(previous);
     }
 
     topRootLayer = layer;
