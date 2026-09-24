@@ -16,7 +16,7 @@ import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
-import 'package:soiboi/base/services/youtube_playlist_source.dart';
+import 'package:soiboi/base/services/tracklist_source.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
@@ -619,9 +619,13 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                   controller: _importController,
                   enabled: !_importing,
                   onSubmitted: (_) => _import(),
+                  // Grows for a pasted tracklist; a link stays one line.
+                  minLines: 1,
+                  maxLines: 5,
+                  keyboardType: TextInputType.multiline,
                   style: TextStyle(fontSize: 14, color: textColor.value),
                   decoration: InputDecoration(
-                    hintText: 'Paste a YouTube Music, Deezer or Spotify link',
+                    hintText: 'Paste a playlist link, or Artist - Title lines',
                     // The hint and the field edge both defaulted to Material's
                     // own colours, which this app never themes, so on a dark
                     // palette the example URL was barely legible and the box
@@ -681,7 +685,8 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           ],
           const SizedBox(height: 12),
           Text(
-            'Paste a public ${_importSourceNames()} playlist link. Its tracks '
+            'Paste a public ${_importSourceNames()} link, or a tracklist with '
+            'one Artist - Title per line for anything else. Its tracks '
             'are matched against the Apple Music catalog so you can archive '
             'the ones you want — nothing is downloaded from the other '
             'platform.',
@@ -697,9 +702,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   String _importSourceNames() {
     final names = [
       for (final source in playlistSources)
-        if (source.acceptsLinks) source.displayName,
+        if (source.acceptsLinks && source is! TracklistSource) source.displayName,
     ];
-    return names.isEmpty ? 'playlist' : names.join(' or ');
+    if (names.isEmpty) return 'playlist';
+    if (names.length == 1) return names.single;
+    return '${names.sublist(0, names.length - 1).join(', ')} or ${names.last}';
   }
 
   Future<void> _import() async {
@@ -728,9 +735,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       final source = match.source;
       setState(() {
         _importing = false;
-        _importError = source is YouTubePlaylistSource
-            ? (source.lastError ?? 'Could not read that playlist.')
-            : 'Could not read that playlist.';
+        _importError = source.lastError ?? 'Could not read that playlist.';
       });
       return;
     }
