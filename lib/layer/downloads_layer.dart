@@ -181,30 +181,34 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       child: SmoothClipRRect(
         smoothness: 1,
         borderRadius: BorderRadius.circular(12 * activeFlavour.cornerScale),
-        child: Container(
+        // A Material, not a coloured Container: rows' ink (the focus and
+        // hover highlight) is painted on it, and a Container would hide it.
+        child: Material(
           color: menuColor.value,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: highlightTextColor.value,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: highlightTextColor.value,
+                        ),
                       ),
                     ),
-                  ),
-                  ?action,
-                ],
-              ),
-              const SizedBox(height: 12),
-              child,
-            ],
+                    ?action,
+                  ],
+                ),
+                const SizedBox(height: 12),
+                child,
+              ],
+            ),
           ),
         ),
       ),

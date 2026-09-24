@@ -120,9 +120,11 @@ class _TitleBarState extends State<TitleBar> {
               opacity: widget.backToRoot != null ? 1 : 0,
               child: IconButton(
                 tooltip: 'Back',
-                onPressed: () {
-                  widget.backToRoot?.call();
-                },
+                // Disabled rather than only hidden while there is nowhere to
+                // go back to, so Tab does not stop on an invisible button.
+                onPressed: widget.backToRoot == null
+                    ? null
+                    : () => widget.backToRoot!.call(),
                 icon: labelIcon(
                   'Back',
                   Icon(Icons.arrow_back_ios_rounded, size: 20),

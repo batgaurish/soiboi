@@ -70,51 +70,72 @@ class LandscapeView extends StatelessWidget {
             );
           },
         ),
-        Column(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Sidebar(),
+        // Tab finishes one region before the next: the sidebar, then the
+        // page (its title bar first), then the player bar. Left to reading
+        // order alone, it zigzagged between the sidebar and the page.
+        FocusTraversalGroup(
+          policy: OrderedTraversalPolicy(),
+          child: Column(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    _region(1, Sidebar()),
 
-                  Expanded(
-                    child: ValueListenableBuilder(
-                      valueListenable: panelColor.valueNotifier,
-                      builder: (context, value, child) {
-                        return Material(color: value, child: child);
-                      },
-                      child: ValueListenableBuilder(
-                        valueListenable: layersManager.switchNotifier,
-                        builder: (context, value, child) {
-                          return Stack(
-                            children: [
-                              ...layersManager.rootLayerMap.values.map((
-                                layer,
-                              ) {
-                                return Visibility(
-                                  visible: layer == layersManager.topRootLayer,
-                                  maintainState: true,
-                                  child: layer,
-                                );
-                              }),
-                              const Positioned(
-                                right: 32,
-                                bottom: 32,
-                                child: AskAiFab(),
-                              ),
-                            ],
-                          );
-                        },
+                    Expanded(
+                      child: _region(
+                        2,
+                        ValueListenableBuilder(
+                          valueListenable: panelColor.valueNotifier,
+                          builder: (context, value, child) {
+                            return Material(color: value, child: child);
+                          },
+                          child: ValueListenableBuilder(
+                            valueListenable: layersManager.switchNotifier,
+                            builder: (context, value, child) {
+                              return Stack(
+                                children: [
+                                  ...layersManager.rootLayerMap.values.map((
+                                    layer,
+                                  ) {
+                                    // One group per page, so Tab finishes
+                                    // the page before the floating Ask AI
+                                    // button, not whenever a scrolled row
+                                    // lines up with it.
+                                    return FocusTraversalGroup(
+                                      child: Visibility(
+                                        visible:
+                                            layer == layersManager.topRootLayer,
+                                        maintainState: true,
+                                        child: layer,
+                                      ),
+                                    );
+                                  }),
+                                  const Positioned(
+                                    right: 32,
+                                    bottom: 32,
+                                    child: AskAiFab(),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            BottomControl(),
-          ],
+              _region(3, BottomControl()),
+            ],
+          ),
         ),
       ],
     );
   }
+
+  static Widget _region(double order, Widget child) => FocusTraversalOrder(
+    order: NumericFocusOrder(order),
+    child: FocusTraversalGroup(child: child),
+  );
 }

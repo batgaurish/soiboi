@@ -125,6 +125,20 @@ shortcuts, and every palette comes from album art with no contrast check.
   Ctrl+F or `/` (search), Ctrl+L (lyrics), Ctrl+D (Downloads). `?` opens a
   list of all shortcuts. Build on `keyboard.dart`.
   *Done when:* the whole app can be used without a mouse.
+  *Status:* built. All the shortcuts above, plus Esc (closes the lyrics, a
+  dialog or a menu) and F11. None of them take a key from a text field, a
+  focused button, a slider or an open menu. Focus shows as a 2 px accent ring
+  on buttons and switches, kept at 3:1 against the page, and as an accent
+  tint on rows. Tab finishes the sidebar, then the page, then the player bar.
+  On a song row, Enter plays it, Space plays or pauses, and Menu (or
+  Shift+F10) opens its options. Fixed along the way: Esc never closed the
+  app's dialogs, switches were two Tab stops that trapped focus, an
+  invisible Back button took a stop, and cards in Search and Downloads hid
+  the focus tint. Checked in tests and on the Linux build: Downloads,
+  Settings, Search, Songs, the lyrics page, context menus and dialogs, with
+  AT-SPI reading out each stop. Not yet checked: Big Picture, album, artist
+  and playlist pages, a non-empty download queue, F11, and Android with a
+  keyboard.
 
 ## Phase 2: First run and setup (v1.3.0)
 

@@ -17,6 +17,7 @@ import 'package:soiboi/base/services/my_tray_listener.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
 import 'package:soiboi/base/services/notification_service.dart';
 import 'package:soiboi/base/theme/motion.dart';
+import 'package:soiboi/base/widgets/focus_ring.dart';
 import 'package:soiboi/base/services/single_instance.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/l10n/generated/app_localizations_en.dart';
@@ -101,14 +102,15 @@ Future<void> _start() async {
   registerPlaylistSource(TracklistSource());
 
   await logger.init();
+  // Keyboard shortcuts everywhere but TV, whose remote uses the arrows to
+  // move focus; a phone or tablet with a keyboard gets them too.
+  if (!isTV) keyboardInit();
   if (isMobile) {
     screenRadius = await ScreenCornerRadius.get();
   } else {
     if (kReleaseMode) {
       await SingleInstance.start();
     }
-
-    keyboardInit();
 
     await _setupWindow();
     await _setupTray();
@@ -190,9 +192,9 @@ Future<void> _start() async {
           title: 'Soiboi',
           theme: ThemeData(
             colorScheme: _accentScheme(),
-            focusColor: lightHoverFocusColorNotifier.value
-                ? Colors.white.withAlpha(20)
-                : Colors.black.withAlpha(20),
+            // Keyboard focus in the accent, strong enough to find at a
+            // glance; the faint grey it replaces was near invisible.
+            focusColor: seekBarColor.value.withAlpha(90),
             hoverColor: lightHoverFocusColorNotifier.value
                 ? Colors.white.withAlpha(20)
                 : Colors.black.withAlpha(15),
@@ -232,13 +234,13 @@ Future<void> _start() async {
             iconButtonTheme: IconButtonThemeData(
               style: IconButton.styleFrom(
                 enabledMouseCursor: SystemMouseCursors.click,
-              ),
+              ).copyWith(side: _focusOutline()),
             ),
 
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 enabledMouseCursor: SystemMouseCursors.click,
-              ),
+              ).copyWith(side: _focusOutline()),
             ),
 
             elevatedButtonTheme: ElevatedButtonThemeData(
@@ -251,7 +253,15 @@ Future<void> _start() async {
                   smoothness: 1,
                   borderRadius: BorderRadius.circular(10),
                 ),
-              ),
+              ).copyWith(side: _focusOutline()),
+            ),
+
+            filledButtonTheme: FilledButtonThemeData(
+              style: ButtonStyle(side: _focusOutline()),
+            ),
+
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: ButtonStyle(side: _focusOutline()),
             ),
 
             textSelectionTheme: TextSelectionThemeData(
@@ -474,6 +484,19 @@ Future<void> _setupTray() async {
   });
 
   trayManager.addListener(MyTrayListener());
+}
+
+/// A focused button gets a 2 px outline in [focusRingColor], on top of the
+/// tint: the tint alone can be too faint to find on some palettes. When not
+/// focused this resolves to null, so a button's own border (an outlined
+/// button's) still applies.
+WidgetStateProperty<BorderSide?> _focusOutline() {
+  final ring = focusRingColor();
+  return WidgetStateProperty.resolveWith(
+    (states) => states.contains(WidgetState.focused)
+        ? BorderSide(color: ring, width: 2)
+        : null,
+  );
 }
 
 ColorScheme _accentScheme() {
