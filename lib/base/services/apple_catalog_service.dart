@@ -154,8 +154,8 @@ Future<AppleMatch?> resolveAppleTrack(
         for (final r in results) (r as Map).cast<String, dynamic>(),
       ];
       final first = pickOriginalRelease(rows, artist: artist, title: title);
-      final url = first['trackViewUrl'] as String?;
-      if (url == null) {
+      final url = first?['trackViewUrl'] as String?;
+      if (first == null || url == null) {
         _cache[key] = null;
         return null;
       }
@@ -196,9 +196,12 @@ Future<AppleMatch?> resolveAppleTrack(
 /// edition over a deluxe or anniversary one. Ties keep Apple's order.
 ///
 /// With [artist] and [title], rows for other songs (live takes, remixes,
-/// other artists) are left out first; if none are left, Apple's top hit is
-/// kept, as before.
-Map<String, dynamic> pickOriginalRelease(
+/// other artists) are left out first, and if none are left there is no
+/// match: Apple's top hit is then usually someone else's cover (a Weekly
+/// Exploration "I Wanna Be Your Slave" came back as Jaydan Wolf's, because
+/// the store did not rank Måneskin's at all), and "not in the catalog" is
+/// the honest answer.
+Map<String, dynamic>? pickOriginalRelease(
   List<Map<String, dynamic>> rows, {
   String? artist,
   String? title,
@@ -216,7 +219,7 @@ Map<String, dynamic> pickOriginalRelease(
             _sameArtist(wantArtist, row['artistName'] as String? ?? ''))
           row,
     ];
-    if (same.isEmpty) return rows.first;
+    if (same.isEmpty) return null;
     pool = same;
   }
   var best = pool.first;
