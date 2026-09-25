@@ -52,8 +52,9 @@ enum SourceType { local, webdav, navidrome, emby }
 
 SourceType sourceType = .local;
 
-bool isStreamSource = false;
-bool isNotStreamSource = !isStreamSource;
+bool get isStreamSource =>
+    sourceType == SourceType.navidrome || sourceType == SourceType.emby;
+bool get isNotStreamSource => !isStreamSource;
 
 final ValueNotifier<String?> fontFamilyNotifier = ValueNotifier(null);
 

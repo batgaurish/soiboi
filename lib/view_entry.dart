@@ -107,7 +107,8 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         // left, show the sidebar. Back once more from that sidebar leaves.
         final scaffold = portraitKey.currentState;
         final drawerOpen =
-            (scaffold?.isDrawerOpen ?? false) || (scaffold?.isEndDrawerOpen ?? false);
+            (scaffold?.isDrawerOpen ?? false) ||
+            (scaffold?.isEndDrawerOpen ?? false);
         if (drawerOpen) {
           if (drawerOpenedByBack) {
             drawerOpenedByBack = false;
@@ -126,7 +127,9 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         }
         if (scaffold != null) {
           drawerOpenedByBack = true;
-          endDrawerNotifier.value ? scaffold.openEndDrawer() : scaffold.openDrawer();
+          endDrawerNotifier.value
+              ? scaffold.openEndDrawer()
+              : scaffold.openDrawer();
           return;
         }
         SystemNavigator.pop();
@@ -359,8 +362,6 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
           mouseCursor: SystemMouseCursors.click,
           onTap: () async {
             sourceType = thisSourceType;
-            isStreamSource = sourceType == .navidrome || sourceType == .emby;
-            isNotStreamSource = !isStreamSource;
             library = Library();
             if (isNotStreamSource) {
               await library.initFolders();
