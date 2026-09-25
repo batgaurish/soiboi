@@ -20,6 +20,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/logger.dart';
 
@@ -110,10 +111,11 @@ String _key(String artist, String title) =>
 Future<AppleMatch?> resolveAppleTrack(
   String artist,
   String title, {
-  String storefront = 'us',
+  String? storefront,
 }) async {
+  storefront ??= appleStorefront;
   if (artist.trim().isEmpty || title.trim().isEmpty) return null;
-  final key = _key(artist, title);
+  final key = '$storefront\u0000${_key(artist, title)}';
   if (_cache.containsKey(key)) return _cache[key];
 
   for (var attempt = 0; attempt < 2; attempt++) {
@@ -293,10 +295,11 @@ AppleAlbum _albumFrom(Map<String, dynamic> json) => AppleAlbum(
 Future<AppleAlbum?> resolveAppleAlbum(
   String artist,
   String album, {
-  String storefront = 'us',
+  String? storefront,
 }) async {
+  storefront ??= appleStorefront;
   if (album.trim().isEmpty) return null;
-  final key = _key(artist, album);
+  final key = '$storefront\u0000${_key(artist, album)}';
   if (_albumCache.containsKey(key)) return _albumCache[key];
 
   for (var attempt = 0; attempt < 2; attempt++) {
@@ -376,8 +379,9 @@ Future<AppleAlbum?> _albumViaSongs(
 /// after it, so the collection row is dropped rather than shown as a track.
 Future<List<AppleTrack>?> appleAlbumTracks(
   String collectionId, {
-  String storefront = 'us',
+  String? storefront,
 }) async {
+  storefront ??= appleStorefront;
   if (_albumTrackCache.containsKey(collectionId)) {
     return _albumTrackCache[collectionId];
   }
@@ -426,11 +430,12 @@ Future<List<AppleTrack>?> appleAlbumTracks(
 /// MusicBrainz id, which Apple has never heard of.
 Future<List<AppleAlbum>?> appleArtistAlbums(
   String artist, {
-  String storefront = 'us',
+  String? storefront,
   int limit = 25,
 }) async {
+  storefront ??= appleStorefront;
   if (artist.trim().isEmpty) return null;
-  final key = _key(artist, 'albums');
+  final key = '$storefront\u0000${_key(artist, 'albums')}';
   if (_artistAlbumCache.containsKey(key)) return _artistAlbumCache[key];
 
   try {
@@ -489,10 +494,11 @@ Future<List<AppleAlbum>?> appleArtistAlbums(
 /// Returns null if the ISRC is not in Apple's catalog.
 Future<AppleMatch?> resolveAppleTrackByIsrc(
   String isrc, {
-  String storefront = 'us',
+  String? storefront,
 }) async {
+  storefront ??= appleStorefront;
   if (isrc.trim().isEmpty) return null;
-  final key = 'isrc:${isrc.toLowerCase().trim()}';
+  final key = '$storefront\u0000isrc:${isrc.toLowerCase().trim()}';
   if (_cache.containsKey(key)) return _cache[key];
 
   try {

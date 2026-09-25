@@ -17,6 +17,7 @@
 ///    dropped.
 library;
 
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/linked_playlists.dart';
@@ -133,6 +134,10 @@ Future<ApplePlaylistsResult> fetchApplePlaylists() async {
           ],
           storefront: event.raw['storefront'] as String? ?? 'us',
         );
+        if (event.raw['storefront'] case final String storefront
+            when storefront.isNotEmpty) {
+          _rememberStorefront(storefront);
+        }
       }
     }
 
@@ -287,6 +292,40 @@ Future<LinkResult?> _linkTracks(
   [for (final track in tracks) LinkedTrack(track.artist ?? '', track.title)],
   artworkUrl: playlist.artworkUrl,
 );
+
+/// Reads the signed-in account's storefront and remembers it. Returns it, or
+/// null when there is no sign-in or no answer (the remembered one stays).
+Future<String?> refreshAppleStorefront() async {
+  if (!cookie_store.hasAppleAuth) return null;
+  try {
+    await for (final event in pipelineRunner.run('apple_storefront', {
+      'cookies_path': cookie_store.cookiesPath,
+      ...await _wrapperAuth(),
+    })) {
+      final storefront = event.raw['storefront'];
+      if (event.isDone && storefront is String && storefront.isNotEmpty) {
+        _rememberStorefront(storefront);
+        return storefront;
+      }
+    }
+  } catch (e) {
+    logger.output('apple storefront: $e');
+  }
+  return null;
+}
+
+void _rememberStorefront(String storefront) {
+  if (appleStorefrontNotifier.value == storefront) return;
+  appleStorefrontNotifier.value = storefront;
+  setting.save();
+}
+
+/// The storefront to match catalog tracks in: the remembered one, else asked
+/// of the account, else the US.
+Future<String> accountStorefront() async {
+  if (appleStorefrontNotifier.value.isEmpty) await refreshAppleStorefront();
+  return appleStorefront;
+}
 
 /// The signed-in wrapper's address, which the pipeline prefers over the
 /// cookies file. Empty when the wrapper is not signed in.
