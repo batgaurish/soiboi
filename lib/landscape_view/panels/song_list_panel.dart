@@ -75,6 +75,17 @@ extension _SongListPanel on _SongListState {
           child: Padding(padding: padding, child: panelHeader()),
         ),
 
+        if (isLibrary)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: padding.add(const EdgeInsets.only(bottom: 12)),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: songsToolbar(phone: false),
+              ),
+            ),
+          ),
+
         SliverToBoxAdapter(
           child: Padding(
             padding: padding,
@@ -138,6 +149,7 @@ extension _SongListPanel on _SongListState {
   /// Empty state for a playlist with no songs. Shows an "Add songs" button
   /// that opens the library's selectable song list for picking.
   Widget _emptyPlaylistState(BuildContext context) {
+    if (isFiltered) return noFilterMatches();
     final canAdd =
         playlist != null && playlist!.canModify && !playlist!.isFavorite;
     return Center(

@@ -241,6 +241,13 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
     case 11:
       songList.shuffle();
       break;
+    // 12 is "shuffle permanently", an action rather than an order.
+    case 13: // Year, newest first; songs without a year last
+      songList.sort((a, b) => (b.year ?? -1).compareTo(a.year ?? -1));
+    case 14: // Year, oldest first; songs without a year last
+      songList.sort((a, b) => (a.year ?? 99999).compareTo(b.year ?? 99999));
+    case 15: // Most played
+      songList.sort((a, b) => b.playCount.compareTo(a.playCount));
     default:
       break;
   }
