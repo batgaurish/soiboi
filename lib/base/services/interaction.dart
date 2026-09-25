@@ -14,6 +14,7 @@ import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/services/song_deletion.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/utils/zoom_page_route.dart';
@@ -95,7 +96,15 @@ void removeCenterLoading() {
   _centerOverlayEntry = null;
 }
 
-Future<bool> showConfirmDialog(BuildContext context, String action) async {
+/// Asks before [action]. [message] replaces the generic "continue?" line,
+/// for when the consequence needs spelling out; [confirmText] replaces
+/// "Confirm".
+Future<bool> showConfirmDialog(
+  BuildContext context,
+  String action, {
+  String? message,
+  String? confirmText,
+}) async {
   final l10n = AppLocalizations.of(context);
 
   final result = await showAnimationDialog<bool>(
@@ -121,6 +130,7 @@ Future<bool> showConfirmDialog(BuildContext context, String action) async {
                       alignment: .centerLeft,
                       child: Text(
                         action,
+                        maxLines: 3,
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: .bold,
@@ -133,7 +143,7 @@ Future<bool> showConfirmDialog(BuildContext context, String action) async {
                     Align(
                       alignment: .centerLeft,
                       child: Text(
-                        l10n.continueMsg,
+                        message ?? l10n.continueMsg,
                         style: TextStyle(
                           fontSize: 14,
                           color: colorManager.getSpecificTextColor(),
@@ -164,7 +174,7 @@ Future<bool> showConfirmDialog(BuildContext context, String action) async {
                                 .getSpecificButtonColor(),
                             foregroundColor: Colors.red,
                           ),
-                          child: Text(l10n.confirm),
+                          child: Text(confirmText ?? l10n.confirm),
                         ),
                       ],
                     ),
@@ -433,6 +443,62 @@ class MenuItem {
 
   MenuItem({this.iconData, this.text, this.callback, this.isDivider = false});
 }
+
+/// The actions for one song, for a right-click or long-press menu anywhere a
+/// song is shown on its own (Home's shelves, for one).
+List<MenuItem> songMenuItems(BuildContext context, MyAudioMetadata song) {
+  final l10n = AppLocalizations.of(context);
+  return [
+    MenuItem(
+      iconData: Icons.play_arrow_rounded,
+      text: l10n.playNow,
+      callback: () {
+        audioHandler.singlePlay(song);
+        audioHandler.saveAllStates();
+      },
+    ),
+    MenuItem(
+      iconData: Icons.navigate_next_rounded,
+      text: l10n.playNext,
+      callback: () {
+        playQueue.isEmpty
+            ? audioHandler.singlePlay(song)
+            : audioHandler.insert2Next(song);
+        audioHandler.saveAllStates();
+      },
+    ),
+    MenuItem(
+      iconData: Icons.playlist_add_rounded,
+      text: l10n.add2Queue,
+      callback: () {
+        playQueue.isEmpty
+            ? audioHandler.singlePlay(song)
+            : audioHandler.add2Last(song);
+        audioHandler.saveAllStates();
+      },
+    ),
+    MenuItem(
+      iconData: Icons.add_rounded,
+      text: l10n.add2Playlist,
+      callback: () => showAddPlaylistDialog(context, [song]),
+    ),
+    ...deleteMenuItems(context, [song]),
+  ];
+}
+
+/// "Delete from device" for [songs], or nothing when none of them are files
+/// on this device.
+List<MenuItem> deleteMenuItems(
+  BuildContext context,
+  List<MyAudioMetadata> songs,
+) => [
+  if (songs.any(canDeleteFromDevice))
+    MenuItem(
+      iconData: Icons.delete_forever_rounded,
+      text: 'Delete from device',
+      callback: () => confirmAndDeleteSongs(context, songs),
+    ),
+];
 
 void showContextMenu(
   BuildContext context,
@@ -969,6 +1035,23 @@ void showSongOptions({
                         );
                       },
                     ),
+
+                    if (canDeleteFromDevice(song))
+                      ListTile(
+                        leading: Icon(Icons.delete_forever_rounded),
+                        title: Text(
+                          'Delete from device',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        visualDensity: const VisualDensity(
+                          horizontal: 0,
+                          vertical: -4,
+                        ),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await confirmAndDeleteSongs(context, [song]);
+                        },
+                      ),
 
                     if (playlist != null)
                       ListTile(

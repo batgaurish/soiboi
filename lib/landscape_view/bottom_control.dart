@@ -90,45 +90,56 @@ class BottomControl extends StatelessWidget {
             child: ListenableBuilder(
               listenable: Listenable.merge([currentSong?.updateNotifier]),
               builder: (context, _) {
-                return ListTile(
-                  leading: Hero(
-                    tag: 'cover',
-                    child: CoverArtWidget(
-                      size: 50,
-                      borderRadius: 5,
-                      picture: currentSong?.picture,
-                    ),
-                  ),
-                  title: Semantics(
-                    label: currentSong == null
-                        ? 'Nothing playing'
-                        : 'Now playing: ${songLabel(title: getTitle(currentSong), artist: getArtist(currentSong))}',
-                    hint: currentSong == null ? null : 'Opens the player',
-                    excludeSemantics: true,
-                    child: Text(
-                      getTitle(currentSong),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  subtitle: currentSong != null
-                      ? ExcludeSemantics(
-                          child: Text(
-                            "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        )
-                      : null,
-                  onTap: () {
-                    if (playQueue.isEmpty) {
-                      return;
-                    }
-                    Navigator.of(context, rootNavigator: true).push(
-                      DynamicLyricsPageRoute(
-                        pageBuilder: (_, _, _) => LyricsPageLayer(),
+                // Right-click the song for its menu, Delete from device
+                // included: the desktop player has no three-dot menu.
+                return GestureDetector(
+                  onSecondaryTapUp: currentSong == null
+                      ? null
+                      : (details) => showContextMenu(
+                          context,
+                          songMenuItems(context, currentSong),
+                          details.globalPosition,
+                        ),
+                  child: ListTile(
+                    leading: Hero(
+                      tag: 'cover',
+                      child: CoverArtWidget(
+                        size: 50,
+                        borderRadius: 5,
+                        picture: currentSong?.picture,
                       ),
-                    );
-                  },
+                    ),
+                    title: Semantics(
+                      label: currentSong == null
+                          ? 'Nothing playing'
+                          : 'Now playing: ${songLabel(title: getTitle(currentSong), artist: getArtist(currentSong))}',
+                      hint: currentSong == null ? null : 'Opens the player',
+                      excludeSemantics: true,
+                      child: Text(
+                        getTitle(currentSong),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    subtitle: currentSong != null
+                        ? ExcludeSemantics(
+                            child: Text(
+                              "${getArtist(currentSong)} - ${getAlbum(currentSong)}",
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          )
+                        : null,
+                    onTap: () {
+                      if (playQueue.isEmpty) {
+                        return;
+                      }
+                      Navigator.of(context, rootNavigator: true).push(
+                        DynamicLyricsPageRoute(
+                          pageBuilder: (_, _, _) => LyricsPageLayer(),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),

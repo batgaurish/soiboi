@@ -16,6 +16,7 @@ import 'package:soiboi/base/widgets/quality_badge.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/picture_service.dart';
+import 'package:soiboi/base/services/song_deletion.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/utils/common_utils.dart';
 import 'package:soiboi/base/utils/media_query.dart';

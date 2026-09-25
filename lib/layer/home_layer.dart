@@ -33,6 +33,7 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
 import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/theme/flavour.dart';
@@ -383,6 +384,10 @@ class _HomeLayerState extends State<HomeLayer> {
     builder: (context, i) => _SongCard(
       song: songs[i],
       index: i,
+      onMenu: (position) {
+        tryVibrate();
+        showContextMenu(context, songMenuItems(context, songs[i]), position);
+      },
       onTap: () {
         final album = artistAlbumManager.albumMap[getAlbum(songs[i])];
         if (opensAlbum && album != null) {
@@ -652,10 +657,15 @@ class _SongCard extends StatelessWidget {
     required this.song,
     required this.index,
     required this.onTap,
+    required this.onMenu,
   });
   final MyAudioMetadata song;
   final int index;
   final VoidCallback onTap;
+
+  /// Opens the song's menu at a global position: right-click on desktop,
+  /// long-press on a phone.
+  final void Function(Offset position) onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -663,38 +673,42 @@ class _SongCard extends StatelessWidget {
       index: index,
       child: SizedBox(
         width: 124,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10 * activeFlavour.cornerScale),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CoverArtWidget(
-                size: 124,
-                borderRadius: 12 * activeFlavour.cornerScale,
-                picture: song.picture,
-                elevation: 3,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                song.title ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                  color: highlightTextColor.value,
+        child: GestureDetector(
+          onSecondaryTapUp: (details) => onMenu(details.globalPosition),
+          onLongPressStart: (details) => onMenu(details.globalPosition),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10 * activeFlavour.cornerScale),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CoverArtWidget(
+                  size: 124,
+                  borderRadius: 12 * activeFlavour.cornerScale,
+                  picture: song.picture,
+                  elevation: 3,
                 ),
-              ),
-              Text(
-                song.artist ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: textColor.value),
-              ),
-              const SizedBox(height: 4),
-              QualityBadge(song),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  song.title ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: highlightTextColor.value,
+                  ),
+                ),
+                Text(
+                  song.artist ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: textColor.value),
+                ),
+                const SizedBox(height: 4),
+                QualityBadge(song),
+              ],
+            ),
           ),
         ),
       ),

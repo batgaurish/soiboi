@@ -3,6 +3,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/song_deletion.dart';
 import 'package:soiboi/base/widgets/playlist_widgets.dart';
 import 'package:soiboi/base/data/folder.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
@@ -319,13 +320,49 @@ class SelectableSongListPage extends StatelessWidget {
                   ),
                 ),
               ),
+              if (songList.any(canDeleteFromDevice))
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        tooltip: 'Delete from device',
+                        onPressed: () async {
+                          if (!valid) return;
+                          tryVibrate();
+                          final deleted = await confirmAndDeleteSongs(
+                            context,
+                            getSelectedSongList(),
+                          );
+                          // The rows are gone; so is the point of selecting.
+                          if (deleted && context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        },
+                        icon: labelIcon(
+                          'Delete from device',
+                          Icon(Icons.delete_forever_rounded),
+                        ),
+                        color: color,
+                      ),
+
+                      Transform.translate(
+                        offset: Offset(0, -10),
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(color: color, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (playlist != null)
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        tooltip: l10n.delete,
+                        tooltip: 'Remove from playlist',
                         onPressed: () async {
                           if (valid) {
                             tryVibrate();
@@ -335,8 +372,8 @@ class SelectableSongListPage extends StatelessWidget {
                           }
                         },
                         icon: labelIcon(
-                          l10n.delete,
-                          Icon(Icons.delete_rounded),
+                          'Remove from playlist',
+                          Icon(Icons.playlist_remove_rounded),
                         ),
                         color: color,
                       ),
@@ -344,7 +381,7 @@ class SelectableSongListPage extends StatelessWidget {
                       Transform.translate(
                         offset: Offset(0, -10),
                         child: Text(
-                          l10n.delete,
+                          'Remove',
                           style: TextStyle(color: color, fontSize: 12),
                         ),
                       ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:soiboi/base/services/song_deletion.dart';
 import 'dart:io';
 import 'dart:ui';
 
@@ -148,7 +149,9 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
         valueListenable: dragOffsetNotifier,
         builder: (context, value, child) {
           return AnimatedContainer(
-            duration: motionDuration(Duration(milliseconds: _animationDuration)),
+            duration: motionDuration(
+              Duration(milliseconds: _animationDuration),
+            ),
             curve: Curves.easeOutCubic,
             transform: Matrix4.translationValues(0, value, 0),
             child: child,
@@ -612,7 +615,7 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
           isScrollControlled: true,
           builder: (context) {
             return MySheet(
-              height: 250,
+              height: 300,
               ValueListenableBuilder(
                 valueListenable: lyricsPageForegroundColor.valueNotifier,
                 builder: (context, value, child) {
@@ -719,6 +722,32 @@ class _PortraitLyricsPageState extends State<PortraitLyricsPage> {
                                 showAdjustLyrics(context);
                               },
                             ),
+
+                            if (currentSong != null &&
+                                canDeleteFromDevice(currentSong))
+                              ListTile(
+                                leading: Icon(
+                                  Icons.delete_forever_rounded,
+                                  color: value,
+                                ),
+                                title: Text(
+                                  'Delete from device',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: value,
+                                  ),
+                                ),
+                                visualDensity: const VisualDensity(
+                                  horizontal: 0,
+                                  vertical: -4,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  confirmAndDeleteSongs(this.context, [
+                                    currentSong,
+                                  ]);
+                                },
+                              ),
                           ],
                         ),
                       ),
