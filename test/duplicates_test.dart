@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soiboi/base/data/duplicates.dart';
+import 'package:soiboi/base/services/library_match_service.dart';
 
 typedef Song = ({String artist, String title, String codec, int bitrate});
 
@@ -62,5 +63,57 @@ void main() {
     );
     const b = (artist: 'Arpit Bala', title: 'मन', codec: 'AAC', bitrate: 256);
     expect(find([a, b]), isEmpty);
+  });
+
+  test('a compilation\'s "(From Film)" copy is the soundtrack\'s song', () {
+    const artist = 'Amit Trivedi, Kavita Seth & Amitabh Bhattacharya';
+    const film = (artist: artist, title: 'Iktara', codec: 'AAC', bitrate: 258);
+    const compilation = (
+      artist: artist,
+      title: 'Iktara (From "Wake Up Sid")',
+      codec: 'AAC',
+      bitrate: 325,
+    );
+    const dash = (
+      artist: artist,
+      title: 'Iktara - From "Wake Up Sid"',
+      codec: 'AAC',
+      bitrate: 256,
+    );
+    const feat = (
+      artist: artist,
+      title: 'Iktara [feat. Someone]',
+      codec: 'AAC',
+      bitrate: 256,
+    );
+    expect(find([film, compilation, dash, feat]).single, hasLength(4));
+    // The pipeline's owned_key must produce the same string
+    // (test_pipeline/test_owned_skip.py pins it too).
+    expect(
+      ownedSongKey(artist, 'Iktara (From "Wake Up Sid")'),
+      'amittrivedikavitasethandamitabhbhattacharya|iktara',
+    );
+  });
+
+  test('live and remix versions stay separate songs', () {
+    const studio = (
+      artist: 'A',
+      title: 'Treat You Better',
+      codec: 'AAC',
+      bitrate: 256,
+    );
+    const live = (
+      artist: 'A',
+      title: 'Treat You Better (Live From New York)',
+      codec: 'AAC',
+      bitrate: 256,
+    );
+    const remix = (
+      artist: 'A',
+      title: 'Treat You Better (Ashworth Remix)',
+      codec: 'AAC',
+      bitrate: 256,
+    );
+    expect(find([studio, live, remix]), isEmpty);
   });
 }

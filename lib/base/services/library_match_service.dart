@@ -80,11 +80,28 @@ MyAudioMetadata? matchSong(String title, {Album? album, String? artist}) {
   return null;
 }
 
+/// Credits that name where a recording comes from or who else is on it, not
+/// a different recording: `(From "Wake Up Sid")`, `- From "Film"`,
+/// `[feat. X]`. Compilations add them to a soundtrack's title, so without
+/// this the film's copy and the compilation's copy never match. Versions
+/// that are different recordings ("(Live From New York)", "(Remix)") stay.
+final _titleCredits = RegExp(
+  r"""\s*[(\[]\s*(?:from\s+["“”'‘’]|feat\.?\s|ft\.?\s|featuring\s)[^)\]]*[)\]]"""
+  r"""|\s+-\s+from\s+["“”'‘’].*$""",
+  caseSensitive: false,
+);
+
+/// [title] without soundtrack and featuring credits; the rest untouched.
+String bareSongTitle(String title) {
+  final bare = title.replaceAll(_titleCredits, '').trim();
+  return bare.isEmpty ? title : bare;
+}
+
 /// Artist + title keys for every local song, for the pipeline to skip. Must
 /// agree with `owned_key` in `pipeline/soiboi_pipeline/downloader.py`,
 /// including keeping non-Latin names instead of reducing them to nothing.
 String ownedSongKey(String artist, String title) =>
-    '${_ownedPart(artist)}|${_ownedPart(title)}';
+    '${_ownedPart(artist)}|${_ownedPart(bareSongTitle(title))}';
 
 String _ownedPart(String value) {
   final latin = normaliseForMatch(value);
