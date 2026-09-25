@@ -129,6 +129,17 @@ const _catalog = <_Entry>[
     fix: FailureFix.retry,
   ),
   _Entry(
+    id: 'sign_in_unconfirmed',
+    codes: {'wrapper_unconfirmed'},
+    patterns: [r'Apple did not confirm the lossless sign-in'],
+    title: 'Could not reach Apple Music',
+    detail:
+        'Your lossless sign-in is saved, but Apple did not confirm it, which '
+        'usually means there is no connection. Check it and retry.',
+    fix: FailureFix.retry,
+    temporary: true,
+  ),
+  _Entry(
     id: 'not_signed_in',
     codes: {'no_cookies'},
     patterns: [r'No Apple Music cookies'],

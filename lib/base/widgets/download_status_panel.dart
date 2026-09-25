@@ -72,7 +72,8 @@ class _DownloadStatusPanelState extends State<DownloadStatusPanel> {
           child: const LosslessSetup(),
         );
       case StatusFix.startWrapper:
-        await wrapperService.start();
+        // Restarts one that is running but could not confirm the sign-in.
+        await wrapperService.startForDownload();
       case StatusFix.chooseFolder:
         await showDownloadFolderDialog(context);
         await _check();

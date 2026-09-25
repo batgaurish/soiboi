@@ -268,13 +268,26 @@ class WrapperService {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final auth = body['auth'] as Map<String, dynamic>?;
       if (auth == null) return false;
-      _setSignedIn(auth['state'] != 'logged_out');
-      state.value = auth['state'] == 'logged_out'
-          ? const WrapperState(WrapperStage.signedOut)
-          : WrapperState(
+      final loggedOut = auth['state'] == 'logged_out';
+      // Only a sign-in sets the marker here, never a "logged out": offline,
+      // the wrapper cannot confirm the session with Apple and reports
+      // logged out while the session itself is fine, and clearing the
+      // marker then made the app forget a working sign-in after any network
+      // drop. Signing out clears it (see signOut).
+      if (!loggedOut) _setSignedIn(true);
+      state.value = !loggedOut
+          ? WrapperState(
               WrapperStage.ready,
               account: auth['apple_id'] as String?,
-            );
+            )
+          : signedIn.value
+          ? const WrapperState(
+              WrapperStage.signedOut,
+              message:
+                  'Apple did not confirm the sign-in. This happens without '
+                  'a connection; it is checked again at the next download.',
+            )
+          : const WrapperState(WrapperStage.signedOut);
       return true;
     } on Exception {
       return false;
@@ -323,6 +336,7 @@ class WrapperService {
     } on Exception catch (e) {
       logger.output('wrapper sign-out: $e');
     }
+    _setSignedIn(false);
     await _refreshAccount();
   }
 
@@ -356,8 +370,19 @@ class WrapperService {
   Future<Map<String, Object>?> ensureReady() async {
     await refresh();
     if (!librariesInstalled || !signedIn.value) return null;
-    await start();
+    await startForDownload();
     return downloadPayload;
+  }
+
+  /// [start], for a download about to use it. A wrapper started without a
+  /// connection stays "logged out" after the connection returns, so while
+  /// the app remembers a sign-in, one fresh start asks Apple again.
+  Future<void> startForDownload() async {
+    await start();
+    if (state.value.stage == WrapperStage.signedOut && signedIn.value) {
+      await stop();
+      await start();
+    }
   }
 
   /// Force-stops wrappers from an earlier run of the app. Linux only: they

@@ -169,6 +169,24 @@ void main() {
       expect(c.level, StatusLevel.problem);
     });
 
+    test('a remembered sign-in Apple did not confirm is a warning', () {
+      // What an offline start reports; the session itself is fine.
+      final c = _check(
+        _inputs(
+          codec: 'alac',
+          wrapperSignedIn: true,
+          wrapper: const WrapperState(
+            WrapperStage.signedOut,
+            message: 'Apple did not confirm the sign-in.',
+          ),
+        ),
+        label,
+      );
+      expect(c.level, StatusLevel.warning);
+      expect(c.detail, 'Apple did not confirm the sign-in.');
+      expect(c.fix, StatusFix.startWrapper);
+    });
+
     test('signed in and stopped is fine: it starts on demand', () {
       final c = _check(_inputs(codec: 'alac', wrapperSignedIn: true), label);
       expect(c.level, StatusLevel.ok);
