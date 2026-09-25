@@ -8,7 +8,16 @@ import 'package:soiboi/base/services/error_catalog.dart';
 /// from gamdl 3.8/3.9's own exceptions and from the pipeline.
 const _cases = <(String code, String message, String id)>[
   ('cancelled', 'Download stopped', 'cancelled'),
-  ('no_cookies', 'No Apple Music cookies. Sign in from Settings.', 'not_signed_in'),
+  (
+    'wrapper_unconfirmed',
+    'Apple did not confirm the lossless sign-in. Check the connection.',
+    'sign_in_unconfirmed',
+  ),
+  (
+    'no_cookies',
+    'No Apple Music cookies. Sign in from Settings.',
+    'not_signed_in',
+  ),
   (
     'gamdl_reported_error',
     "No active Apple Music subscription found, you won't be able to download "
@@ -16,7 +25,11 @@ const _cases = <(String code, String message, String id)>[
     'no_subscription',
   ),
   ('no_runtime', 'Bundled Python runtime not found', 'downloader_missing'),
-  ('no_gamdl', "Downloader unavailable: No module named 'gamdl'", 'downloader_missing'),
+  (
+    'no_gamdl',
+    "Downloader unavailable: No module named 'gamdl'",
+    'downloader_missing',
+  ),
   (
     'no_multiprocessing',
     'This device cannot run the downloader: it has no working multiprocessing',
@@ -69,7 +82,11 @@ const _cases = <(String code, String message, String id)>[
     "[Errno 13] Permission denied: '/storage/emulated/0/Music/.temp'",
     'folder_not_writable',
   ),
-  ('gamdl_error', '[Errno 30] Read-only file system: /media/sd', 'folder_not_writable'),
+  (
+    'gamdl_error',
+    '[Errno 30] Read-only file system: /media/sd',
+    'folder_not_writable',
+  ),
   (
     'gamdl_reported_error',
     'Requested format is not available (media ID: 1440818839): alac',
@@ -80,7 +97,11 @@ const _cases = <(String code, String message, String id)>[
     'Decryption is not available for media ID: 1440818839',
     'needs_wrapper',
   ),
-  ('gamdl_reported_error', 'Media is not streamable: 1440818839', 'not_streamable'),
+  (
+    'gamdl_reported_error',
+    'Media is not streamable: 1440818839',
+    'not_streamable',
+  ),
   (
     'gamdl_reported_error',
     'URL is not valid or supported: https://example.com/album/1',
@@ -98,11 +119,7 @@ const _cases = <(String code, String message, String id)>[
     'not_found',
   ),
   ('gamdl_error', 'Error finding token in index.js page', 'apple_changed'),
-  (
-    'gamdl_error',
-    'Error fetching Apple Music homepage',
-    'network',
-  ),
+  ('gamdl_error', 'Error fetching Apple Music homepage', 'network'),
   (
     'gamdl_reported_error',
     'Error processing "https://music.apple.com/us/album/x/1": '
@@ -127,6 +144,29 @@ const _cases = <(String code, String message, String id)>[
     'downloader_crashed',
   ),
   ('gamdl_failed', 'Downloader exited with status 2', 'downloader_crashed'),
+  // The most frequent failures in a real desktop log (2026-09-25).
+  (
+    'gamdl_reported_error',
+    'Error downloading "Iktara": Error fetching wrapper playback',
+    'wrapper_down',
+  ),
+  (
+    'gamdl_reported_error',
+    'Error downloading "Iktara": Server disconnected without sending a '
+        'response.',
+    'network',
+  ),
+  (
+    'gamdl_reported_error',
+    'Error downloading "Low": [Errno 13] Permission denied: '
+        "'/home/me/Music/The Driver Era/X/06 Low.lrc'",
+    'folder_not_writable',
+  ),
+  (
+    'gamdl_reported_error',
+    "Requested format is not available (media ID: 1440904109): ['alac']",
+    'quality_unavailable',
+  ),
 ];
 
 void main() {
@@ -160,6 +200,7 @@ void main() {
           explainFailure(message, code: code)!.id,
     };
     expect(temporary, {
+      'sign_in_unconfirmed',
       'wrapper_down',
       'rate_limited',
       'apple_unavailable',

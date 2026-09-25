@@ -37,7 +37,7 @@ enum StatusFix { signIn, setUpLossless, startWrapper, chooseFolder, recheck }
 String statusFixLabel(StatusFix fix) => switch (fix) {
   StatusFix.signIn => 'Sign in',
   StatusFix.setUpLossless => 'Set up',
-  StatusFix.startWrapper => 'Start',
+  StatusFix.startWrapper => 'Try again',
   StatusFix.chooseFolder => 'Choose folder',
   StatusFix.recheck => 'Check again',
 };
@@ -248,6 +248,12 @@ StatusCheck _wrapper(StatusInputs i) {
       StatusLevel.problem,
       'Needs the Apple Music app file',
       StatusFix.setUpLossless,
+    ),
+    // Remembered but not confirmed: usually no connection when it started.
+    WrapperStage.signedOut when i.wrapperSignedIn => (
+      StatusLevel.warning,
+      i.wrapper.message ?? 'Apple did not confirm the sign-in',
+      StatusFix.startWrapper,
     ),
     WrapperStage.signedOut || WrapperStage.needsCode => (
       StatusLevel.problem,

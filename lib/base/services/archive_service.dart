@@ -85,6 +85,19 @@ Future<DownloadFailure?> archiveUrl(
       '${state.message == null ? '' : ' (${state.message})'}',
     );
   }
+  // The wrapper holds the only sign-in but Apple did not confirm it (no
+  // connection, usually). Falling through to cookies would fail as "not
+  // signed in", which sends the user to sign in again for nothing.
+  if (bundled == null &&
+      wrapperService.signedIn.value &&
+      wrapperService.state.value.stage == WrapperStage.signedOut &&
+      !signedInNotifier.value &&
+      !useWrapperNotifier.value) {
+    const message =
+        'Apple did not confirm the lossless sign-in. Check the connection.';
+    log(message);
+    return const DownloadFailure(message, code: 'wrapper_unconfirmed');
+  }
   if (bundled != null) {
     payload.addAll(bundled);
     log('Signed in through the wrapper');
@@ -147,7 +160,7 @@ Future<void> syncArchivedToLibrary() async {
 Future<Map<String, Object>?> _bundledWrapperPayload() async {
   await wrapperService.refresh();
   if (!wrapperService.librariesInstalled) return null;
-  await wrapperService.start();
+  await wrapperService.startForDownload();
   return wrapperService.downloadPayload;
 }
 
