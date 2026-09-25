@@ -351,8 +351,23 @@ def _normalise(value: str) -> str:
     return latin or re.sub(r"\s+", "", lowered)
 
 
+# Same as the app's _titleCredits: '(From "Film")', '- From "Film"',
+# '[feat. X]' name where a recording comes from, not a different recording.
+_TITLE_CREDITS = re.compile(
+    r"""\s*[(\[]\s*(?:from\s+["“”'‘’]|feat\.?\s|ft\.?\s|featuring\s)[^)\]]*[)\]]"""
+    r"""|\s+-\s+from\s+["“”'‘’].*$""",
+    re.IGNORECASE,
+)
+
+
+def bare_title(title: str) -> str:
+    """title without soundtrack and featuring credits (bareSongTitle)."""
+    bare = _TITLE_CREDITS.sub("", title).strip()
+    return bare or title
+
+
 def owned_key(artist: str, title: str) -> str:
-    return f"{_normalise(artist)}|{_normalise(title)}"
+    return f"{_normalise(artist)}|{_normalise(bare_title(title))}"
 
 
 # The library as the app saw it when this download started. gamdl only skips

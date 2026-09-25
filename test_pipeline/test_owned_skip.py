@@ -13,6 +13,22 @@ def test_owned_key_keeps_non_latin_titles_apart():
     assert owned_key("Arpit Bala", "तारों से") != "arpitbala|"
 
 
+def test_owned_key_ignores_soundtrack_and_featuring_credits():
+    artist = "Amit Trivedi, Kavita Seth & Amitabh Bhattacharya"
+    film = owned_key(artist, "Iktara")
+    assert owned_key(artist, 'Iktara (From "Wake Up Sid")') == film
+    assert owned_key(artist, "Iktara - From “Wake Up Sid”") == film
+    assert owned_key(artist, "Iktara [feat. Someone]") == film
+    # Must agree with the app's ownedSongKey, which the Dart tests pin.
+    assert film == "amittrivedikavitasethandamitabhbhattacharya|iktara"
+
+
+def test_owned_key_keeps_live_and_remix_versions_apart():
+    studio = owned_key("Shawn Mendes", "Treat You Better")
+    assert owned_key("Shawn Mendes", "Treat You Better (Live From New York)") != studio
+    assert owned_key("Shawn Mendes", "Treat You Better (Ashworth Remix)") != studio
+
+
 def test_payload_carries_owned_keys():
     request = DownloadRequest.from_payload(
         {"url": "u", "cookies_path": "c", "output_dir": "o", "owned": ["a|b"]}
