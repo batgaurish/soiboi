@@ -37,6 +37,9 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
     // the engine check ("Checking..." forever) and every playlist read.
     private val analysis = Executors.newSingleThreadExecutor()
     private val background = Executors.newSingleThreadExecutor()
+    // A stop only sets a flag, but queued behind a playlist read on the
+    // shared thread it could wait seconds to do even that.
+    private val control = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private var events: EventChannel.EventSink? = null
 
@@ -84,6 +87,7 @@ class PipelineChannel(engine: FlutterEngine, private val context: android.conten
         val executor = when (command) {
             "download" -> downloads
             "analyze" -> analysis
+            "cancel" -> control
             else -> background
         }
         executor.execute {

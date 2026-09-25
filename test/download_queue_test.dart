@@ -80,18 +80,21 @@ void main() {
     expect(batch.errors, ['boom']);
   });
 
-  test('a thrown exception is caught rather than stranding the queue', () async {
-    final manager = _manager(
-      archive: (url) async => url == 'a' ? throw StateError('bad') : null,
-    );
+  test(
+    'a thrown exception is caught rather than stranding the queue',
+    () async {
+      final manager = _manager(
+        archive: (url) async => url == 'a' ? throw StateError('bad') : null,
+      );
 
-    final batch = manager.enqueue([_request('a'), _request('b')]);
-    await batch.done;
+      final batch = manager.enqueue([_request('a'), _request('b')]);
+      await batch.done;
 
-    expect(batch.jobs[0].state, DownloadJobState.failed);
-    expect(batch.jobs[0].error, contains('bad'));
-    expect(batch.jobs[1].state, DownloadJobState.done);
-  });
+      expect(batch.jobs[0].state, DownloadJobState.failed);
+      expect(batch.jobs[0].error, contains('bad'));
+      expect(batch.jobs[1].state, DownloadJobState.done);
+    },
+  );
 
   test('retry re-runs a failed job', () async {
     var attempts = 0;
@@ -167,10 +170,7 @@ void main() {
 
   test('the library is synced once per drain, not once per track', () async {
     var syncs = 0;
-    final manager = _manager(
-      archive: (_) async => null,
-      onSync: () => syncs++,
-    );
+    final manager = _manager(archive: (_) async => null, onSync: () => syncs++);
 
     await manager.enqueue([_request('a'), _request('b'), _request('c')]).done;
     // The sync runs after the pump loop ends, which is after the batch
@@ -284,5 +284,73 @@ void main() {
         everyElement(DownloadJobState.cancelled),
       );
     });
+  });
+
+  test('a stop pressed before the downloader starts is sent again', () async {
+    final handover = Completer<void>();
+    final stopped = Completer<void>();
+    var stops = 0;
+    final manager = DownloadQueueManager()
+      ..sync = () async {}
+      ..stopActive = () async {
+        stops++;
+        // Only the stop sent once the pipeline is running takes effect.
+        if (handover.isCompleted && !stopped.isCompleted) stopped.complete();
+      }
+      ..archive =
+          (
+            url, {
+            bool redownload = false,
+            void Function(int, String)? onProgress,
+            void Function(String)? onLog,
+            String? logPath,
+          }) async {
+            await handover.future; // the wrapper is still starting
+            onProgress?.call(8, 'Starting'); // the pipeline clears its flag
+            await stopped.future;
+            return const DownloadFailure('Download stopped', code: 'cancelled');
+          };
+
+    final batch = manager.enqueue([_request('a')]);
+    await pumpEventQueue();
+    manager.cancel(batch.jobs.single);
+    handover.complete();
+    await batch.done;
+
+    expect(stops, 2);
+    final job = batch.jobs.single;
+    expect(job.state, DownloadJobState.cancelled);
+    expect(job.log.any((l) => l.endsWith('Stop requested')), isTrue);
+    expect(job.log.last, endsWith('Stopped'));
+    expect(job.log.any((l) => l.contains('Failed')), isFalse);
+  });
+
+  test('every job gets its own downloader log, kept across a retry', () async {
+    final paths = <String?>[];
+    final manager = DownloadQueueManager()
+      ..sync = () async {}
+      ..stopActive = () async {}
+      ..archive =
+          (
+            url, {
+            bool redownload = false,
+            void Function(int, String)? onProgress,
+            void Function(String)? onLog,
+            String? logPath,
+          }) async {
+            paths.add(logPath);
+            return url == 'a' ? const DownloadFailure('boom') : null;
+          };
+
+    final batch = manager.enqueue([_request('a'), _request('b')]);
+    await batch.done;
+    manager.retry(batch.jobs.first);
+    await pumpEventQueue();
+
+    expect(paths, hasLength(3));
+    expect(paths[0], isNot(paths[1]));
+    expect(paths[2], paths[0]);
+    // Not just the id: ids restart at 0 every launch.
+    expect(paths[0], isNot(endsWith('/0.log')));
   });
 }

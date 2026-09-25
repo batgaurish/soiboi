@@ -35,8 +35,11 @@ try:
     from gamdl.downloader import base as gamdl_base
     from gamdl.downloader import downloader as gamdl_downloader
     from gamdl.downloader.exceptions import GamdlDownloaderMediaFileExistsError
+    from gamdl.interface import interface as gamdl_interface
+    from gamdl.interface.types import AppleMusicMedia
 except ImportError as exc:  # the bundled environment is incomplete
     gamdl_main = CustomOutputWriter = gamdl_base = gamdl_downloader = None
+    gamdl_interface = AppleMusicMedia = None
     _GAMDL_IMPORT_ERROR = str(exc)
 else:
     _GAMDL_IMPORT_ERROR = None
@@ -56,6 +59,11 @@ class DownloadCancelled(BaseException):
     per track: an ordinary exception would skip one track and carry on with
     the rest of the album.
     """
+
+
+def _stop_if_cancelled() -> None:
+    if _cancel_requested.is_set():
+        raise DownloadCancelled()
 
 # Ordered stage markers. The first pattern to appear in a log line wins, so
 # order matters: later stages are checked first to avoid an early keyword
@@ -142,9 +150,9 @@ class _StreamTap(io.TextIOBase):
 
     def write(self, text: str) -> int:
         # gamdl and yt-dlp write here many times a second while working, which
-        # makes this the one place a cancel is noticed promptly.
-        if _cancel_requested.is_set():
-            raise DownloadCancelled()
+        # makes this where a cancel is noticed promptly. Each track checks
+        # too (see _skip_owned_tracks), so a stop never depends on output.
+        _stop_if_cancelled()
         if not text:
             return 0
         self._buffer += text
@@ -354,31 +362,85 @@ _owned: frozenset[str] = frozenset()
 _owned_patched = False
 
 
+def _owned_title(media_metadata: dict | None) -> str | None:
+    """The track's title if the library already has it, else None."""
+    attrs = (media_metadata or {}).get("attributes") or {}
+    name = attrs.get("name")
+    if name and owned_key(attrs.get("artistName") or "", name) in _owned:
+        return name
+    return None
+
+
+def _already_owned(name: str) -> Exception:
+    return GamdlDownloaderMediaFileExistsError(f"{name} (already in your library)")
+
+
 def _skip_owned_tracks() -> None:
     """Make gamdl treat a song the library already has as already downloaded.
 
     Raising gamdl's own "file exists" error keeps its existing handling: a
     warning, not a failure, so the stream tap reports success.
+
+    The check runs as soon as gamdl has the album's or playlist's track list
+    (fetched whole, every page, before the first track), not after it has
+    fetched each track's details: that fetch took 2-3 seconds per song, so a
+    300-song playlist that was mostly owned spent ten minutes skipping before
+    it reached a single new track. The check in _download stays for single
+    song URLs, whose metadata only arrives with the details.
+
+    Both places also check for a stop, so a stop lands between tracks even
+    when gamdl writes nothing.
     """
     global _owned_patched
-    if _owned_patched or gamdl_downloader is None:
+    if _owned_patched or gamdl_downloader is None or gamdl_interface is None:
         return
     cls = gamdl_downloader.AppleMusicDownloader
     original = cls._download
 
     async def _download(self, item):
-        attrs = ((item.media.media_metadata or {}).get("attributes") or {})
-        if (
-            not self.overwrite
-            and attrs.get("name")
-            and owned_key(attrs.get("artistName") or "", attrs["name"]) in _owned
-        ):
-            raise GamdlDownloaderMediaFileExistsError(
-                f"{attrs['name']} (already in your library)"
-            )
+        _stop_if_cancelled()
+        name = None if self.overwrite else _owned_title(item.media.media_metadata)
+        if name:
+            raise _already_owned(name)
         return await original(self, item)
 
+    interface = gamdl_interface.AppleMusicInterface
+    original_song_media = interface._get_song_media
+
+    async def _get_song_media(
+        self,
+        media_id,
+        index=None,
+        total=None,
+        media_metadata=None,
+        playlist_metadata=None,
+        is_library=False,
+    ):
+        _stop_if_cancelled()
+        # _owned is empty when overwriting, so this never skips a redownload.
+        name = _owned_title(media_metadata)
+        if name:
+            # Shaped like gamdl's own failed lookup: not partial, with an
+            # error that its CLI reports as a skip.
+            yield AppleMusicMedia(
+                media_id=media_id,
+                is_library=is_library,
+                index=index,
+                total=total,
+                media_metadata=media_metadata,
+                playlist_metadata=playlist_metadata,
+                partial=False,
+                error=_already_owned(name),
+            )
+            return
+        async for media in original_song_media(
+            self, media_id, index, total, media_metadata, playlist_metadata,
+            is_library,
+        ):
+            yield media
+
     cls._download = _download
+    interface._get_song_media = _get_song_media
     _owned_patched = True
 
 
