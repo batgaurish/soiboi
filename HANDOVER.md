@@ -1,6 +1,9 @@
 # Soiboi — handover
 
-Paste this at the start of a new session.
+Paste this at the start of a new session. It was last rewritten on
+2026-09-25, at the end of the session that built Phases 0 and 1 of the scope
+expansion plan. The sections from "How the lossless wrapper is put together"
+onward are carried over from the previous handover and are still accurate.
 
 ---
 
@@ -8,103 +11,424 @@ Paste this at the start of a new session.
 
 Cross-platform music player (Linux + Android) forked from **Sylvakru**
 (Apache-2.0), with a streaming-to-offline archival pipeline embedded **inside
-the app**. Metadata and the actual archive/decrypt step are Apple Music;
-playlist *discovery* spans platforms (ListenBrainz + YouTube Music).
+the app** (Python, gamdl 3.9, run through Chaquopy on Android and a bundled
+venv on Linux). Metadata and the actual archive/decrypt step are Apple
+Music; playlist *discovery* spans platforms (ListenBrainz, YouTube Music,
+Deezer, Spotify public pages, Tidal, JioSaavn, SoundCloud, Qobuz, Gaana,
+Bandcamp, pasted tracklists).
 
-Repo: `~/Projects/Soiboi - Local Music Player with Download and Lyric Support/soiboi`
-GitHub: `github.com/batgaurish/soiboi` (public; `origin` remote). The
-`upstream` remote points at the original `AfalpHy/sylvakru` fork source —
-**never push there**.
+Repo on the user's machine:
+`~/Projects/Soiboi - Local Music Player with Download and Lyric Support/soiboi`
+GitHub: `github.com/batgaurish/soiboi` (public; `origin`). The `upstream`
+remote points at `AfalpHy/sylvakru` — **never push there**. With `gh`,
+always pass `-R batgaurish/soiboi`.
 
-Standing constraints, already decided, not up for re-litigation:
+Standing product constraints, already decided, not up for re-litigation:
 
 - **Strictly offline.** No streaming services beyond self-hosted, for playback.
 - **Apple album IDs are canonical, not MusicBrainz.**
 - **Standalone on both platforms.** No Docker, no server, no Syncthing.
-  Whatever device downloads a track does the whole job — and keeps the only
-  copy.
+  Whatever device downloads a track does the whole job and keeps the only copy.
 - **Scrobbling out of scope** (recommend Pano Scrobbler).
 - Codec/quality badges stay obvious in every flavour.
-- Three flavours: Zine (default), Liner Notes, Signal. Each owns typefaces,
-  heading case, badge style and a multi-colour palette. Colour sources
-  (matugen / Material You, prebuilt palettes) override the palette.
+- Three flavours: Zine (default), Liner Notes, Signal.
 - Private distribution: the user and friends. Not F-Droid, not Play Store.
-- **No accounts, no OAuth, no client secrets.** Every external source used so
-  far needs only a public URL or a username. Spotify was evaluated and
-  rejected on exactly this ground.
+- **No accounts, no OAuth, no client secrets** for any external source.
+- **Accessibility is a rule from Phase 1 on:** every new widget gets a
+  label, a sane focus order and readable contrast the first time.
 
 ---
 
-## State (2026-09-24, end of session)
+## Branches, versions and releases (read this first)
 
-**Official releases since v1.1.0.** Latest published: **v1.1.2**
-(github.com/batgaurish/soiboi/releases). All older prereleases (v4.x,
-v1.0.x) were converted to **drafts** (hidden, not deleted). The updater
-now ignores prereleases.
+Two lines of work run side by side:
 
-`main` is pushed to `3b202d2` (v1.1.2). **Local, not pushed or released:**
-`e6f5d74` (Home AI recommendations shelf) and `62c9902` (Home pull to
-refresh, live shelves after sync, Recently added opens album, pushDetail
-fix). Next step: ask the user, then push and release **v1.1.3**.
+| Branch | What goes there | Version on it now |
+|---|---|---|
+| `main` | Bug fixes for the stable 1.1.x line only | 1.1.8+19 (release candidate) |
+| `scope-expansion` | Everything from `docs/scope-expansion-plan.md` | 1.2.0-beta.1+20 |
 
-Release recipe: bump `versionNumber` in `lib/base/app.dart` and `version:`
-in `pubspec.yaml`; commit; push (HTTPS gh-token push below if SSH fails);
-`tools/apply_patches.sh`; `flutter build apk --release --target-platform
-android-arm64`; `flutter build linux --release && tools/package_linux.sh
---release`; upload as `soiboi-android-arm64-vX.apk` and
-`soiboi-linux-x64-vX.tar.gz` with `gh release create --latest` (not
-prerelease). Release notes: stop-slop style, no em dashes. Then
-`tools/install_linux.sh` to refresh the user's desktop copy.
+Rules the user set, verbatim or near it:
+
+- Every commit from the plan goes to `scope-expansion`, **never to `main`**.
+  Don't merge, cherry-pick, rebase onto or push plan work to `main`, and
+  don't open a PR into `main` unless asked.
+- `main` only gets stable-line fixes. After such a fix:
+  `git switch scope-expansion && git merge main` (keep the branch's version
+  of any file the plan rewrote, e.g. `keyboard.dart`, `pubspec.yaml`'s
+  version line).
+- **Before every commit, run `git branch --show-current`.**
+- Phases are milestones, not releases. Publish a GitHub release only when
+  the user asks; from the branch it is a pre-release
+  (`--prerelease`, never `--latest`).
+- Don't bump `pubspec.yaml` on the branch unless the user asks for a test
+  build. (They did, for 1.2.0-beta.1.)
+- The user decides when everything goes onto `main` and an official release
+  is cut. **Wait for them to say so.**
+- Never commit the stray `scorecard.png`: `git add -A -- . ':!scorecard.png'`.
+- End every commit message with
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` (plus the
+  session's `Claude-Session:` line if the harness gives one).
+- One plan item per commit. Tick the plan's checkbox only when its
+  "Done when" is fully met, including the phone checks; until then, write a
+  `*Status:*` line under the item saying what was checked and what wasn't.
+- Confirm before anything irreversible or outward-facing: force-pushes,
+  deleting releases or tags, merging into `main`, publishing.
+- Report plainly what was verified and what wasn't.
+- Never `pkill -f <path>` (it has killed the user's session before); use
+  `pkill -x soiboi`. Never read or log cookie values. Never enter the
+  user's Apple ID credentials. **Never regenerate the Android signing key.**
+  **Never run `dart format lib`**: format only files you touched.
+
+### Where things stand right now (2026-09-25)
+
+Published: **v1.1.7** is the latest official release.
+
+The user approved fixing three stable-line bugs on `main`, merging them into
+the branch and cutting two test pre-releases. That is done in git, but the
+last, outward-facing steps were blocked in the cloud session (its permission
+check refused pushing `main` and tags) and could not be done there anyway
+(no Android SDK, no signing key). So:
+
+- `origin/scope-expansion` is at **`94da507`** (Version 1.2.0-beta.1) and
+  contains everything, including the four `main` commits below.
+- `origin/main` is still at `ae99d97` (Release v1.1.7). The four new
+  `main` commits exist on GitHub only as ancestors of `scope-expansion`:
+
+  ```
+  b802a83 Version 1.1.8 (release candidate 1)
+  dd98b2a Report the version the app is built as (1.1.7)
+  035508b Space types in every text field instead of pausing the music
+  aeb5357 Downloads: a missing subscription or all-skipped tracks is a failure
+  ```
+
+- No tags pushed, no releases created, no APKs built.
+
+**The user was given these steps to run on their machine** (check with them
+whether they did before doing anything):
+
+```bash
+git fetch origin
+git push origin b802a83:main               # fast-forward main to the fixes
+git tag -a v1.1.8-rc.1 b802a83 -m "1.1.8 release candidate 1"
+git tag -a v1.2.0-beta.1 94da507 -m "1.2.0 beta 1 (Phases 0-1)"
+git push origin v1.1.8-rc.1 v1.2.0-beta.1
+
+for v in v1.1.8-rc.1 v1.2.0-beta.1; do
+  git switch --detach $v && tools/apply_patches.sh &&
+  flutter build apk --release --target-platform android-arm64 &&
+  cp build/app/outputs/flutter-apk/app-release.apk ~/soiboi-android-arm64-$v.apk
+  git checkout -- .
+done
+
+gh release create v1.1.8-rc.1 ~/soiboi-android-arm64-v1.1.8-rc.1.apk \
+  -R batgaurish/soiboi --prerelease --title "1.1.8 RC 1" --notes "..."
+gh release create v1.2.0-beta.1 ~/soiboi-android-arm64-v1.2.0-beta.1.apk \
+  -R batgaurish/soiboi --prerelease --title "1.2.0 beta 1" --notes "..."
+```
+
+Install order on the phone: RC first (versionCode 19), then the beta (20).
+Going back from the beta to the RC needs an uninstall. Each ~600 MB upload
+takes about 25 minutes; background it.
+
+**What the user will do next:** test both builds, then say whether it is
+time to put everything onto `main` and cut an official release. Don't
+start that on your own. When they say go, the likely shape is: release
+1.1.8 from `main` (tag `v1.1.8`, `--latest`), and separately decide with
+them how and when the branch lands on `main` (the plan says the branch stays
+separate until the final release is debugged, so ask).
+
+Also still waiting on the user: **the log for an Apple Music playlist
+("instant gratification") stuck on "Starting" on Android.** That is a
+stable-line bug for `main` once the log arrives.
+
+### Release recipe (official, from `main`)
+
+Bump `versionNumber` in `lib/base/app.dart` **and** `version:` in
+`pubspec.yaml` (a test, `test/version_test.dart`, now fails if they
+disagree); commit; push; `tools/apply_patches.sh`;
+`flutter build apk --release --target-platform android-arm64`;
+`flutter build linux --release && tools/package_linux.sh --release`; upload
+`soiboi-android-arm64-vX.apk` and `soiboi-linux-x64-vX.tar.gz` with
+`gh release create vX -R batgaurish/soiboi --latest`. Release notes:
+plain style, no em dashes. Then `tools/install_linux.sh` refreshes the
+user's desktop copy.
+
+The update check (`update_service.dart`) ignores prereleases and strips any
+`-suffix` from tags, so `v1.2.0-beta.1` and `v1.1.8-rc.1` never nag
+anyone.
 
 **Android signing:** release key at `~/.config/soiboi/release.jks` +
-`key.properties`, symlinked to `android/key.properties` (gitignored).
-Never regenerate it. Release app id is `com.batgaurish.soiboi`; debug
-builds are `.debug`, a separate app.
+`key.properties`, symlinked to `android/key.properties` (gitignored). Never
+regenerate it. Release app id `com.batgaurish.soiboi`; debug builds are
+`.debug`, a separate app.
 
-Tests: 226 Dart (`flutter test`), 85 Python. Analyzer: only the 6
-pre-existing `RadioGroup` infos. **Never run `dart format lib`**: it
-reformats ~50 unrelated files. Format only files you touched.
+---
 
-### Built this session (all verified on emulator; Linux via Xvfb)
+## The stable fixes made this session (on `main` and merged)
 
-- Flavours Zine / Liner Notes / Signal (`lib/base/theme/flavour.dart`,
-  palettes in `color_source.dart`), bundled OFL fonts in `assets/fonts/`
-  (static instances cut from Google variable fonts; FontWeight does not
-  drive a variable `wght` axis). Old names migrate.
-- Main theme defaults to system light/dark; a saved Vivid main theme is
-  moved once (`mainThemeMigrated`); choosing a colour source leaves Vivid.
-- Android folder picking uses the in-app path browser when All files
-  access is granted (system SAF picker refuses storage root / lists
-  nothing on the user's phone). Recursive add skips hidden folders.
-- Catalog: album search misses some albums; `resolveAppleAlbum` falls back
-  to song search + lookup by id. Library matching ignores " - Single"/" - EP".
-- Player: Art and Lyrics modes show seek bar + controls on tap/scroll.
-- Playlists: New playlist FAB on Playlists page, Add songs FAB on an open
-  playlist (phone and desktop); picking songs from a playlist adds them.
-- AI (BYOK): `lib/base/services/ai_service.dart` (providers Gemini,
-  OpenRouter, Groq, Anthropic `claude-opus-5` with server-side fallback,
-  OpenAI, Ollama, custom; two wire formats), `ai_features.dart` (make
-  playlist, recommend albums, 24h-cached Home shelf), UI in
-  `lib/base/widgets/ai_widgets.dart`: global Ask AI FAB (both root views),
-  Settings > AI provider and key, Home "AI recommendations" shelf.
-  Android manifest allows cleartext (LAN Ollama). Tested only against a
-  fake local server; **no real provider tested yet.** User set up Gemini
-  (`gemini-3.5-flash-lite`) on the phone.
+1. **No subscription / skipped tracks reported as success**
+   (`pipeline/soiboi_pipeline/downloader.py`).
+   - gamdl logs "No active Apple Music subscription found…" at **CRITICAL**,
+     downloads nothing and exits 0. `_ERROR_LINE` only matched `ERROR`; it
+     now matches `CRITICAL` too.
+   - gamdl skips a track it can't fetch with
+     `[WARNING …] [Track i/N] Skipping "<title>": <reason>` and still says
+     "Finished with 0 error(s)". `_StreamTap` now records skips (except
+     "Media file already exists", which also covers the app's own
+     "already in your library" skip) and the track total from
+     `[Track i/N]`. All tracks skipped → `gamdl_reported_error` with the
+     first reason. Some skipped → `done` plus a `warning` event
+     "Skipped k of N tracks: …".
+   - **Known gap:** the Dart side ignores `warning` events on both
+     branches, so a partial skip is only visible in the pipeline log.
+     Worth surfacing in the queue row later.
+   - Tests: 4 new in `test_pipeline/test_downloader.py`.
+2. **Space paused music while typing** (`lib/base/services/keyboard.dart`).
+   Only the app's own search fields set `isTyping`; any plain `TextField`
+   (the Downloads link box) let Space through. The handler now checks
+   whether the focused widget is inside an `EditableText`. Test:
+   `test/space_while_typing_test.dart`.
+3. **Wrong version reported.** `versionNumber` said 1.1.5 while the pubspec
+   said 1.1.7, so the updater offered 1.1.7 to people on 1.1.7. Fixed, and
+   `test/version_test.dart` compares them.
+4. Then `Version 1.1.8 (release candidate 1)`: pubspec 1.1.8+19,
+   `versionNumber` 1.1.8.
 
-### Still open
+On the branch, the error catalog (0.2) already turns every one of these
+messages into a plain title: no_subscription, not_streamable,
+quality_unavailable, needs_wrapper, tool_missing.
 
-1. Push + release v1.1.3 (ask first).
-2. User's phone checks still pending: one-track download analysis only,
-   word-timed `.lrc` + word highlighting, a playlist link from a new
-   source, and the first real AI provider run (Gemini).
-3. The mockups' phone layout (big masthead, filled mini player) was not
-   ported; only flavour type/palette/badges were. Now Playing not checked
-   against mockups.
-4. Deferred desloppify: 108-file import cycle, split `settings_list.dart`
-   and `interaction.dart`, `isNotStreamSource` branching, hard-coded
-   English strings.
-5. Known minor: smart playlist editor TextEditingController; Qobuz 25-track
-   cap; Tidal/SoundCloud page shapes can change.
+---
+
+## Scope expansion: Phases 0 and 1 (built, on `scope-expansion`)
+
+The plan is `docs/scope-expansion-plan.md` (Phases 0–6, each item with a
+size and a "Done when"). Phases 0 and 1 are built. **No box is ticked**,
+because every item's "Done when" includes a phone or TalkBack check that
+could not be done from the cloud container; each item has a `*Status:*`
+line instead. Next is **Phase 2 (2.1 Setup wizard)**, but only once the
+user has tested the beta and says to go on.
+
+Commits, oldest first: `c60e7ef` 0.1, `66cbeda` 0.2, `3aacd4f` 0.3,
+`a7a8689` 1.1, `8fbb3e1` 1.2, `98e187e` 1.3, `9c4d1ee` 1.4, `2e05b3a` 1.5,
+`04e2d07` merge of `main`, `94da507` beta version, then this handover.
+
+### 0.1 Notification service
+- `lib/base/services/notification_service.dart`: `NotificationService`
+  with `show(key, AppNotification)`, `dismiss(key)`, `dismissAll()`,
+  `requestPermission()`, `supported`, `taps` stream; kinds `progress`
+  (ongoing, updated in place), `result`, `update`; optional action buttons.
+  Global `notifications`; on/off via `notificationsEnabledNotifier`
+  (setting `notificationsEnabled`).
+- Linux backend: D-Bus `org.freedesktop.Notifications` through the `dbus`
+  package (added to pubspec). Updates reuse `replaces_id`; hints
+  `desktop-entry: soiboi`, category, urgency, `value` for progress; body
+  markup escaped. Clicking a notification raises the window
+  (`_raiseWindowOnNotificationClick` in `main.dart`).
+- Android backend: MethodChannel `com.batgaurish.soiboi/notifications` →
+  `android/app/src/main/kotlin/com/batgaurish/soiboi/NotificationBridge.kt`
+  (framework APIs only, no androidx), channels `download_progress`,
+  `download_results`, `updates`; action buttons through a
+  BroadcastReceiver; small icon `res/drawable/ic_stat_soiboi.xml`;
+  `POST_NOTIFICATIONS` in the manifest, asked for through permission_handler.
+  Notification ids are FNV-1a of the key, mapped into 0x10000..0x7fffffff.
+- Settings > Notifications: switch plus "Send a test".
+- Verified: 10 tests (one against a real in-process D-Bus server), and end
+  to end on Linux with dunst + dbus-monitor. **Android only type-checked**
+  (kotlinc against android-all-14), never run.
+- Not yet wired to the download queue as the plan's later items expect;
+  that is part of later phases.
+
+### 0.2 Error catalog
+- `lib/base/services/error_catalog.dart`: 25 ordered entries matched on
+  pipeline error codes and gamdl 3.9 messages; each has id, title, detail,
+  a `FailureFix` (signIn, retry, skip, openLog, chooseFolder,
+  setUpWrapper, changeQuality, update) and whether it is temporary.
+  `explainFailure(message, {code})`, `describeFailure`, `catalogIds`.
+- `archive_service.dart` returns `DownloadFailure(message, code)`;
+  `DownloadJob` keeps `errorCode`; the log gets a "Catalog: id (title)"
+  line. Used by the queue sheet rows, the Downloads failure banner, the
+  Apple playlists error and `catalog_sheet.dart`.
+
+### 0.3 Motion and contrast helpers
+- `lib/base/theme/motion.dart`: `MotionPreference {system, reduced, full}`
+  (setting `motion`), `reduceMotionNotifier` / `reduceMotion`,
+  `watchSystemMotionSetting()` (follows
+  `accessibilityFeatures.disableAnimations`), `motionDuration(d)`,
+  `reducedMotionTransition`, `ScrollController.glideTo`,
+  `PageController.glideToPage` (jump when reduced).
+- `lib/base/utils/contrast.dart`: `kTextContrast` 4.5, `kLargeContrast` 3,
+  `contrastRatio`, `ensureContrast` (nudges HSL lightness only, smallest
+  move), `readableOr`, `ensureContrastOnAll`. Re-exported by
+  `color_manager.dart`.
+
+### 1.1 Screen reader labels
+- Helpers: `lib/base/utils/semantics_labels.dart` (`durationLabel`,
+  `songLabel`, `percentLabel`, `nameWithValue`),
+  `lib/base/widgets/icon_label.dart` (`labelIcon`),
+  `lib/base/widgets/song_semantics.dart` (`SongSemantics` for custom rows,
+  `SongSemantics.title` for a ListTile's title slot).
+- Tooltips on every icon-only button (~115 sites wrapped in `labelIcon`),
+  seek bar and volume as labelled sliders, `MySwitch.semanticLabel`,
+  grid tiles and song rows as single items that play when activated.
+- **Engine facts learned (Flutter 3.47, checked in the engine source):**
+  the Linux ATK bridge uses only the semantics `label` as the accessible
+  name. It ignores `tooltip` and `value`. That is why `labelIcon` adds a
+  label on Linux only, and why `nameWithValue` folds a slider's value into
+  its name on Linux. Android maps `tooltip` to the content description, so
+  tooltips alone are enough there.
+- Verified with AT-SPI on the Linux build: unnamed controls went from 18
+  to 0 on Main, Songs, Albums and Downloads; activating a song row through
+  AT-SPI plays it. **TalkBack not checked.**
+
+### 1.2 Text scaling
+- `lib/base/utils/media_query.dart`: `textGrowth(context)`,
+  `scaledExtent(context, base, {textShare})`. Fixed item extents, sheet
+  heights, seek bar, bottom bar, title boxes and the sidebar width grow
+  with the text; scroll-to-index maths use the scaled extent.
+- Verified: no overflow at 200% in the phone layout at 360×780 and in the
+  desktop layout (debug build on Linux). **Not checked on a phone.**
+
+### 1.3 Readable palettes
+- `color_manager.dart`: `_keepMainPageReadable()` and
+  `_keepLyricsPageReadable()` nudge text, highlight and icon colours onto
+  every surface they sit on (page or vivid composite, panel, sidebar,
+  bottom bar, menu, selected row); surfaces give way when ink can't.
+- `contrast_color_generator.dart`: light-or-dark now picks whichever of
+  white and black reads better (a grey cover used to get pale grey lyrics
+  at ~2:1), then `ensureContrast`.
+- `test/readable_palettes_test.dart`: every cover colour on a 32³ grid,
+  every flavour and prebuilt palette light and dark, Material You for 16
+  seeds × 3 variants, vivid on a 12³ grid.
+- **Needs the user:** a test on 50 of their real covers is skipped until
+  they run `.pipeline-venv/bin/python tools/cover_colors.py ~/Music`,
+  which writes `test/fixtures/cover_colors.json` (average colours only,
+  no titles or file names).
+
+### 1.4 Reduce motion
+- Settings > Reduce motion: follow the system / reduce / full. Routes fade
+  in 150 ms instead of sliding or zooming, `HeroMode` off, `MarqueeText`
+  (`lib/base/widgets/marquee_text.dart`) replaces TextScroll and stops
+  scrolling, lyrics jump, the Rive now-playing icon holds still, Home skips
+  its stagger, `animateTo` → `glideTo` in 16 files.
+
+### 1.5 Keyboard navigation and shortcuts
+- `lib/base/services/keyboard.dart` (rewritten): one
+  `HardwareKeyboard` handler (`keyboardInit()`, idempotent, registered on
+  every platform except TV).
+  - Space play/pause · ←/→ seek 5 s · Shift+←/→ previous/next ·
+    ↑/↓ volume ±5% · Ctrl+F or `/` search (and focuses the box, via
+    `focusSearchNotifier` in `global_search_layer.dart`) · Ctrl+L lyrics ·
+    Ctrl+D Downloads · Esc closes lyrics / leaves full screen · F11 full
+    screen lyrics · `?` (matched by character) shows `shortcutList`.
+  - Guards: `_typing` (any `EditableText`), `_onControl` (focused widget
+    handles `ActivateIntent`, so Space presses it), `_inPopup` (a
+    `PopupRoute` **or any route with `barrierDismissible`**, which covers the
+    `PageRouteBuilder` context menus), `_onSlider`, TV and Big Picture.
+    Ctrl+F works even in a text field; Ctrl+L/Ctrl+D and `/` don't.
+- `lib/base/widgets/focus_ring.dart`: `focusRingColor()` (accent nudged to
+  3:1 on the page) and `FocusRing` (FocusableActionDetector + a 2 px ring
+  painted outside the child, no layout change). Themed Icon/Text/Elevated/
+  Filled/Outlined buttons get the same ring via `side` (`_focusOutline()`
+  in `main.dart`); the theme `focusColor` is the accent at alpha 90.
+- `SongSemantics` rows: Enter plays, Space plays/pauses (plays the row if
+  nothing is queued), Menu or Shift+F10 opens the options, only when the
+  row itself has focus (a button inside it keeps its keys).
+- Tab order: `landscape_view.dart` wraps sidebar (1), page (2) and player
+  bar (3) in ordered `FocusTraversalGroup`s, and each page in its own group
+  so the floating Ask AI button comes after the page.
+- Fixed along the way: `showAnimationDialog` routes were not dismissible,
+  so **Esc never closed a dialog**; `MySwitch` was two Tab stops (its
+  `ScaleWidget` InkWell) and Tab looped between them; the hidden Back
+  button in `TitleBar` took a stop; cards in Search and Downloads were
+  coloured `Container`s that hid the rows' focus ink (now `Material`).
+- Verified on the Linux build with xdotool + AT-SPI: full Tab order of
+  Downloads and Settings, Search, Songs (Enter plays, Menu, arrows in the
+  menu, Esc), lyrics, dialogs, Space/arrows/volume/next. Tests:
+  `test/keyboard_test.dart` (9).
+- **Not checked:** Big Picture, album/artist/playlist pages, a non-empty
+  download queue, F11, Android with a keyboard.
+- Small leftovers seen: the Settings page header ("Settings, 13 in total")
+  is a focusable panel with no button role; choosing a page in the sidebar
+  leaves focus in the sidebar; the seek bar isn't a Tab stop (←/→ cover it).
+
+---
+
+## Tests and checks (state at `94da507`)
+
+- Dart: `flutter test --exclude-tags integration` → **304 pass, 1 skipped**
+  (the real-covers fixture). On `main`: 216 pass.
+  `test/apple_catalog_test.dart` is tagged `integration` and calls Apple's
+  live API; it fails in the cloud container (no route) and passes where
+  there is internet.
+- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → 97 pass,
+  **1 fails on both branches already**:
+  `test_acoustic.py::test_analyze_directory_skips_existing_sidecars`
+  (`total` 0 vs 1). It predates this session; not investigated.
+- `flutter analyze`: only the 6 `RadioGroup` deprecation infos in
+  `settings_list.dart` (one pre-existing site, and the Reduce motion dialog
+  added in 1.4 copied that pattern). Migrating to `RadioGroup` is a cheap
+  cleanup.
+
+---
+
+## Working in the Claude Code cloud container
+
+Useful if the next session is also a cloud session (it was this time):
+
+- Flutter at `/opt/flutter-sdk/flutter/bin` (not on PATH by default), runs
+  as root (harmless warning). `.pipeline-venv` exists in the repo checkout.
+- **No Android SDK, and `dl.google.com` is unreachable**, so no APK, no
+  Gradle build. `maven.google.com` answers; Maven Central rate-limits
+  (429). Kotlin was type-checked with a standalone kotlinc against
+  robolectric's android-all-14 jar plus the Flutter embedding jar.
+- **Pushing `main` or tags may be refused** by the session's permission
+  check even with the user's go-ahead. Pushing `scope-expansion` works.
+  Don't try to get around a refusal; hand the commands to the user.
+- **Linux build that runs headless** (done in a throwaway copy, never in the
+  repo): rsync the repo to a scratch dir, then in the copy
+  1. add `dependency_overrides` for `flutter_inappwebview_linux` → the
+     stub in `tools/cloud_build/wpe-stub` (no WPE WebKit available), and
+     `rive_native` → a copy of the pub-cache package with an empty
+     `linux/rive_marker_linux_development` file and no prebuilt libs;
+  2. `set(MIMALLOC_USE_STATIC_LIBS OFF …)` before `project(` in
+     `linux/CMakeLists.txt` (codeload.github.com is blocked, media_kit
+     can't fetch mimalloc);
+  3. append `target_link_options(${BINARY_NAME} PRIVATE
+     -Wl,--allow-shlib-undefined)`;
+  4. `tools/apply_patches.sh`, `flutter build linux --release`.
+  Also needed once: `mkdir -p /dev/input` (gamepads plugin) and the
+  `xdg-user-dirs` package (path_provider). That build is for testing
+  only; Rive animations and the webview don't work in it. **Never ship it.**
+- Running it: Xvfb `:99` (1400×900), its own `dbus-daemon --session`,
+  `dunst` for notifications, `DISPLAY=:99 GDK_BACKEND=x11`, separate
+  `XDG_DATA_HOME`/`XDG_CONFIG_HOME` so the real profile is untouched,
+  PulseAudio null sink for playback. Drive it with `xdotool`, screenshot
+  with ImageMagick `import -window root`.
+- Accessibility checks: `tools/a11y/dump.py` (whole tree as Orca sees it),
+  `tools/a11y/focused.py` (deepest focused node; loop it after each Tab to
+  record focus order), `tools/a11y/do.py NAME [ACTION]` (activate a node).
+  Run them with **`/usr/bin/python3.12`** (the default `python3` is 3.11
+  and can't import `gi`). Don't query a node after the walk: that can time
+  out and has crashed GTK once.
+- To see *which widget* holds focus, temporarily add a
+  `FocusManager.instance.addListener` in the scratch copy's `main.dart`
+  that appends the focused context's ancestor widget types to a file.
+
+---
+
+## Plan items after Phase 1 (not started)
+
+Phase 2 starts with **2.1 Setup wizard** (first launch and from Settings:
+music folders → Apple Music sign-in, wrapper or cookies → quality and
+folder → optional ListenBrainz → done; every step skippable; reuse
+`lossless_setup.dart` and the Apple sign-in layer). Read the plan for the
+rest of Phase 2 and Phases 3–6. Phase 0's services (notifications, error
+catalog, motion/contrast) are meant to be used by those later items, and
+the accessibility rules above apply to everything new.
+
+---
 
 ### How the lossless wrapper is put together (read before touching it)
 
