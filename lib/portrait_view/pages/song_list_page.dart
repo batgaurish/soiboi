@@ -100,9 +100,16 @@ extension _SongListPage on _SongListState {
   Widget moreSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    // Pin and cover actions live here too, not only behind a long-press on
+    // the Playlists tab, which nobody finds on a phone.
+    final playlistItems = playlist == null
+        ? const <MenuItem>[]
+        : playlistOptionItems(playlist!);
+
     return MySheet(
-      height: 300,
-      Column(
+      height: 300 + playlistItems.length * 48,
+      ListView(
+        padding: EdgeInsets.zero,
         children: [
           ListTile(
             title: Row(
@@ -257,6 +264,19 @@ extension _SongListPage on _SongListState {
               },
             ),
 
+          for (final item in playlistItems)
+            ListTile(
+              leading: Icon(item.iconData),
+              title: Text(
+                item.text!,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+              onTap: () {
+                Navigator.pop(context);
+                item.callback?.call();
+              },
+            ),
           if (playlist != null && playlist!.isNotFavorite)
             ListTile(
               leading: AppIcon(deleteImage),
