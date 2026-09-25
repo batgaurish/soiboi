@@ -3,9 +3,12 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/logger.dart';
+import 'package:soiboi/base/utils/path.dart';
 
 class BookmarkService {
-  static const _channel = MethodChannel('com.batgaurish.soiboi.bookmark_manager');
+  static const _channel = MethodChannel(
+    'com.batgaurish.soiboi.bookmark_manager',
+  );
   static const _fileName = 'directory_inventory.txt';
 
   static late File file;
@@ -19,8 +22,7 @@ class BookmarkService {
       return;
     }
 
-    final content = await file.readAsString();
-    _inventory = jsonDecode(content) as Map<String, dynamic>;
+    _inventory = await readJsonMapFile(file);
   }
 
   // Saves a new directory bookmark associated with a specific ID

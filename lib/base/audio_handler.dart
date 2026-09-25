@@ -233,9 +233,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
   Future<void> _loadPlayQueueState() async {
     if (isNotStreamSource) {
-      final content = await _playQueueState!.readAsString();
-
-      final json = jsonDecode(content) as Map<String, dynamic>;
+      final json = await readJsonMapFile(_playQueueState!);
 
       _playQueueTmp.addAll(_restoreQueue(json['playQueueTmp']));
       playQueue.addAll(_restoreQueue(json['playQueue']));
@@ -296,9 +294,7 @@ class MyAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _loadPlayState() async {
-    final content = await _playState.readAsString();
-    final Map<String, dynamic> json =
-        jsonDecode(content) as Map<String, dynamic>;
+    final Map<String, dynamic> json = await readJsonMapFile(_playState);
 
     currentIndex = json['currentIndex'] as int? ?? -1;
     playModeNotifier.value = json['playMode'] as int? ?? 0;
@@ -326,8 +322,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (!isPremiumNotifier.value) {
       return;
     }
-    final content = await _equalizerState.readAsString();
-    gains = (jsonDecode(content) as List<dynamic>).cast();
+    gains = (await readJsonListFile(_equalizerState)).cast();
     await applyEqualizer();
   }
 
@@ -335,7 +330,7 @@ class MyAudioHandler extends BaseAudioHandler {
     _equalizerState.writeAsStringSync(jsonEncode(gains));
   }
 
-  void saveAllStates() async {
+  Future<void> saveAllStates() async {
     await audioHandler._savePlayQueueState();
     audioHandler.savePlayState();
   }
@@ -368,7 +363,7 @@ class MyAudioHandler extends BaseAudioHandler {
     return true;
   }
 
-  void singlePlay(MyAudioMetadata song) async {
+  Future<void> singlePlay(MyAudioMetadata song) async {
     if (insert2Next(song)) {
       await skipToNext();
     }
@@ -417,7 +412,7 @@ class MyAudioHandler extends BaseAudioHandler {
     currentIndex = 0;
   }
 
-  void changePlayMode(int newPlayMode) async {
+  Future<void> changePlayMode(int newPlayMode) async {
     if (newPlayMode == playModeNotifier.value) {
       return;
     }

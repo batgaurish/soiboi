@@ -33,7 +33,7 @@ import 'package:screen_corner_radius/screen_corner_radius.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
-import 'base/audio_handler.dart';
+import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';

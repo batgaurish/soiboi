@@ -95,8 +95,8 @@ class MyWindowListener extends WindowListener {
   }
 
   void loadConfig() {
-    final String content = windowConfigFile.readAsStringSync();
-    fromJson(jsonDecode(content));
+    final map = readJsonMapFileSync(windowConfigFile);
+    fromJson(map);
   }
 
   @override

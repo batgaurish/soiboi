@@ -124,9 +124,7 @@ class Folder {
         }
       }
     } else {
-      await for (final file in _dir!.list(
-        recursive: scanRecursively,
-      )) {
+      await for (final file in _dir!.list(recursive: scanRecursively)) {
         if (file is File) {
           final ext = extension(file.path).toLowerCase();
 
@@ -146,11 +144,12 @@ class Folder {
   }
 
   Future<void> load() async {
-    final List<dynamic> songIdList = jsonDecode(
-      await _songIdListFile.readAsString(),
-    );
+    final List<dynamic> songIdList = await readJsonListFile(_songIdListFile);
     for (final id in songIdList) {
-      songList.add(library.id2Song[id]!);
+      final song = library.id2Song[id];
+      if (song != null) {
+        songList.add(song);
+      }
     }
 
     canModify = true;
