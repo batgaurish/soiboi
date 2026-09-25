@@ -173,6 +173,19 @@ shortcuts, and every palette comes from album art with no contrast check.
   Downloads, not only when something is missing.
   *Done when:* every "why can't I download" case the app can detect shows up
   there with its fix.
+  *Status:* built. `download_status.dart` turns the app's state into five
+  checks (Apple account: which sign-in, cookie expiry, expiring within a
+  week; lossless wrapper, only a problem when ALAC or the only sign-in needs
+  it; download engine; download folder: unwritable choice, free space from a
+  new pipeline `disk_usage` command; network: does music.apple.com answer),
+  each problem with one fix (Sign in, Set up, Start, Choose folder, Check
+  again). `DownloadStatusPanel` replaces "Before you can archive" on
+  Downloads: always shown, folded to "Ready to archive" until something is
+  wrong. Checked: 19 unit tests over every case, pipeline tests for
+  `disk_usage`; on the emulator the real values (lossless sign-in, 7.3 GB
+  free) and airplane mode turning Network into a problem and back. Not
+  checked: low disk space and an expired cookie session on a device (unit
+  tests only), TalkBack.
 - [ ] **2.3 Plain-language errors** (M). Wire the 0.2 catalog into queue
   rows, the failure banner and toasts, and let the fix buttons act directly
   (sign in, retry, open the log).

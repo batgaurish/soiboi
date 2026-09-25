@@ -17,7 +17,6 @@ import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart';
 import 'package:soiboi/base/services/linked_playlists.dart';
-import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/services/discovery_service.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/error_catalog.dart';
@@ -31,6 +30,7 @@ import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/layer/apple_signin_layer.dart';
+import 'package:soiboi/base/widgets/download_status_panel.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/apple_library_service.dart';
@@ -131,7 +131,12 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
         },
         child: CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(child: _readinessCard()),
+            SliverToBoxAdapter(
+              child: _card(
+                title: 'Download status',
+                child: const DownloadStatusPanel(),
+              ),
+            ),
             SliverToBoxAdapter(child: _archiveCard()),
             SliverToBoxAdapter(child: _queueCard()),
             SliverToBoxAdapter(child: _applePlaylistsCard()),
@@ -212,89 +217,6 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           ),
         ),
       ),
-    );
-  }
-
-  /// The two prerequisites, reported separately.
-  ///
-  /// Collapsing these into one "not ready" message would hide which of the two
-  /// is actually wrong, and they have completely different fixes.
-  Widget _readinessCard() {
-    final caps = pipelineCapabilitiesNotifier.value;
-    final signedIn = hasAppleAuth;
-    final runtimeOk = caps?.canDownload ?? false;
-    if (signedIn && runtimeOk) return const SizedBox.shrink();
-
-    return _card(
-      title: 'Before you can archive',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _requirement(
-            ok: signedIn,
-            label: 'Apple Music account',
-            detail: wrapperService.signedIn.value
-                ? 'Signed in through the lossless wrapper'
-                : signedIn
-                ? 'Signed in'
-                : 'Sign in to download',
-            action: signedIn
-                ? null
-                : () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const AppleSignInLayer(),
-                      ),
-                    );
-                    await refreshSessionState();
-                  },
-          ),
-          const SizedBox(height: 10),
-          _requirement(
-            ok: runtimeOk,
-            label: 'Download engine',
-            detail: caps?.summary ?? 'Checking…',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _requirement({
-    required bool ok,
-    required String label,
-    required String detail,
-    VoidCallback? action,
-  }) {
-    return Row(
-      children: [
-        Icon(
-          ok ? Icons.check_circle_outline : Icons.radio_button_unchecked,
-          size: 18,
-          color: ok ? seekBarColor.value : textColor.value,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  color: highlightTextColor.value,
-                ),
-              ),
-              Text(
-                detail,
-                style: TextStyle(fontSize: 11.5, color: textColor.value),
-              ),
-            ],
-          ),
-        ),
-        if (action != null)
-          TextButton(onPressed: action, child: const Text('Sign in')),
-      ],
     );
   }
 

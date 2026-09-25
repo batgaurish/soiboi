@@ -12,11 +12,12 @@ built for the wrong architecture.
 import importlib
 import os
 import platform
+import shutil
 import sys
 from importlib import metadata
 
 from . import acoustic
-from .protocol import Emit, Event, JsonValue, Payload, done
+from .protocol import Emit, Event, JsonValue, Payload, done, error, missing_fields
 
 # Pure-Python pieces gamdl needs. Absence of any of these means the bundled
 # environment is incomplete rather than the device being unsupported.
@@ -104,3 +105,22 @@ def capabilities() -> Event:
 
 def handle_capabilities(_payload: Payload, _emit: Emit) -> Event:
     return done(**capabilities())
+
+
+def handle_disk_usage(payload: Payload, _emit: Emit) -> Event:
+    """Free and total bytes on the disk holding payload["path"].
+
+    For the app's status panel. Python answers this the same way on Linux and
+    Android, where Dart itself has no call for it. The folder may not exist
+    yet (downloads create it), so the nearest existing parent is measured.
+    """
+    if problem := missing_fields(payload, "path"):
+        return problem
+    probe = os.path.abspath(str(payload["path"]))
+    while not os.path.exists(probe) and os.path.dirname(probe) != probe:
+        probe = os.path.dirname(probe)
+    try:
+        usage = shutil.disk_usage(probe)
+    except OSError as exc:
+        return error("disk_usage_failed", str(exc))
+    return done(free=usage.free, total=usage.total, path=probe)

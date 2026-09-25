@@ -330,42 +330,7 @@ class _SettingsListState extends State<SettingsList> {
         ),
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () async {
-        await showAnimationDialog(
-          context: context,
-          child: SizedBox(
-            width: 380,
-            height: 420,
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Download folder',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Where archived music is saved. Choosing a folder you '
-                    'already scan keeps downloads and library together.',
-                    style: TextStyle(fontSize: 11, color: textColor.value),
-                  ),
-                  const SizedBox(height: 12),
-                  const Expanded(child: DownloadFolderPicker()),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Done'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      onTap: () => showDownloadFolderDialog(context),
     );
   }
 
