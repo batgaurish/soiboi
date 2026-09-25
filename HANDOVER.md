@@ -1,24 +1,23 @@
 # Soiboi — handover
 
 Paste this at the start of a new session. Last updated on 2026-09-25, at
-the end of the session that executed **Desloppify pass 2** on `scope-expansion`.
-Beta 3 carries the download-engine fixes, delete from device, Songs page
-sort/filter/select, and background downloads (plan 3.1). Desloppify pass 2
-raised Dart strict health from 51.0 to 73.2/100, cleared all flutter analyze
-issues (down to 0), and cleaned JSON state loading, stream client error
-propagation, RadioGroup migrations, and source-type getters without behavioral
-regressions. Phases 0 and 1 are built; Phase 2 (First run and setup) is next on
-the roadmap. The sections from "How the lossless wrapper is put together" onward
-are carried over from older handovers and are still accurate.
+the end of the session that built **Phase 2 (First run and setup)** on
+`scope-expansion` and fixed three bugs the user found on beta.3 (duplicate
+film songs, compilation albums chosen over soundtracks, stale covers), plus
+one found while testing (the wrapper forgot its sign-in after going
+offline). Phases 0, 1 and 2 are built; Phase 3 is next on the roadmap (3.1
+is already built). The sections from "How the lossless wrapper is put
+together" onward are carried over from older handovers and are still
+accurate.
 
-> **Start here:** Desloppify pass 2 is completed and merged into
-> `scope-expansion`. The next concrete task is **Phase 2 (First run and setup)**,
-> beginning with **2.1 Setup wizard**. All checks (flutter analyze clean with 0
-> issues, 321 Dart tests, 102 pytest tests, Android apk compilation, Linux
-> bundle packaging with "can_download": true, and Xvfb 25s smoke test) pass.
-> One open question for the user remains: whether the download-engine fixes
-> should be ported to `main` for 1.1.8; rc.2 has the bug.
-> Details under "Where things stand right now" and "Next task: Phase 2".
+> **Start here:** read "Built this session (Phase 2 and beta.3 bugs)" and
+> the new traps (the emulator is now signed in to the wrapper; Linux test
+> builds need real isolation from the user's desktop). All checks pass at
+> `fec99ff`: flutter analyze 0 issues, 361 Dart tests (1 skipped), 113
+> pytest. No release was made. Open questions for the user: whether the
+> download-engine fixes go to `main` for 1.1.8 (rc.2 has the bug), and a
+> pending chip to trace why an Apple *library* playlist track got the
+> playlist's cover ("In Your Feels" on Treat You Better).
 
 ---
 
@@ -114,7 +113,7 @@ needs an uninstall. Local copies of every asset are in
 `~/soiboi-test-builds/`.
 
 - `origin/main` is at **`66ab86a`** (rc.2 = rc.1 + the pin/cover fix).
-- `origin/scope-expansion` is at `1d612cb` (Version 1.2.0-beta.3 + Desloppify pass 2).
+- `origin/scope-expansion` is at `fec99ff` (beta.3 + Desloppify pass 2 + Phase 2 and the beta.3 bug fixes; no new test build).
 - `origin/desloppify/pass-2` is at `1cb092d` (fast-forward merged into scope-expansion).
 - `versionNumber` on the branch stays `1.2.0`; `test/version_test.dart`
   compares only the numeric part of the pubspec version.
@@ -509,23 +508,21 @@ Commits, oldest first: `c60e7ef` 0.1, `66cbeda` 0.2, `3aacd4f` 0.3,
 
 ---
 
-## Tests and checks (state at `f6823bd`)
+## Tests and checks (state at `fec99ff`)
 
-- Dart: `flutter test --exclude-tags integration` → **321 pass, 1 skipped**
+- Dart: `flutter test --exclude-tags integration` → **361 pass, 1 skipped**
   (the real-covers fixture). On `main`: 216 pass.
   `test/apple_catalog_test.dart` is tagged `integration` and calls Apple's
   live API; it fails in the cloud container (no route) and passes where
   there is internet.
-- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → **102
+- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → **113
   pass** on the branch. The `test_acoustic.py` failure noted before did not
   reproduce on the user's machine; not investigated further. The dev venv's
   gamdl is **3.8.5**, as are the Android wheels in `android/pip-repo` (the
   phone log says "Starting Gamdl 3.8.5"); the packaged Linux runtime venv
   got 3.9.1. The owned-track patches were written against 3.8.5.
-- `flutter analyze`: only the 6 `RadioGroup` deprecation infos in
-  `settings_list.dart` (one pre-existing site, and the Reduce motion dialog
-  added in 1.4 copied that pattern). Migrating to `RadioGroup` is a cheap
-  cleanup.
+- `flutter analyze`: 0 issues (the `RadioGroup` migration was done in
+  desloppify pass 2).
 
 ---
 
@@ -574,56 +571,68 @@ Useful if the next session is also a cloud session (it was this time):
 
 ---
 
-## Next Task: Phase 2 — First run and setup (v1.3.0)
+## Built this session (Phase 2 and beta.3 bugs)
 
-Phase 2 builds directly on Phase 0's foundational services (`error_catalog.dart`,
-`notification_service.dart`, `motion.dart`, `contrast.dart`) and Phase 1's
-accessibility rules (every new widget gets semantics labels, focus rings, and
-readable contrast from the start).
+Commits on `scope-expansion`, oldest first, all pushed:
 
-### 2.1 Setup wizard (Size: L)
-- **Goal:** Shown on very first launch (when `isFirstRun` or music folders
-  unconfigured), and re-openable from Settings > "Setup wizard".
-- **Flow (5 steps, all individually skippable):**
-  1. **Music folders:** pick local music directory (`manage_music_folders.dart` logic).
-  2. **Apple Music sign-in:** compare lossless wrapper vs. cookies.txt (reuse
-     `apple_signin_layer.dart` WebView for Android, cookie import for Linux).
-  3. **Download options:** choose quality (ALAC vs. AAC) and download target folder
-     (`settings_list.dart` dialog logic).
-  4. **ListenBrainz (optional):** input username for personalized recommendation shelves.
-  5. **Completion / Summary:** overview of configuration, "Start listening".
-- **Reuse existing widgets:** Do NOT write duplicate sign-in or wrapper setup logic.
-  Reuse `lossless_setup.dart`, `apple_signin_layer.dart`, and folder management.
-- **Done when:** A fresh install reaches its first finished download without
-  ever opening the main Settings screen.
+| Commit | What |
+|---|---|
+| `7fcb7b7` | Same-song key ignores `(From "Film")`, `- From "Film"`, `(feat. X)`; Dart `ownedSongKey`/`bareSongTitle` and Python `owned_key`/`bare_title` agree (a test pins the exact key on both sides). Live/remix tags still make a different song. |
+| `34c27ee` | `pickOriginalRelease` in `apple_catalog_service.dart`: other-source matching (search takes 25 hits, ISRC takes every track row) prefers not-compilation, no "(From" credit, album over single/EP, plain over deluxe/anniversary. |
+| `ccddef8` | Pipeline: for **Apple playlist** tracks (not album/song links, not library tracks) `original_release()` swaps a compilation copy for the same recording on its own album (ISRC via `songs?filter[isrc]`, then catalog search checked on title, artist, ±2 s). One line in the job log per swap. Checked against the live catalog. |
+| `73b0678` | Cover cache: a file re-read by a sync drops its cached picture (`files/local/pictures/md5(path)`), resets the load scheduler's id (it returned the old completed load) and the old song's picture, clears the image cache once. |
+| `3b6102a` | **2.1 Setup wizard** (`lib/layer/setup_wizard.dart`). |
+| `db25f34` | **2.2 Status panel** (`download_status.dart`, `download_status_panel.dart`, pipeline `disk_usage`). |
+| `463cf51` | Wrapper keeps its sign-in marker when it starts offline; catalog `sign_in_unconfirmed`. |
+| `fec99ff` | **2.3** Fix buttons that act (`lib/layer/failure_fix.dart`). |
 
-### 2.2 Status panel (Size: M)
-- **Goal:** Transform the "Before you can archive" card on the Downloads screen
-  into an always-accessible diagnostic status hub.
-- **Diagnostics checked:**
-  - Apple Music session status (signed in, cookie expiry date, account type).
-  - Lossless wrapper status (service active, port listening, 18 Apple libs extracted).
-  - Python pipeline readiness (gamdl 3.8.5/3.9, yt-dlp, native muxer present).
-  - Target download directory storage (free disk space, writable permissions).
-  - Network connectivity (online status).
-- **Fix actions:** Single direct fix button on each row (e.g. "Sign In", "Start Wrapper", "Select Folder").
-- **Done when:** Every "why can't I download" case the app can detect is diagnosed with a 1-tap fix.
+### 2.1 Setup wizard
+- Five steps, each skippable: music (source picker on first run only, then
+  `ManageMusicFolders(inline: true, onChanged:)`), Apple sign-in (lossless
+  vs browser, side by side; embeds `LosslessSetup`, pushes
+  `AppleSignInLayer`), download options (`DownloadQualityPicker`,
+  `DownloadFolderPicker` from the new `download_options.dart`, shared with
+  Settings), ListenBrainz (`ListenBrainzForm`, shared with Settings),
+  summary with a Change per row. Ends in "Start listening" or "Find music to
+  download" (opens Downloads).
+- Replaces `firstLaunchView` in `view_entry.dart`. Also shown at launch when
+  a local library has no folders and `setupWizardDone` (new setting) is
+  false (`needsSetupNotifier`, set in `main.dart` after `Loader.load`).
+  Settings > Setup wizard (first tile) pushes it as a route.
+- Accessibility: a persistent 1 px live region announces "Step n of 5:
+  title"; the progress bar keeps a numeric value (a text value asserts);
+  the header scrolls with the step so 200% text fits a phone.
+- `test/setup_wizard_test.dart`: skipping through, labelled tap targets and
+  text contrast on every step, announcements, Back, 200% text.
+- Not checked: a literally fresh Android install end to end (clearing the
+  emulator app would lose the wrapper sign-in), TalkBack.
 
-### 2.3 Plain-language errors (Size: M)
-- **Goal:** Wire `error_catalog.dart` (the 25 categorized failure modes from Phase 0.2)
-  into download queue rows, failure banners, and error toasts.
-- **Fix actions:** Surface actionable fix buttons directly in the UI (Sign in again,
-  Retry track, Open job log) instead of raw stack traces.
-- **Done when:** Common failures in real download logs map to catalog titles and explanations.
+### 2.2 Status panel
+- `buildStatusChecks(StatusInputs)` is pure (19+ tests): account (which
+  sign-in, cookie expiry, warning within 7 days), wrapper (a problem only
+  when ALAC or the only sign-in needs it; unconfirmed sign-in is a warning
+  with Try again), engine, folder (unwritable choice, free space), network
+  (HEAD music.apple.com). `StatusInputs.live()` rereads notifiers;
+  `gather()` adds disk and network.
+- Free space comes from a new pipeline command `disk_usage` (generic
+  channel, so no Kotlin change); Dart has no call for it.
+- Replaces "Before you can archive"; always shown, folds to "Ready to
+  archive".
 
-### Rules for the next agent:
-- Work exclusively on `scope-expansion`. Never push to `main` or `upstream`.
-- Check `git branch --show-current` before every commit.
-- End every commit with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- Never commit `scorecard.png`. Format only touched files (`dart format <files>`).
-- Run `flutter analyze` (must stay at 0 issues) and `flutter test --exclude-tags integration` (321 pass) after changes.
+### 2.3 Plain-language errors
+- `runFailureFix` does the catalog's fix and retries when that clears the
+  cause (sign-in, folder changed, lossless signed in, Use AAC). Skip uses
+  the new `DownloadQueueManager.dismiss`. Failed rows always show the log
+  button. Failure text: `failureTextColor()` (red nudged to 4.5:1).
+- The real desktop `download-temp/gamdl.log` failures: wrapper playback
+  errors, server disconnects, permission denied under `~/Music`, ALAC not
+  offered; all mapped and pinned in `error_catalog_test.dart`.
 
----
+### Verified on the emulator this session
+Wizard from Settings (folder add/remove, lossless detected, ALAC), then two
+real ALAC downloads (Iktara from the Wake Up Sid soundtrack, Treat You
+Better from Illuminate); status panel values and airplane mode; an offline
+download failing as "Could not reach Apple Music" and Retry finishing it.
 
 ### How the lossless wrapper is put together (read before touching it)
 
@@ -709,11 +718,13 @@ that will run it.
 
 ## Verifying on Android
 
-**Emulator:** `emulator-5554` (AVD `soiboi_test`). Older notes said it was
-signed into Apple Music; **as of 2026-09-25 it is not** (the release app,
-upgraded from 1.1.2, shows "Sign in to download"), so no download can be
-tested there. The ListenBrainz connection (`localindiesoyboy`, the user's
-real, public username) was not rechecked.
+**Emulator:** `emulator-5554` (AVD `soiboi_test`). **Since 2026-09-25 the
+debug app (`com.batgaurish.soiboi.debug`) is signed in to the lossless
+wrapper** (the user did it once in a visible window; marker
+`files/wrapper/signed_in`) and has ListenBrainz `localindiesoyboy` in
+`files/setting.json`. Real downloads work there. Both survive `adb install
+-r`; never uninstall the debug app or clear its data. Run the emulator
+headless. The release app is still signed out.
 
 Library on it: a "How It Would End" (Balu Brigada) track, a couple of Daft
 Punk tracks, and three *Michael Jackson* tracks from **Bad**. That album is
@@ -732,12 +743,31 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
 
 ## Traps already paid for
 
+**Paid for in the Phase 2 session (2026-09-25)**
+
+- **Xvfb alone does not isolate a Linux test build.** An Xbox controller
+  (`/dev/input/js0`) is connected and the gamepad plugin drove the hidden
+  app through the wizard; the file picker (file_picker v12 beta, portal
+  only) opened a portal dialog on the user's real desktop; `dbus-run-session`
+  auto-starts portals that fall back to the real Wayland socket. What works:
+  `bwrap --dev-bind / / --tmpfs /dev/input`, a private `dbus-daemon` with
+  **no servicedir** on `unix:abstract=soiboi-test-bus` (a scratchpad socket
+  path is over the 108-byte limit), `DBUS_SESSION_BUS_ADDRESS` pointing at
+  it, `XDG_RUNTIME_DIR=<scratch>`. The app refuses to start with no bus at
+  all (MPRIS). File pickers can then only be tested on the emulator.
+- A rebuilt test binary shows as `.../soiboi (deleted)`; kill test copies
+  with a prefix match on the exe path.
+- **Offline, the wrapper reports "logged_out"** with a valid session; the
+  app used to delete its marker then (fixed in `463cf51`).
+- `dart format` on a file that was never formatted (`pipeline_runner.dart`)
+  reflows ~200 lines; revert and add only the change.
+- Airplane mode on the emulator: `adb shell cmd connectivity airplane-mode
+  enable|disable`.
+
 **Paid for in the beta.3 session (2026-09-25)**
 
-- **The emulator has no Apple session** in either app, despite older notes.
-  The release app shows "Sign in to download" and Archive is disabled;
-  never enter the user's Apple ID. Downloads can only be checked by unit
-  tests or on the user's phone.
+- (Superseded 2026-09-25: the debug app now has a wrapper sign-in, see
+  "Verifying on Android".) Never enter the user's Apple ID.
 - **`showContextMenu` pops itself on any relayout after its first frame**,
   and a `uiautomator dump` causes one. Long-press, then tap the item
   without dumping in between (use a screenshot for coordinates).
