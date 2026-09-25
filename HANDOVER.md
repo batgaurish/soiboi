@@ -1,16 +1,19 @@
 # Soiboi — handover
 
 Paste this at the start of a new session. Last updated on 2026-09-25, at
-the end of the session that published the test builds (rc.1/beta.1, then
-rc.2/beta.2 with the playlist pin/cover fix and Linux builds). Phases 0 and 1
-of the scope expansion plan were built in the session before. The sections
-from "How the lossless wrapper is put together" onward are carried over from
-older handovers and are still accurate.
+the end of the session that published rc.2 and betas 2 and 3. Beta 3 carries
+the download-engine fixes (the "instant gratification" bug), delete from
+device, the Songs page's sort/filter/select, and background downloads with
+notifications (plan 3.1, built early). Phases 0 and 1 were built in the
+session before. The sections from "How the lossless wrapper is put together"
+onward are carried over from older handovers and are still accurate.
 
 > **Start here:** nothing is pending on Claude's side. The user is testing
-> **v1.1.8-rc.2** and **v1.2.0-beta.2**. Wait for their results before
+> **v1.2.0-beta.3** (and v1.1.8-rc.2). Wait for their results before
 > starting Phase 2, and wait for them to say go before cutting the official
-> 1.1.8. Details under "Where things stand right now".
+> 1.1.8. One open question for them: whether the download-engine fixes
+> (below) should be ported to `main` for 1.1.8; rc.2 has the same bug.
+> Details under "Where things stand right now".
 
 ---
 
@@ -53,7 +56,7 @@ Two lines of work run side by side:
 | Branch | What goes there | Version on it now |
 |---|---|---|
 | `main` | Bug fixes for the stable 1.1.x line only | 1.1.8+19 (rc.2) |
-| `scope-expansion` | Everything from `docs/scope-expansion-plan.md` | 1.2.0-beta.2+21 |
+| `scope-expansion` | Everything from `docs/scope-expansion-plan.md`, plus what the user asks for on the beta | 1.2.0-beta.3+22 |
 
 Rules the user set, verbatim or near it:
 
@@ -69,7 +72,7 @@ Rules the user set, verbatim or near it:
   the user asks; from the branch it is a pre-release
   (`--prerelease`, never `--latest`).
 - Don't bump `pubspec.yaml` on the branch unless the user asks for a test
-  build. (They did, for 1.2.0-beta.1 and beta.2.)
+  build. (They did, for 1.2.0-beta.1, beta.2 and beta.3.)
 - The user decides when everything goes onto `main` and an official release
   is cut. **Wait for them to say so.**
 - Never commit the stray `scorecard.png`: `git add -A -- . ':!scorecard.png'`.
@@ -89,9 +92,8 @@ Rules the user set, verbatim or near it:
 
 ### Where things stand right now (2026-09-25)
 
-Published: **v1.1.7** is the latest official release. Four test
-pre-releases exist (all `--prerelease --latest=false`, so the updater never
-offers them):
+Published: **v1.1.7** is the latest official release. Test pre-releases
+(all `--prerelease --latest=false`, so the updater never offers them):
 
 | Tag | Commit | Branch | versionCode | Assets |
 |---|---|---|---|---|
@@ -99,43 +101,58 @@ offers them):
 | `v1.2.0-beta.1` | `94da507` | scope-expansion | 20 | APK only |
 | `v1.1.8-rc.2` | `66ab86a` | main | 19 | APK + Linux tarball |
 | `v1.2.0-beta.2` | `2f5e817` | scope-expansion | 21 | APK + Linux tarball |
+| `v1.2.0-beta.3` | `f6823bd` | scope-expansion | 22 | APK + Linux tarball |
 
-rc.2 and beta.2 supersede rc.1 and beta.1 (which lack the pin/cover fix and
-a Linux build). The user tests rc.2 first, then beta.2 over it. beta.2's
-versionCode 21 means going back to an RC afterwards needs an uninstall.
-Local copies of every asset are in `~/soiboi-test-builds/`.
+beta.3 is the one to test on the branch; rc.2 on the stable line. beta.3's
+versionCode 22 installs over everything; going back to an RC afterwards
+needs an uninstall. Local copies of every asset are in
+`~/soiboi-test-builds/`.
 
 - `origin/main` is at **`66ab86a`** (rc.2 = rc.1 + the pin/cover fix).
-- `origin/scope-expansion` is at `2f5e817` (Version 1.2.0-beta.2), which
-  includes `main` via merge `371140b`, plus this handover commit on top.
+- `origin/scope-expansion` is at `f6823bd` (Version 1.2.0-beta.3) plus this
+  handover commit.
 - `versionNumber` on the branch stays `1.2.0`; `test/version_test.dart`
   compares only the numeric part of the pubspec version.
+
+**Where the user's bug reports go.** The user said explicitly that bugs they
+find on the beta are fixed on the beta (`scope-expansion`), even when the
+same code is on `main`. So the download fixes below are on the branch only.
+**rc.2 still has the "instant gratification" bug**; porting it to `main` is
+the user's call (ask before 1.1.8 is cut; the pipeline, `pipeline_runner`
+and `PipelineChannel.kt` are identical on both branches, the queue manager
+differs a little).
 
 **Every release ships both platforms**, pre-releases included: the arm64
 APK and the Linux tarball. The user was (rightly) angry that rc.1/beta.1 went
 out APK-only. `tools/release_test_builds.sh` only builds APKs and is now
 spent (its commits and tags are hard-coded to rc.1/beta.1); don't reuse it
 as is. For a new test build, follow the release recipe below with
-`--prerelease --latest=false` instead of `--latest`.
+`--prerelease --latest=false` instead of `--latest`. For a beta: bump only
+`pubspec.yaml` (`1.2.0-beta.N+code`), commit, push, tag, then in the main
+checkout `tools/apply_patches.sh`, `flutter build apk --release
+--target-platform android-arm64`, `flutter build linux --release &&
+tools/package_linux.sh --release`, smoke-test the extracted tarball on Xvfb
+(`timeout 25 ./soiboi` exits 124), `gh release create`.
 
-**What the user will do next:** test rc.2 and beta.2, then say whether it is
-time to cut an official release. Don't start that on your own. When they say
-go, the likely shape is: release 1.1.8 from `main` (bump nothing else, tag
-`v1.1.8`, `--latest`, APK + Linux), and separately decide with them how and
-when the branch lands on `main` (the plan says the branch stays separate
-until the final release is debugged, so ask).
+**What the user will do next:** test beta.3 (and rc.2), then say whether it
+is time to cut an official release. Don't start that on your own. When they
+say go, the likely shape is: release 1.1.8 from `main` (tag `v1.1.8`,
+`--latest`, APK + Linux), and separately decide with them how and when the
+branch lands on `main` (the plan says the branch stays separate until the
+final release is debugged, so ask).
 
-Also still waiting on the user: **the log for an Apple Music playlist
-("instant gratification") stuck on "Starting" on Android.** That is a
-stable-line bug for `main` once the log arrives.
+**Asked of the user to test on beta.3:** queue a big playlist, then a second
+one while it runs (the first must keep going, Stop must stop it); lock the
+phone during a long playlist (background downloads, the 3.1 "Done when");
+Delete from device from Home, the player menu and the Songs page; Sort,
+Filter, Select and long-press on the Songs page.
 
 ### How a stable fix went out this session (the pattern to reuse)
 
 1. `git worktree add -b fix/<name> ../soiboi-main-fix origin/main`, so the
    main checkout (on `scope-expansion`) is never switched. The worktree
-   `../soiboi-main-fix` still exists (branch `fix/playlist-pin-cover`,
-   merged); remove it with `git worktree remove ../soiboi-main-fix` when
-   done with it.
+   `../soiboi-main-fix` was removed at the end of that fix; make it again
+   the same way next time.
 2. A new worktree lacks the gitignored Android pieces. Copy from the main
    checkout: `android/app/src/main/java`, `android/app/src/main/jniLibs`,
    `android/gradle/wrapper/gradle-wrapper.jar`, `android/gradlew*`,
@@ -223,6 +240,84 @@ messages into a plain title: no_subscription, not_streamable,
 quality_unavailable, needs_wrapper, tool_missing.
 
 ---
+
+## Built on the branch this session, at the user's request (beta.3)
+
+Four commits, oldest first. None of it is a plan item except 3.1.
+
+### Download engine fixes (`f83e159`)
+- **Root cause of "stuck on Starting / Stopping":**
+  `apple_library._quiet_gamdl_logging()` called `structlog.configure(...
+  CRITICAL)`. structlog's config is global, and on Android a playlist read
+  (`apple_playlist_tracks`, run when an Apple playlist is queued and when
+  the Downloads screen lists playlists) shares the interpreter with the
+  download. The running gamdl went silent: no progress past "Starting", an
+  empty log, and a stop (checked only in `_StreamTap.write`) never landed.
+  Now filters at INFO (gamdl's own level; every gamdl API request log,
+  tokens included, is DEBUG). `test_reading_apple_playlists_does_not_mute_a_download`
+  reproduces it and fails on the old code.
+- Stop also checked before every track (`_stop_if_cancelled` in the owned-
+  track patches); Dart re-sends a stop pressed before the pipeline started
+  (Python clears the flag at download start) on the first progress event;
+  Android runs `cancel` on its own executor (`control`). Job log: "Stop
+  requested", then "Stopped"/"Paused".
+- **Log mixing:** job ids restart at 0 each launch and the pipeline appends,
+  so `download-logs/0.log` collected the first job of every launch. Now
+  `<epoch ms>-<id>.log`, kept across a pause/retry of the same job.
+- **Owned-track skipping moved earlier:** gamdl already fetches a whole
+  playlist or album (every page) before the first track; the 2-3 s per
+  owned song was `_get_song_media` fetching details before our check in
+  `_download`. `_skip_owned_tracks()` now also patches
+  `AppleMusicInterface._get_song_media` to yield a non-partial
+  `AppleMusicMedia` carrying `GamdlDownloaderMediaFileExistsError` for owned
+  tracks (gamdl's CLI reports it as a skip). The `_download` check stays for
+  single-song URLs.
+- **Not verified against Apple:** the emulator has no Apple session (see
+  traps). Verified by unit tests only.
+
+### Delete from device (`071c24a`)
+- `lib/base/services/song_deletion.dart`: `canDeleteFromDevice`,
+  `deleteSongFiles` (audio + `.lrc` + mood sidecar; one retry after asking
+  for All files access on Android), `removeFromLibrary` (library + DB,
+  folders **(their saved id lists are loaded with `id2Song[id]!`, so a
+  stale id crashes the next launch)**, playlists, `updateArtistAlbum()`,
+  `history.load()`, `audioHandler.sync()`; in place, no `Loader.sync`),
+  `confirmAndDeleteSongs` (the warning dialog).
+- `showConfirmDialog` gained `message` and `confirmText`; titles wrap to 3
+  lines. `songMenuItems()` / `deleteMenuItems()` in `interaction.dart`.
+- Entry points: Home song cards (right-click / long-press, new menu), phone
+  player ⋮, desktop player bar right-click (new), song row menus on both
+  layouts (desktop multi-select), phone Select page, Big Picture song
+  options. In playlists "Delete" became "Remove from playlist".
+- Verified on the emulator (Home long-press → dialog → file and `.lrc` gone
+  from `/sdcard/Music/SoiboiTest` → Home refreshed → clean restart).
+
+### Songs page sort / filter / select (`f22eae6`)
+- `lib/base/data/song_filter.dart` (`SongFilter`, `songFilterNotifier`,
+  session-long; quality and codec from `QualityInfo`, the badge's rules),
+  `lib/base/widgets/song_list_toolbar.dart` (`SongListToolbar`,
+  `songSortOptions`, `showSongFilter`). Shown only on the Songs page
+  (`isLibrary`). Reorder is off while filtered.
+- New sort types in `sortSongList`: 13/14 year, 15 most played (12 stays
+  "shuffle permanently").
+- Phone: long-press a row → `openSelection(context, song)`. Desktop: the
+  button selects all rows.
+- Verified on the emulator and on a Linux debug build.
+
+### Background downloads and notifications (`97f327a`, plan 3.1)
+- `DownloadService.kt`: special-use foreground service with a partial wake
+  lock and Wi-Fi lock. `NotificationBridge.show` routes any ongoing
+  `download_progress` notification through it (even without the
+  notification permission); `dismiss` stops it. Manifest declares it with
+  the special-use subtype property.
+- `lib/base/services/download_notifications.dart`: `DownloadNotifier`
+  (started in `main.dart`) — progress "Downloading i of N", Pause/Resume,
+  Stop; summary with "Retry failed". `NotificationService.show(...,
+  always:)` bypasses the Settings switch; used for progress on Android only.
+- Verified: unit tests; on the emulator, Settings > Notifications > Send a
+  test makes `dumpsys activity services` show `DownloadService`
+  `isForeground=true` for the notification's lifetime, then gone. **Not
+  verified:** a real playlist with the phone locked.
 
 ## Scope expansion: Phases 0 and 1 (built, on `scope-expansion`)
 
@@ -378,17 +473,19 @@ Commits, oldest first: `c60e7ef` 0.1, `66cbeda` 0.2, `3aacd4f` 0.3,
 
 ---
 
-## Tests and checks (state at `2f5e817`)
+## Tests and checks (state at `f6823bd`)
 
-- Dart: `flutter test --exclude-tags integration` → **304 pass, 1 skipped**
+- Dart: `flutter test --exclude-tags integration` → **321 pass, 1 skipped**
   (the real-covers fixture). On `main`: 216 pass.
   `test/apple_catalog_test.dart` is tagged `integration` and calls Apple's
   live API; it fails in the cloud container (no route) and passes where
   there is internet.
-- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → 97 pass,
-  **1 fails on both branches already**:
-  `test_acoustic.py::test_analyze_directory_skips_existing_sidecars`
-  (`total` 0 vs 1). It predates this session; not investigated.
+- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → **102
+  pass** on the branch. The `test_acoustic.py` failure noted before did not
+  reproduce on the user's machine; not investigated further. The dev venv's
+  gamdl is **3.8.5**, as are the Android wheels in `android/pip-repo` (the
+  phone log says "Starting Gamdl 3.8.5"); the packaged Linux runtime venv
+  got 3.9.1. The owned-track patches were written against 3.8.5.
 - `flutter analyze`: only the 6 `RadioGroup` deprecation infos in
   `settings_list.dart` (one pre-existing site, and the Reduce motion dialog
   added in 1.4 copied that pattern). Migrating to `RadioGroup` is a cheap
@@ -441,7 +538,7 @@ Useful if the next session is also a cloud session (it was this time):
 
 ---
 
-## Plan items after Phase 1 (not started)
+## Plan items after Phase 1 (not started, except 3.1)
 
 Phase 2 starts with **2.1 Setup wizard** (first launch and from Settings:
 music folders → Apple Music sign-in, wrapper or cookies → quality and
@@ -537,10 +634,11 @@ that will run it.
 
 ## Verifying on Android
 
-**Emulator:** `emulator-5554` (AVD `soiboi_test`), signed into Apple Music
-(session expires 2027-03-05) and connected to ListenBrainz as
-`localindiesoyboy` (the user's real, public username). Reuse it rather than
-re-signing-in.
+**Emulator:** `emulator-5554` (AVD `soiboi_test`). Older notes said it was
+signed into Apple Music; **as of 2026-09-25 it is not** (the release app,
+upgraded from 1.1.2, shows "Sign in to download"), so no download can be
+tested there. The ListenBrainz connection (`localindiesoyboy`, the user's
+real, public username) was not rechecked.
 
 Library on it: a "How It Would End" (Balu Brigada) track, a couple of Daft
 Punk tracks, and three *Michael Jackson* tracks from **Bad**. That album is
@@ -558,6 +656,28 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
 ---
 
 ## Traps already paid for
+
+**Paid for in the beta.3 session (2026-09-25)**
+
+- **The emulator has no Apple session** in either app, despite older notes.
+  The release app shows "Sign in to download" and Archive is disabled;
+  never enter the user's Apple ID. Downloads can only be checked by unit
+  tests or on the user's phone.
+- **`showContextMenu` pops itself on any relayout after its first frame**,
+  and a `uiautomator dump` causes one. Long-press, then tap the item
+  without dumping in between (use a screenshot for coordinates).
+- `showAnimationDialog` fades in; screenshot about a second later.
+- Emulator debug app library: `/storage/emulated/0/Music/SoiboiTest`
+  (test tones). For a deletion test, push a throwaway tone there (ffmpeg
+  sine + tags), Settings > Synchronize Library, and delete that.
+- Exercise the foreground service without a download: Settings >
+  Notifications > Send a test, while polling `adb shell dumpsys activity
+  services com.batgaurish.soiboi.debug`.
+- **Xvfb + xdotool:** `xdotool mousemove X Y click 1` sometimes misses;
+  `mousemove`, short sleep, `mousedown 1`, `mouseup 1` works.
+- **Killing a test Linux instance:** the user may have their installed
+  Soiboi running, so `pkill -x soiboi` is not safe either. Kill by PID
+  after checking `readlink /proc/$PID/exe` points into the build dir.
 
 **Paid for in the release session (2026-09-25)**
 
