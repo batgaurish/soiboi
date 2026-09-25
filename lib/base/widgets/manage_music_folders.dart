@@ -27,13 +27,23 @@ import 'package:soiboi/base/widgets/icon_label.dart';
 final ValueNotifier<bool> recursiveScanNotifier = ValueNotifier(false);
 
 class ManageMusicFolders extends StatefulWidget {
-  const ManageMusicFolders({super.key});
+  const ManageMusicFolders({super.key, this.inline, this.onChanged});
+
+  /// Shown in a page rather than a dialog: changes apply as they are made,
+  /// with no Confirm. Defaults to the first launch, which is how it was
+  /// only ever shown inline before the setup wizard.
+  final bool? inline;
+
+  /// Inline only: called after a change has been applied.
+  final VoidCallback? onChanged;
 
   @override
   State<StatefulWidget> createState() => _ManageMusicFoldersState();
 }
 
 class _ManageMusicFoldersState extends State<ManageMusicFolders> {
+  bool get _inline => widget.inline ?? firstLaunch;
+
   late List<String> currentFolderIdList;
 
   final updateNotifier = ValueNotifier(0);
@@ -41,6 +51,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
   void updateFolders() async {
     await library.updateFolders(currentFolderIdList);
+    widget.onChanged?.call();
   }
 
   @override
@@ -50,7 +61,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
     currentFolderIdList = library.folderList.map((e) => e.id).toList();
     tmpRecursiveScanNotifier = ValueNotifier(recursiveScanNotifier.value);
 
-    if (firstLaunch) {
+    if (_inline) {
       updateNotifier.addListener(updateFolders);
       tmpRecursiveScanNotifier.addListener(() {
         recursiveScanNotifier.value = tmpRecursiveScanNotifier.value;
@@ -68,7 +79,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
   @override
   Widget build(BuildContext context) {
-    if (firstLaunch) {
+    if (_inline) {
       return _notInSettingView(context);
     }
 
@@ -149,7 +160,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
 
               folderListSliver(),
 
-              if (!firstLaunch)
+              if (!_inline)
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Column(
@@ -291,10 +302,13 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
           child: ListTile(
             title: Text(l10n.recursiveScan),
             contentPadding: .fromLTRB(15, 0, 0, 0),
-            dense: !firstLaunch,
+            dense: !_inline,
             trailing: SizedBox(
               width: 70,
-              child: MySwitch(semanticLabel: l10n.recursiveScan, valueNotifier: tmpRecursiveScanNotifier),
+              child: MySwitch(
+                semanticLabel: l10n.recursiveScan,
+                valueNotifier: tmpRecursiveScanNotifier,
+              ),
             ),
           ),
         ),
@@ -308,7 +322,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
           clipBehavior: .antiAlias,
           child: ListTile(
             contentPadding: .fromLTRB(15, 0, 0, 0),
-            dense: !firstLaunch,
+            dense: !_inline,
             onTap: () {
               sourceType == .local
                   ? _addFolder(context)
@@ -327,7 +341,7 @@ class _ManageMusicFoldersState extends State<ManageMusicFolders> {
           clipBehavior: .antiAlias,
           child: ListTile(
             contentPadding: .fromLTRB(15, 0, 0, 0),
-            dense: !firstLaunch,
+            dense: !_inline,
             onTap: () {
               sourceType == .local
                   ? _addFolders(context)

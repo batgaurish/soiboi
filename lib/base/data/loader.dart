@@ -23,6 +23,11 @@ import 'package:soiboi/layer/layers_manager.dart';
 
 bool firstLaunch = true;
 
+/// Shows the setup wizard in place of the app after the first launch: set
+/// once the library has loaded, when a local library has no folders and the
+/// wizard was never finished.
+final needsSetupNotifier = ValueNotifier(false);
+
 class Loader {
   static bool _busy = false;
 

@@ -64,6 +64,10 @@ const downloadCodecLabels = <String, String>{
 /// failing later at download time.
 final downloadFolderNotifier = ValueNotifier<String>('');
 
+/// The setup wizard was finished or skipped once. Until then, a local
+/// library with no folders opens it again at launch.
+final setupWizardDoneNotifier = ValueNotifier(false);
+
 /// Overrides gamdl's bundled Widevine device with a .wvd of your own.
 ///
 /// Optional, and normally unnecessary: gamdl carries its own L3 device and
@@ -216,10 +220,10 @@ class Setting {
         ? savedCodec!
         : 'aac';
     downloadFolderNotifier.value = json['downloadFolder'] as String? ?? '';
+    setupWizardDoneNotifier.value = json['setupWizardDone'] as bool? ?? false;
     wvdPathNotifier.value = json['wvdPath'] as String?;
     useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
-    showDownloadLogsNotifier.value =
-        json['showDownloadLogs'] as bool? ?? false;
+    showDownloadLogsNotifier.value = json['showDownloadLogs'] as bool? ?? false;
     notificationsEnabledNotifier.value =
         json['notificationsEnabled'] as bool? ?? true;
     motionPreferenceNotifier.value = MotionPreference.values.firstWhere(
@@ -270,6 +274,7 @@ class Setting {
 
         'downloadCodec': downloadCodecNotifier.value,
         'downloadFolder': downloadFolderNotifier.value,
+        'setupWizardDone': setupWizardDoneNotifier.value,
         'wvdPath': wvdPathNotifier.value,
         'useWrapper': useWrapperNotifier.value,
         'showDownloadLogs': showDownloadLogsNotifier.value,

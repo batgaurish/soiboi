@@ -6,6 +6,9 @@ import 'package:soiboi/base/services/ai_service.dart';
 import 'package:soiboi/base/widgets/ai_widgets.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/widgets/lossless_setup.dart';
+import 'package:soiboi/base/widgets/download_options.dart';
+import 'package:soiboi/base/widgets/listenbrainz_form.dart';
+import 'package:soiboi/layer/setup_wizard.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/backup_service.dart';
 import 'package:soiboi/base/data/config.dart';
@@ -51,8 +54,6 @@ import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/services/acoustic_service.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/base/theme/motion.dart';
 
@@ -131,6 +132,9 @@ class _SettingsListState extends State<SettingsList> {
           sliverBox(
             paddingIfNeed(isLandscape, premiumFeaturesListTile(context, l10n)),
           ),
+
+        if (viewModeNotifier.value != .bigPicture)
+          sliverBox(paddingIfNeed(isLandscape, setupWizardListTile(context))),
 
         sliverBox(
           paddingIfNeed(isLandscape, switchSourceTypeListTile(context, l10n)),
@@ -319,7 +323,7 @@ class _SettingsListState extends State<SettingsList> {
       subtitle: ValueListenableBuilder<String>(
         valueListenable: downloadFolderNotifier,
         builder: (context, value, child) => Text(
-          value.trim().isEmpty ? "The app's own folder" : value,
+          downloadFolderLabel(value),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: 12, color: textColor.value),
@@ -327,136 +331,42 @@ class _SettingsListState extends State<SettingsList> {
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: () async {
-        // Offering the folders already configured first is the point: the
-        // common case is "put downloads with the music I already have", and
-        // those are exactly the folders the library scans.
-        final candidates = <String>[
-          for (final folder in library.folderList)
-            if (!folder.isWebdav && folder.path != defaultDownloadDir)
-              folder.path,
-        ];
-
         await showAnimationDialog(
           context: context,
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => SizedBox(
-              width: 380,
-              height: 420,
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Download folder',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+          child: SizedBox(
+            width: 380,
+            height: 420,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Download folder',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Where archived music is saved. Choosing a folder you '
+                    'already scan keeps downloads and library together.',
+                    style: TextStyle(fontSize: 11, color: textColor.value),
+                  ),
+                  const SizedBox(height: 12),
+                  const Expanded(child: DownloadFolderPicker()),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Done'),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Where archived music is saved. Choosing a folder you '
-                      'already scan keeps downloads and library together.',
-                      style: TextStyle(fontSize: 11, color: textColor.value),
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: RadioGroup<String>(
-                        groupValue: downloadFolderNotifier.value,
-                        onChanged: (v) async {
-                          if (v == null) return;
-                          if (v.isEmpty) {
-                            setDialogState(
-                              () => downloadFolderNotifier.value = '',
-                            );
-                          } else {
-                            final ok = await _useDownloadFolder(v);
-                            if (ok) setDialogState(() {});
-                          }
-                        },
-                        child: ListView(
-                          children: [
-                            RadioListTile<String>(
-                              value: '',
-                              dense: true,
-                              title: const Text("The app's own folder"),
-                              subtitle: Text(
-                                'Private to Soiboi, always writable',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: textColor.value,
-                                ),
-                              ),
-                            ),
-                            for (final path in candidates)
-                              RadioListTile<String>(
-                                value: path,
-                                dense: true,
-                                title: Text(
-                                  path,
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ),
-                            ListTile(
-                              dense: true,
-                              leading: const Icon(
-                                Icons.create_new_folder_outlined,
-                              ),
-                              title: const Text('Choose another folder…'),
-                              onTap: () async {
-                                final picked =
-                                    await FilePicker.getDirectoryPath();
-                                if (picked == null) return;
-                                final ok = await _useDownloadFolder(picked);
-                                if (ok) setDialogState(() {});
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Done'),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
         );
       },
     );
-  }
-
-  /// Accepts [path] only if it can actually be written to.
-  ///
-  /// Android grants All files access separately from anything the folder
-  /// picker returns, so a path can be chosen and still be unwritable. Testing
-  /// it here turns a silent failure at download time into an answer now.
-  Future<bool> _useDownloadFolder(String path) async {
-    if (Platform.isAndroid && !downloadDirIsUsable(path)) {
-      final status = await Permission.manageExternalStorage.request();
-      if (!status.isGranted) {
-        showCenterMessage(
-          'Soiboi needs All files access to save there.',
-          duration: 4000,
-        );
-        return false;
-      }
-    }
-    if (!downloadDirIsUsable(path)) {
-      showCenterMessage('That folder cannot be written to.', duration: 4000);
-      return false;
-    }
-    downloadFolderNotifier.value = path;
-    downloadOutputDir = resolveDownloadDir();
-    setting.save();
-    return true;
   }
 
   /// Backfills acoustic features so smart playlists have something to match.
@@ -1718,87 +1628,36 @@ class _SettingsListState extends State<SettingsList> {
           style: TextStyle(fontSize: 12, color: textColor.value),
         ),
       ),
-      onTap: () async {
-        final controller = TextEditingController(
-          text: listenBrainzUserNotifier.value,
-        );
-        String? status;
-        await showAnimationDialog(
-          context: context,
-          child: StatefulBuilder(
-            builder: (context, setDialogState) => SizedBox(
-              width: 340,
-              height: 250,
-              child: Padding(
-                padding: const EdgeInsets.all(18.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'ListenBrainz',
-                      style: TextStyle(fontSize: 18, fontWeight: .bold),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Your username ranks Home by everything you listen to, '
-                      'not just this device. Read-only, no token needed.',
-                      style: TextStyle(fontSize: 12, color: textColor.value),
-                    ),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: controller,
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'username',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    if (status != null) ...[
-                      const SizedBox(height: 10),
-                      Text(status!, style: const TextStyle(fontSize: 12)),
-                    ],
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            listenBrainzUserNotifier.value = '';
-                            setting.save();
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Disconnect'),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton(
-                          onPressed: () async {
-                            final user = controller.text.trim();
-                            if (user.isEmpty) return;
-                            setDialogState(() => status = 'Checking…');
-                            final ok = await verifyListenBrainzUser(user);
-                            if (!ok) {
-                              setDialogState(
-                                () => status = 'No such ListenBrainz user',
-                              );
-                              return;
-                            }
-                            listenBrainzUserNotifier.value = user;
-                            setting.save();
-                            if (context.mounted) Navigator.of(context).pop();
-                          },
-                          child: const Text('Connect'),
-                        ),
-                      ],
-                    ),
-                  ],
+      onTap: () => showAnimationDialog(
+        context: context,
+        child: SizedBox(
+          width: 340,
+          height: 280,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(18.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ListenBrainz',
+                  style: TextStyle(fontSize: 18, fontWeight: .bold),
                 ),
-              ),
+                const SizedBox(height: 6),
+                Text(
+                  'Your username ranks Home by everything you listen to, '
+                  'not just this device. Read-only, no token needed.',
+                  style: TextStyle(fontSize: 12, color: textColor.value),
+                ),
+                const SizedBox(height: 14),
+                ListenBrainzForm(
+                  autofocus: true,
+                  onDone: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
           ),
-        );
-        controller.dispose();
-      },
+        ),
+      ),
     );
   }
 
@@ -1867,51 +1726,54 @@ class _SettingsListState extends State<SettingsList> {
         await showAnimationDialog(
           context: context,
           child: SizedBox(
-            width: 320,
-            height: 290,
-            child: Padding(
+            width: 340,
+            height: 330,
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(18.0),
-              child: StatefulBuilder(
-                builder: (context, setDialogState) => Column(
-                  children: [
-                    const Text(
-                      'Download quality',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'ALAC is lossless and roughly three times the size. '
-                      'AAC works as-is. ALAC needs a wrapper-v2 service, set '
-                      'up under Widevine device.',
-                      style: TextStyle(fontSize: 11, color: textColor.value),
-                    ),
-                    const SizedBox(height: 12),
-                    RadioGroup<String>(
-                      groupValue: downloadCodecNotifier.value,
-                      onChanged: (value) {
-                        if (value == null) return;
-                        downloadCodecNotifier.value = value;
-                        setting.save();
-                        Navigator.of(context).pop();
-                      },
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (final entry in downloadCodecLabels.entries)
-                            RadioListTile<String>(
-                              value: entry.key,
-                              title: Text(entry.value),
-                              dense: true,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  const Text(
+                    'Download quality',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  DownloadQualityPicker(
+                    onChanged: () => Navigator.of(context).pop(),
+                  ),
+                ],
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// The first-run wizard again: folders, Apple Music sign-in, download
+  /// options and ListenBrainz in one guided pass.
+  Widget setupWizardListTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.auto_fix_high_outlined, size: 30),
+      title: const Text('Setup wizard'),
+      subtitle: Text(
+        'Folders, Apple Music sign-in, downloads, ListenBrainz',
+        style: TextStyle(fontSize: 12, color: textColor.value),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () {
+        final navigator = Navigator.of(context, rootNavigator: true);
+        navigator.push(
+          MaterialPageRoute(
+            builder: (_) => SetupWizard(
+              onFinish: (result) async {
+                navigator.pop();
+                setupWizardDoneNotifier.value = true;
+                setting.save();
+                if (result.openDownloads) {
+                  layersManager.switchRootLayer('downloads');
+                }
+                if (result.foldersChanged) await Loader.sync();
+              },
             ),
           ),
         );
