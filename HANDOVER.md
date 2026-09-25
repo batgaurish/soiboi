@@ -1,14 +1,16 @@
 # Soiboi — handover
 
-Paste this at the start of a new session. It was last rewritten on
-2026-09-25, at the end of the session that built Phases 0 and 1 of the scope
-expansion plan. The sections from "How the lossless wrapper is put together"
-onward are carried over from the previous handover and are still accurate.
+Paste this at the start of a new session. Last updated on 2026-09-25, at
+the end of the session that published the test builds (rc.1/beta.1, then
+rc.2/beta.2 with the playlist pin/cover fix and Linux builds). Phases 0 and 1
+of the scope expansion plan were built in the session before. The sections
+from "How the lossless wrapper is put together" onward are carried over from
+older handovers and are still accurate.
 
-> **Start here:** the user has approved publishing two test builds, and it
-> is one command: `tools/release_test_builds.sh` (dry run first with
-> `--dry-run`). Details under "FIRST TASK" below. Then wait for the user's
-> test results before starting Phase 2.
+> **Start here:** nothing is pending on Claude's side. The user is testing
+> **v1.1.8-rc.2** and **v1.2.0-beta.2**. Wait for their results before
+> starting Phase 2, and wait for them to say go before cutting the official
+> 1.1.8. Details under "Where things stand right now".
 
 ---
 
@@ -50,8 +52,8 @@ Two lines of work run side by side:
 
 | Branch | What goes there | Version on it now |
 |---|---|---|
-| `main` | Bug fixes for the stable 1.1.x line only | 1.1.8+19 (release candidate) |
-| `scope-expansion` | Everything from `docs/scope-expansion-plan.md` | 1.2.0-beta.1+20 |
+| `main` | Bug fixes for the stable 1.1.x line only | 1.1.8+19 (rc.2) |
+| `scope-expansion` | Everything from `docs/scope-expansion-plan.md` | 1.2.0-beta.2+21 |
 
 Rules the user set, verbatim or near it:
 
@@ -67,7 +69,7 @@ Rules the user set, verbatim or near it:
   the user asks; from the branch it is a pre-release
   (`--prerelease`, never `--latest`).
 - Don't bump `pubspec.yaml` on the branch unless the user asks for a test
-  build. (They did, for 1.2.0-beta.1.)
+  build. (They did, for 1.2.0-beta.1 and beta.2.)
 - The user decides when everything goes onto `main` and an official release
   is cut. **Wait for them to say so.**
 - Never commit the stray `scorecard.png`: `git add -A -- . ':!scorecard.png'`.
@@ -87,87 +89,70 @@ Rules the user set, verbatim or near it:
 
 ### Where things stand right now (2026-09-25)
 
-Published: **v1.1.7** is the latest official release.
+Published: **v1.1.7** is the latest official release. Four test
+pre-releases exist (all `--prerelease --latest=false`, so the updater never
+offers them):
 
-The user approved fixing three stable-line bugs on `main`, merging them into
-the branch and cutting two test pre-releases. That is done in git, but the
-last, outward-facing steps were blocked in the cloud session (its permission
-check refused pushing `main` and tags) and could not be done there anyway
-(no Android SDK, no signing key). They are now one script; see **FIRST
-TASK** below. State:
+| Tag | Commit | Branch | versionCode | Assets |
+|---|---|---|---|---|
+| `v1.1.8-rc.1` | `b802a83` | main | 19 | APK only |
+| `v1.2.0-beta.1` | `94da507` | scope-expansion | 20 | APK only |
+| `v1.1.8-rc.2` | `66ab86a` | main | 19 | APK + Linux tarball |
+| `v1.2.0-beta.2` | `2f5e817` | scope-expansion | 21 | APK + Linux tarball |
 
-- `origin/scope-expansion` is at **`94da507`** (Version 1.2.0-beta.1) and
-  contains everything, including the four `main` commits below.
-- `origin/main` is still at `ae99d97` (Release v1.1.7). The four new
-  `main` commits exist on GitHub only as ancestors of `scope-expansion`:
+rc.2 and beta.2 supersede rc.1 and beta.1 (which lack the pin/cover fix and
+a Linux build). The user tests rc.2 first, then beta.2 over it. beta.2's
+versionCode 21 means going back to an RC afterwards needs an uninstall.
+Local copies of every asset are in `~/soiboi-test-builds/`.
 
-  ```
-  b802a83 Version 1.1.8 (release candidate 1)
-  dd98b2a Report the version the app is built as (1.1.7)
-  035508b Space types in every text field instead of pausing the music
-  aeb5357 Downloads: a missing subscription or all-skipped tracks is a failure
-  ```
+- `origin/main` is at **`66ab86a`** (rc.2 = rc.1 + the pin/cover fix).
+- `origin/scope-expansion` is at `2f5e817` (Version 1.2.0-beta.2), which
+  includes `main` via merge `371140b`, plus this handover commit on top.
+- `versionNumber` on the branch stays `1.2.0`; `test/version_test.dart`
+  compares only the numeric part of the pubspec version.
 
-- No tags pushed, no releases created, no APKs built.
+**Every release ships both platforms**, pre-releases included: the arm64
+APK and the Linux tarball. The user was (rightly) angry that rc.1/beta.1 went
+out APK-only. `tools/release_test_builds.sh` only builds APKs and is now
+spent (its commits and tags are hard-coded to rc.1/beta.1); don't reuse it
+as is. For a new test build, follow the release recipe below with
+`--prerelease --latest=false` instead of `--latest`.
 
-### FIRST TASK for the next session: publish the two test builds
-
-The user has already approved all of this (pushing `main`, both tags, both
-APKs, both pre-releases). It is one script, to run on the user's machine,
-where the release key and the Android SDK are:
-
-```bash
-tools/release_test_builds.sh --dry-run   # checks only; prints every step
-tools/release_test_builds.sh             # does it
-```
-
-What it does, in order (see the script's header):
-
-1. Checks: `flutter` and `gh` present, `gh` signed in,
-   `android/key.properties` present (**never generate a new key**), clean
-   working tree, `origin` is `batgaurish/soiboi`, `b802a83` is in
-   `scope-expansion`'s history, `origin/main` can fast-forward to it, and
-   the two commits carry versions 1.1.8+19 and 1.2.0-beta.1+20. Any
-   failure stops it before anything is changed.
-2. `git push origin b802a83:refs/heads/main` (fast-forward only).
-3. Creates and pushes the annotated tags `v1.1.8-rc.1` (b802a83) and
-   `v1.2.0-beta.1` (94da507). An existing tag is reused only if it points
-   at the same commit.
-4. For each tag: checks it out, `flutter pub get`,
-   `tools/apply_patches.sh`, `tools/build_android_pipeline.sh` only if
-   `android/pip-repo` is missing (uses `$ANDROID_NDK`, default
-   `~/Android/Sdk/ndk/28.2.13676358`), `flutter build apk --release
-   --target-platform android-arm64`, and copies the APK to
-   `~/soiboi-test-builds/soiboi-android-arm64-<tag>.apk` (`$OUT` overrides).
-   It goes back to the branch you started on at the end, even on failure.
-5. `gh release create <tag> <apk> --verify-tag --prerelease --latest=false`
-   with release notes written into the script. A release that already
-   exists just gets the APK uploaded.
-
-Everything is re-runnable: finished steps are skipped. Each APK upload
-takes about 25 minutes, so run it in the background and check back. The
-dry run was tested in the cloud session against the real GitHub state
-(all checks passed); the real run was not, since that container has no
-Android SDK and no key.
-
-Afterwards: tell the user both release links, and that the RC goes on the
-phone first (versionCode 19), then the beta (20).
-
-If the next session is a cloud session again, it can't run this (no SDK,
-no key, and pushes to `main` or tags may be blocked). Tell the user to run
-`tools/release_test_builds.sh` locally, or to start a session on their
-machine.
-
-**What the user will do next:** test both builds, then say whether it is
-time to put everything onto `main` and cut an official release. Don't
-start that on your own. When they say go, the likely shape is: release
-1.1.8 from `main` (tag `v1.1.8`, `--latest`), and separately decide with
-them how and when the branch lands on `main` (the plan says the branch stays
-separate until the final release is debugged, so ask).
+**What the user will do next:** test rc.2 and beta.2, then say whether it is
+time to cut an official release. Don't start that on your own. When they say
+go, the likely shape is: release 1.1.8 from `main` (bump nothing else, tag
+`v1.1.8`, `--latest`, APK + Linux), and separately decide with them how and
+when the branch lands on `main` (the plan says the branch stays separate
+until the final release is debugged, so ask).
 
 Also still waiting on the user: **the log for an Apple Music playlist
 ("instant gratification") stuck on "Starting" on Android.** That is a
 stable-line bug for `main` once the log arrives.
+
+### How a stable fix went out this session (the pattern to reuse)
+
+1. `git worktree add -b fix/<name> ../soiboi-main-fix origin/main`, so the
+   main checkout (on `scope-expansion`) is never switched. The worktree
+   `../soiboi-main-fix` still exists (branch `fix/playlist-pin-cover`,
+   merged); remove it with `git worktree remove ../soiboi-main-fix` when
+   done with it.
+2. A new worktree lacks the gitignored Android pieces. Copy from the main
+   checkout: `android/app/src/main/java`, `android/app/src/main/jniLibs`,
+   `android/gradle/wrapper/gradle-wrapper.jar`, `android/gradlew*`,
+   `android/local.properties`, `android/pip-repo`; for a release build also
+   symlink `android/key.properties` → `~/.config/soiboi/key.properties`.
+   For Linux packaging, copy `build/wrapper/`.
+3. Fix, `dart format <file>`, `flutter pub get && tools/apply_patches.sh`,
+   `flutter analyze`, `flutter test --exclude-tags integration`, check on
+   the emulator with a debug build.
+4. Commit, fast-forward `main` (`git push origin HEAD:refs/heads/main`),
+   tag, build APK + Linux, `gh release create`.
+5. `git merge origin/main` into `scope-expansion` in the main checkout,
+   run the branch's tests, push.
+
+**Don't run `flutter pub get` in a second checkout while a release build is
+running in the first:** both use the same pub cache, and `pub get` can
+revert the media_kit mpv patch under the running build.
 
 ### Release recipe (official, from `main`)
 
@@ -182,7 +167,7 @@ plain style, no em dashes. Then `tools/install_linux.sh` refreshes the
 user's desktop copy.
 
 The update check (`update_service.dart`) ignores prereleases and strips any
-`-suffix` from tags, so `v1.2.0-beta.1` and `v1.1.8-rc.1` never nag
+`-suffix` from tags, so the `-beta.N` and `-rc.N` pre-releases never nag
 anyone.
 
 **Android signing:** release key at `~/.config/soiboi/release.jks` +
@@ -192,7 +177,7 @@ regenerate it. Release app id `com.batgaurish.soiboi`; debug builds are
 
 ---
 
-## The stable fixes made this session (on `main` and merged)
+## The stable fixes on `main` (all merged into the branch)
 
 1. **No subscription / skipped tracks reported as success**
    (`pipeline/soiboi_pipeline/downloader.py`).
@@ -221,6 +206,17 @@ regenerate it. Release app id `com.batgaurish.soiboi`; debug builds are
    `test/version_test.dart` compares them.
 4. Then `Version 1.1.8 (release candidate 1)`: pubspec 1.1.8+19,
    `versionNumber` 1.1.8.
+5. **Playlist pin and cover actions were undiscoverable on phones**
+   (`66ab86a`, `lib/portrait_view/pages/song_list_page.dart`). Since 1.1.6
+   they were only reachable by long-pressing a playlist on the Playlists
+   tab. The playlist page's ⋮ sheet now lists `playlistOptionItems()` (Pin
+   to sidebar / Unpin, Set cover image, Remove cover image) and scrolls.
+   Note: phones *do* have the sidebar (it is the drawer), and pinning does
+   show there. Pinning looked broken partly because every playlist that
+   existed when 1.1.6 was installed started pinned. Verified on the
+   emulator with a debug build: pin → drawer entry, label flips to Unpin,
+   cover set through the photo picker shows on the page, remove deletes the
+   file. Not checked on the user's phone.
 
 On the branch, the error catalog (0.2) already turns every one of these
 messages into a plain title: no_subscription, not_streamable,
@@ -382,7 +378,7 @@ Commits, oldest first: `c60e7ef` 0.1, `66cbeda` 0.2, `3aacd4f` 0.3,
 
 ---
 
-## Tests and checks (state at `94da507`)
+## Tests and checks (state at `2f5e817`)
 
 - Dart: `flutter test --exclude-tags integration` → **304 pass, 1 skipped**
   (the real-covers fixture). On `main`: 216 pass.
@@ -563,7 +559,30 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
 
 ## Traps already paid for
 
-**Paid for this session (2)**
+**Paid for in the release session (2026-09-25)**
+
+- **Test releases went out APK-only** because `release_test_builds.sh` only
+  builds Android. Every release needs the Linux tarball too (see above).
+- **This checkout can be a day behind GitHub** when the previous session
+  ran in the cloud. `git fetch` over SSH works from a local session; check
+  `git log origin/scope-expansion` against the handover before trusting
+  local state.
+- **Emulator, playlist page:** the top-left button is Back, not the drawer.
+  Open the drawer from a root page (Home, Playlists).
+- **Emulator, cover picker:** Android's photo picker opens in multi-select
+  mode for `FilePicker.pickFiles(type: image)`. Tap the photo, then "Add
+  (1)" at the bottom; Back cancels it silently.
+- **Tap by `uiautomator` bounds, fresh each time:** the ⋮ sheet grows with
+  the extra playlist rows, so a tap reused from an earlier dump hit Delete
+  (its confirm dialog saved it).
+- **A debug Gradle build in a worktree failed once** while the release
+  script's Gradle build was running in the main checkout; the retry
+  succeeded. Don't run two Gradle builds at once.
+- `flutter build linux` + Gradle leave `android/build/reports/problems/
+  problems-report.html` modified (it is tracked). `git checkout --` it
+  before committing.
+
+**Paid for in the Phase 0-1 session**
 
 - **`Loader.sync()` replaces `history` and `artistAlbumManager` objects.**
   Any listener list built once keeps watching dead objects. Rebuild
@@ -583,7 +602,7 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
   XDG_DATA_HOME=<scratch>` for an isolated profile; Synchronize Library
   asks for confirmation.
 
-**Paid for this session**
+**Paid for in earlier sessions**
 
 - **Chaquopy can call a Java object only through a functional interface.**
   The progress callback must be a `java.util.function.Consumer<String>`; an
