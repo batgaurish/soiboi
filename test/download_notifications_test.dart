@@ -44,6 +44,7 @@ class _Backend implements NotificationBackend {
           bool redownload = false,
           void Function(int, String)? onProgress,
           void Function(String)? onLog,
+          void Function(TrackStatus)? onTrack,
           String? logPath,
         }) async {
           onProgress?.call(50, 'Downloading');

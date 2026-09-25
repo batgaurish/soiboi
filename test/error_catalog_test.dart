@@ -251,6 +251,7 @@ void main() {
           bool redownload = false,
           void Function(int, String)? onProgress,
           void Function(String)? onLog,
+          void Function(TrackStatus)? onTrack,
           String? logPath,
         }) async => const DownloadFailure('Sign in first', code: 'no_cookies');
 

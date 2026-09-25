@@ -19,6 +19,31 @@ def progress(percent: int, status: str) -> Event:
     return {"event": "progress", "progress": percent, "status": status}
 
 
+def track(
+    index: int,
+    total: int | None,
+    title: str,
+    state: str,
+    detail: str = "",
+    owned: bool = False,
+) -> Event:
+    """Where one track of a playlist or album download is up to.
+
+    state is downloading, done, skipped or failed; owned marks a skip because
+    the library already has the song. total is None when gamdl doesn't know
+    (playlists). Older apps ignore the event.
+    """
+    return {
+        "event": "track",
+        "index": index,
+        "total": total,
+        "title": title,
+        "state": state,
+        "detail": detail,
+        "owned": owned,
+    }
+
+
 def warning(message: str) -> Event:
     """Something went wrong that the command survived.
 

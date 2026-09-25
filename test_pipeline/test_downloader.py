@@ -371,3 +371,71 @@ def test_a_new_download_is_not_cancelled_by_an_old_request(tmp_path, monkeypatch
     downloader.request_cancel()
     args = _captured_args(tmp_path, monkeypatch)
     assert args  # ran to completion
+
+
+def _tracks(events):
+    return [
+        (e["index"], e["title"], e["state"], e["detail"], e["owned"])
+        for e in events
+        if e["event"] == "track"
+    ]
+
+
+def test_playlist_tracks_are_reported_one_by_one(tmp_path, monkeypatch):
+    # A playlist is one job; the app lists each track under it from these.
+    result, events = _run_with_output(
+        tmp_path,
+        monkeypatch,
+        '[INFO 21:46:03] [Track   1/-  ] Downloading "GO TO HELL"',
+        '[INFO 21:46:06] [Track   2/-  ] Downloading "change ur mind"',
+        '[WARNING 21:46:14] [Track   2/-  ] Skipping "change ur mind": Media '
+        "file already exists: change ur mind (already in your library)",
+        '[INFO 21:46:16] [Track   3/-  ] Downloading "Intro"',
+        '[WARNING 21:46:17] [Track   3/-  ] Skipping "Intro": '
+        "Media is not streamable: 123",
+        '[INFO 21:46:18] [Track   4/-  ] Downloading "Black Sheep"',
+        "[INFO 21:46:28] Finished with 0 error(s)",
+    )
+    assert result["event"] == "done"
+    assert _tracks(events) == [
+        (1, "GO TO HELL", "downloading", "", False),
+        (1, "GO TO HELL", "done", "", False),
+        (2, "change ur mind", "downloading", "", False),
+        (
+            2,
+            "change ur mind",
+            "skipped",
+            "Media file already exists: change ur mind (already in your library)",
+            True,
+        ),
+        (3, "Intro", "downloading", "", False),
+        (3, "Intro", "skipped", "Media is not streamable: 123", False),
+        (4, "Black Sheep", "downloading", "", False),
+        (4, "Black Sheep", "done", "", False),
+    ]
+    assert next(e for e in events if e["event"] == "track")["total"] is None
+
+
+def test_a_failed_track_carries_its_cause(tmp_path, monkeypatch):
+    result, events = _run_with_output(
+        tmp_path,
+        monkeypatch,
+        '[INFO 00:00:01] [Track   1/2  ] Downloading "A"',
+        '[ERROR 00:00:02] [Track   1/2  ] Error downloading "A"',
+        "Traceback (most recent call last):",
+        '  File "x.py", line 1, in f',
+        "httpx.ConnectTimeout",
+        '[INFO 00:00:03] [Track   2/2  ] Downloading "B"',
+        "[INFO 00:00:04] Finished with 1 error(s)",
+    )
+    assert result["event"] == "error"
+    tracks = _tracks(events)
+    assert tracks[1] == (1, "A", "failed", 'Error downloading "A"', False)
+    assert tracks[2] == (
+        1, "A", "failed", 'Error downloading "A" (ConnectTimeout)', False
+    )
+    assert tracks[3:] == [
+        (2, "B", "downloading", "", False),
+        (2, "B", "done", "", False),
+    ]
+    assert events[[e["event"] for e in events].index("track")]["total"] == 2

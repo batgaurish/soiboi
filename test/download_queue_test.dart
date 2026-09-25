@@ -17,6 +17,7 @@ DownloadQueueManager _manager({
         bool redownload = false,
         void Function(int, String)? onProgress,
         void Function(String)? onLog,
+        void Function(TrackStatus)? onTrack,
         String? logPath,
       }) async {
         onProgress?.call(50, 'Downloading');
@@ -321,6 +322,7 @@ void main() {
             bool redownload = false,
             void Function(int, String)? onProgress,
             void Function(String)? onLog,
+            void Function(TrackStatus)? onTrack,
             String? logPath,
           }) async {
             await handover.future; // the wrapper is still starting
@@ -354,6 +356,7 @@ void main() {
             bool redownload = false,
             void Function(int, String)? onProgress,
             void Function(String)? onLog,
+            void Function(TrackStatus)? onTrack,
             String? logPath,
           }) async {
             paths.add(logPath);

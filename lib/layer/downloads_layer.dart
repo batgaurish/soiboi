@@ -943,6 +943,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
             url: track.appleUrl!,
             label: track.title,
             subtitle: track.artist,
+            group: widget.playlist.title,
           ),
     ];
     if (requests.isEmpty) return;

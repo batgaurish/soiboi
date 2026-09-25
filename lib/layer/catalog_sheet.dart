@@ -231,6 +231,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
           url: track.url,
           label: track.title,
           subtitle: widget.artist,
+          group: widget.album,
         ),
     ]);
     void onProgress() {

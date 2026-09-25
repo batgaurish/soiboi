@@ -19,6 +19,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/services/archive_service.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
@@ -115,12 +116,35 @@ class DownloadQueueView extends StatelessWidget {
   }
 
   Widget _list(List<DownloadJob> active, List<DownloadJob> finished) {
+    // Jobs queued as one playlist's tracks sit under one header, where the
+    // group's first job would be; everything else is a row of its own.
+    final groups = <String, List<DownloadJob>>{};
+    for (final job in [...active, ...finished]) {
+      if (job.group != null) (groups[job.group!] ??= []).add(job);
+    }
+    final shown = <String>{};
+    Iterable<Widget> entries(List<DownloadJob> jobs) sync* {
+      for (final job in jobs) {
+        final group = job.group;
+        if (group == null) {
+          yield KeyedSubtree(key: ValueKey('job:${job.id}'), child: _row(job));
+        } else if (shown.add(group)) {
+          yield _DownloadGroup(
+            key: ValueKey('group:$group'),
+            name: group,
+            jobs: groups[group]!,
+            row: _row,
+          );
+        }
+      }
+    }
+
     return ListView(
       shrinkWrap: true,
       children: [
-        for (final job in active) _row(job),
+        ...entries(active),
         if (active.isNotEmpty && finished.isNotEmpty) const SizedBox(height: 6),
-        for (final job in finished) _row(job),
+        ...entries(finished),
       ],
     );
   }
@@ -130,9 +154,13 @@ class DownloadQueueView extends StatelessWidget {
   Widget _controls(int activeCount, int finishedCount) {
     return ValueListenableBuilder<bool>(
       valueListenable: downloadQueue.paused,
-      builder: (context, paused, _) => Row(
+      // Wraps rather than overflows: at 200% text a phone has no room for
+      // the count and three buttons on one line.
+      builder: (context, paused, _) => Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
             child: Text(
               activeCount == 0
                   ? '$finishedCount finished'
@@ -178,6 +206,32 @@ class DownloadQueueView extends StatelessWidget {
         job.failure?.sentence ??
         (job.status.isEmpty ? job.subtitle : job.status);
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _jobRow(job, icon, tint, detail),
+        // A playlist or album link is one job: its tracks, once the
+        // downloader reports them.
+        ValueListenableBuilder<int>(
+          valueListenable: job.tracksChanged,
+          builder: (context, _, _) => job.tracks.isEmpty
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.only(left: 26),
+                  child: _Expander(
+                    key: ValueKey('tracks:${job.id}'),
+                    name: job.label,
+                    summary: trackSummary(job.tracks),
+                    children: [for (final t in job.tracks) _trackRow(t)],
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _jobRow(DownloadJob job, IconData icon, Color tint, String? detail) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -276,6 +330,80 @@ class DownloadQueueView extends StatelessWidget {
     );
   }
 
+  Widget _trackRow(TrackStatus track) {
+    final (icon, tint, state) = switch (track.state) {
+      TrackState.done => (Icons.check_rounded, seekBarColor.value, 'done'),
+      TrackState.failed => (Icons.error_outline, failureTextColor(), 'failed'),
+      TrackState.skipped => (
+        Icons.remove_rounded,
+        textColor.value,
+        track.owned ? 'already in your library' : 'skipped',
+      ),
+      TrackState.downloading => (
+        Icons.download_rounded,
+        seekBarColor.value,
+        'downloading',
+      ),
+    };
+    final detail = switch (track.state) {
+      TrackState.failed => describeFailure(track.detail).sentence,
+      TrackState.skipped =>
+        track.owned ? 'Already in your library' : track.detail,
+      _ => null,
+    };
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: [
+        'Track ${track.index}',
+        track.title,
+        state,
+        if (track.state != TrackState.skipped || !track.owned) ?detail,
+      ].join(', '),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(icon, size: 14, color: tint),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${track.index}. ${track.title}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: highlightTextColor.value,
+                    ),
+                  ),
+                  if (detail != null && detail.isNotEmpty)
+                    Text(
+                      detail,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: track.state == TrackState.failed
+                            ? failureTextColor()
+                            : textColor.value,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   static String _spoken(DownloadJob job, String? detail) {
     final state = switch (job.state) {
       DownloadJobState.queued => 'waiting',
@@ -310,6 +438,190 @@ class DownloadQueueView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "12 of 50 done · 3 already there · 1 failed": where a list of tracks is.
+String trackSummary(List<TrackStatus> tracks) {
+  final total = tracks.map((t) => t.total).nonNulls.firstOrNull;
+  int count(TrackState state) => tracks.where((t) => t.state == state).length;
+  final owned = tracks.where((t) => t.owned).length;
+  final skipped = count(TrackState.skipped) - owned;
+  final failed = count(TrackState.failed);
+  return [
+    total == null
+        ? '${count(TrackState.done)} done'
+        : '${count(TrackState.done)} of $total done',
+    if (owned > 0) '$owned already there',
+    if (skipped > 0) '$skipped skipped',
+    if (failed > 0) '$failed failed',
+  ].join(' · ');
+}
+
+/// "12 of 50 done · 1 failed" for a playlist queued as separate jobs.
+String groupSummary(List<DownloadJob> jobs) {
+  int count(DownloadJobState state) =>
+      jobs.where((j) => j.state == state).length;
+  final failed = count(DownloadJobState.failed);
+  final cancelled = count(DownloadJobState.cancelled);
+  return [
+    '${count(DownloadJobState.done)} of ${jobs.length} done',
+    if (failed > 0) '$failed failed',
+    if (cancelled > 0) '$cancelled cancelled',
+  ].join(' · ');
+}
+
+/// The jobs of one playlist or album under a header that opens to them.
+class _DownloadGroup extends StatelessWidget {
+  const _DownloadGroup({
+    super.key,
+    required this.name,
+    required this.jobs,
+    required this.row,
+  });
+
+  final String name;
+  final List<DownloadJob> jobs;
+  final Widget Function(DownloadJob job) row;
+
+  @override
+  Widget build(BuildContext context) {
+    final running = jobs
+        .where((j) => j.state == DownloadJobState.running)
+        .firstOrNull;
+    return _Expander(
+      name: name,
+      summary: [
+        groupSummary(jobs),
+        if (running != null) 'now ${running.label}',
+      ].join(' · '),
+      heading: true,
+      children: [
+        for (final job in jobs)
+          KeyedSubtree(key: ValueKey('job:${job.id}'), child: row(job)),
+      ],
+    );
+  }
+}
+
+/// A header naming a list, with a chevron that shows or hides it. Closed at
+/// first: a fifty-track playlist would otherwise bury the rest of the queue.
+class _Expander extends StatefulWidget {
+  const _Expander({
+    super.key,
+    required this.name,
+    required this.summary,
+    required this.children,
+    this.heading = false,
+  });
+
+  final String name;
+  final String summary;
+  final List<Widget> children;
+
+  /// A playlist's own header, rather than the tracks under one job.
+  final bool heading;
+
+  @override
+  State<_Expander> createState() => _ExpanderState();
+}
+
+class _ExpanderState extends State<_Expander> {
+  var _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final header = Semantics(
+      container: true,
+      button: true,
+      expanded: _open,
+      label: 'Show tracks: ${widget.name}',
+      value: widget.summary,
+      // The InkWell adds the tap and focus to this node; the texts inside
+      // would only repeat the label.
+      child: InkWell(
+        onTap: _toggle,
+        borderRadius: BorderRadius.circular(6),
+        child: ExcludeSemantics(
+          child: ConstrainedBox(
+            // A comfortable target even when the header is one short line.
+            constraints: const BoxConstraints(minHeight: 40),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    widget.heading
+                        ? Icons.queue_music_rounded
+                        : Icons.format_list_bulleted_rounded,
+                    size: 16,
+                    color: textColor.value,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.heading)
+                          Text(
+                            widget.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: highlightTextColor.value,
+                            ),
+                          ),
+                        Text(
+                          widget.heading
+                              ? widget.summary
+                              : '${_open ? 'Hide' : 'Show'} tracks · '
+                                    '${widget.summary}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: textColor.value,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _open ? 0.5 : 0,
+                    duration: activeMotion.short,
+                    child: Icon(
+                      Icons.expand_more_rounded,
+                      size: 20,
+                      color: highlightTextColor.value,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        header,
+        if (_open)
+          Padding(
+            padding: EdgeInsets.only(left: widget.heading ? 12 : 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: widget.children,
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _toggle() => setState(() => _open = !_open);
 }
 
 /// One download's log, live: the app's own steps, then the downloader's raw

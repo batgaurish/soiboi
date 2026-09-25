@@ -269,6 +269,7 @@ Future<AppleImportOutcome> archiveApplePlaylist(
         url: catalogSongUrl(track.catalogId!, storefront),
         label: track.title,
         subtitle: track.artist,
+        group: playlist.name,
       ),
   ]);
   return AppleImportOutcome(

@@ -27,7 +27,7 @@ from typing import TextIO
 
 from . import acoustic, lyrics
 from .protocol import Emit, Event, Payload, done, error, ignore, missing_fields
-from .protocol import progress, warning
+from .protocol import progress, track, warning
 
 try:
     from gamdl.cli.cli import main as gamdl_main
@@ -89,6 +89,16 @@ _ALREADY_THERE = "Media file already exists"
 
 # "[Track   3/12 ]": how many tracks the download covers.
 _TRACK_OF = re.compile(r"\[Track\s+\d+\s*/\s*(\d+)\s*\]")
+
+# "[Track   3/-  ]": which track a line is about. A playlist's total is "-".
+_TRACK_AT = re.compile(r"\[Track\s+(\d+)\s*/\s*(\d+|-)\s*\]")
+
+# The lines that move one track along: gamdl starts it, or gives up on it.
+_TRACK_START = re.compile(r'Downloading "(?P<title>.*)"$')
+_TRACK_ERROR = re.compile(r'Error downloading "(?P<title>.*)"$')
+
+# The skip reason _already_owned gives: in the library, not a failure either.
+_OWNED = "already in your library"
 
 # Colour codes have to go before matching: structlog writes "[31m[ERROR ...".
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
@@ -167,6 +177,8 @@ class _StreamTap(io.TextIOBase):
         self._pending: list[re.Match] = []
         # The error line of the traceback being read, before causes.
         self._failure_base = ""
+        # The last `track` event sent, so a later line can finish it.
+        self._track: Event | None = None
 
     def write(self, text: str) -> int:
         # gamdl and yt-dlp write here many times a second while working, which
@@ -218,6 +230,7 @@ class _StreamTap(io.TextIOBase):
                             part for part in re.findall(r" \(\w+\)", causes)
                         )
                         self.failures[-1] = _with_cause(base, match) + bare
+                    self._update_failed_track(self.failures[-1])
                 return
 
         if _ERROR_LINE.search(line):
@@ -239,6 +252,10 @@ class _StreamTap(io.TextIOBase):
             self._pending = []
             self.failures.append(message)
             self._in_traceback = True
+            failed = _TRACK_ERROR.search(line)
+            at = _TRACK_AT.search(line)
+            if failed and at:
+                self._send_track(at, failed.group("title"), "failed", message)
             return
         exception = _EXCEPTION_LINE.match(line)
         if exception:
@@ -249,8 +266,22 @@ class _StreamTap(io.TextIOBase):
         total = _TRACK_OF.search(line)
         if total:
             self.track_total = max(self.track_total, int(total.group(1)))
+        at = _TRACK_AT.search(line)
+        if at:
+            # A playlist logs its total as "-": count the tracks seen instead,
+            # or one skip in a playlist would fail the whole download.
+            self.track_total = max(self.track_total, int(at.group(1)))
+        started = _TRACK_START.search(line)
+        if at and started:
+            self._send_track(at, started.group("title"), "downloading")
         skip = _SKIP_LINE.search(line)
         if skip:
+            if at:
+                reason = skip.group("reason")
+                owned = reason.startswith(_ALREADY_THERE) or _OWNED in reason
+                self._send_track(
+                    at, skip.group("title"), "skipped", reason, owned=owned
+                )
             if not skip.group("reason").startswith(_ALREADY_THERE):
                 self.skipped.append(_LOG_PREFIX.sub("", line).strip())
             return
@@ -270,6 +301,48 @@ class _StreamTap(io.TextIOBase):
     def flush(self) -> None:
         if self._log is not None:
             self._log.flush()
+
+    def finish(self) -> None:
+        """gamdl returned: the track it was on when it stopped is done."""
+        self._finish_downloading()
+
+    def _finish_downloading(self) -> None:
+        if self._track is not None and self._track["state"] == "downloading":
+            self._track = {**self._track, "state": "done", "detail": ""}
+            self._emit(self._track)
+
+    def _send_track(
+        self,
+        at: re.Match,
+        title: str,
+        state: str,
+        detail: str = "",
+        owned: bool = False,
+    ) -> None:
+        """One `track` event: where a playlist or album is up to, per track.
+
+        A track is done when gamdl moves on without skipping or failing it,
+        so starting the next one (or finishing) finishes the last.
+        """
+        index = int(at.group(1))
+        if self._track is None or self._track["index"] != index:
+            self._finish_downloading()
+        total = at.group(2)
+        self._track = track(
+            index,
+            int(total) if total.isdigit() else None,
+            title,
+            state,
+            detail,
+            owned=owned,
+        )
+        self._emit(self._track)
+
+    def _update_failed_track(self, message: str) -> None:
+        """A failed track's cause arrived after its error line: resend it."""
+        if self._track is not None and self._track["state"] == "failed":
+            self._track = {**self._track, "detail": message}
+            self._emit(self._track)
 
 
 def _multiprocessing_works() -> bool:
@@ -714,6 +787,7 @@ def _run_gamdl(args: list[str], tap: _StreamTap, emit: Emit) -> Event | None:
         # take the whole app down on Android.
         with contextlib.redirect_stdout(tap), contextlib.redirect_stderr(tap):
             gamdl_main(args, standalone_mode=False)
+        tap.finish()
     except DownloadCancelled:
         return error("cancelled", "Download stopped")
     except SystemExit as exc:
