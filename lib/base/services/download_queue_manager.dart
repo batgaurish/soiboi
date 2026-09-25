@@ -46,6 +46,7 @@ class DownloadJob {
     required this.url,
     required this.label,
     this.subtitle,
+    this.group,
   });
 
   final String id;
@@ -57,6 +58,30 @@ class DownloadJob {
 
   /// Optional second line: the artist, or the album a track came from.
   final String? subtitle;
+
+  /// The playlist or album this job is one track of, when a caller queued a
+  /// whole list as separate jobs. The queue shows those under one header.
+  final String? group;
+
+  /// The tracks the pipeline reported for this job, in order: a playlist or
+  /// album link is one job, and this is where each of its tracks is up to.
+  /// Empty for a single song.
+  List<TrackStatus> get tracks => List.unmodifiable(_tracks.values);
+  final _tracks = <int, TrackStatus>{};
+
+  /// Notifies the track list as tracks move along.
+  final tracksChanged = ValueNotifier(0);
+
+  void updateTrack(TrackStatus track) {
+    _tracks[track.index] = track;
+    // Kept in playlist order whatever order events arrive in.
+    final sorted = _tracks.values.toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
+    _tracks
+      ..clear()
+      ..addEntries(sorted.map((t) => MapEntry(t.index, t)));
+    tracksChanged.value++;
+  }
 
   DownloadJobState state = DownloadJobState.queued;
   int progress = 0;
@@ -111,11 +136,15 @@ class DownloadRequest {
     required this.url,
     required this.label,
     this.subtitle,
+    this.group,
   });
 
   final String url;
   final String label;
   final String? subtitle;
+
+  /// See [DownloadJob.group].
+  final String? group;
 }
 
 /// The jobs one `enqueue` produced, so a screen can follow its own work
@@ -197,6 +226,7 @@ class DownloadQueueManager {
     bool redownload,
     void Function(int progress, String status)? onProgress,
     void Function(String line)? onLog,
+    void Function(TrackStatus track)? onTrack,
     String? logPath,
   })
   archive = archiveUrl;
@@ -224,6 +254,7 @@ class DownloadQueueManager {
           url: request.url,
           label: request.label.trim().isEmpty ? request.url : request.label,
           subtitle: request.subtitle,
+          group: request.group,
         ),
     ]);
     _batches.add(batch);
@@ -372,6 +403,7 @@ class DownloadQueueManager {
           _notify();
         },
         onLog: job.addLog,
+        onTrack: job.updateTrack,
         logPath: job.downloaderLogPath,
       );
     } catch (e) {

@@ -29,6 +29,46 @@ class DownloadFailure {
   String toString() => message;
 }
 
+/// Where one track of a playlist or album download is up to, from the
+/// pipeline's `track` events. A whole playlist is one job, so this is the only
+/// way to see its tracks.
+class TrackStatus {
+  const TrackStatus({
+    required this.index,
+    required this.title,
+    required this.state,
+    this.total,
+    this.detail = '',
+    this.owned = false,
+  });
+
+  factory TrackStatus.fromEvent(Map<String, dynamic> raw) => TrackStatus(
+    index: (raw['index'] as num?)?.toInt() ?? 0,
+    total: (raw['total'] as num?)?.toInt(),
+    title: raw['title'] as String? ?? '',
+    state:
+        TrackState.values.asNameMap()[raw['state']] ?? TrackState.downloading,
+    detail: raw['detail'] as String? ?? '',
+    owned: raw['owned'] == true,
+  );
+
+  /// 1-based, in the playlist's order.
+  final int index;
+
+  /// Null when gamdl doesn't know (playlists log "-").
+  final int? total;
+  final String title;
+  final TrackState state;
+
+  /// Why it was skipped or failed.
+  final String detail;
+
+  /// Skipped because the library already has the song.
+  final bool owned;
+}
+
+enum TrackState { downloading, done, skipped, failed }
+
 /// Archives [url]. Returns null on success, or what went wrong.
 ///
 /// Never throws: callers are UI code streaming a batch, and an exception
@@ -44,6 +84,7 @@ Future<DownloadFailure?> archiveUrl(
   bool redownload = false,
   void Function(int progress, String status)? onProgress,
   void Function(String line)? onLog,
+  void Function(TrackStatus track)? onTrack,
   String? logPath,
 }) async {
   void log(String line) => onLog?.call(line);
@@ -124,6 +165,8 @@ Future<DownloadFailure?> archiveUrl(
       log('Error${event.code.isEmpty ? '' : ' (${event.code})'}: ${event.message}');
     } else if (event.isDone) {
       finished = true;
+    } else if (event.event == 'track') {
+      onTrack?.call(TrackStatus.fromEvent(event.raw));
     }
   }
   // A pipeline that dies mid-download (a Python traceback, a killed process)
