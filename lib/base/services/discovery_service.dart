@@ -21,6 +21,7 @@
 library;
 
 import 'package:soiboi/base/services/apple_catalog_service.dart';
+import 'package:soiboi/base/services/apple_library_service.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
 
 /// A discovery track, with whatever Apple resolution found.
@@ -94,9 +95,10 @@ const _resolveConcurrency = 6;
 Future<List<DiscoveryTrack>?> resolveDiscoveryTracks(
   ExternalPlaylist playlist, {
   int? limit,
-  String storefront = 'us',
+  String? storefront,
   void Function(List<DiscoveryTrack> resolved, int total)? onProgress,
 }) async {
+  storefront ??= await accountStorefront();
   final cached = _resolved[playlist.key];
   final full = _rawTracks[playlist.key]?.length;
 

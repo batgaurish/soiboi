@@ -26,6 +26,7 @@ import 'package:soiboi/l10n/generated/app_localizations_en.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/services/apple_library_service.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/custom_page_transition_builder.dart';
 import 'package:soiboi/view_entry.dart';
@@ -145,8 +146,12 @@ Future<void> _start() async {
   downloadOutputDir = resolveDownloadDir();
   downloadTempDir = '${appSupportDir.path}/download-temp';
 
-  unawaited(refreshSessionState());
-  unawaited(wrapperService.probeSignIn());
+  // In order: the storefront question needs to know which sign-in to use.
+  unawaited(() async {
+    await refreshSessionState();
+    await wrapperService.probeSignIn();
+    await refreshAppleStorefront();
+  }());
 
   runApp(
     ListenableBuilder(

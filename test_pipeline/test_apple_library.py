@@ -110,3 +110,26 @@ def test_playlist_tracks_follow_every_page():
     relation = {"data": [{"id": "1"}, {"id": "2"}], "next": "/p2", "href": "/p1"}
     items = asyncio.run(apple_library._follow_pages(FakeApi(), relation))
     assert [item["id"] for item in items] == ["1", "2", "3", "4"]
+
+
+def test_storefront_is_the_accounts(monkeypatch):
+    class Api:
+        storefront = "in"
+
+    async def fake_open(cookies_path, wrapper_url=None):
+        return Api()
+
+    monkeypatch.setattr(apple_library, "open_api", fake_open)
+    assert apple_library.handle_storefront({"cookies_path": "c"}, ignore) == {
+        "event": "done",
+        "storefront": "in",
+    }
+
+
+def test_storefront_without_a_sign_in(monkeypatch):
+    async def fake_open(cookies_path, wrapper_url=None):
+        raise FileNotFoundError(cookies_path)
+
+    monkeypatch.setattr(apple_library, "open_api", fake_open)
+    assert apple_library.storefront("c")["code"] == "no_cookies"
+    assert apple_library.handle_storefront({}, ignore)["code"] == "bad_request"

@@ -64,6 +64,17 @@ const downloadCodecLabels = <String, String>{
 /// failing later at download time.
 final downloadFolderNotifier = ValueNotifier<String>('');
 
+/// The Apple Music account's storefront ("in", "us"), remembered so catalog
+/// matching works offline too. Empty until an account has been read.
+final appleStorefrontNotifier = ValueNotifier<String>('');
+
+/// Where catalog links come from: the account's storefront, else the US.
+/// A song id from another country's catalog can be missing in the account's,
+/// and its download then fails with a 404.
+String get appleStorefront => appleStorefrontNotifier.value.isEmpty
+    ? 'us'
+    : appleStorefrontNotifier.value;
+
 /// The setup wizard was finished or skipped once. Until then, a local
 /// library with no folders opens it again at launch.
 final setupWizardDoneNotifier = ValueNotifier(false);
@@ -221,6 +232,7 @@ class Setting {
         : 'aac';
     downloadFolderNotifier.value = json['downloadFolder'] as String? ?? '';
     setupWizardDoneNotifier.value = json['setupWizardDone'] as bool? ?? false;
+    appleStorefrontNotifier.value = json['appleStorefront'] as String? ?? '';
     wvdPathNotifier.value = json['wvdPath'] as String?;
     useWrapperNotifier.value = json['useWrapper'] as bool? ?? false;
     showDownloadLogsNotifier.value = json['showDownloadLogs'] as bool? ?? false;
@@ -275,6 +287,7 @@ class Setting {
         'downloadCodec': downloadCodecNotifier.value,
         'downloadFolder': downloadFolderNotifier.value,
         'setupWizardDone': setupWizardDoneNotifier.value,
+        'appleStorefront': appleStorefrontNotifier.value,
         'wvdPath': wvdPathNotifier.value,
         'useWrapper': useWrapperNotifier.value,
         'showDownloadLogs': showDownloadLogsNotifier.value,

@@ -218,6 +218,35 @@ def list_tracks(
     return done(tracks=tracks, total=len(tracks))
 
 
+def storefront(cookies_path: str, wrapper_url: str | None = None) -> Event:
+    """The signed-in account's storefront ("in", "us"...).
+
+    Catalog links must come from it: a song id from another country's
+    catalog can be missing here, and the download then fails with a 404.
+    """
+    if AppleMusicApi is None:
+        return _unavailable()
+    _quiet_gamdl_logging()
+
+    async def read() -> str:
+        api = await open_api(cookies_path, wrapper_url)
+        return getattr(api, "storefront", None) or DEFAULT_STOREFRONT
+
+    try:
+        return done(storefront=asyncio.run(read()))
+    except FileNotFoundError:
+        return error("no_cookies", "Sign in to Apple Music first.")
+    except Exception as exc:
+        return error("failed", str(exc))
+
+
+def handle_storefront(payload: Payload, _emit: Emit) -> Event:
+    problem = missing_fields(payload, "cookies_path")
+    if problem:
+        return problem
+    return storefront(payload["cookies_path"], wrapper_url=payload.get("wrapper_url"))
+
+
 def handle_playlists(payload: Payload, emit: Emit) -> Event:
     problem = missing_fields(payload, "cookies_path")
     if problem:
