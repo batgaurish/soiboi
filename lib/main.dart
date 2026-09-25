@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:soiboi/base/services/download_notifications.dart';
+import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
@@ -105,6 +107,9 @@ Future<void> _start() async {
   // Keyboard shortcuts everywhere but TV, whose remote uses the arrows to
   // move focus; a phone or tablet with a keyboard gets them too.
   if (!isTV) keyboardInit();
+  // The download queue in the notification shade; on Android also what keeps
+  // it running in the background.
+  DownloadNotifier(downloadQueue, notifications).start();
   if (isMobile) {
     screenRadius = await ScreenCornerRadius.get();
   } else {

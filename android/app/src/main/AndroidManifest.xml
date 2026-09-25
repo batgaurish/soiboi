@@ -65,6 +65,19 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Keeps the download queue running in the background; see
+             DownloadService.kt. Special use: no other type describes
+             downloading music the user queued, and dataSync is capped at
+             six hours a day on Android 15. -->
+        <service
+            android:name=".DownloadService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Downloading music the user queued to local storage" />
+        </service>
+
         <service
             android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"

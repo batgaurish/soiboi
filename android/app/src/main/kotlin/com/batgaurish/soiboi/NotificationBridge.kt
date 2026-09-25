@@ -78,7 +78,10 @@ class NotificationBridge(engine: FlutterEngine, private val context: Context) {
                     result.success(null)
                 }
                 "dismiss" -> {
-                    manager.cancel(call.argument<Int>("id") ?: 0)
+                    val id = call.argument<Int>("id") ?: 0
+                    // Download progress ends with the service that shows it.
+                    DownloadService.stopIfShowing(context, id)
+                    manager.cancel(id)
                     result.success(null)
                 }
                 "enabled" -> result.success(manager.areNotificationsEnabled())
@@ -123,16 +126,22 @@ class NotificationBridge(engine: FlutterEngine, private val context: Context) {
 
     private fun show(call: MethodCall) {
         val id = call.argument<Int>("id") ?: return
+        val kind = call.argument<String>("channel") ?: CHANNEL_RESULTS
+        val ongoing = call.argument<Boolean>("ongoing") ?: false
+        // Ongoing download progress belongs to the foreground service that
+        // keeps downloads going in the background. That runs even without the
+        // notification permission (Android just hides the notification), so
+        // it is decided before the permission check below.
+        val foreground = ongoing && kind == CHANNEL_PROGRESS
         // Without the permission (Android 13+) the post would only be dropped.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        if (!foreground &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
         ) {
             return
         }
-        val kind = call.argument<String>("channel") ?: CHANNEL_RESULTS
         val body = call.argument<String>("body") ?: ""
-        val ongoing = call.argument<Boolean>("ongoing") ?: false
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(context, kind)
         } else {
@@ -163,7 +172,11 @@ class NotificationBridge(engine: FlutterEngine, private val context: Context) {
                 )
             }
         }
-        manager.notify(id, builder.build())
+        if (foreground) {
+            DownloadService.show(context, id, builder.build())
+        } else {
+            manager.notify(id, builder.build())
+        }
     }
 
     private fun openApp(): PendingIntent {
