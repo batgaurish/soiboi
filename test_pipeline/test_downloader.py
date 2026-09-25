@@ -179,6 +179,83 @@ def test_a_reported_gamdl_error_fails_the_download(tmp_path, monkeypatch):
     assert result["message"] == "Song is not available in your storefront"
 
 
+def _run_with_output(tmp_path, monkeypatch, *lines):
+    """Runs download() with a gamdl that only prints [lines] and exits 0."""
+
+    def fake_main(args, standalone_mode=True):
+        for line in lines:
+            print(line)
+
+    monkeypatch.setattr(downloader, "_multiprocessing_works", lambda: True)
+    monkeypatch.setattr(downloader, "_capture_gamdl_logging", lambda tap: True)
+    monkeypatch.setattr(downloader, "gamdl_main", fake_main)
+    cookies = tmp_path / "cookies.txt"
+    cookies.write_text("")
+    events = []
+    result = downloader.download(
+        downloader.DownloadRequest(
+            url="u", cookies_path=str(cookies), output_dir=str(tmp_path / "out")
+        ),
+        emit=events.append,
+    )
+    return result, events
+
+
+def test_no_subscription_fails_the_download(tmp_path, monkeypatch):
+    # gamdl logs this as CRITICAL, downloads nothing and exits 0.
+    result, _ = _run_with_output(
+        tmp_path,
+        monkeypatch,
+        "\x1b[1;31m[CRITICAL 00:00:01]\x1b[0m No active Apple Music subscription "
+        "found, you won't be able to download anything",
+        "[INFO 00:00:01] Finished with 0 error(s)",
+    )
+    assert result["code"] == "gamdl_reported_error"
+    assert result["message"].startswith("No active Apple Music subscription")
+
+
+def test_every_track_skipped_fails_the_download(tmp_path, monkeypatch):
+    result, _ = _run_with_output(
+        tmp_path,
+        monkeypatch,
+        '[WARNING 00:00:01] [URL   1/1  ] [Track   1/2  ] Skipping "Intro": '
+        "Media is not streamable: 123",
+        '[WARNING 00:00:02] [URL   1/1  ] [Track   2/2  ] Skipping "Outro": '
+        "Media is not streamable: 124",
+        "[INFO 00:00:03] Finished with 0 error(s)",
+    )
+    assert result["code"] == "gamdl_reported_error"
+    assert result["message"] == 'Skipping "Intro": Media is not streamable: 123'
+
+
+def test_some_tracks_skipped_finishes_with_a_warning(tmp_path, monkeypatch):
+    result, events = _run_with_output(
+        tmp_path,
+        monkeypatch,
+        '[WARNING 00:00:01] [URL   1/1  ] [Track   1/2  ] Skipping "Intro": '
+        "Media is not streamable: 123",
+        "[INFO 00:00:02] [URL   1/1  ] [Track   2/2  ] Downloading track",
+        "[INFO 00:00:03] Finished with 0 error(s)",
+    )
+    assert result["event"] == "done"
+    assert any(
+        e["event"] == "warning" and e["message"].startswith("Skipped 1 of 2 tracks")
+        for e in events
+    )
+
+
+def test_files_already_there_are_not_failures(tmp_path, monkeypatch):
+    # With overwrite off, "already exists" is what makes a retry cheap.
+    result, _ = _run_with_output(
+        tmp_path,
+        monkeypatch,
+        '[WARNING 00:00:01] [Track   1/1  ] Skipping "Intro": '
+        "Media file already exists: /music/Intro.m4a",
+    )
+    assert result["event"] == "done"
+
+
+
 def test_payload_fields_map_onto_the_request():
     request = downloader.DownloadRequest.from_payload({
         "url": "u",
