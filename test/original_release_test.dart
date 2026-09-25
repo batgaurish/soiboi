@@ -52,7 +52,7 @@ void main() {
       title: 'Iktara',
     );
     expect(
-      best['collectionName'],
+      best!['collectionName'],
       'Wake Up Sid (Original Motion Picture Soundtrack)',
     );
   });
@@ -64,7 +64,7 @@ void main() {
       title: 'Iktara (From "Wake Up Sid")',
     );
     expect(
-      best['collectionName'],
+      best!['collectionName'],
       'Wake Up Sid (Original Motion Picture Soundtrack)',
     );
   });
@@ -84,7 +84,7 @@ void main() {
       ),
     ]);
     expect(
-      best['collectionName'],
+      best!['collectionName'],
       'Wake Up Sid (Original Motion Picture Soundtrack)',
     );
   });
@@ -111,15 +111,34 @@ void main() {
       artist: 'Shawn Mendes',
       title: 'Treat You Better',
     );
-    expect(best['collectionName'], 'Illuminate');
+    expect(best!['collectionName'], 'Illuminate');
   });
 
-  test('no row for the asked song keeps the top hit', () {
-    final best = pickOriginalRelease(
-      iktara,
-      artist: 'Someone Else',
-      title: 'Another Song',
+  test('no row for the asked song or artist is no match, not a cover', () {
+    // The store's top hits for Måneskin's song were other artists' covers.
+    final covers = [
+      row(
+        'I Wanna Be Your Slave (feat. Margad)',
+        'I Wanna Be Your Slave (feat. Margad) - Single',
+        artist: 'Jaydan Wolf, Te Pai & Daniel Chord',
+      ),
+      row(
+        'I Wanna Be Your Slave',
+        'I Wanna Be Your Slave - Single',
+        artist: 'Guillo Rist & Tinho Vaamonde',
+      ),
+    ];
+    expect(
+      pickOriginalRelease(
+        covers,
+        artist: 'Måneskin',
+        title: 'I Wanna Be Your Slave',
+      ),
+      isNull,
     );
-    expect(best, same(iktara.first));
+    expect(
+      pickOriginalRelease(iktara, artist: 'Someone Else', title: 'Another'),
+      isNull,
+    );
   });
 }
