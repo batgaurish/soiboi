@@ -5,6 +5,11 @@ Paste this at the start of a new session. It was last rewritten on
 expansion plan. The sections from "How the lossless wrapper is put together"
 onward are carried over from the previous handover and are still accurate.
 
+> **Start here:** the user has approved publishing two test builds, and it
+> is one command: `tools/release_test_builds.sh` (dry run first with
+> `--dry-run`). Details under "FIRST TASK" below. Then wait for the user's
+> test results before starting Phase 2.
+
 ---
 
 ## What Soiboi is
@@ -88,7 +93,8 @@ The user approved fixing three stable-line bugs on `main`, merging them into
 the branch and cutting two test pre-releases. That is done in git, but the
 last, outward-facing steps were blocked in the cloud session (its permission
 check refused pushing `main` and tags) and could not be done there anyway
-(no Android SDK, no signing key). So:
+(no Android SDK, no signing key). They are now one script; see **FIRST
+TASK** below. State:
 
 - `origin/scope-expansion` is at **`94da507`** (Version 1.2.0-beta.1) and
   contains everything, including the four `main` commits below.
@@ -104,32 +110,53 @@ check refused pushing `main` and tags) and could not be done there anyway
 
 - No tags pushed, no releases created, no APKs built.
 
-**The user was given these steps to run on their machine** (check with them
-whether they did before doing anything):
+### FIRST TASK for the next session: publish the two test builds
+
+The user has already approved all of this (pushing `main`, both tags, both
+APKs, both pre-releases). It is one script, to run on the user's machine,
+where the release key and the Android SDK are:
 
 ```bash
-git fetch origin
-git push origin b802a83:main               # fast-forward main to the fixes
-git tag -a v1.1.8-rc.1 b802a83 -m "1.1.8 release candidate 1"
-git tag -a v1.2.0-beta.1 94da507 -m "1.2.0 beta 1 (Phases 0-1)"
-git push origin v1.1.8-rc.1 v1.2.0-beta.1
-
-for v in v1.1.8-rc.1 v1.2.0-beta.1; do
-  git switch --detach $v && tools/apply_patches.sh &&
-  flutter build apk --release --target-platform android-arm64 &&
-  cp build/app/outputs/flutter-apk/app-release.apk ~/soiboi-android-arm64-$v.apk
-  git checkout -- .
-done
-
-gh release create v1.1.8-rc.1 ~/soiboi-android-arm64-v1.1.8-rc.1.apk \
-  -R batgaurish/soiboi --prerelease --title "1.1.8 RC 1" --notes "..."
-gh release create v1.2.0-beta.1 ~/soiboi-android-arm64-v1.2.0-beta.1.apk \
-  -R batgaurish/soiboi --prerelease --title "1.2.0 beta 1" --notes "..."
+tools/release_test_builds.sh --dry-run   # checks only; prints every step
+tools/release_test_builds.sh             # does it
 ```
 
-Install order on the phone: RC first (versionCode 19), then the beta (20).
-Going back from the beta to the RC needs an uninstall. Each ~600 MB upload
-takes about 25 minutes; background it.
+What it does, in order (see the script's header):
+
+1. Checks: `flutter` and `gh` present, `gh` signed in,
+   `android/key.properties` present (**never generate a new key**), clean
+   working tree, `origin` is `batgaurish/soiboi`, `b802a83` is in
+   `scope-expansion`'s history, `origin/main` can fast-forward to it, and
+   the two commits carry versions 1.1.8+19 and 1.2.0-beta.1+20. Any
+   failure stops it before anything is changed.
+2. `git push origin b802a83:refs/heads/main` (fast-forward only).
+3. Creates and pushes the annotated tags `v1.1.8-rc.1` (b802a83) and
+   `v1.2.0-beta.1` (94da507). An existing tag is reused only if it points
+   at the same commit.
+4. For each tag: checks it out, `flutter pub get`,
+   `tools/apply_patches.sh`, `tools/build_android_pipeline.sh` only if
+   `android/pip-repo` is missing (uses `$ANDROID_NDK`, default
+   `~/Android/Sdk/ndk/28.2.13676358`), `flutter build apk --release
+   --target-platform android-arm64`, and copies the APK to
+   `~/soiboi-test-builds/soiboi-android-arm64-<tag>.apk` (`$OUT` overrides).
+   It goes back to the branch you started on at the end, even on failure.
+5. `gh release create <tag> <apk> --verify-tag --prerelease --latest=false`
+   with release notes written into the script. A release that already
+   exists just gets the APK uploaded.
+
+Everything is re-runnable: finished steps are skipped. Each APK upload
+takes about 25 minutes, so run it in the background and check back. The
+dry run was tested in the cloud session against the real GitHub state
+(all checks passed); the real run was not, since that container has no
+Android SDK and no key.
+
+Afterwards: tell the user both release links, and that the RC goes on the
+phone first (versionCode 19), then the beta (20).
+
+If the next session is a cloud session again, it can't run this (no SDK,
+no key, and pushes to `main` or tags may be blocked). Tell the user to run
+`tools/release_test_builds.sh` locally, or to start a session on their
+machine.
 
 **What the user will do next:** test both builds, then say whether it is
 time to put everything onto `main` and cut an official release. Don't
