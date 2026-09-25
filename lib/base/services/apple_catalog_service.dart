@@ -118,68 +118,85 @@ Future<AppleMatch?> resolveAppleTrack(
   final key = '$storefront\u0000${_key(artist, title)}';
   if (_cache.containsKey(key)) return _cache[key];
 
+  // The full credit first, then narrower searches: a long credit can pull in
+  // a different song entirely (ListenBrainz's "Mohammed Irfan, Mithoon, Saim
+  // Bhat & Arijit Phir Mohabbat" finds "Aye Khuda"), while the first artist
+  // and the plain title find it. Every candidate must still match the artist.
+  final bare = bareSongTitle(title);
+  final terms = <String>{
+    '$artist $title',
+    '${artist.split(_creditSplit).first.trim()} $bare',
+    bare,
+  };
+  for (final term in terms) {
+    final rows = await _searchSongs(term, storefront);
+    // Timed out or failed: worth asking again later, so nothing is cached.
+    if (rows == null) return null;
+    final first = pickOriginalRelease(rows, artist: artist, title: title);
+    final url = first?['trackViewUrl'] as String?;
+    if (first == null || url == null) continue;
+    final match = AppleMatch(
+      url: url,
+      album: first['collectionName'] as String?,
+      // The API returns a 100px thumbnail; asking for 300 keeps card artwork
+      // from looking soft on a phone.
+      artwork: (first['artworkUrl100'] as String?)?.replaceAll(
+        '100x100bb',
+        '300x300bb',
+      ),
+      previewUrl: first['previewUrl'] as String?,
+      trackId: first['trackId']?.toString(),
+    );
+    _cache[key] = match;
+    return match;
+  }
+  _cache[key] = null;
+  return null;
+}
+
+/// Song rows for [term], up to 25 (not just the top hit, which is often a
+/// compilation's copy; see [pickOriginalRelease]). Empty when there are
+/// none; null when the search failed or timed out even after one retry,
+/// which is worth trying again later rather than remembering.
+Future<List<Map<String, dynamic>>?> _searchSongs(
+  String term,
+  String storefront,
+) async {
   for (var attempt = 0; attempt < 2; attempt++) {
     try {
       final uri = Uri.https(_host, '/search', {
-        'term': '$artist $title',
+        'term': term,
         'entity': 'song',
-        // Not just the top hit: it is often a compilation's copy. See
-        // [pickOriginalRelease].
         'limit': '25',
         'country': storefront,
       });
       final resp = await http.get(uri).timeout(_timeout);
       if (resp.statusCode != 200) {
-        // A non-200 is transient (rate-limit, maintenance) — retry once
-        // before caching null, so a momentary hiccup doesn't become a
-        // permanent "not found".
+        // A non-200 is transient (rate-limit, maintenance): retry once.
         if (attempt == 0) {
           await Future.delayed(const Duration(milliseconds: 500));
           continue;
         }
-        _cache[key] = null;
         return null;
       }
       final body = jsonDecode(utf8.decode(resp.bodyBytes));
       final results = (body is Map ? body['results'] : null) as List?;
       if (results == null || results.isEmpty) {
+        // iTunes Search occasionally answers nothing for a track that
+        // exists; one retry before believing it.
         if (attempt == 0) {
           await Future.delayed(const Duration(milliseconds: 500));
           continue;
         }
-        _cache[key] = null;
-        return null;
+        return const [];
       }
-      final rows = [
-        for (final r in results) (r as Map).cast<String, dynamic>(),
-      ];
-      final first = pickOriginalRelease(rows, artist: artist, title: title);
-      final url = first?['trackViewUrl'] as String?;
-      if (first == null || url == null) {
-        _cache[key] = null;
-        return null;
-      }
-
-      final match = AppleMatch(
-        url: url,
-        album: first['collectionName'] as String?,
-        // The API returns a 100px thumbnail; asking for 300 keeps card artwork
-        // from looking soft on a phone.
-        artwork: (first['artworkUrl100'] as String?)?.replaceAll(
-          '100x100bb',
-          '300x300bb',
-        ),
-        previewUrl: first['previewUrl'] as String?,
-        trackId: first['trackId']?.toString(),
-      );
-      _cache[key] = match;
-      return match;
+      return [for (final r in results) (r as Map).cast<String, dynamic>()];
     } on TimeoutException {
-      if (attempt == 0) continue; // retry once
-      return null; // not cached: a timeout is worth retrying later
+      if (attempt == 0) continue;
+      return null;
     } catch (e) {
       logger.output('apple search: $e');
-      return null; // not cached: a parse error is worth retrying later
+      return null;
     }
   }
   return null;
@@ -209,14 +226,13 @@ Map<String, dynamic>? pickOriginalRelease(
   var pool = rows;
   if (artist != null && title != null) {
     final wantTitle = normaliseForMatch(bareSongTitle(title));
-    final wantArtist = normaliseForMatch(_mainArtist(artist));
     final same = [
       for (final row in rows)
         if (normaliseForMatch(
                   bareSongTitle(row['trackName'] as String? ?? ''),
                 ) ==
                 wantTitle &&
-            _sameArtist(wantArtist, row['artistName'] as String? ?? ''))
+            sameArtist(artist, row['artistName'] as String? ?? ''))
           row,
     ];
     if (same.isEmpty) return null;
@@ -234,15 +250,62 @@ Map<String, dynamic>? pickOriginalRelease(
   return best;
 }
 
-String _mainArtist(String artist) => artist
-    .split(RegExp(r',|&|\bfeat\.?|\bft\.?|\bx\b', caseSensitive: false))
-    .first;
+final _creditSplit = RegExp(
+  r',|&|\band\b|\bfeat\.?|\bft\.?|\bx\b|\bwith\b',
+  caseSensitive: false,
+);
 
-bool _sameArtist(String wantMain, String candidate) {
-  if (wantMain.isEmpty) return true;
-  final have = normaliseForMatch(candidate);
-  return have.contains(wantMain) ||
-      wantMain.contains(normaliseForMatch(_mainArtist(candidate)));
+/// Each credited artist of [credit], normalised: "Mohammed Irfan, Arijit &
+/// Saim Bhat" is three.
+List<String> _artists(String credit) => [
+  for (final name in credit.split(_creditSplit))
+    if (normaliseForMatch(name) case final n when n.isNotEmpty) n,
+];
+
+/// Whether two credits share an artist. Sources credit differently and spell
+/// differently: ListenBrainz's "Mohammad Irfan" or "Arijit Singh" is Apple's
+/// "Mohammed Irfan, Arijit & Saim Bhat". So any artist of one may match any
+/// of the other, by containment or within a letter or two, while an
+/// unrelated artist ("Jaydan Wolf" for "Måneskin") does not. A credit with
+/// no Latin letters says nothing either way, so it matches.
+bool sameArtist(String want, String candidate) {
+  final wants = _artists(want);
+  if (wants.isEmpty) return true;
+  final haves = _artists(candidate);
+  for (final w in wants) {
+    for (final h in haves) {
+      if (w == h) return true;
+      if (w.length >= 4 && h.length >= 4 && (w.contains(h) || h.contains(w))) {
+        return true;
+      }
+      if (_nearlySame(w, h)) return true;
+    }
+  }
+  return false;
+}
+
+/// Two letters apart for names of eight or more, one for five to seven,
+/// none below that ("Sia" is not "SZA").
+bool _nearlySame(String a, String b) {
+  final shorter = a.length < b.length ? a.length : b.length;
+  final allowed = shorter >= 8 ? 2 : (shorter >= 5 ? 1 : 0);
+  if (allowed == 0) return false;
+  if ((a.length - b.length).abs() > allowed) return false;
+  // Levenshtein distance, row by row.
+  var previous = List<int>.generate(b.length + 1, (i) => i);
+  for (var i = 1; i <= a.length; i++) {
+    final current = List<int>.filled(b.length + 1, 0)..[0] = i;
+    for (var j = 1; j <= b.length; j++) {
+      final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+      current[j] = [
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + cost,
+      ].reduce((x, y) => x < y ? x : y);
+    }
+    previous = current;
+  }
+  return previous[b.length] <= allowed;
 }
 
 final _editionWords = RegExp(

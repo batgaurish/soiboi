@@ -141,4 +141,47 @@ void main() {
       isNull,
     );
   });
+
+  test('artists match across credits and spellings, not across people', () {
+    const apple = 'Mohammed Irfan, Arijit & Saim Bhat';
+    expect(sameArtist('Mohammad Irfan', apple), isTrue); // one letter
+    expect(sameArtist('Arijit Singh', apple), isTrue); // "Arijit" alone
+    expect(sameArtist('Saim Bhat', apple), isTrue); // not the first credit
+    expect(
+      sameArtist('Måneskin', 'Jaydan Wolf, Te Pai & Daniel Chord'),
+      isFalse,
+    );
+    expect(sameArtist('Måneskin', 'Måneskin'), isTrue);
+    expect(sameArtist('Shawn Mendes', 'Shawn Mendes & Camila Cabello'), isTrue);
+    expect(sameArtist('Sia', 'Sza'), isFalse); // too short to guess
+    expect(
+      sameArtist('अरिजीत सिंह', 'Arijit Singh'),
+      isTrue,
+    ); // no Latin letters
+  });
+
+  test('a respelled artist still finds the soundtrack', () {
+    final rows = [
+      row(
+        'Phir Mohabbat (From "Murder 2")',
+        'Best of Arijit Singh',
+        artist: 'Mohammed Irfan, Arijit Singh & Saim Bhat',
+        collectionArtist: 'Various Artists',
+      ),
+      row(
+        'Phir Mohabbat',
+        'Murder 2 (Original Motion Picture Soundtrack)',
+        artist: 'Mohammed Irfan, Arijit & Saim Bhat',
+      ),
+    ];
+    final best = pickOriginalRelease(
+      rows,
+      artist: 'Mohammad Irfan',
+      title: 'Phir Mohabbat',
+    );
+    expect(
+      best!['collectionName'],
+      'Murder 2 (Original Motion Picture Soundtrack)',
+    );
+  });
 }
