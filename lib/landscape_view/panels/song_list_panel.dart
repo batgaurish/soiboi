@@ -1062,11 +1062,14 @@ extension _SongListPanel on _SongListState {
       }
     }
 
+    // Works on the whole selection: Ctrl- and Shift-click pick several.
+    menuItems.addAll(deleteMenuItems(context, selectedSongList));
+
     if (playlist != null) {
       menuItems.add(
         MenuItem(
-          text: l10n.delete,
-          iconData: Icons.delete_rounded,
+          text: 'Remove from playlist',
+          iconData: Icons.playlist_remove_rounded,
           callback: () async {
             if (await showConfirmDialog(context, l10n.delete)) {
               playlist!.remove(selectedSongList);

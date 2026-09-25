@@ -755,10 +755,20 @@ extension _SongListPage on _SongListState {
                             },
                           ),
 
+                        if (canDeleteFromDevice(song))
+                          optionItem(
+                            text: 'Delete from device',
+                            leading: Icon(Icons.delete_forever_rounded),
+                            onTap: () {
+                              Navigator.pop(context);
+                              confirmAndDeleteSongs(this.context, [song]);
+                            },
+                          ),
+
                         if (playlist != null)
                           optionItem(
-                            text: l10n.delete,
-                            leading: Icon(Icons.delete_rounded),
+                            text: 'Remove from playlist',
+                            leading: Icon(Icons.playlist_remove_rounded),
                             onTap: () async {
                               if (await showConfirmDialog(
                                 context,
