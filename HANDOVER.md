@@ -109,6 +109,7 @@ Published: **v1.1.7** is the latest official release. Test pre-releases
 | `v1.2.0-beta.2` | `2f5e817` | scope-expansion | 21 | APK + Linux tarball |
 | `v1.2.0-beta.3` | `f6823bd` | scope-expansion | 22 | APK + Linux tarball |
 | `v1.2.0-beta.4` | `7ebd563` | scope-expansion | 23 | APK + Linux tarball |
+| `v1.2.0-beta.5` | `0e3277a` | scope-expansion | 24 | APK + Linux tarball |
 
 beta.3 is the one to test on the branch; rc.2 on the stable line. beta.3's
 versionCode 22 installs over everything; going back to an RC afterwards
