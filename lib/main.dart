@@ -24,6 +24,8 @@ import 'package:soiboi/base/services/single_instance.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/l10n/generated/app_localizations_en.dart';
 import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/custom_page_transition_builder.dart';
 import 'package:soiboi/view_entry.dart';
@@ -364,6 +366,12 @@ Future<void> _start() async {
   );
   logger.output('App start');
   await Loader.load();
+  if (!firstLaunch &&
+      !setupWizardDoneNotifier.value &&
+      sourceType == .local &&
+      library.folderList.isEmpty) {
+    needsSetupNotifier.value = true;
+  }
   await loadAiConfig();
 }
 

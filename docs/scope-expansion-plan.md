@@ -150,6 +150,22 @@ shortcuts, and every palette comes from album art with no contrast check.
   folder selection) rather than copying them.
   *Done when:* a fresh install reaches its first finished download without
   opening Settings.
+  *Status:* built (`lib/layer/setup_wizard.dart`). Replaces the first-launch
+  source picker, also opens at launch while a local library has no folders
+  and the wizard was never finished (`setupWizardDone`), and from Settings >
+  Setup wizard. Hosts `ManageMusicFolders` (new `inline` mode),
+  `LosslessSetup`, `AppleSignInLayer`, and the quality, folder and
+  ListenBrainz controls now shared with Settings (`download_options.dart`,
+  `listenbrainz_form.dart`). Summary ends in "Start listening" or "Find music
+  to download" (opens Downloads). Checked: widget tests (every step skippable,
+  labelled tap targets and text contrast on each step, a live region that
+  announces each step, Back, 200% text on a phone); a fresh Linux profile on
+  Xvfb through all five steps into the app; on the emulator, the wizard from
+  Settings (folder add and remove, lossless sign-in detected, ALAC chosen),
+  then "Find music to download" and a real ALAC download finished from
+  Downloads. Not checked: a literally fresh Android install signing in and
+  downloading (clearing the emulator app would lose its wrapper sign-in), and
+  TalkBack.
 - [ ] **2.2 Status panel** (M). The "Before you can archive" card grows into
   one panel covering the Apple account (which sign-in, and when it expires),
   the wrapper, the download engine, free space in the download folder and

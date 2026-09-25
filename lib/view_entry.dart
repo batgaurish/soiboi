@@ -6,20 +6,16 @@ import 'package:flutter/services.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/config.dart';
-import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
-import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/system_ui_service.dart';
 import 'package:soiboi/base/services/taskbar_service.dart';
 import 'package:soiboi/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:soiboi/base/utils/media_query.dart';
-import 'package:soiboi/base/utils/source_type.dart';
-import 'package:soiboi/base/widgets/connect_client_widget.dart';
-import 'package:soiboi/base/widgets/manage_music_folders.dart';
+import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/layer/setup_wizard.dart';
 import 'package:soiboi/big_picture_view/big_picture_view.dart';
-import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/landscape_view.dart';
 import 'package:soiboi/landscape_view/sidebar.dart';
 import 'package:soiboi/layer/layers_manager.dart';
@@ -102,6 +98,10 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
         if (didPop | isTyping | isTV) {
           return;
         }
+        // The setup wizard has its own Back: previous step, or leave.
+        if (firstLaunch || needsSetupNotifier.value) {
+          return;
+        }
         // Back walks the app the way it was walked: close the drawer, close
         // a detail page, return to the previous section, and with nothing
         // left, show the sidebar. Back once more from that sidebar leaves.
@@ -139,9 +139,15 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
   }
 
   Widget view() {
-    if (firstLaunch) {
-      return firstLaunchView();
-    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: needsSetupNotifier,
+      builder: (context, needsSetup, _) => firstLaunch || needsSetup
+          ? SetupWizard(firstRun: firstLaunch, onFinish: _finishSetup)
+          : _appView(),
+    );
+  }
+
+  Widget _appView() {
     return ValueListenableBuilder(
       valueListenable: viewModeNotifier,
       builder: (context, viewMode, child) {
@@ -188,223 +194,34 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
     );
   }
 
-  Widget firstLaunchView() {
-    final l10n = AppLocalizations.of(context);
+  /// Leaves the setup wizard shown in place of the app.
+  ///
+  /// On the first launch this is what "Get started" used to do: save the
+  /// chosen source and scan the library for the first time.
+  Future<void> _finishSetup(SetupResult result) async {
+    final wasFirstLaunch = firstLaunch;
+    setupWizardDoneNotifier.value = true;
+    setting.save();
+    setState(() {
+      firstLaunch = false;
+      needsSetupNotifier.value = false;
+    });
 
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 600;
-
-              return CustomScrollView(
-                slivers: [
-                  SliverPadding(
-                    padding: EdgeInsets.only(
-                      left: 20,
-                      right: 20,
-                      top: MediaQuery.of(context).padding.top == 0
-                          ? 20
-                          : MediaQuery.of(context).padding.top,
-                      bottom: 20,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        Center(
-                          child: Text(
-                            l10n.chooseMusicSource,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 24,
-                            ),
-                          ),
-                        ),
-                      ]),
-                    ),
-                  ),
-
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    sliver: isCompact
-                        ? SliverGrid(
-                            delegate: SliverChildListDelegate([
-                              _buildSourceCard(
-                                thisSourceType: .local,
-                                color: iconColor.value,
-                              ),
-                              _buildSourceCard(
-                                thisSourceType: .webdav,
-                                color: iconColor.value,
-                              ),
-                              _buildSourceCard(thisSourceType: .navidrome),
-                              _buildSourceCard(thisSourceType: .emby),
-                            ]),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 5,
-                                  crossAxisSpacing: 5,
-                                ),
-                          )
-                        : SliverToBoxAdapter(
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _buildSourceCard(
-                                    thisSourceType: .local,
-                                    color: iconColor.value,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildSourceCard(
-                                    thisSourceType: .webdav,
-
-                                    color: iconColor.value,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildSourceCard(
-                                    thisSourceType: .navidrome,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildSourceCard(
-                                    thisSourceType: .emby,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
-
-                  if (sourceType != .local) ...[
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      sliver: SliverToBoxAdapter(
-                        child: Card(
-                          child: ConnectClientWidget(
-                            key: ValueKey(sourceType),
-                            sourceType: sourceType,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                  ],
-
-                  if (isNotStreamSource) ...[
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30),
-                      sliver: SliverToBoxAdapter(
-                        child: Card(
-                          child: ManageMusicFolders(key: ValueKey(sourceType)),
-                        ),
-                      ),
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                  ],
-
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    sliver: SliverToBoxAdapter(
-                      child: Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          mouseCursor: SystemMouseCursors.click,
-                          onTap: () async {
-                            setState(() {
-                              firstLaunch = false;
-                            });
-
-                            if (Platform.isIOS) {
-                              WidgetsBinding.instance.addPostFrameCallback((
-                                _,
-                              ) async {
-                                await NativeMenu.init();
-                              });
-                            }
-
-                            config.save();
-                            await Loader.firstSync();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 12,
-                            ),
-                            child: Center(child: Text(l10n.getStart)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SliverToBoxAdapter(child: SizedBox(height: 40)),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSourceCard({required SourceType thisSourceType, Color? color}) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          mouseCursor: SystemMouseCursors.click,
-          onTap: () async {
-            sourceType = thisSourceType;
-            library = Library();
-            if (isNotStreamSource) {
-              await library.initFolders();
-            }
-            if (mounted) {
-              setState(() {});
-            }
-          },
-          child: Stack(
-            children: [
-              Transform.scale(
-                scale: 0.6,
-                child: Center(
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Image(
-                          image: getSourceTypeImage(thisSourceType),
-                          color: color,
-                        ),
-                      ),
-                      Text(
-                        getSourceTypeDisplayName(
-                          AppLocalizations.of(context),
-                          thisSourceType,
-                        ),
-                        style: .new(fontSize: 24),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              if (sourceType == thisSourceType)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Icon(Icons.check_circle, color: Colors.black),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
+    if (wasFirstLaunch) {
+      if (Platform.isIOS) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await NativeMenu.init();
+        });
+      }
+      config.save();
+      // firstSync opens Songs as it starts; Downloads replaces it at once
+      // when that is where the user asked to go.
+      final sync = Loader.firstSync();
+      if (result.openDownloads) layersManager.switchRootLayer('downloads');
+      await sync;
+      return;
+    }
+    if (result.openDownloads) layersManager.switchRootLayer('downloads');
+    if (result.foldersChanged) await Loader.sync();
   }
 }
