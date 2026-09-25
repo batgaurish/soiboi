@@ -48,11 +48,17 @@ def _quiet_gamdl_logging() -> None:
     Left alone it writes the account payload, tokens included, into the same
     stream this module answers on. That corrupts the JSON the app parses and
     puts credentials somewhere they have no reason to be.
+
+    INFO, not higher: this configuration is global, and on Android a playlist
+    read runs in the same interpreter as a download. Filtering at CRITICAL
+    silenced the download in flight, so it sat on "Starting" with an empty
+    log and a stop could never land. Every request log gamdl's API writes is
+    DEBUG, and INFO is the level gamdl's own CLI runs at.
     """
     if structlog is None:
         return
     structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL)
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO)
     )
 
 

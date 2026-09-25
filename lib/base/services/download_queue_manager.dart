@@ -70,9 +70,8 @@ class DownloadJob {
   String errorCode = '';
 
   /// [error] in plain words, with what fixes it. Null unless failed.
-  FailureExplanation? get failure => error == null
-      ? null
-      : describeFailure(error!, code: errorCode);
+  FailureExplanation? get failure =>
+      error == null ? null : describeFailure(error!, code: errorCode);
 
   /// What the app did for this job, timestamped: the steps before the
   /// downloader starts (wrapper, sign-in) as well as each stage it reports.
@@ -108,7 +107,11 @@ class DownloadJob {
 /// What a caller asks for. Separate from [DownloadJob] so the manager owns
 /// job identity and state, and callers cannot hand it a half-built job.
 class DownloadRequest {
-  const DownloadRequest({required this.url, required this.label, this.subtitle});
+  const DownloadRequest({
+    required this.url,
+    required this.label,
+    this.subtitle,
+  });
 
   final String url;
   final String label;
@@ -262,6 +265,9 @@ class DownloadQueueManager {
     if (job == null) return;
     _afterStop = then;
     job.status = 'Stopping';
+    job.addLog(
+      then == DownloadJobState.queued ? 'Pause requested' : 'Stop requested',
+    );
     _notify();
     unawaited(stopActive());
   }
@@ -327,7 +333,13 @@ class DownloadQueueManager {
     // folder, and the log is what explains the stop.
     final logDir = p.join(p.dirname(downloadTempDir), 'download-logs');
     _pruneLogs(logDir);
-    job.downloaderLogPath = p.join(logDir, '${job.id}.log');
+    // Unique per job, and kept across a pause or retry of the same job. Job
+    // ids restart at 0 with every launch, and the pipeline appends, so a
+    // bare id put every launch's first download into one file.
+    job.downloaderLogPath ??= p.join(
+      logDir,
+      '${DateTime.now().millisecondsSinceEpoch}-${job.id}.log',
+    );
     job.addLog('Starting ${job.url}');
 
     DownloadFailure? error;
@@ -335,6 +347,13 @@ class DownloadQueueManager {
       error = await archive(
         job.url,
         onProgress: (progress, status) {
+          // A stop pressed before the downloader started (while the wrapper
+          // was starting, say) reached a pipeline that clears the flag when
+          // a download begins. Say it again now that one is running.
+          if (_afterStop != null && identical(active.value, job)) {
+            unawaited(stopActive());
+            return;
+          }
           if (status != job.status) job.addLog('$progress%  $status');
           job.progress = progress;
           job.status = status;
@@ -349,7 +368,11 @@ class DownloadQueueManager {
       error = DownloadFailure('$e');
     }
 
-    if (error == null) {
+    final stoppedAs = _afterStop;
+    _afterStop = null;
+    if (stoppedAs != null) {
+      job.addLog(stoppedAs == DownloadJobState.queued ? 'Paused' : 'Stopped');
+    } else if (error == null) {
       job.addLog('Finished');
     } else {
       job.addLog('Failed: ${error.message}');
@@ -360,8 +383,6 @@ class DownloadQueueManager {
             : 'Catalog: ${explained.id} (${explained.title})',
       );
     }
-    final stoppedAs = _afterStop;
-    _afterStop = null;
     if (stoppedAs != null) {
       // Stopped on purpose: a pause requeues the job, a cancel drops it.
       job.state = stoppedAs;
