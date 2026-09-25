@@ -20,6 +20,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/logger.dart';
 
 const _host = 'itunes.apple.com';
@@ -120,7 +121,9 @@ Future<AppleMatch?> resolveAppleTrack(
       final uri = Uri.https(_host, '/search', {
         'term': '$artist $title',
         'entity': 'song',
-        'limit': '1',
+        // Not just the top hit: it is often a compilation's copy. See
+        // [pickOriginalRelease].
+        'limit': '25',
         'country': storefront,
       });
       final resp = await http.get(uri).timeout(_timeout);
@@ -145,7 +148,10 @@ Future<AppleMatch?> resolveAppleTrack(
         _cache[key] = null;
         return null;
       }
-      final first = (results.first as Map).cast<String, dynamic>();
+      final rows = [
+        for (final r in results) (r as Map).cast<String, dynamic>(),
+      ];
+      final first = pickOriginalRelease(rows, artist: artist, title: title);
       final url = first['trackViewUrl'] as String?;
       if (url == null) {
         _cache[key] = null;
@@ -177,6 +183,83 @@ Future<AppleMatch?> resolveAppleTrack(
   return null;
 }
 
+/// The row for the song's own release among iTunes Search [rows].
+///
+/// Apple sells a song on its original album and again on every compilation
+/// that licensed it ("Chai aur Baarish", "Now That's What I Call Music!"),
+/// and search often ranks a compilation first. A download takes its album,
+/// cover and track number from the row chosen here, so prefer, in order:
+/// not a Various Artists compilation, a title without a compilation's
+/// `(From "Film")` credit, an album over a single or EP, and the plain
+/// edition over a deluxe or anniversary one. Ties keep Apple's order.
+///
+/// With [artist] and [title], rows for other songs (live takes, remixes,
+/// other artists) are left out first; if none are left, Apple's top hit is
+/// kept, as before.
+Map<String, dynamic> pickOriginalRelease(
+  List<Map<String, dynamic>> rows, {
+  String? artist,
+  String? title,
+}) {
+  var pool = rows;
+  if (artist != null && title != null) {
+    final wantTitle = normaliseForMatch(bareSongTitle(title));
+    final wantArtist = normaliseForMatch(_mainArtist(artist));
+    final same = [
+      for (final row in rows)
+        if (normaliseForMatch(
+                  bareSongTitle(row['trackName'] as String? ?? ''),
+                ) ==
+                wantTitle &&
+            _sameArtist(wantArtist, row['artistName'] as String? ?? ''))
+          row,
+    ];
+    if (same.isEmpty) return rows.first;
+    pool = same;
+  }
+  var best = pool.first;
+  var bestCost = _releaseCost(best);
+  for (final row in pool.skip(1)) {
+    final cost = _releaseCost(row);
+    if (cost < bestCost) {
+      best = row;
+      bestCost = cost;
+    }
+  }
+  return best;
+}
+
+String _mainArtist(String artist) => artist
+    .split(RegExp(r',|&|\bfeat\.?|\bft\.?|\bx\b', caseSensitive: false))
+    .first;
+
+bool _sameArtist(String wantMain, String candidate) {
+  if (wantMain.isEmpty) return true;
+  final have = normaliseForMatch(candidate);
+  return have.contains(wantMain) ||
+      wantMain.contains(normaliseForMatch(_mainArtist(candidate)));
+}
+
+final _editionWords = RegExp(
+  r'deluxe|anniversary|expanded|remaster|special edition|bonus',
+  caseSensitive: false,
+);
+
+int _releaseCost(Map<String, dynamic> row) {
+  final collection = row['collectionName'] as String? ?? '';
+  final track = row['trackName'] as String? ?? '';
+  final collectionArtist = (row['collectionArtistName'] as String? ?? '')
+      .toLowerCase();
+  var cost = 0;
+  if (collectionArtist == 'various artists') cost += 8;
+  if (bareSongTitle(track) != track.trim() &&
+      RegExp(r'from\s', caseSensitive: false).hasMatch(track)) {
+    cost += 4;
+  }
+  if (RegExp(r'\s-\s(Single|EP)$').hasMatch(collection)) cost += 2;
+  if (_editionWords.hasMatch(collection)) cost += 1;
+  return cost;
+}
 
 /// Higher-resolution artwork than the API's default 100px thumbnail.
 String? _artworkAt(String? url, int size) =>
@@ -232,8 +315,7 @@ Future<AppleAlbum?> resolveAppleAlbum(
         await Future.delayed(const Duration(milliseconds: 500));
         continue;
       }
-      final found =
-          match ?? await _albumViaSongs(artist, album, storefront);
+      final found = match ?? await _albumViaSongs(artist, album, storefront);
       _albumCache[key] = found;
       return found;
     } on TimeoutException {
@@ -274,7 +356,9 @@ Future<AppleAlbum?> _albumViaSongs(
     final name = norm(r['collectionName'] as String? ?? '');
     final by = norm(r['artistName'] as String? ?? '');
     final artistOk =
-        wantArtist.isEmpty || by.contains(wantArtist) || wantArtist.contains(by);
+        wantArtist.isEmpty ||
+        by.contains(wantArtist) ||
+        wantArtist.contains(by);
     if (name != wantAlbum || !artistOk || r['collectionId'] == null) continue;
     final lookup = Uri.https(_host, '/lookup', {
       'id': r['collectionId'].toString(),
@@ -426,15 +510,14 @@ Future<AppleMatch?> resolveAppleTrackByIsrc(
       _cache[key] = null;
       return null;
     }
-    // The first result may be the collection itself; find the first track.
-    Map<String, dynamic>? trackRow;
-    for (final row in results) {
-      final json = (row as Map).cast<String, dynamic>();
-      if (json['wrapperType'] == 'track') {
-        trackRow = json;
-        break;
-      }
-    }
+    // One ISRC is one recording, but Apple sells it on the original album
+    // and on every compilation that licensed it; the lookup may also list a
+    // collection row. Keep the tracks and prefer the original release.
+    final tracks = [
+      for (final row in results)
+        if ((row as Map)['wrapperType'] == 'track') row.cast<String, dynamic>(),
+    ];
+    final trackRow = tracks.isEmpty ? null : pickOriginalRelease(tracks);
     if (trackRow == null) {
       _cache[key] = null;
       return null;
