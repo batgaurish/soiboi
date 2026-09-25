@@ -55,9 +55,12 @@ class PictureLoadScheduler {
     _needRun.remove(widgetId);
   }
 
-  void resetPicture(MyPicture picture) {
-    _scheduled.remove(picture.id);
-    _pictureCompleterMap.remove(picture.id);
+  void resetPicture(MyPicture picture) => resetId(picture.id);
+
+  /// Forgets that [id] was loaded, so its next picture loads again.
+  void resetId(String id) {
+    _scheduled.remove(id);
+    _pictureCompleterMap.remove(id);
   }
 
   void clear() {

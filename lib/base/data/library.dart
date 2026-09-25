@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
@@ -306,6 +307,34 @@ class Library {
     layersManager.updateBackground();
   }
 
+  /// Set when a sync dropped a cached cover, so it clears Flutter's image
+  /// cache once at the end instead of per file.
+  bool _picturesDropped = false;
+
+  /// Forgets the cached cover of the file [id] (its path).
+  ///
+  /// The cache is keyed by path alone, so a file replaced at the same path
+  /// (a redownload from another release, a retag in another app, a delete
+  /// and download again) kept showing the old file's cover for good. Whenever
+  /// a file's tags are read again, its cover is too.
+  void _dropCachedPicture(String id) {
+    final cached = File(
+      '${getPicturesPath(sourceType)}/${md5.convert(utf8.encode(id))}',
+    );
+    try {
+      if (cached.existsSync()) {
+        cached.deleteSync();
+        _picturesDropped = true;
+      }
+      // The scheduler remembers the id as loaded, and a widget may still
+      // hold the old song's picture, which thinks it is.
+      pictureLoadScheduler.resetId(id);
+      id2Song[id]?.picture.reset();
+    } on FileSystemException catch (e) {
+      logger.output('picture cache: $e');
+    }
+  }
+
   Future<MyAudioMetadata?> _parseMetadataIfNeed(
     String id,
     String path,
@@ -333,6 +362,7 @@ class Library {
       }
 
       if (tmp != null) {
+        _dropCachedPicture(id);
         song = MyAudioMetadata(tmp, id: id, path: path, modified: modified);
         song.loadAcousticFeatures();
       } else {
@@ -437,6 +467,13 @@ class Library {
         await pool.close();
 
         id2Song.removeWhere((id, song) => !validId.contains(id));
+
+        if (_picturesDropped) {
+          _picturesDropped = false;
+          final imageCache = PaintingBinding.instance.imageCache;
+          imageCache.clear();
+          imageCache.clearLiveImages();
+        }
 
         for (final folder in folderList) {
           await folder.sync();
