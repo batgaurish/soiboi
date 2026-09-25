@@ -22,22 +22,25 @@ void main() {
     expect(album.artwork, contains('600x600'));
   });
 
-  test('lists album tracks in order, with previews and download URLs', () async {
-    final album = await resolveAppleAlbum('Daft Punk', 'Discovery');
-    final tracks = await appleAlbumTracks(album!.id);
+  test(
+    'lists album tracks in order, with previews and download URLs',
+    () async {
+      final album = await resolveAppleAlbum('Daft Punk', 'Discovery');
+      final tracks = await appleAlbumTracks(album!.id);
 
-    expect(tracks, isNotNull);
-    expect(tracks!.length, album.trackCount);
-    expect(tracks.first.title, 'One More Time');
-    expect(tracks.first.trackNumber, 1);
-    expect(tracks.first.duration!.inSeconds, closeTo(320, 2));
-    // Both are the point of the screen: one to hear it, one to archive it.
-    expect(tracks.first.previewUrl, isNotNull);
-    expect(tracks.first.url, contains('?i='));
-    // The lookup returns the album itself as the first row; it must not be
-    // rendered as a track.
-    expect(tracks.map((t) => t.title), isNot(contains('Discovery')));
-  });
+      expect(tracks, isNotNull);
+      expect(tracks!.length, album.trackCount);
+      expect(tracks.first.title, 'One More Time');
+      expect(tracks.first.trackNumber, 1);
+      expect(tracks.first.duration!.inSeconds, closeTo(320, 2));
+      // Both are the point of the screen: one to hear it, one to archive it.
+      expect(tracks.first.previewUrl, isNotNull);
+      expect(tracks.first.url, contains('?i='));
+      // The lookup returns the album itself as the first row; it must not be
+      // rendered as a track.
+      expect(tracks.map((t) => t.title), isNot(contains('Discovery')));
+    },
+  );
 
   test('lists an artist\'s albums newest first', () async {
     final albums = await appleArtistAlbums('Daft Punk');
@@ -50,8 +53,40 @@ void main() {
   test('an unknown album resolves to null rather than throwing', () async {
     expect(await resolveAppleAlbum('', ''), isNull);
     expect(
-      await resolveAppleAlbum('zzzz not a real artist', 'zzzz not a real album'),
+      await resolveAppleAlbum(
+        'zzzz not a real artist',
+        'zzzz not a real album',
+      ),
       anyOf(isNull, isA<AppleAlbum>()),
     );
+  });
+
+  // From a real Weekly Exploration playlist, matched in the Indian store.
+  test('a long ListenBrainz credit still finds the film song', () async {
+    final match = await resolveAppleTrack(
+      'Mohammed Irfan, Mithoon, Saim Bhat & Arijit',
+      'Phir Mohabbat',
+      storefront: 'in',
+    );
+    expect(match, isNotNull);
+    expect(match!.album, 'Murder 2 (Original Motion Picture Soundtrack)');
+  });
+
+  test('a song the store only has as covers is not matched', () async {
+    final match = await resolveAppleTrack(
+      'Måneskin',
+      'I Wanna Be Your Slave',
+      storefront: 'in',
+    );
+    expect(match, isNull);
+  });
+
+  test('film songs come from the soundtrack', () async {
+    final match = await resolveAppleTrack(
+      'Amit Trivedi',
+      'Iktara',
+      storefront: 'in',
+    );
+    expect(match?.album, 'Wake Up Sid (Original Motion Picture Soundtrack)');
   });
 }
