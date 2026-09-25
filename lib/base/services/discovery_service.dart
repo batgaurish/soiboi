@@ -23,6 +23,7 @@ library;
 import 'package:soiboi/base/services/apple_catalog_service.dart';
 import 'package:soiboi/base/services/apple_library_service.dart';
 import 'package:soiboi/base/services/external_playlist_source.dart';
+import 'package:soiboi/base/services/manual_resolution.dart';
 
 /// A discovery track, with whatever Apple resolution found.
 class DiscoveryTrack {
@@ -34,6 +35,7 @@ class DiscoveryTrack {
     this.previewUrl,
     this.appleUrl,
     this.warning,
+    this.userSkipped = false,
   });
 
   final String title;
@@ -46,6 +48,10 @@ class DiscoveryTrack {
   /// Set when Apple has no match. Such a track cannot be archived, so the gap
   /// is surfaced rather than discovered at download time.
   final String? warning;
+
+  /// The user said this track has no right match (Downloads > Unresolved
+  /// tracks): it is not offered or flagged again.
+  final bool userSkipped;
 
   bool get isResolved => appleUrl != null && appleUrl!.isNotEmpty;
 
@@ -166,18 +172,28 @@ Future<List<DiscoveryTrack>?> _resolveAndCache(
     final chunk = slice.skip(start).take(_resolveConcurrency);
     final matches = await Future.wait<AppleMatch?>([
       for (final track in chunk)
-        track.isrc != null && track.isrc!.isNotEmpty
-            ? resolveAppleTrackByIsrc(track.isrc!, storefront: storefront)
-                .then<AppleMatch?>((m) => m ?? resolveAppleTrack(
-                      track.artist,
-                      track.title,
-                      storefront: storefront,
-                    ))
-            : resolveAppleTrack(track.artist, track.title, storefront: storefront),
+        // The user's own pick wins over every search, and a skip means
+        // there is nothing to look for.
+        if (manualResolution.overrideFor(track.artist, track.title)
+            case final choice?)
+          Future.value(choice == skipOverride ? null : AppleMatch(url: choice))
+        else if (track.isrc != null && track.isrc!.isNotEmpty)
+          resolveAppleTrackByIsrc(track.isrc!, storefront: storefront)
+              .then<AppleMatch?>((m) => m ?? resolveAppleTrack(
+                    track.artist,
+                    track.title,
+                    storefront: storefront,
+                  ))
+        else
+          resolveAppleTrack(track.artist, track.title, storefront: storefront),
     ]);
     var i = 0;
     for (final track in chunk) {
       final match = matches[i++];
+      final skipped =
+          match == null &&
+          manualResolution.overrideFor(track.artist, track.title) ==
+              skipOverride;
       resolved.add(
         DiscoveryTrack(
           title: track.title,
@@ -186,7 +202,10 @@ Future<List<DiscoveryTrack>?> _resolveAndCache(
           artwork: match?.artwork,
           previewUrl: match?.previewUrl,
           appleUrl: match?.url,
-          warning: match == null
+          userSkipped: skipped,
+          warning: skipped
+              ? 'Skipped: you chose no match'
+              : match == null
               ? 'Could not match to Apple Music catalog'
               : null,
         ),
@@ -203,6 +222,10 @@ Future<List<DiscoveryTrack>?> _resolveAndCache(
   }
   return _resolved[playlist.key];
 }
+
+/// Drops resolved playlists, so a pick or skip made by hand shows the next
+/// time one is opened. Catalog lookups stay cached, so this is cheap.
+void forgetDiscoveryMatches() => _resolved.clear();
 
 /// How many tracks a playlist has, without resolving any of them.
 Future<int?> discoveryTrackCount(ExternalPlaylist playlist) async {

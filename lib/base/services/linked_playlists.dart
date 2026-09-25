@@ -96,7 +96,7 @@ class LinkedPlaylists {
     if (isStreamSource || tracks.isEmpty) return null;
     _load();
     final playlistName = _safeName(name);
-    _links[playlistName] = tracks;
+    _links[playlistName] = [...tracks];
     _save();
 
     var playlist = playlistManager.getPlaylistByName(playlistName);
@@ -110,6 +110,34 @@ class LinkedPlaylists {
       await _importCover(playlist, artworkUrl);
     }
     return LinkResult(playlistName, matched, tracks.length);
+  }
+
+  /// Puts [to] where [from] was in the linked playlist [name]: a song the
+  /// user matched by hand, which may be a different artist or title (a
+  /// cover, a remix) and would never match the source's entry. The song
+  /// joins the playlist when it lands, like any other. False when [name] is
+  /// not linked or has no such track.
+  bool replaceTrack(String name, LinkedTrack from, LinkedTrack to) {
+    _load();
+    final tracks = _links[_safeName(name)];
+    if (tracks == null) return false;
+    final key = ownedSongKey(from.artist, from.title);
+    var replaced = false;
+    for (var i = 0; i < tracks.length; i++) {
+      if (ownedSongKey(tracks[i].artist, tracks[i].title) == key) {
+        tracks[i] = to;
+        replaced = true;
+      }
+    }
+    if (replaced) _save();
+    return replaced;
+  }
+
+  /// The linked tracklist of [name], or null. For tests and diagnostics.
+  List<LinkedTrack>? tracksOf(String name) {
+    _load();
+    final tracks = _links[_safeName(name)];
+    return tracks == null ? null : List.unmodifiable(tracks);
   }
 
   /// Adds newly downloaded songs to every linked playlist. Run after a
@@ -144,9 +172,9 @@ class LinkedPlaylists {
 
     final unchanged =
         next.length == playlist.songList.length &&
-        Iterable.generate(next.length).every(
-          (i) => identical(next[i], playlist.songList[i]),
-        );
+        Iterable.generate(
+          next.length,
+        ).every((i) => identical(next[i], playlist.songList[i]));
     if (!unchanged && playlist.canModify) {
       playlist.songList
         ..clear()
