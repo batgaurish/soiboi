@@ -64,7 +64,23 @@ class DownloadCancelled(BaseException):
 # track or a dead session all "finish with 1 error(s)" rather than raising or
 # setting a status. Without watching the log, the app reports a green tick for
 # a download that never happened, which is worse than any error message.
-_ERROR_LINE = re.compile(r"\[\s*ERROR\s|\bERROR\s+\d\d:\d\d:\d\d")
+# CRITICAL too: that is how gamdl reports an account with no active
+# subscription, after which it downloads nothing and still exits 0.
+_ERROR_LINE = re.compile(
+    r"\[\s*(?:ERROR|CRITICAL)\s|\b(?:ERROR|CRITICAL)\s+\d\d:\d\d:\d\d"
+)
+
+# gamdl skips a track it cannot or need not download with a warning, not an
+# error: 'Skipping "<title>": <reason>'. A download where every track was
+# skipped wrote nothing, and must not end in a green tick.
+_SKIP_LINE = re.compile(r'Skipping "(?P<title>.*)": (?P<reason>.+)$')
+
+# A file that is already there is the one skip that is not a failure: with
+# overwrite off, it is what makes a retry cheap.
+_ALREADY_THERE = "Media file already exists"
+
+# "[Track   3/12 ]": how many tracks the download covers.
+_TRACK_OF = re.compile(r"\[Track\s+\d+\s*/\s*(\d+)\s*\]")
 
 # Colour codes have to go before matching: structlog writes "[31m[ERROR ...".
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
@@ -118,6 +134,10 @@ class _StreamTap(io.TextIOBase):
         # Not "errors": io.TextIOBase already defines that as a read-only
         # attribute, and assigning to it raises.
         self.failures = []
+        # Tracks skipped for a reason other than already being on disk.
+        self.skipped: list[str] = []
+        # How many tracks the download covers; 1 until gamdl says otherwise.
+        self.track_total = 1
         self._in_traceback = False
 
     def write(self, text: str) -> int:
@@ -169,6 +189,14 @@ class _StreamTap(io.TextIOBase):
             # gamdl's own explanation rather than "download failed".
             self.failures.append(_LOG_PREFIX.sub("", line).strip() or line)
             self._in_traceback = True
+            return
+        total = _TRACK_OF.search(line)
+        if total:
+            self.track_total = max(self.track_total, int(total.group(1)))
+        skip = _SKIP_LINE.search(line)
+        if skip:
+            if not skip.group("reason").startswith(_ALREADY_THERE):
+                self.skipped.append(_LOG_PREFIX.sub("", line).strip())
             return
         stage = _stage_for(line)
         if not stage:
@@ -440,6 +468,15 @@ def _run_gamdl(args: list[str], tap: _StreamTap, emit: Emit) -> Event | None:
     # gamdl logs failures and then exits 0, so the log is the only signal.
     if tap.failures:
         return error("gamdl_reported_error", tap.failures[0])
+    if tap.skipped and len(tap.skipped) >= tap.track_total:
+        return error("gamdl_reported_error", tap.skipped[0])
+    if tap.skipped:
+        emit(
+            warning(
+                f"Skipped {len(tap.skipped)} of {tap.track_total} tracks: "
+                f"{tap.skipped[0]}"
+            )
+        )
     return None
 
 
