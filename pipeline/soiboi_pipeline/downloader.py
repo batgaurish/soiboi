@@ -147,6 +147,10 @@ class _StreamTap(io.TextIOBase):
         # How many tracks the download covers; 1 until gamdl says otherwise.
         self.track_total = 1
         self._in_traceback = False
+        # The exception of a traceback printed before its error line (gamdl
+        # does this when a track's lookup fails), held until the next log
+        # line: the error it explains, or anything else, which drops it.
+        self._pending_exception: str | None = None
 
     def write(self, text: str) -> int:
         # gamdl and yt-dlp write here many times a second while working, which
@@ -195,9 +199,19 @@ class _StreamTap(io.TextIOBase):
         if _ERROR_LINE.search(line):
             # Keep the message, not the log furniture, so the UI can show
             # gamdl's own explanation rather than "download failed".
-            self.failures.append(_LOG_PREFIX.sub("", line).strip() or line)
+            message = _LOG_PREFIX.sub("", line).strip() or line
+            if self._pending_exception:
+                message = f"{message}: {self._pending_exception}"
+            self._pending_exception = None
+            self.failures.append(message)
             self._in_traceback = True
             return
+        exception = _EXCEPTION_LINE.match(line)
+        if exception:
+            self._pending_exception = exception.group(2)
+            return
+        if _LOG_LINE.match(line):
+            self._pending_exception = None
         total = _TRACK_OF.search(line)
         if total:
             self.track_total = max(self.track_total, int(total.group(1)))
