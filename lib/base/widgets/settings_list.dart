@@ -362,54 +362,58 @@ class _SettingsListState extends State<SettingsList> {
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: ListView(
-                        children: [
-                          RadioListTile<String>(
-                            value: '',
-                            groupValue: downloadFolderNotifier.value,
-                            dense: true,
-                            title: const Text("The app's own folder"),
-                            subtitle: Text(
-                              'Private to Soiboi, always writable',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: textColor.value,
-                              ),
-                            ),
-                            onChanged: (v) => setDialogState(
+                      child: RadioGroup<String>(
+                        groupValue: downloadFolderNotifier.value,
+                        onChanged: (v) async {
+                          if (v == null) return;
+                          if (v.isEmpty) {
+                            setDialogState(
                               () => downloadFolderNotifier.value = '',
-                            ),
-                          ),
-                          for (final path in candidates)
+                            );
+                          } else {
+                            final ok = await _useDownloadFolder(v);
+                            if (ok) setDialogState(() {});
+                          }
+                        },
+                        child: ListView(
+                          children: [
                             RadioListTile<String>(
-                              value: path,
-                              groupValue: downloadFolderNotifier.value,
+                              value: '',
                               dense: true,
-                              title: Text(
-                                path,
-                                style: const TextStyle(fontSize: 13),
+                              title: const Text("The app's own folder"),
+                              subtitle: Text(
+                                'Private to Soiboi, always writable',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: textColor.value,
+                                ),
                               ),
-                              onChanged: (v) async {
-                                if (v == null) return;
-                                final ok = await _useDownloadFolder(v);
+                            ),
+                            for (final path in candidates)
+                              RadioListTile<String>(
+                                value: path,
+                                dense: true,
+                                title: Text(
+                                  path,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ListTile(
+                              dense: true,
+                              leading: const Icon(
+                                Icons.create_new_folder_outlined,
+                              ),
+                              title: const Text('Choose another folder…'),
+                              onTap: () async {
+                                final picked =
+                                    await FilePicker.getDirectoryPath();
+                                if (picked == null) return;
+                                final ok = await _useDownloadFolder(picked);
                                 if (ok) setDialogState(() {});
                               },
                             ),
-                          ListTile(
-                            dense: true,
-                            leading: const Icon(
-                              Icons.create_new_folder_outlined,
-                            ),
-                            title: const Text('Choose another folder…'),
-                            onTap: () async {
-                              final picked =
-                                  await FilePicker.getDirectoryPath();
-                              if (picked == null) return;
-                              final ok = await _useDownloadFolder(picked);
-                              if (ok) setDialogState(() {});
-                            },
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     Align(
@@ -1885,19 +1889,26 @@ class _SettingsListState extends State<SettingsList> {
                       style: TextStyle(fontSize: 11, color: textColor.value),
                     ),
                     const SizedBox(height: 12),
-                    for (final entry in downloadCodecLabels.entries)
-                      RadioListTile<String>(
-                        value: entry.key,
-                        groupValue: downloadCodecNotifier.value,
-                        title: Text(entry.value),
-                        dense: true,
-                        onChanged: (value) {
-                          if (value == null) return;
-                          downloadCodecNotifier.value = value;
-                          setting.save();
-                          Navigator.of(context).pop();
-                        },
+                    RadioGroup<String>(
+                      groupValue: downloadCodecNotifier.value,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        downloadCodecNotifier.value = value;
+                        setting.save();
+                        Navigator.of(context).pop();
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final entry in downloadCodecLabels.entries)
+                            RadioListTile<String>(
+                              value: entry.key,
+                              title: Text(entry.value),
+                              dense: true,
+                            ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
               ),
