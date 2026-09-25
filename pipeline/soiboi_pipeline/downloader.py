@@ -390,6 +390,117 @@ def _already_owned(name: str) -> Exception:
     return GamdlDownloaderMediaFileExistsError(f"{name} (already in your library)")
 
 
+# How much a catalog song looks like a re-release rather than the song on
+# its own album. Same order as the app's pickOriginalRelease.
+_EDITION = re.compile(
+    r"deluxe|anniversary|expanded|remaster|special edition|bonus", re.IGNORECASE
+)
+_SINGLE_OR_EP = re.compile(r"\s-\s(?:Single|EP)$")
+_FROM_CREDIT = re.compile(r"from\s", re.IGNORECASE)
+_MAIN_ARTIST = re.compile(r",|&|\bfeat\.?|\bft\.?|\bx\b", re.IGNORECASE)
+
+
+def _album_attrs(song: dict) -> dict:
+    albums = ((song.get("relationships") or {}).get("albums") or {}).get("data")
+    return (albums[0].get("attributes") or {}) if albums else {}
+
+
+def release_cost(song: dict) -> int:
+    """0 for the song on its own album; more for compilations, "(From
+    "Film")" copies, singles and EPs, deluxe and anniversary editions."""
+    attrs = song.get("attributes") or {}
+    album = _album_attrs(song)
+    album_name = album.get("name") or attrs.get("albumName") or ""
+    title = (attrs.get("name") or "").strip()
+    cost = 0
+    if album.get("isCompilation") or (
+        (album.get("artistName") or "").lower() == "various artists"
+    ):
+        cost += 8
+    if bare_title(title) != title and _FROM_CREDIT.search(title):
+        cost += 4
+    if album.get("isSingle") or _SINGLE_OR_EP.search(album_name):
+        cost += 2
+    if _EDITION.search(album_name):
+        cost += 1
+    return cost
+
+
+def _same_recording(want: dict, have: dict) -> bool:
+    """Same song by the same main artist, no more than two seconds apart.
+
+    For search results, which unlike an ISRC match can be a live take or
+    another artist's cover under the same name.
+    """
+    if _normalise(bare_title(want.get("name") or "")) != _normalise(
+        bare_title(have.get("name") or "")
+    ):
+        return False
+    main = _normalise(_MAIN_ARTIST.split(want.get("artistName") or "")[0])
+    if main and main not in _normalise(have.get("artistName") or ""):
+        return False
+    a, b = want.get("durationInMillis"), have.get("durationInMillis")
+    return a is not None and b is not None and abs(a - b) <= 2000
+
+
+async def original_release(api, media_id: str, media_metadata: dict) -> dict | None:
+    """The same recording on its own album, when [media_id] is a re-release.
+
+    Playlists often hold a film song's compilation copy ("Chai aur Baarish",
+    'Iktara (From "Wake Up Sid")'), and the download takes its album, cover
+    and track number from the copy it is given. Looks for the recording by
+    ISRC and, if that finds nothing better, by a catalog search checked on
+    title, artist and duration. Returns the better song's metadata, or None
+    to keep [media_id].
+    """
+    attrs = media_metadata.get("attributes") or {}
+    songs_uri = f"/v1/catalog/{api.storefront}/songs"
+    full = {"include": "albums", "extend": "extendedAssetUrls"}
+    found: dict[str, dict] = {}
+
+    isrc = attrs.get("isrc")
+    if isrc:
+        answer = await api._amp_request(songs_uri, {"filter[isrc]": isrc, **full})
+        found = {song["id"]: song for song in answer.get("data") or []}
+
+    current = found.get(media_id)
+    best = min(found.values(), key=release_cost, default=None)
+    if current is not None and best is not None and release_cost(best) == 0:
+        return best if release_cost(current) > 0 else None
+
+    # No ISRC, or every copy with it is a re-release: search by name.
+    name = bare_title(attrs.get("name") or "")
+    answer = await api._amp_request(
+        f"/v1/catalog/{api.storefront}/search",
+        {"term": f"{attrs.get('artistName') or ''} {name}".strip(),
+         "types": "songs", "limit": 25},
+    )
+    hits = (((answer.get("results") or {}).get("songs") or {}).get("data")) or []
+    ids = [media_id] + [
+        hit["id"] for hit in hits
+        if hit["id"] not in found and hit["id"] != media_id
+        and _same_recording(attrs, hit.get("attributes") or {})
+    ]
+    if len(ids) > 1 or current is None:
+        answer = await api._amp_request(songs_uri, {"ids": ",".join(ids), **full})
+        found.update({song["id"]: song for song in answer.get("data") or []})
+
+    current = found.get(media_id)
+    if current is None:
+        return None
+    # min() keeps the first of equal costs; the current song goes first so a
+    # tie never swaps.
+    ranked = [current] + [s for i, s in found.items() if i != media_id]
+    best = min(ranked, key=release_cost)
+    return None if best is current else best
+
+
+def _album_name(song: dict) -> str:
+    return _album_attrs(song).get("name") or (
+        (song.get("attributes") or {}).get("albumName") or "?"
+    )
+
+
 def _skip_owned_tracks() -> None:
     """Make gamdl treat a song the library already has as already downloaded.
 
@@ -448,6 +559,29 @@ def _skip_owned_tracks() -> None:
                 error=_already_owned(name),
             )
             return
+        # Only a playlist's tracks: an album or song link names the release
+        # the user asked for, compilation or not.
+        if (
+            playlist_metadata is not None
+            and not is_library
+            and (media_metadata or {}).get("type") == "songs"
+        ):
+            try:
+                better = await original_release(
+                    self.base.apple_music_api, media_id, media_metadata
+                )
+            except Exception:
+                # A failed lookup only costs the nicer album; download the
+                # playlist's copy as before.
+                logger.warning("Original release lookup failed", exc_info=True)
+                better = None
+            if better is not None:
+                print(
+                    f'Using "{_album_name(better)}" instead of '
+                    f'"{_album_name(media_metadata)}" for '
+                    f'"{(media_metadata.get("attributes") or {}).get("name")}"'
+                )
+                media_id, media_metadata = better["id"], better
         async for media in original_song_media(
             self, media_id, index, total, media_metadata, playlist_metadata,
             is_library,
