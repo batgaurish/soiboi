@@ -618,3 +618,106 @@ Future<AppleMatch?> resolveAppleTrackByIsrc(
     return null;
   }
 }
+
+/// One song row offered when the user picks a match by hand.
+class AppleCandidate {
+  AppleCandidate({
+    required this.title,
+    required this.artist,
+    required this.url,
+    this.album,
+    this.year,
+    this.duration,
+    this.artwork,
+    this.previewUrl,
+    this.trackId,
+  });
+
+  final String title;
+  final String artist;
+  final String url;
+  final String? album;
+  final String? year;
+  final Duration? duration;
+  final String? artwork;
+  final String? previewUrl;
+  final String? trackId;
+
+  AppleMatch get match => AppleMatch(
+    url: url,
+    album: album,
+    artwork: artwork,
+    previewUrl: previewUrl,
+    trackId: trackId,
+  );
+}
+
+/// An iTunes Search or lookup song row as a candidate; null for rows that
+/// are not songs or have no store link.
+AppleCandidate? appleCandidateFromRow(Map<String, dynamic> row) {
+  final url = row['trackViewUrl'] as String?;
+  final title = row['trackName'] as String?;
+  if (row['kind'] != null && row['kind'] != 'song') return null;
+  if (url == null || title == null) return null;
+  final millis = row['trackTimeMillis'];
+  return AppleCandidate(
+    title: title,
+    artist: row['artistName'] as String? ?? '',
+    url: url,
+    album: row['collectionName'] as String?,
+    year: (row['releaseDate'] as String?)?.split('-').first,
+    duration: millis is num ? Duration(milliseconds: millis.round()) : null,
+    artwork: _artworkAt(row['artworkUrl100'] as String?, 300),
+    previewUrl: row['previewUrl'] as String?,
+    trackId: row['trackId']?.toString(),
+  );
+}
+
+/// Up to 25 songs for [term], in Apple's order and unfiltered: the user
+/// chooses, so covers, remixes and karaoke versions are all on offer. Null
+/// when the search failed.
+Future<List<AppleCandidate>?> searchAppleSongs(
+  String term, {
+  String? storefront,
+}) async {
+  if (term.trim().isEmpty) return const [];
+  final rows = await _searchSongs(term.trim(), storefront ?? appleStorefront);
+  if (rows == null) return null;
+  return rows.map(appleCandidateFromRow).nonNulls.toList();
+}
+
+/// The song id in an Apple Music link: `?i=` on an album link, or the last
+/// path part of a `/song/` link. Null for anything else.
+String? appleSongIdFromUrl(String url) {
+  final uri = Uri.tryParse(url.trim());
+  if (uri == null || !uri.host.endsWith('music.apple.com')) return null;
+  final i = uri.queryParameters['i'];
+  if (i != null && RegExp(r'^\d+$').hasMatch(i)) return i;
+  final parts = uri.pathSegments;
+  final song = parts.indexOf('song');
+  if (song >= 0 && parts.isNotEmpty && RegExp(r'^\d+$').hasMatch(parts.last)) {
+    return parts.last;
+  }
+  return null;
+}
+
+/// What a pasted song link is, from the catalog; null when it is not a song
+/// link or the lookup failed.
+Future<AppleCandidate?> lookupAppleSong(
+  String url, {
+  String? storefront,
+}) async {
+  final id = appleSongIdFromUrl(url);
+  if (id == null) return null;
+  try {
+    final uri = Uri.https(_host, '/lookup', {
+      'id': id,
+      'country': storefront ?? appleStorefront,
+    });
+    final row = _firstResult(await http.get(uri).timeout(_timeout));
+    return row == null ? null : appleCandidateFromRow(row);
+  } catch (e) {
+    logger.output('apple lookup: $e');
+    return null;
+  }
+}

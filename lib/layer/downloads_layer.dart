@@ -33,6 +33,8 @@ import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:soiboi/base/widgets/download_status_panel.dart';
 import 'package:soiboi/layer/failure_fix.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
+import 'package:soiboi/layer/unresolved_tracks.dart';
+import 'package:soiboi/base/services/manual_resolution.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/apple_library_service.dart';
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
@@ -77,6 +79,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   void initState() {
     super.initState();
     _load();
+    manualResolution.load();
     listenBrainzUserNotifier.addListener(_load);
     // Probe once so the screen can explain itself before anything is attempted.
     refreshPipelineCapabilities();
@@ -140,6 +143,18 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
             ),
             SliverToBoxAdapter(child: _archiveCard()),
             SliverToBoxAdapter(child: _queueCard()),
+            // Only while something is waiting for a choice.
+            SliverToBoxAdapter(
+              child: ValueListenableBuilder<List<UnresolvedTrack>>(
+                valueListenable: manualResolution.unresolved,
+                builder: (context, tracks, _) => tracks.isEmpty
+                    ? const SizedBox.shrink()
+                    : _card(
+                        title: 'Unresolved tracks, need your choice',
+                        child: const UnresolvedTracksList(),
+                      ),
+              ),
+            ),
             SliverToBoxAdapter(child: _applePlaylistsCard()),
             SliverToBoxAdapter(child: _importCard()),
             if (_discover.isNotEmpty)
@@ -962,6 +977,22 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     // mirror the source, and unmatched tracks simply stay out of it.
     unawaited(_linkWholePlaylist(quiet: true));
 
+    // Archiving the whole playlist (not a selection or one row) leaves its
+    // unmatched tracks on the Downloads page for the user to place.
+    if (_selected.isEmpty && tracks.length > 1) {
+      final now = DateTime.now();
+      manualResolution.addUnresolved([
+        for (final track in _tracks ?? const <DiscoveryTrack>[])
+          if (!track.isResolved && !track.userSkipped)
+            UnresolvedTrack(
+              artist: track.artist,
+              title: track.title,
+              playlist: widget.playlist.title,
+              added: now,
+            ),
+      ]);
+    }
+
     final batch = downloadQueue.enqueue(requests);
     void onProgress() {
       if (!mounted) return;
@@ -987,7 +1018,14 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     final tracks = _tracks;
     if (tracks == null || tracks.isEmpty) return;
     final result = await linkedPlaylists.link(widget.playlist.title, [
-      for (final track in tracks) LinkedTrack(track.artist, track.title),
+      for (final track in tracks)
+        // A song picked by hand is listed as itself: a cover or a remix
+        // would never match the source's names.
+        if (manualResolution.pickedAs(track.artist, track.title)
+            case final picked?)
+          LinkedTrack(picked.artist, picked.title)
+        else
+          LinkedTrack(track.artist, track.title),
     ]);
     if (quiet || !mounted || result == null) return;
     showCenterMessage(linkedMessage(result), duration: 4000);
