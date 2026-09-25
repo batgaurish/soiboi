@@ -88,7 +88,12 @@ class EmbyClient extends StreamClient {
         '\n[$runtimeType]\n[error]Dio: ${e.message} (${e.response?.statusCode}\n[data]${e.response?.data.toString()})',
       );
 
-      if (errorMessage.isNotEmpty) {
+      if (showRealError) {
+        showCenterMessage(
+          e.response?.data?.toString() ?? e.message ?? 'Network error',
+          duration: 3000,
+        );
+      } else if (errorMessage.isNotEmpty) {
         showCenterMessage(errorMessage, duration: 3000);
       }
 
@@ -96,7 +101,9 @@ class EmbyClient extends StreamClient {
     } catch (e) {
       logger.output('\n[$runtimeType]\n[error]$e');
 
-      if (errorMessage.isNotEmpty) {
+      if (showRealError) {
+        showCenterMessage(e.toString(), duration: 3000);
+      } else if (errorMessage.isNotEmpty) {
         showCenterMessage(errorMessage, duration: 3000);
       }
 
