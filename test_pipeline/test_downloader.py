@@ -82,6 +82,39 @@ def test_traceback_detail_is_appended_to_the_error():
     ]
 
 
+def test_a_traceback_printed_before_its_error_is_attached():
+    """A track whose lookup fails: gamdl prints the traceback first.
+
+    From a real Weekly Exploration download (a US-only song on an Indian
+    account); without the exception the app could only say "Unknown Title".
+    """
+    tap, _ = _tap()
+    tap.write('[INFO 16:46:54] [URL 1/1] Processing "https://music.apple.com/x"\n')
+    tap.write("Traceback (most recent call last):\n")
+    tap.write('File "gamdl/api/apple_music.py", line 284, in _amp_request\n')
+    tap.write("httpx.HTTPStatusError: Client error '404 Not Found' for url 'x'\n")
+    tap.write("During handling of the above exception, another exception occurred:\n")
+    tap.write("Traceback (most recent call last):\n")
+    tap.write(
+        "gamdl.api.exceptions.GamdlApiResponseError: Error fetching from AMP "
+        "API (Status code: 404): {}\n"
+    )
+    tap.write('[ERROR 16:46:56] [Track 1/1] Error downloading "Unknown Title"\n')
+    tap.write("[INFO 16:46:56] Finished with 1 error(s)\n")
+    assert tap.failures == [
+        'Error downloading "Unknown Title": Error fetching from AMP API '
+        "(Status code: 404): {}"
+    ]
+
+
+def test_an_old_exception_is_not_pinned_on_a_later_error():
+    tap, _ = _tap()
+    tap.write("ValueError: harmless, handled inside a dependency\n")
+    tap.write('[INFO 00:00:01] [Track 1/1] Downloading "A"\n')
+    tap.write('[ERROR 00:00:02] [Track 1/1] Error downloading "A"\n')
+    assert tap.failures == ['Error downloading "A"']
+
+
 def test_ytdlp_patch_replaces_the_multiprocessing_path():
     """Android has no sem_open, so gamdl's subprocess step cannot run there.
 

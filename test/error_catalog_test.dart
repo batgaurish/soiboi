@@ -167,6 +167,21 @@ const _cases = <(String code, String message, String id)>[
     "Requested format is not available (media ID: 1440904109): ['alac']",
     'quality_unavailable',
   ),
+  (
+    'gamdl_reported_error',
+    'Error downloading "Rewrite the Stars": Error fetching wrapper playback '
+        '(Status code: 502): {"detail":"Apple store error code=-1525742872",'
+        '"error":"playback_dispatch_failed"}',
+    'playback_refused',
+  ),
+  // A US-only song on an Indian account, from a Weekly Exploration download:
+  // the traceback comes before the error line, which the tap now attaches.
+  (
+    'gamdl_reported_error',
+    'Error downloading "Unknown Title": Error fetching from AMP API (Status '
+        'code: 404): {"errors":[{"status":"404","code":"40400"}]}',
+    'not_found',
+  ),
 ];
 
 void main() {
@@ -200,6 +215,7 @@ void main() {
           explainFailure(message, code: code)!.id,
     };
     expect(temporary, {
+      'playback_refused',
       'sign_in_unconfirmed',
       'wrapper_down',
       'rate_limited',

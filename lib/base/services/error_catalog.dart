@@ -203,6 +203,19 @@ const _catalog = <_Entry>[
         'Soiboi.',
     fix: FailureFix.update,
   ),
+  // Before wrapper_down: the wrapper answered, but Apple's store refused the
+  // track ("Apple store error"). Seen on a real Weekly Exploration download,
+  // for a song that is in the account's catalog.
+  _Entry(
+    id: 'playback_refused',
+    patterns: [r'playback_dispatch_failed', r'Apple store error'],
+    title: 'Apple would not hand over this track',
+    detail:
+        "Apple's store refused this one track just now. It usually works on a "
+        'retry; if it keeps failing, it may not be available for your account.',
+    fix: FailureFix.retry,
+    temporary: true,
+  ),
   _Entry(
     id: 'wrapper_down',
     patterns: [
