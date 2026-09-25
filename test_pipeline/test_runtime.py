@@ -54,3 +54,28 @@ def test_handler_wraps_capabilities_in_a_done_event(monkeypatch):
     result = runtime.handle_capabilities({}, lambda event: None)
     assert result["event"] == "done"
     assert result["can_download"] is True
+
+
+def _ignore(_event):
+    pass
+
+
+def test_disk_usage_reports_free_and_total(tmp_path):
+    event = runtime.handle_disk_usage({"path": str(tmp_path)}, _ignore)
+    assert event["event"] == "done"
+    assert 0 < event["free"] <= event["total"]
+    assert event["path"] == str(tmp_path)
+
+
+def test_disk_usage_measures_a_folder_that_does_not_exist_yet(tmp_path):
+    # Downloads create the folder; before the first one it is not there.
+    target = tmp_path / "Soiboi" / "Downloads"
+    event = runtime.handle_disk_usage({"path": str(target)}, _ignore)
+    assert event["event"] == "done"
+    assert event["path"] == str(tmp_path)
+
+
+def test_disk_usage_needs_a_path():
+    event = runtime.handle_disk_usage({}, _ignore)
+    assert event["event"] == "error"
+    assert event["code"] == "bad_request"

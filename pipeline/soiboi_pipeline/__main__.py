@@ -27,6 +27,7 @@ Handler = Callable[[Payload, Emit], Event]
 # subprocess about 0.4s and nothing at all on Android.
 _HANDLERS: dict[str, Handler] = {
     "capabilities": runtime.handle_capabilities,
+    "disk_usage": runtime.handle_disk_usage,
     "analyze": acoustic.handle_analyze,
     "playlist": playlist.handle_playlist,
     "apple_playlists": apple_library.handle_playlists,

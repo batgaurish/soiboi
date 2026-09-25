@@ -121,6 +121,25 @@ abstract class PipelineRunner {
     }
     return PipelineCapabilities.unavailable('No response from pipeline');
   }
+
+  /// Free and total bytes on the disk holding [path], or null if the
+  /// pipeline could not tell. Dart has no call for this on either platform.
+  Future<({int free, int total})?> diskUsage(String path) async {
+    try {
+      await for (final event in run('disk_usage', {'path': path})) {
+        if (event.isDone) {
+          final free = event.raw['free'];
+          final total = event.raw['total'];
+          if (free is int && total is int) return (free: free, total: total);
+          return null;
+        }
+        if (event.isError) return null;
+      }
+    } catch (_) {
+      // No pipeline at all; the panel reports that on its own line.
+    }
+    return null;
+  }
 }
 
 /// Desktop: spawn the bundled interpreter.
