@@ -10,6 +10,7 @@ import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/navidrome_client.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
+import 'package:soiboi/base/utils/path.dart';
 import 'package:soiboi/layer/premium_layer.dart';
 
 final config = Config();
@@ -78,10 +79,7 @@ class Config {
       return;
     }
 
-    final content = await file.readAsString();
-
-    final Map<String, dynamic> map =
-        jsonDecode(content) as Map<String, dynamic>;
+    final Map<String, dynamic> map = await readJsonMapFile(file);
 
     final webdavMap = map['webdav'] as Map<String, dynamic>?;
     if (webdavMap != null) {

@@ -14,7 +14,7 @@
 /// (a missing number is not zero, per `SmartRule.matches`).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 
 /// One entry in the template picker: a name, an icon, and the playlist it

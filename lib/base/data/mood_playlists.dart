@@ -11,7 +11,7 @@
 /// singleton. If nothing passes the gate, the shelf does not render at all.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
@@ -155,7 +155,10 @@ bool moodsNeedAnalysis({List<MyAudioMetadata>? songs}) {
 /// the shelf with play-count and date-added lists under mood names ("Morning
 /// Light" was really "played under five times"), which hid the fact that
 /// analysis had never run. [moodsNeedAnalysis] lets Home say so instead.
-List<MoodCardData> autoMoodPlaylists({DateTime? now, List<MyAudioMetadata>? songs}) {
+List<MoodCardData> autoMoodPlaylists({
+  DateTime? now,
+  List<MyAudioMetadata>? songs,
+}) {
   final hour = (now ?? DateTime.now()).hour;
   final source = songs ?? library.songList;
 
