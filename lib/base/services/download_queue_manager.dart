@@ -163,6 +163,13 @@ class DownloadBatch {
 /// whole fix: nobody scrolls past the last few dozen.
 const _historyLimit = 60;
 
+/// Where each download's log is kept for a week, one file per job.
+///
+/// Beside the temp folder, not in it: stopping a download clears the temp
+/// folder, and the log is what explains the stop.
+String get downloadLogDir =>
+    p.join(p.dirname(downloadTempDir), 'download-logs');
+
 class DownloadQueueManager {
   DownloadQueueManager();
 
@@ -336,9 +343,7 @@ class DownloadQueueManager {
     active.value = job;
     _notify();
 
-    // Beside the temp folder, not in it: stopping a download clears the temp
-    // folder, and the log is what explains the stop.
-    final logDir = p.join(p.dirname(downloadTempDir), 'download-logs');
+    final logDir = downloadLogDir;
     _pruneLogs(logDir);
     // Unique per job, and kept across a pause or retry of the same job. Job
     // ids restart at 0 with every launch, and the pipeline appends, so a

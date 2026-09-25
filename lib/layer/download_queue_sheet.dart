@@ -222,13 +222,15 @@ class DownloadQueueView extends StatelessWidget {
               ),
             ),
           ),
-          // A failure always offers its log; other rows only with the
-          // Download logs setting on.
+          // A failure always offers its log; other rows with the Download
+          // logs setting on, as soon as there is a log (a row paused back
+          // into the queue has one; one that never started does not).
           ValueListenableBuilder<bool>(
             valueListenable: showDownloadLogsNotifier,
             builder: (context, show, _) =>
-                job.state == DownloadJobState.queued ||
-                    (!show && job.state != DownloadJobState.failed)
+                (!show && job.state != DownloadJobState.failed) ||
+                    (job.state == DownloadJobState.queued &&
+                        job.downloaderLogPath == null)
                 ? const SizedBox.shrink()
                 : IconButton(
                     iconSize: 17,
@@ -359,26 +361,7 @@ class _DownloadLogViewState extends State<DownloadLogView> {
     }
   }
 
-  /// The last 64 KB: a long download's output runs to megabytes of progress
-  /// lines, and the end is what explains a stall.
-  static String _readTail(String? path) {
-    if (path == null) return '';
-    try {
-      final file = File(path);
-      if (!file.existsSync()) return '';
-      final raf = file.openSync();
-      try {
-        final length = raf.lengthSync();
-        const window = 64 * 1024;
-        raf.setPositionSync(length > window ? length - window : 0);
-        return utf8.decode(raf.readSync(window), allowMalformed: true);
-      } finally {
-        raf.closeSync();
-      }
-    } on FileSystemException {
-      return '';
-    }
-  }
+  static String _readTail(String? path) => readLogTail(path);
 
   String get _text =>
       '${widget.job.label}\n${widget.job.url}\n\n'
@@ -438,5 +421,27 @@ class _DownloadLogViewState extends State<DownloadLogView> {
         ],
       ),
     );
+  }
+}
+
+/// The last 64 KB of the log at [path], or '' when there is none: a long
+/// download's output runs to megabytes of progress lines, and the end is what
+/// explains a stall.
+String readLogTail(String? path) {
+  if (path == null) return '';
+  try {
+    final file = File(path);
+    if (!file.existsSync()) return '';
+    final raf = file.openSync();
+    try {
+      final length = raf.lengthSync();
+      const window = 64 * 1024;
+      raf.setPositionSync(length > window ? length - window : 0);
+      return utf8.decode(raf.readSync(window), allowMalformed: true);
+    } finally {
+      raf.closeSync();
+    }
+  } on FileSystemException {
+    return '';
   }
 }
