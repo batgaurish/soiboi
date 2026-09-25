@@ -9,6 +9,7 @@ import 'package:soiboi/base/widgets/lossless_setup.dart';
 import 'package:soiboi/base/widgets/download_options.dart';
 import 'package:soiboi/base/widgets/listenbrainz_form.dart';
 import 'package:soiboi/layer/setup_wizard.dart';
+import 'package:soiboi/layer/saved_download_logs.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/backup_service.dart';
 import 'package:soiboi/base/data/config.dart';
@@ -208,7 +209,7 @@ class _SettingsListState extends State<SettingsList> {
         sliverBox(paddingIfNeed(isLandscape, widevineListTile(context, l10n))),
 
         sliverBox(paddingIfNeed(isLandscape, reduceMotionListTile())),
-        sliverBox(paddingIfNeed(isLandscape, downloadLogsListTile())),
+        sliverBox(paddingIfNeed(isLandscape, downloadLogsListTile(context))),
         if (notifications.supported)
           sliverBox(paddingIfNeed(isLandscape, notificationsListTile())),
 
@@ -730,14 +731,16 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  Widget downloadLogsListTile() {
+  Widget downloadLogsListTile(BuildContext context) {
     return ListTile(
       leading: Icon(Icons.article_outlined, size: iconSize),
       title: const Text('Download logs'),
       subtitle: Text(
-        'Adds a log button to each download in the queue',
+        'Tap to read the last week of logs. The switch adds a log button to '
+        'each download in the queue.',
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
+      onTap: () => showSavedDownloadLogs(context),
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
