@@ -30,25 +30,25 @@ extension _SongListPage on _SongListState {
       playlist != null && playlist!.canModify && !playlist!.isFavorite;
 
   void _addSongs(BuildContext context) {
-      final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
-      for (final song in library.songList) {
-        selectionMap[song] = ValueNotifier(false);
-      }
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SelectableSongListPage(
-            songList: library.songList,
-            playlist: null,
-            addTo: playlist,
-            folder: null,
-            isRanking: false,
-            isRecently: false,
-            isLibrary: false,
-            reorderable: false,
-            isSelectedNotifierMap: selectionMap,
-          ),
+    final selectionMap = <MyAudioMetadata, ValueNotifier<bool>>{};
+    for (final song in library.songList) {
+      selectionMap[song] = ValueNotifier(false);
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SelectableSongListPage(
+          songList: library.songList,
+          playlist: null,
+          addTo: playlist,
+          folder: null,
+          isRanking: false,
+          isRecently: false,
+          isLibrary: false,
+          reorderable: false,
+          isSelectedNotifierMap: selectionMap,
         ),
-      );
+      ),
+    );
   }
 
   PreferredSizeWidget customAppBar(BuildContext context) {
@@ -99,9 +99,16 @@ extension _SongListPage on _SongListState {
   Widget moreSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    // Pin and cover actions live here too, not only behind a long-press on
+    // the Playlists tab, which nobody finds on a phone.
+    final playlistItems = playlist == null
+        ? const <MenuItem>[]
+        : playlistOptionItems(playlist!);
+
     return MySheet(
-      height: 300,
-      Column(
+      height: 300 + playlistItems.length * 48,
+      ListView(
+        padding: EdgeInsets.zero,
         children: [
           ListTile(
             title: Row(
@@ -256,6 +263,19 @@ extension _SongListPage on _SongListState {
               },
             ),
 
+          for (final item in playlistItems)
+            ListTile(
+              leading: Icon(item.iconData),
+              title: Text(
+                item.text!,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+              onTap: () {
+                Navigator.pop(context);
+                item.callback?.call();
+              },
+            ),
           if (playlist != null && playlist!.isNotFavorite)
             ListTile(
               leading: AppIcon(deleteImage),
@@ -427,7 +447,8 @@ extension _SongListPage on _SongListState {
     // Only playlists that can be modified get an "add songs" button.
     // Artists, albums, rankings and the library itself are read-only
     // collections, so showing a prompt to add would be misleading.
-    final canAdd = playlist != null && playlist!.canModify && !playlist!.isFavorite;
+    final canAdd =
+        playlist != null && playlist!.canModify && !playlist!.isFavorite;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
