@@ -118,7 +118,10 @@ class Config {
 
     final tmpSourceType = map['sourceType'] as String?;
     if (tmpSourceType != null) {
-      sourceType = SourceType.values.firstWhere((e) => e.name == tmpSourceType);
+      sourceType = SourceType.values.firstWhere(
+        (e) => e.name == tmpSourceType,
+        orElse: () => SourceType.local,
+      );
     } else {
       if (webdavClient != null) {
         sourceType = .webdav;
@@ -128,9 +131,6 @@ class Config {
         sourceType = .emby;
       }
     }
-
-    isStreamSource = sourceType == .navidrome || sourceType == .emby;
-    isNotStreamSource = !isStreamSource;
 
     if (sourceType == .navidrome && navidromeMap != null) {
       streamClient = NavidromeClient(

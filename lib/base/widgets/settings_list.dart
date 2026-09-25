@@ -613,9 +613,6 @@ class _SettingsListState extends State<SettingsList> {
                               Navigator.pop(context);
                             }
                             sourceType = tmp;
-                            isStreamSource =
-                                sourceType == .navidrome || sourceType == .emby;
-                            isNotStreamSource = !isStreamSource;
                             streamClient = null;
                             if (sourceType == .navidrome &&
                                 config.navidromeBaseUrl != null) {
