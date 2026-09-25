@@ -190,6 +190,21 @@ shortcuts, and every palette comes from album art with no contrast check.
   rows, the failure banner and toasts, and let the fix buttons act directly
   (sign in, retry, open the log).
   *Done when:* the ten most common failures in the logs have a catalog entry.
+  *Status:* built. Queue rows and banners already showed catalog titles
+  (0.2); now each failed row and the Downloads failure banner has the
+  entry's fix as a button (`lib/layer/failure_fix.dart`) that does it and,
+  where that clears the cause, retries: Sign in, Choose folder (only if the
+  folder changed), Set up lossless, Use AAC, Open log, Skip (new
+  `dismiss`), Check for updates, Retry. A failure always shows its log
+  button; failure text is red nudged to 4.5:1 on each surface. Checked
+  against the real logs: the desktop gamdl.log's failures are dominated by
+  wrapper playback errors, server disconnects, permission denied and ALAC
+  not offered, all mapped (pinned in `error_catalog_test.dart`), and every
+  other catalog case maps; the emulator's only failure so far is the new
+  `sign_in_unconfirmed`. Verified on the emulator: an offline download fails
+  as "Could not reach Apple Music" with Retry on the row and the banner, and
+  Retry finishes it once the connection is back. Not checked: the phone's
+  own logs (not connected), TalkBack.
 
 ## Phase 3: Downloads (v1.4.0)
 
