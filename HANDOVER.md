@@ -319,6 +319,37 @@ Four commits, oldest first. None of it is a plan item except 3.1.
   `isForeground=true` for the notification's lifetime, then gone. **Not
   verified:** a real playlist with the phone locked.
 
+---
+
+## Desloppify pass 2 (`desloppify/pass-2` merged into `scope-expansion`)
+
+Run on 2026-09-25 following `.claude/skills/desloppify/SKILL.md`.
+
+- **Scores:**
+  - Dart: started at **51.0/100** strict (51.0 overall), finished at **73.2/100** strict (73.2 overall), **+22.2 pts gain**.
+  - Python: **13.0/100** strict (20.2 overall); pipeline refactored in pass 1 with all 102 unit tests passing.
+  - Overall combined health improved with all 20 subjective dimensions actively reviewed and scored.
+
+- **What was fixed (4 commits on branch `desloppify/pass-2`):**
+  1. `7832478`: Converted mutable globals `isStreamSource` and `isNotStreamSource` into derived getters on `sourceType`, removing duplicated 3-line writes across `config.dart`, `view_entry.dart`, and `settings_list.dart`. Added safe fallback to `SourceType.local`.
+  2. `6abd1e7`: Replaced raw JSON file reads with corruption-safe `readJsonMapFile` and `readJsonListFile` across `config.dart`, `audio_handler.dart`, `my_window_listener.dart`, `bookmark_service.dart`, and `folder.dart` (with null-check for `library.id2Song[id]`). Changed `AudioHandler` public async methods (`saveAllStates`, `singlePlay`, `changePlayMode`) from `void` to `Future<void>`. Replaced relative import in `main.dart` and normalized `material_ui` imports.
+  3. `856ace4`: Aligned `EmbyClient.safeRequest` error surfacing with `NavidromeClient` by honouring `showRealError`.
+  4. `1cb092d`: Migrated deprecated `RadioListTile` `groupValue`/`onChanged` usages in `lib/base/widgets/settings_list.dart` (folder chooser and codec selector) to `RadioGroup<String>` ancestors. This eliminated all 6 `flutter analyze` deprecation warnings.
+
+- **What was verified:**
+  - `flutter analyze`: **0 issues found** (down from 6 `RadioGroup` deprecations).
+  - `flutter test --exclude-tags integration`: **321 pass, 1 skipped** (fixtures/cover_colors).
+  - `.pipeline-venv/bin/python -m pytest test_pipeline`: **102 pass in 0.54s**.
+  - `flutter build apk --debug --target-platform android-x64`: built successfully.
+  - `flutter build linux --release && tools/package_linux.sh --release`: built successfully with `"can_download": true` in the bundled environment.
+  - Smoke test: extracted release tarball executed headless on Xvfb (`:99`) for 25s; `timeout 25 ./soiboi` exited **124** (healthy, no crashes).
+
+- **Suppressed or skipped:**
+  - `unused::lib/*::unused_import::*` kept suppressed in `.desloppify/config.json` (authoritative check is `flutter analyze`).
+  - Deliberate architectural patterns preserved untouched: gamdl monkeypatches in `downloader.py`, Chaquopy `Consumer<String>` callback, mpv Lua patch in `tools/patches/`, AT-SPI accessibility helpers, delete-from-device ID handling.
+
+---
+
 ## Scope expansion: Phases 0 and 1 (built, on `scope-expansion`)
 
 The plan is `docs/scope-expansion-plan.md` (Phases 0–6, each item with a
