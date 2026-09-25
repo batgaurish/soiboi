@@ -1754,15 +1754,24 @@ class _SettingsListState extends State<SettingsList> {
     return ListTile(
       leading: const Icon(Icons.high_quality_rounded, size: 30),
       title: const Text('Lossless (ALAC)'),
-      subtitle: ValueListenableBuilder<WrapperState>(
-        valueListenable: wrapperService.state,
-        builder: (context, state, _) => Text(switch (state.stage) {
-          WrapperStage.ready => 'Ready',
-          WrapperStage.needsLibraries => 'Needs setup',
-          WrapperStage.signedOut || WrapperStage.needsCode => 'Needs sign-in',
-          WrapperStage.unsupported => 'Not available in this build',
-          _ => 'Set up',
-        }, style: TextStyle(fontSize: 12, color: textColor.value)),
+      subtitle: ListenableBuilder(
+        listenable: Listenable.merge([
+          wrapperService.state,
+          wrapperService.signedIn,
+        ]),
+        builder: (context, _) => Text(
+          switch (wrapperService.state.value.stage) {
+            WrapperStage.ready => 'Ready',
+            WrapperStage.needsLibraries => 'Needs setup',
+            WrapperStage.signedOut || WrapperStage.needsCode => 'Needs sign-in',
+            WrapperStage.unsupported => 'Not available in this build',
+            // Stopped between downloads is normal once signed in.
+            _ when wrapperService.signedIn.value =>
+              'Signed in · starts when a download needs it',
+            _ => 'Set up',
+          },
+          style: TextStyle(fontSize: 12, color: textColor.value),
+        ),
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: () =>
