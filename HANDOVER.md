@@ -10,14 +10,16 @@ is already built). The sections from "How the lossless wrapper is put
 together" onward are carried over from older handovers and are still
 accurate.
 
-> **Start here:** read "Built this session (Phase 2 and beta.3 bugs)" and
-> the new traps (the emulator is now signed in to the wrapper; Linux test
-> builds need real isolation from the user's desktop). All checks pass at
-> `fec99ff`: flutter analyze 0 issues, 361 Dart tests (1 skipped), 113
-> pytest. No release was made. Open questions for the user: whether the
-> download-engine fixes go to `main` for 1.1.8 (rc.2 has the bug), and a
-> pending chip to trace why an Apple *library* playlist track got the
-> playlist's cover ("In Your Feels" on Treat You Better).
+> **Start here:** **v1.2.0-beta.4** is out (`7ebd563`, APK + Linux
+> tarball). Read "Beta.4: logs, storefront, matching" and "Built this
+> session (Phase 2 and beta.3 bugs)", and the traps (the emulator debug app
+> is signed in to the wrapper; Linux test builds need real isolation from
+> the user's desktop). All checks pass at `7ebd563`: flutter analyze 0
+> issues, 368 Dart tests (1 skipped), 119 pytest (also against the bundled
+> gamdl 3.9.1), the live catalog test. Open questions for the user:
+> whether the download-engine fixes go to `main` for 1.1.8 (rc.2 has the
+> bug), and a pending chip to trace why an Apple *library* playlist track
+> got the playlist's cover ("In Your Feels" on Treat You Better).
 
 ---
 
@@ -106,6 +108,7 @@ Published: **v1.1.7** is the latest official release. Test pre-releases
 | `v1.1.8-rc.2` | `66ab86a` | main | 19 | APK + Linux tarball |
 | `v1.2.0-beta.2` | `2f5e817` | scope-expansion | 21 | APK + Linux tarball |
 | `v1.2.0-beta.3` | `f6823bd` | scope-expansion | 22 | APK + Linux tarball |
+| `v1.2.0-beta.4` | `7ebd563` | scope-expansion | 23 | APK + Linux tarball |
 
 beta.3 is the one to test on the branch; rc.2 on the stable line. beta.3's
 versionCode 22 installs over everything; going back to an RC afterwards
@@ -113,7 +116,7 @@ needs an uninstall. Local copies of every asset are in
 `~/soiboi-test-builds/`.
 
 - `origin/main` is at **`66ab86a`** (rc.2 = rc.1 + the pin/cover fix).
-- `origin/scope-expansion` is at `fec99ff` (beta.3 + Desloppify pass 2 + Phase 2 and the beta.3 bug fixes; no new test build).
+- `origin/scope-expansion` is at `7ebd563` (Version 1.2.0-beta.4) plus this handover.
 - `origin/desloppify/pass-2` is at `1cb092d` (fast-forward merged into scope-expansion).
 - `versionNumber` on the branch stays `1.2.0`; `test/version_test.dart`
   compares only the numeric part of the pubspec version.
@@ -508,14 +511,14 @@ Commits, oldest first: `c60e7ef` 0.1, `66cbeda` 0.2, `3aacd4f` 0.3,
 
 ---
 
-## Tests and checks (state at `fec99ff`)
+## Tests and checks (state at `7ebd563`)
 
-- Dart: `flutter test --exclude-tags integration` → **361 pass, 1 skipped**
+- Dart: `flutter test --exclude-tags integration` → **368 pass, 1 skipped**
   (the real-covers fixture). On `main`: 216 pass.
   `test/apple_catalog_test.dart` is tagged `integration` and calls Apple's
   live API; it fails in the cloud container (no route) and passes where
   there is internet.
-- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → **113
+- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → **119
   pass** on the branch. The `test_acoustic.py` failure noted before did not
   reproduce on the user's machine; not investigated further. The dev venv's
   gamdl is **3.8.5**, as are the Android wheels in `android/pip-repo` (the
@@ -570,6 +573,43 @@ Useful if the next session is also a cloud session (it was this time):
   that appends the focused context's ancestor widget types to a file.
 
 ---
+
+## Beta.4: logs, storefront, matching (2026-09-25)
+
+The user reported no log button on beta.3 and asked for a real playlist to
+be downloaded end to end before beta.4. Commits, oldest first:
+
+| Commit | What |
+|---|---|
+| `68d4fc5` | Settings > Download logs, **tapped**, lists every saved log (`lib/layer/saved_download_logs.dart`, `downloadLogDir`); a row paused back into the queue keeps its log button. |
+| `e0f1cd0` | Catalog matching in the **account's storefront**: pipeline `apple_storefront`, remembered as setting `appleStorefront`, refreshed at startup after the session checks, default for every `apple_catalog_service` call, `accountStorefront()` in discovery; caches key on it. Everything used to assume `us`, so US-only song ids 404'd for the Indian account. |
+| `5674352` | Stream tap attaches a traceback printed **before** its error line; catalog `playback_refused` (wrapper "Apple store error" / `playback_dispatch_failed`, Retry, temporary). |
+| `f992496` | Settings > Lossless says "Signed in · starts when a download needs it" instead of "Set up". |
+| `ca5417f` | Bare exception types (`httpx.ConnectTimeout`) kept in brackets; a message already in the error line is not repeated. |
+| `deda7ff` | `pickOriginalRelease` returns **null** when no row matches song and artist (was Apple's top hit: covers, karaoke, remixes, even a different song). |
+| `ac079b4` | `sameArtist`: any credited artist either side, containment or 1-2 letter edits (none under 5 letters); `resolveAppleTrack` retries with first artist + bare title, then the title alone. |
+| `7ebd563` | Version 1.2.0-beta.4+23. |
+
+Why the log button looked missing on beta.3 is not proven: the beta.3 APK
+cannot run on the emulator (see traps) and the queue code is the same as the
+debug build, where it shows. The fix covers the gaps that exist either way.
+
+**Playlist runs on the emulator (debug app, wrapper, ALAC):** Weekly
+Exploration (50) on the old build: 48 done, 2 failed (a US-only id; an Apple
+refusal). Weekly Jams (50) on the storefront build: 49 done, 1 connect
+timeout, finished on Retry. Weekly Exploration again on the final build: 47
+matched (3 are not sold in India in original form: Måneskin's "I Wanna Be
+Your Slave", Chase Atlantic's "Into It", Alan Walker's "On My Way"), 43
+skipped as owned, Phir Mohabbat downloaded from Murder 2, Cradles and
+"Rewrite the Stars" downloaded, 2 Apple refusals finished on Retry. Apple
+refuses roughly 1 in 25 tracks at random (`playback_dispatch_failed`); plan
+3.2's automatic retry would absorb that.
+
+**Known leftovers:** the first run's wrong versions stay in the emulator
+library ("Into It (instrumental)", "On My Way (Da Tweekaz Remix)", Jaydan
+Wolf's "I Wanna Be Your Slave"). For single-song links gamdl fetches details
+and stream info before the owned check, so an owned track can still fail
+there on a network blip (seen twice); harmless, but slower than it could be.
 
 ## Built this session (Phase 2 and beta.3 bugs)
 
@@ -742,6 +782,26 @@ space; the staged file lands in `files/updates/` and is worth deleting after.
 ---
 
 ## Traps already paid for
+
+**Paid for in the beta.4 session (2026-09-25)**
+
+- **A release APK cannot be tested on the x86_64 emulator.** Installed over
+  an old copy it kept the x86_64 ABI (the APK carries Chaquopy x86_64 libs)
+  and crashed loading arm64 `libflutter.so`; with `adb install -r --abi
+  arm64-v8a` it runs under translation but aborts natively
+  (`pthread_mutex_lock called on a destroyed mutex`) when Downloads opens.
+  Test release behaviour on the phone; test code on the debug build.
+- **`monkey -p com.batgaurish.soiboi` can launch the debug app** (the
+  package name is a prefix). Use `am start -n com.batgaurish.soiboi/.MainActivity`.
+- **Weekly playlists: tap the Home card** (bounds from `uiautomator`); the
+  sheet's "Archive N" and "N of 50 matched" are content-descs. A retried job
+  appends to its own log file, so wait on that file, not the newest.
+- **The scratchpad can be emptied between sessions**; the private D-Bus
+  config (`bus.conf`) had to be rewritten. It is in the memory note
+  `feedback-linux-test-isolation`.
+- **Formatting check outside the project is wrong:** a copied file loses the
+  package's language version and formats differently. Use `dart format
+  --output=none --set-exit-if-changed` in place.
 
 **Paid for in the Phase 2 session (2026-09-25)**
 
