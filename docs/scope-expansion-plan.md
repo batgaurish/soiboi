@@ -173,6 +173,17 @@ shortcuts, and every palette comes from album art with no contrast check.
   post the summary through 0.1.
   *Done when:* a 50-song playlist finishes with the phone locked the whole
   time.
+  *Status:* built (`DownloadService.kt`, `download_notifications.dart`),
+  ahead of Phase 3 at the user's request. Any ongoing download-progress
+  notification runs a special-use foreground service holding a partial wake
+  lock and a Wi-Fi lock; the queue's notification shows "Downloading 3 of
+  12", the track and stage, an overall bar, Pause/Resume and Stop, then a
+  summary with "Retry failed". The Dart queue already outlives the activity
+  (audio_service's cached engine). Linux gets the same notifications over
+  D-Bus. Checked: unit tests, and on the emulator the service goes
+  foreground with the notification and stops when it is dismissed. Not
+  checked: a real playlist with the phone locked (the emulator has no Apple
+  session), which is the "Done when".
 - [ ] **3.2 Retry all, and automatic retry** (S). A "Retry failed" button in
   the queue. Failures the 0.2 catalog marks as temporary (network, timeouts,
   Apple rate limits) retry by themselves three times with increasing waits;

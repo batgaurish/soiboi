@@ -113,6 +113,9 @@ class NotificationService {
   /// Keys on screen right now, so turning notifications off can clear them.
   final _shown = <String>{};
 
+  /// Keys shown with `always`, which turning notifications off leaves alone.
+  final _always = <String>{};
+
   static NotificationBackend? platformBackend() {
     if (Platform.isAndroid) return AndroidNotificationBackend();
     if (Platform.isLinux) return LinuxNotificationBackend();
@@ -130,12 +133,22 @@ class NotificationService {
   ///
   /// Never throws. A notification is never the only place something is said,
   /// so one that cannot be shown is logged and otherwise ignored.
-  Future<void> show(String key, AppNotification notification) async {
+  ///
+  /// [always] shows it even with notifications turned off in Settings: on
+  /// Android, the download progress notification is what lets downloads carry
+  /// on in the background (it belongs to a foreground service), so it is not
+  /// optional while something is downloading.
+  Future<void> show(
+    String key,
+    AppNotification notification, {
+    bool always = false,
+  }) async {
     final backend = _backend;
-    if (backend == null || !_enabled.value) return;
+    if (backend == null || (!_enabled.value && !always)) return;
     try {
       await backend.show(key, notification);
       _shown.add(key);
+      always ? _always.add(key) : _always.remove(key);
     } catch (e) {
       _log('notification $key: $e');
     }
@@ -148,6 +161,7 @@ class NotificationService {
     // Passed on even when this run never showed [key]: on Android a
     // notification can outlive the process that posted it.
     _shown.remove(key);
+    _always.remove(key);
     try {
       await backend.dismiss(key);
     } catch (e) {
@@ -177,7 +191,10 @@ class NotificationService {
   }
 
   void _onEnabledChanged() {
-    if (!_enabled.value) unawaited(dismissAll());
+    if (_enabled.value) return;
+    for (final key in _shown.difference(_always).toList()) {
+      unawaited(dismiss(key));
+    }
   }
 }
 
@@ -194,7 +211,8 @@ final notifications = NotificationService(
 class AndroidNotificationBackend implements NotificationBackend {
   AndroidNotificationBackend({MethodChannel? channel})
     : _channel =
-          channel ?? const MethodChannel('com.batgaurish.soiboi/notifications') {
+          channel ??
+          const MethodChannel('com.batgaurish.soiboi/notifications') {
     _channel.setMethodCallHandler(_onCall);
   }
 
@@ -361,32 +379,24 @@ class LinuxNotificationBackend implements NotificationBackend {
       if (progress != null && progress >= 0)
         'value': DBusInt32(progress.clamp(0, 100)),
     };
-    final result = await object.callMethod(
-      _notificationsInterface,
-      'Notify',
-      [
-        const DBusString('Soiboi'),
-        DBusUint32(_ids[key] ?? 0),
-        const DBusString('soiboi'),
-        DBusString(notification.title),
-        DBusString(_escape(notification.body)),
-        DBusArray.string([
-          // The daemon invokes "default" when the notification itself is
-          // clicked; its label is not shown.
-          NotificationTap.defaultAction,
-          'Open',
-          for (final action in notification.actions) ...[
-            action.id,
-            action.label,
-          ],
-        ]),
-        DBusDict.stringVariant(hints),
-        // Progress stays until replaced; everything else expires however the
-        // desktop normally expires notifications.
-        DBusInt32(notification.ongoing ? 0 : -1),
-      ],
-      replySignature: DBusSignature('u'),
-    );
+    final result = await object.callMethod(_notificationsInterface, 'Notify', [
+      const DBusString('Soiboi'),
+      DBusUint32(_ids[key] ?? 0),
+      const DBusString('soiboi'),
+      DBusString(notification.title),
+      DBusString(_escape(notification.body)),
+      DBusArray.string([
+        // The daemon invokes "default" when the notification itself is
+        // clicked; its label is not shown.
+        NotificationTap.defaultAction,
+        'Open',
+        for (final action in notification.actions) ...[action.id, action.label],
+      ]),
+      DBusDict.stringVariant(hints),
+      // Progress stays until replaced; everything else expires however the
+      // desktop normally expires notifications.
+      DBusInt32(notification.ongoing ? 0 : -1),
+    ], replySignature: DBusSignature('u'));
     final id = result.returnValues[0].asUint32();
     final previous = _ids[key];
     if (previous != null && previous != id) _keys.remove(previous);
@@ -399,12 +409,9 @@ class LinuxNotificationBackend implements NotificationBackend {
     final id = _ids.remove(key);
     if (id == null) return;
     _keys.remove(id);
-    await _connect().callMethod(
-      _notificationsInterface,
-      'CloseNotification',
-      [DBusUint32(id)],
-      replySignature: DBusSignature(''),
-    );
+    await _connect().callMethod(_notificationsInterface, 'CloseNotification', [
+      DBusUint32(id),
+    ], replySignature: DBusSignature(''));
   }
 
   /// Desktop notifications need no permission.
