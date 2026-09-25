@@ -213,6 +213,24 @@ void main() {
     expect(manager.jobs.value, isEmpty);
   });
 
+  test('dismiss drops one finished row and nothing still to run', () async {
+    final manager = _manager(
+      archive: (url) async => url == 'a' ? 'Media is not streamable: 1' : null,
+    );
+    await manager.enqueue([_request('a'), _request('b')]).done;
+    final failed = manager.jobs.value.first;
+    expect(failed.state, DownloadJobState.failed);
+
+    manager.dismiss(failed);
+    expect(manager.jobs.value.map((j) => j.url), ['b']);
+
+    // A queued job is not a finished row; skipping it is what cancel is for.
+    final waiting = manager.enqueue([_request('c')]).jobs.single;
+    manager.setPaused(true);
+    manager.dismiss(waiting);
+    expect(manager.jobs.value, contains(waiting));
+  });
+
   test('progress from the pipeline reaches the job', () async {
     final manager = _manager(archive: (_) async => null);
     final seen = <int>[];

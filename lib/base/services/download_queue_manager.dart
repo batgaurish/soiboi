@@ -292,6 +292,13 @@ class DownloadQueueManager {
     }
   }
 
+  /// Removes one finished row: a failure the user chose to skip.
+  void dismiss(DownloadJob job) {
+    if (!job.isTerminal) return;
+    _jobs.remove(job);
+    _notify();
+  }
+
   /// Clears finished rows. The queue in flight is untouched.
   void clearFinished() {
     _jobs.removeWhere((job) => job.isTerminal);

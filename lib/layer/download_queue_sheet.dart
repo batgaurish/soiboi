@@ -22,9 +22,19 @@ import 'package:soiboi/base/data/setting.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
+import 'package:soiboi/base/services/error_catalog.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/layer/failure_fix.dart';
+
+/// One job's log in a dialog, from its row or its "Open log" fix.
+Future<void> showDownloadLog(BuildContext context, DownloadJob job) {
+  return showAnimationDialog(
+    context: context,
+    child: SizedBox(width: 640, height: 560, child: DownloadLogView(job: job)),
+  );
+}
 
 Future<void> showDownloadQueueSheet(BuildContext context) {
   return showAnimationDialog(
@@ -155,7 +165,7 @@ class DownloadQueueView extends StatelessWidget {
   Widget _row(DownloadJob job) {
     final (icon, tint) = switch (job.state) {
       DownloadJobState.done => (Icons.check_rounded, seekBarColor.value),
-      DownloadJobState.failed => (Icons.error_outline, Colors.red),
+      DownloadJobState.failed => (Icons.error_outline, failureTextColor()),
       DownloadJobState.cancelled => (Icons.remove_rounded, textColor.value),
       DownloadJobState.running => (Icons.download_rounded, seekBarColor.value),
       DownloadJobState.queued => (Icons.schedule_rounded, textColor.value),
@@ -200,7 +210,7 @@ class DownloadQueueView extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         color: job.state == DownloadJobState.failed
-                            ? Colors.red
+                            ? failureTextColor()
                             : textColor.value,
                       ),
                     ),
@@ -212,27 +222,30 @@ class DownloadQueueView extends StatelessWidget {
               ),
             ),
           ),
+          // A failure always offers its log; other rows only with the
+          // Download logs setting on.
           ValueListenableBuilder<bool>(
             valueListenable: showDownloadLogsNotifier,
             builder: (context, show, _) =>
-                !show || job.state == DownloadJobState.queued
+                job.state == DownloadJobState.queued ||
+                    (!show && job.state != DownloadJobState.failed)
                 ? const SizedBox.shrink()
                 : IconButton(
                     iconSize: 17,
                     visualDensity: VisualDensity.compact,
                     tooltip: 'Log',
-                    onPressed: () => showAnimationDialog(
-                      context: context,
-                      child: SizedBox(
-                        width: 640,
-                        height: 560,
-                        child: DownloadLogView(job: job),
-                      ),
-                    ),
+                    onPressed: () => showDownloadLog(context, job),
                     icon: labelIcon('Log', const Icon(Icons.article_outlined)),
                   ),
           ),
-          if (job.state == DownloadJobState.failed)
+          // The catalog's fix first; Retry beside it when the fix is
+          // something else, unless the download can never work.
+          if (job.state == DownloadJobState.failed &&
+              job.failure?.fix != FailureFix.openLog)
+            FailureFixButton(job: job, compact: true),
+          if (job.state == DownloadJobState.failed &&
+              job.failure?.fix != FailureFix.retry &&
+              job.failure?.fix != FailureFix.skip)
             IconButton(
               iconSize: 17,
               visualDensity: VisualDensity.compact,

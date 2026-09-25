@@ -31,6 +31,7 @@ import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/layer/apple_signin_layer.dart';
 import 'package:soiboi/base/widgets/download_status_panel.dart';
+import 'package:soiboi/layer/failure_fix.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/services/apple_library_service.dart';
@@ -343,10 +344,10 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.error_outline,
                       size: 16,
-                      color: Colors.red,
+                      color: failureTextColor(),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -365,10 +366,18 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                               TextSpan(text: '\n${failure.detail}'),
                           ],
                         ),
-                        style: const TextStyle(fontSize: 12, color: Colors.red),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: failureTextColor(),
+                        ),
                       ),
                     ),
                   ],
+                ),
+                // The fix right under the explanation, not only in its row.
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FailureFixButton(job: failed.last),
                 ),
                 const SizedBox(height: 8),
               ],
