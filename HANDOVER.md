@@ -513,12 +513,12 @@ Commits, oldest first: `c60e7ef` 0.1, `66cbeda` 0.2, `3aacd4f` 0.3,
 
 ## Tests and checks (state at `7ebd563`)
 
-- Dart: `flutter test --exclude-tags integration` → **368 pass, 1 skipped**
+- Dart: `flutter test --exclude-tags integration` → **381 pass, 1 skipped**
   (the real-covers fixture). On `main`: 216 pass.
   `test/apple_catalog_test.dart` is tagged `integration` and calls Apple's
   live API; it fails in the cloud container (no route) and passes where
   there is internet.
-- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → **119
+- Python: `.pipeline-venv/bin/python -m pytest test_pipeline` → **121
   pass** on the branch. The `test_acoustic.py` failure noted before did not
   reproduce on the user's machine; not investigated further. The dev venv's
   gamdl is **3.8.5**, as are the Android wheels in `android/pip-repo` (the
@@ -573,6 +573,22 @@ Useful if the next session is also a cloud session (it was this time):
   that appends the focused context's ancestor widget types to a file.
 
 ---
+
+## Queue groups and unresolved tracks (2026-09-25, after beta.4)
+
+| Commit | What |
+|---|---|
+| `a5ffd18` | Pipeline `track` event (index, total, title, state downloading/done/skipped/failed, detail, owned) from gamdl's per-track lines; `TrackStatus`, `archiveUrl(onTrack:)`, `DownloadJob.tracks`/`tracksChanged`. `DownloadRequest.group` (discovery sheet, Apple library-only playlists, catalog albums) and the queue shows grouped jobs under one header ("12 of 50 done · 1 failed"); a playlist/album link job gets a "Show tracks" expander. Also fixed: gamdl logs a playlist's total as "-", so one non-owned skip failed the whole playlist job. |
+| `710da36` | Manual resolution: `lib/base/services/manual_resolution.dart` (`unresolved_tracks.json`, `resolved_overrides.json` key `ownedSongKey` to URL or `SKIP`, `resolved_picks.json` for the picked song's own artist/title), `lib/layer/unresolved_tracks.dart` (Downloads card, Find match sheet, Paste link). Discovery consults overrides first (`DiscoveryTrack.userSkipped`); `searchAppleSongs`, `appleCandidateFromRow`, `lookupAppleSong` in the catalog service; `LinkedPlaylists.replaceTrack`. Flagged only when a whole playlist is archived from the sheet (not a selection, not Home previews). |
+
+Emulator (debug, Weekly Exploration): archiving flagged exactly the three
+unsold songs; the queue showed one group header; Find match listed live
+`in` results; picking Lullaby Rock!'s "I Wanna Be Your Slave" (a test
+pick; delete it from the emulator library if unwanted) saved the override
+and pick, replaced the linked-playlist entry and queued it in the group;
+skipping "Into It" saved SKIP; reopening the playlist showed 48 of 50
+matched. Not checked: TalkBack, the phone, a whole-playlist link job's
+track list on a device (widget-tested only).
 
 ## Beta.4: logs, storefront, matching (2026-09-25)
 
