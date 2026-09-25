@@ -1,19 +1,24 @@
 # Soiboi — handover
 
 Paste this at the start of a new session. Last updated on 2026-09-25, at
-the end of the session that published rc.2 and betas 2 and 3. Beta 3 carries
-the download-engine fixes (the "instant gratification" bug), delete from
-device, the Songs page's sort/filter/select, and background downloads with
-notifications (plan 3.1, built early). Phases 0 and 1 were built in the
-session before. The sections from "How the lossless wrapper is put together"
-onward are carried over from older handovers and are still accurate.
+the end of the session that executed **Desloppify pass 2** on `scope-expansion`.
+Beta 3 carries the download-engine fixes, delete from device, Songs page
+sort/filter/select, and background downloads (plan 3.1). Desloppify pass 2
+raised Dart strict health from 51.0 to 73.2/100, cleared all flutter analyze
+issues (down to 0), and cleaned JSON state loading, stream client error
+propagation, RadioGroup migrations, and source-type getters without behavioral
+regressions. Phases 0 and 1 are built; Phase 2 (First run and setup) is next on
+the roadmap. The sections from "How the lossless wrapper is put together" onward
+are carried over from older handovers and are still accurate.
 
-> **Start here:** nothing is pending on Claude's side. The user is testing
-> **v1.2.0-beta.3** (and v1.1.8-rc.2). Wait for their results before
-> starting Phase 2, and wait for them to say go before cutting the official
-> 1.1.8. One open question for them: whether the download-engine fixes
-> (below) should be ported to `main` for 1.1.8; rc.2 has the same bug.
-> Details under "Where things stand right now".
+> **Start here:** Desloppify pass 2 is completed and merged into
+> `scope-expansion`. The next concrete task is **Phase 2 (First run and setup)**,
+> beginning with **2.1 Setup wizard**. All checks (flutter analyze clean with 0
+> issues, 321 Dart tests, 102 pytest tests, Android apk compilation, Linux
+> bundle packaging with "can_download": true, and Xvfb 25s smoke test) pass.
+> One open question for the user remains: whether the download-engine fixes
+> should be ported to `main` for 1.1.8; rc.2 has the bug.
+> Details under "Where things stand right now" and "Next task: Phase 2".
 
 ---
 
@@ -109,8 +114,8 @@ needs an uninstall. Local copies of every asset are in
 `~/soiboi-test-builds/`.
 
 - `origin/main` is at **`66ab86a`** (rc.2 = rc.1 + the pin/cover fix).
-- `origin/scope-expansion` is at `f6823bd` (Version 1.2.0-beta.3) plus this
-  handover commit.
+- `origin/scope-expansion` is at `1d612cb` (Version 1.2.0-beta.3 + Desloppify pass 2).
+- `origin/desloppify/pass-2` is at `1cb092d` (fast-forward merged into scope-expansion).
 - `versionNumber` on the branch stays `1.2.0`; `test/version_test.dart`
   compares only the numeric part of the pubspec version.
 
@@ -569,15 +574,54 @@ Useful if the next session is also a cloud session (it was this time):
 
 ---
 
-## Plan items after Phase 1 (not started, except 3.1)
+## Next Task: Phase 2 — First run and setup (v1.3.0)
 
-Phase 2 starts with **2.1 Setup wizard** (first launch and from Settings:
-music folders → Apple Music sign-in, wrapper or cookies → quality and
-folder → optional ListenBrainz → done; every step skippable; reuse
-`lossless_setup.dart` and the Apple sign-in layer). Read the plan for the
-rest of Phase 2 and Phases 3–6. Phase 0's services (notifications, error
-catalog, motion/contrast) are meant to be used by those later items, and
-the accessibility rules above apply to everything new.
+Phase 2 builds directly on Phase 0's foundational services (`error_catalog.dart`,
+`notification_service.dart`, `motion.dart`, `contrast.dart`) and Phase 1's
+accessibility rules (every new widget gets semantics labels, focus rings, and
+readable contrast from the start).
+
+### 2.1 Setup wizard (Size: L)
+- **Goal:** Shown on very first launch (when `isFirstRun` or music folders
+  unconfigured), and re-openable from Settings > "Setup wizard".
+- **Flow (5 steps, all individually skippable):**
+  1. **Music folders:** pick local music directory (`manage_music_folders.dart` logic).
+  2. **Apple Music sign-in:** compare lossless wrapper vs. cookies.txt (reuse
+     `apple_signin_layer.dart` WebView for Android, cookie import for Linux).
+  3. **Download options:** choose quality (ALAC vs. AAC) and download target folder
+     (`settings_list.dart` dialog logic).
+  4. **ListenBrainz (optional):** input username for personalized recommendation shelves.
+  5. **Completion / Summary:** overview of configuration, "Start listening".
+- **Reuse existing widgets:** Do NOT write duplicate sign-in or wrapper setup logic.
+  Reuse `lossless_setup.dart`, `apple_signin_layer.dart`, and folder management.
+- **Done when:** A fresh install reaches its first finished download without
+  ever opening the main Settings screen.
+
+### 2.2 Status panel (Size: M)
+- **Goal:** Transform the "Before you can archive" card on the Downloads screen
+  into an always-accessible diagnostic status hub.
+- **Diagnostics checked:**
+  - Apple Music session status (signed in, cookie expiry date, account type).
+  - Lossless wrapper status (service active, port listening, 18 Apple libs extracted).
+  - Python pipeline readiness (gamdl 3.8.5/3.9, yt-dlp, native muxer present).
+  - Target download directory storage (free disk space, writable permissions).
+  - Network connectivity (online status).
+- **Fix actions:** Single direct fix button on each row (e.g. "Sign In", "Start Wrapper", "Select Folder").
+- **Done when:** Every "why can't I download" case the app can detect is diagnosed with a 1-tap fix.
+
+### 2.3 Plain-language errors (Size: M)
+- **Goal:** Wire `error_catalog.dart` (the 25 categorized failure modes from Phase 0.2)
+  into download queue rows, failure banners, and error toasts.
+- **Fix actions:** Surface actionable fix buttons directly in the UI (Sign in again,
+  Retry track, Open job log) instead of raw stack traces.
+- **Done when:** Common failures in real download logs map to catalog titles and explanations.
+
+### Rules for the next agent:
+- Work exclusively on `scope-expansion`. Never push to `main` or `upstream`.
+- Check `git branch --show-current` before every commit.
+- End every commit with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Never commit `scorecard.png`. Format only touched files (`dart format <files>`).
+- Run `flutter analyze` (must stay at 0 issues) and `flutter test --exclude-tags integration` (321 pass) after changes.
 
 ---
 
