@@ -104,7 +104,21 @@ _LOG_LINE = re.compile(r"^\[")
 # The last line of a traceback: "ValueError: something went wrong". This is the
 # only part worth showing -- gamdl's own error text is a generic
 # 'Error downloading "<title>"' that says nothing about the cause.
-_EXCEPTION_LINE = re.compile(r"^([A-Za-z_][\w.]*(?:Error|Exception|Exit)\w*): (.+)$")
+# A bare type is a line too: "httpx.ConnectTimeout" has no message, and it is
+# the cause that explains a generic "Error fetching account info".
+_EXCEPTION_LINE = re.compile(
+    r"^([A-Za-z_][\w.]*(?:Error|Exception|Exit|Timeout)\w*)(?:: (.+))?$"
+)
+
+
+def _with_cause(message: str, exception: re.Match) -> str:
+    """message with what the exception line adds: its text, or for a bare
+    type its short name in brackets; nothing when message already says it."""
+    text = exception.group(2)
+    if text is None:
+        name = exception.group(1).rsplit(".", 1)[-1]
+        return message if name in message else f"{message} ({name})"
+    return message if text in message else f"{message}: {text}"
 
 _STAGES = [
     (re.compile(r"tagging|writing tags", re.I), 88, "Tagging"),
@@ -147,10 +161,12 @@ class _StreamTap(io.TextIOBase):
         # How many tracks the download covers; 1 until gamdl says otherwise.
         self.track_total = 1
         self._in_traceback = False
-        # The exception of a traceback printed before its error line (gamdl
+        # The exceptions of a traceback printed before its error line (gamdl
         # does this when a track's lookup fails), held until the next log
-        # line: the error it explains, or anything else, which drops it.
-        self._pending_exception: str | None = None
+        # line: the error they explain, or anything else, which drops them.
+        self._pending: list[re.Match] = []
+        # The error line of the traceback being read, before causes.
+        self._failure_base = ""
 
     def write(self, text: str) -> int:
         # gamdl and yt-dlp write here many times a second while working, which
@@ -190,28 +206,46 @@ class _StreamTap(io.TextIOBase):
                 self._in_traceback = False
             else:
                 match = _EXCEPTION_LINE.match(line)
-                # Later frames replace earlier ones: the last exception in a
-                # chain is the one that actually stopped the download.
+                # The last exception in a chain is the one that actually
+                # stopped the download; a bare cause type is kept beside it.
                 if match and self.failures:
-                    self.failures[-1] = f"{self.failures[-1]}: {match.group(2)}"
+                    base = self._failure_base
+                    if match.group(2) is None:
+                        self.failures[-1] = _with_cause(self.failures[-1], match)
+                    else:
+                        causes = self.failures[-1][len(base):]
+                        bare = "".join(
+                            part for part in re.findall(r" \(\w+\)", causes)
+                        )
+                        self.failures[-1] = _with_cause(base, match) + bare
                 return
 
         if _ERROR_LINE.search(line):
             # Keep the message, not the log furniture, so the UI can show
             # gamdl's own explanation rather than "download failed".
             message = _LOG_PREFIX.sub("", line).strip() or line
-            if self._pending_exception:
-                message = f"{message}: {self._pending_exception}"
-            self._pending_exception = None
+            self._failure_base = message
+            # A traceback printed before this line: its last exception with
+            # a message, and any bare cause types.
+            last = next(
+                (m for m in reversed(self._pending) if m.group(2) is not None),
+                None,
+            )
+            if last is not None:
+                message = _with_cause(message, last)
+            for bare in self._pending:
+                if bare.group(2) is None:
+                    message = _with_cause(message, bare)
+            self._pending = []
             self.failures.append(message)
             self._in_traceback = True
             return
         exception = _EXCEPTION_LINE.match(line)
         if exception:
-            self._pending_exception = exception.group(2)
+            self._pending.append(exception)
             return
         if _LOG_LINE.match(line):
-            self._pending_exception = None
+            self._pending = []
         total = _TRACK_OF.search(line)
         if total:
             self.track_total = max(self.track_total, int(total.group(1)))

@@ -174,6 +174,13 @@ const _cases = <(String code, String message, String id)>[
         '"error":"playback_dispatch_failed"}',
     'playback_refused',
   ),
+  // A connection timeout during a Weekly Jams download, which gamdl reports
+  // as a generic account error; the tap keeps the bare cause.
+  (
+    'gamdl_reported_error',
+    'Error: Error fetching account info (ConnectTimeout)',
+    'network',
+  ),
   // A US-only song on an Indian account, from a Weekly Exploration download:
   // the traceback comes before the error line, which the tap now attaches.
   (

@@ -107,6 +107,38 @@ def test_a_traceback_printed_before_its_error_is_attached():
     ]
 
 
+def test_a_bare_cause_type_is_kept_and_a_repeated_message_is_not():
+    """From a real Weekly Jams download: a connection timeout, reported by
+    gamdl as a generic account error. The cause is a bare type line."""
+    tap, _ = _tap()
+    tap.write("[INFO 17:30:01] Starting Gamdl 3.8.5\n")
+    tap.write("Traceback (most recent call last):\n")
+    tap.write("httpcore.ConnectTimeout\n")
+    tap.write("The above exception was the direct cause of the following exception:\n")
+    tap.write("Traceback (most recent call last):\n")
+    tap.write("httpx.ConnectTimeout\n")
+    tap.write("During handling of the above exception, another exception occurred:\n")
+    tap.write("Traceback (most recent call last):\n")
+    tap.write(
+        "gamdl.api.exceptions.GamdlApiResponseError: Error fetching account info\n"
+    )
+    tap.write("[ERROR 17:30:06] Error: Error fetching account info\n")
+    assert tap.failures == ["Error: Error fetching account info (ConnectTimeout)"]
+
+
+def test_a_bare_cause_after_the_error_line_is_kept_too():
+    tap, _ = _tap()
+    tap.write('[ERROR 00:00:01] [Track 1/1] Error downloading "A"\n')
+    tap.write("Traceback (most recent call last):\n")
+    tap.write("httpx.ReadTimeout\n")
+    tap.write("During handling of the above exception, another exception occurred:\n")
+    tap.write("RuntimeError: yt-dlp HLS download failed\n")
+    tap.write("[INFO 00:00:02] Finished with 1 error(s)\n")
+    assert tap.failures == [
+        'Error downloading "A": yt-dlp HLS download failed (ReadTimeout)'
+    ]
+
+
 def test_an_old_exception_is_not_pinned_on_a_later_error():
     tap, _ = _tap()
     tap.write("ValueError: harmless, handled inside a dependency\n")
