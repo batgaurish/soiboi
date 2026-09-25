@@ -75,6 +75,34 @@ extension _SongListPage on _SongListState {
     );
   }
 
+  /// Opens the multi-select page, with [first] already ticked when the
+  /// selection started from a long-press on it.
+  void openSelection(BuildContext context, [MyAudioMetadata? first]) {
+    for (var e in isSelectedNotifierMap.values) {
+      e.value = false;
+    }
+    if (first != null) isSelectedNotifierMap[first]?.value = true;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ValueListenableBuilder(
+          valueListenable: currentSongListNotifier,
+          builder: (context, currentSongList, child) {
+            return SelectableSongListPage(
+              songList: currentSongList,
+              playlist: playlist,
+              folder: folder,
+              isRanking: isRanking,
+              isRecently: isRecently,
+              isLibrary: isLibrary,
+              reorderable: reorderable,
+              isSelectedNotifierMap: isSelectedNotifierMap,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget moreButton(BuildContext context) {
     return IconButton(
       tooltip: AppLocalizations.of(context).more,
@@ -145,28 +173,7 @@ extension _SongListPage on _SongListState {
             visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
             onTap: () {
               Navigator.pop(context);
-              for (var e in isSelectedNotifierMap.values) {
-                e.value = false;
-              }
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ValueListenableBuilder(
-                    valueListenable: currentSongListNotifier,
-                    builder: (context, currentSongList, child) {
-                      return SelectableSongListPage(
-                        songList: currentSongList,
-                        playlist: playlist,
-                        folder: folder,
-                        isRanking: isRanking,
-                        isRecently: isRecently,
-                        isLibrary: isLibrary,
-                        reorderable: reorderable,
-                        isSelectedNotifierMap: isSelectedNotifierMap,
-                      );
-                    },
-                  ),
-                ),
-              );
+              openSelection(context);
             },
           ),
           if (!isRanking && !isRecently)
@@ -354,7 +361,8 @@ extension _SongListPage on _SongListState {
             scrollController: scrollController,
             listIsScrollingNotifier: listIsScrollingNotifier,
             currentSongListNotifier: currentSongListNotifier,
-            offset: 300 - MediaQuery.heightOf(context) / 2,
+            // The Songs page header also holds the Sort / Filter / Select row.
+            offset: (isLibrary ? 360 : 300) - MediaQuery.heightOf(context) / 2,
           ),
         ),
       ],
@@ -402,6 +410,16 @@ extension _SongListPage on _SongListState {
             ),
           ],
         ),
+        if (isLibrary) ...[
+          SizedBox(height: 12),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: songsToolbar(phone: true),
+            ),
+          ),
+        ],
         SizedBox(height: 20),
       ],
     );
@@ -446,6 +464,7 @@ extension _SongListPage on _SongListState {
   /// Empty state for a playlist with no songs. Shows an "Add songs" button
   /// that opens the library's selectable song list for picking.
   Widget _emptyPlaylistState(BuildContext context) {
+    if (isFiltered) return noFilterMatches();
     // Only playlists that can be modified get an "add songs" button.
     // Artists, albums, rankings and the library itself are read-only
     // collections, so showing a prompt to add would be misleading.
@@ -559,6 +578,11 @@ extension _SongListPage on _SongListState {
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
           onTap: () =>
               audioHandler.setPlayQueue(currentSongList, 0, targetIndex: index),
+          // Long-press starts a multi-selection with this song ticked.
+          onLongPress: () {
+            tryVibrate();
+            openSelection(context, song);
+          },
           trailing: isRanking
               ? SizedBox(
                   width: 100,

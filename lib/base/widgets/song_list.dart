@@ -33,6 +33,8 @@ import 'package:soiboi/base/widgets/my_divider.dart';
 import 'package:soiboi/base/widgets/my_location.dart';
 import 'package:soiboi/base/widgets/my_sheet.dart';
 import 'package:soiboi/base/widgets/playlist_widgets.dart';
+import 'package:soiboi/base/widgets/song_list_toolbar.dart';
+import 'package:soiboi/base/data/song_filter.dart';
 import 'package:soiboi/base/widgets/selectable_song_list_page.dart';
 import 'package:soiboi/base/widgets/song_info.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
@@ -137,9 +139,13 @@ class _SongListState extends State<SongList> {
 
   bool prepareing = true;
 
+  /// Whether the Songs page's filter is hiding anything.
+  bool get isFiltered => isLibrary && !songFilterNotifier.value.isEmpty;
+
   bool get reorderable {
     return searchValue.isEmpty &&
         sortTypeNotifier.value == 0 &&
+        !isFiltered &&
         (playlist != null ||
             folder != null ||
             (isLibrary && isNotStreamSource));
@@ -203,9 +209,12 @@ class _SongListState extends State<SongList> {
   void updateSongList() {
     prepareing = false;
 
-    final currentSongList = List<MyAudioMetadata>.from(
+    var currentSongList = List<MyAudioMetadata>.from(
       searchValue.isEmpty ? songList : tmpSongList,
     );
+    if (isFiltered) {
+      currentSongList = songFilterNotifier.value.apply(currentSongList);
+    }
 
     showPlayButtonNotifierMap.clear();
     for (var e in currentSongList) {
@@ -287,6 +296,50 @@ class _SongListState extends State<SongList> {
     _isLoadingMoreData = false;
   }
 
+  /// Sort, Filter and Select above the Songs page's list.
+  Widget songsToolbar({required bool phone}) => SongListToolbar(
+    sortTypeNotifier: sortTypeNotifier,
+    songs: songList,
+    selectLabel: phone ? 'Select' : 'Select all',
+    onSelect: phone ? () => openSelection(context) : selectAll,
+  );
+
+  /// Selects every row shown, for a right-click on any of them to act on.
+  void selectAll() {
+    for (final song in currentSongListNotifier.value) {
+      isSelectedNotifierMap[song]?.value = true;
+    }
+    continuousSelectBeginIndex = 0;
+  }
+
+  /// What the page shows when the filter leaves nothing.
+  Widget noFilterMatches() => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.filter_list_off_rounded, size: 48, color: textColor.value),
+          const SizedBox(height: 16),
+          Text(
+            'No songs match these filters',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: highlightTextColor.value,
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: () => songFilterNotifier.value = const SongFilter(),
+            icon: const Icon(Icons.clear_rounded),
+            label: const Text('Clear filters'),
+          ),
+        ],
+      ),
+    ),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -353,6 +406,7 @@ class _SongListState extends State<SongList> {
       isLibrary = true;
       songList = library.songList;
       library.changeNotifier.addListener(updateSongList);
+      songFilterNotifier.addListener(resetSelectedAndUpdateSongList);
       if (isStreamSource) {
         scrollController.addListener(_onScroll);
       }
@@ -395,6 +449,7 @@ class _SongListState extends State<SongList> {
   @override
   void dispose() {
     rootVisibleNotifier?.removeListener(updateHideOthers);
+    songFilterNotifier.removeListener(resetSelectedAndUpdateSongList);
 
     sortTypeNotifier.removeListener(resetSelectedAndUpdateSongList);
     changeNotifier.removeListener(updateSongList);
