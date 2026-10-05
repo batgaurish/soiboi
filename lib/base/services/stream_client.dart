@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
+
+const String playQueueForStreamName = '_soiboi_play_queue_';
 
 StreamClient? streamClient;
 
@@ -13,6 +14,8 @@ abstract class StreamClient {
   final String baseUrl;
   final String username;
   final String password;
+
+  String? playQueuePlaylistId;
 
   @protected
   late final Dio dio;
@@ -59,7 +62,7 @@ abstract class StreamClient {
     for (Playlist pl in await getPlaylists() ?? []) {
       if (pl.name == playQueueForStreamName) {
         // if mutiple instance, chose the latest one
-        playQueueForStreamId = pl.id;
+        playQueuePlaylistId = pl.id;
         ids.add(pl.id!);
       }
     }
@@ -70,11 +73,11 @@ abstract class StreamClient {
       await deletePlaylist(id);
     }
 
-    if (playQueueForStreamId == null) {
+    if (playQueuePlaylistId == null) {
       return null;
     }
 
-    return getPlaylistSongs(playQueueForStreamId!);
+    return getPlaylistSongs(playQueuePlaylistId!);
   }
 
   Timer? _savePlayQueueTimer;
@@ -87,17 +90,17 @@ abstract class StreamClient {
     _savePlayQueueTimer = Timer(Duration(seconds: 5), () async {
       _saving = true;
 
-      if (playQueueForStreamId != null) {
-        await deletePlaylist(playQueueForStreamId!);
-        playQueueForStreamId = null;
+      if (playQueuePlaylistId != null) {
+        await deletePlaylist(playQueuePlaylistId!);
+        playQueuePlaylistId = null;
       }
 
-      playQueueForStreamId ??= await createPlaylist(playQueueForStreamName);
-      if (playQueueForStreamId == null) {
+      playQueuePlaylistId ??= await createPlaylist(playQueueForStreamName);
+      if (playQueuePlaylistId == null) {
         _saving = false;
         return;
       }
-      await updatePlaylistSongs(playQueueForStreamId!, songIds);
+      await updatePlaylistSongs(playQueuePlaylistId!, songIds);
       _saving = false;
     });
 
