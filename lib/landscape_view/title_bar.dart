@@ -5,7 +5,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';

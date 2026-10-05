@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/widgets/focus_ring.dart';
 import 'package:soiboi/base/widgets/scale_widget.dart';
 

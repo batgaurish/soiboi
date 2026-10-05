@@ -13,7 +13,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/storage_cleanup.dart' show formatBytes;
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/services/update_service.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:url_launcher/url_launcher.dart';

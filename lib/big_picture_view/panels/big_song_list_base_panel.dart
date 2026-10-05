@@ -4,7 +4,7 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/song_options.dart';
 import 'package:soiboi/base/utils/common_utils.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';

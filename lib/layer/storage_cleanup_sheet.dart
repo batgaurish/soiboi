@@ -12,7 +12,8 @@ import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/data/storage_cleanup.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 
 Future<void> showStorageCleanupSheet(BuildContext context) {
@@ -190,9 +191,10 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
       CleanupSort.largest => getArtist(song),
       CleanupSort.leastPlayed =>
         song.playCount == 0 ? 'Never played' : '${song.playCount} plays',
-      CleanupSort.oldest => song.lastPlayed == null
-          ? 'Never played'
-          : 'Last played ${_ago(song.lastPlayed!)}',
+      CleanupSort.oldest =>
+        song.lastPlayed == null
+            ? 'Never played'
+            : 'Last played ${_ago(song.lastPlayed!)}',
     };
 
     return ListTile(

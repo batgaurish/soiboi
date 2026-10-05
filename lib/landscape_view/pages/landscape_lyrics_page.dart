@@ -7,7 +7,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/widgets/buttons.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/data/setting.dart';

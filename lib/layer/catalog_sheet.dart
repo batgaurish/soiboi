@@ -15,7 +15,7 @@ import 'package:soiboi/base/services/apple_catalog_service.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/services/library_match_service.dart';
 import 'package:soiboi/base/services/preview_player.dart';
 import 'package:soiboi/base/theme/flavour.dart';

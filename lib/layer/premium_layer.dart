@@ -4,7 +4,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/iap_service.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';

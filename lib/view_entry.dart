@@ -7,7 +7,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/data/loader.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/context_menu.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/system_ui_service.dart';
 import 'package:soiboi/base/services/taskbar_service.dart';

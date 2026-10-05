@@ -3,7 +3,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/asset_images.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/play_queue_sheet.dart';
 import 'package:soiboi/base/utils/dynamic_lyrics_page_route.dart';
