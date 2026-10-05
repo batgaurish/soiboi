@@ -41,13 +41,7 @@ import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/base/widgets/song_semantics.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
-import 'package:soiboi/layer/albums_layer.dart';
-import 'package:soiboi/layer/artists_layer.dart';
-import 'package:soiboi/layer/folders_layer.dart';
 import 'package:soiboi/layer/layers_manager.dart';
-import 'package:soiboi/layer/playlists_layer.dart';
-import 'package:soiboi/layer/ranking_layer.dart';
-import 'package:soiboi/layer/recently_layer.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/portrait_view/my_search_field.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
@@ -67,7 +61,9 @@ class SongList extends StatefulWidget {
 
   final bool isRoot;
 
-  final String? albumRootLabel;
+  final ValueNotifier<bool>? rootVisibleNotifier;
+  final String? rootLabel;
+  final VoidCallback? onBackToRoot;
 
   const SongList({
     super.key,
@@ -78,9 +74,13 @@ class SongList extends StatefulWidget {
     this.isRanking = false,
     this.isRecently = false,
     this.isRoot = true,
+    this.rootVisibleNotifier,
+    this.rootLabel,
+    this.onBackToRoot,
+    String? albumRootLabel,
+  }) : _albumRootLabel = albumRootLabel;
 
-    this.albumRootLabel,
-  });
+  final String? _albumRootLabel;
 
   @override
   State<StatefulWidget> createState() => _SongListState();
@@ -351,51 +351,33 @@ class _SongListState extends State<SongList> {
     isRanking = widget.isRanking;
     isRecently = widget.isRecently;
 
+    rootVisibleNotifier = widget.rootVisibleNotifier;
+    rootLabel = widget.rootLabel ?? widget._albumRootLabel ?? '';
+    if (widget.onBackToRoot != null) {
+      backToRoot = widget.onBackToRoot;
+    } else if (rootLabel.isNotEmpty) {
+      backToRoot = () {
+        layersManager.popDetail(rootLabel);
+      };
+    }
+
     if (playlist != null) {
       title = playlist!.name;
       songList = playlist!.songList;
       sortTypeNotifier = playlist!.sortTypeNotifier;
       changeNotifier = playlist!.changeNotifier;
-      if (!widget.isRoot) {
-        rootVisibleNotifier = playlistsVisibleNotifier;
-        backToRoot = () {
-          layersManager.popDetail('playlists');
-        };
-        rootLabel = 'playlists';
-      }
     } else if (artist != null) {
       title = artist!.name;
       songList = artist!.songList;
-      rootVisibleNotifier = artistsVisibleNotifier;
-      backToRoot = () {
-        layersManager.popDetail('artists');
-      };
-      rootLabel = 'artists';
       changeNotifier = artist!.changeNotifier;
     } else if (album != null) {
       title = album!.name;
       songList = album!.songList;
-      rootLabel = widget.albumRootLabel!;
-      if (rootLabel == 'albums') {
-        rootVisibleNotifier = albumsVisibleNotifier;
-      } else if (rootLabel == 'ranking') {
-        rootVisibleNotifier = rankingVisibleNotifier;
-      } else {
-        rootVisibleNotifier = recentlyVisibleNotifier;
-      }
-      backToRoot = () {
-        layersManager.popDetail(widget.albumRootLabel!);
-      };
     } else if (folder != null) {
       title = folder!.id;
       songList = folder!.songList;
       sortTypeNotifier = folder!.sortTypeNotifier;
       changeNotifier = folder!.changeNotifier;
-      rootVisibleNotifier = foldersVisibleNotifier;
-      backToRoot = () {
-        layersManager.popDetail('folders');
-      };
-      rootLabel = 'folders';
     } else if (isRanking) {
       songList = history.rankingSongList;
       history.rankingChangeNotifier.addListener(updateSongList);
