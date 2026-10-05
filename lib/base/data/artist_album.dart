@@ -10,7 +10,7 @@ import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 
-ArtistAlbumManager artistAlbumManager = ArtistAlbumManager();
+final ArtistAlbumManager artistAlbumManager = ArtistAlbumManager();
 
 class ArtistAlbumManager {
   static bool Function()? isBusyProvider;
@@ -55,6 +55,11 @@ class ArtistAlbumManager {
   }
 
   void classify() {
+    artistList.clear();
+    albumList.clear();
+    artistMap.clear();
+    albumMap.clear();
+
     for (final song in library.songList) {
       _processSong(song);
     }
@@ -70,6 +75,17 @@ class ArtistAlbumManager {
       artist.combineAlbums();
     }
 
+    updateNotifier.value++;
+  }
+
+  void clear() {
+    clearNotifier.value++;
+    artistList.clear();
+    albumList.clear();
+    artistMap.clear();
+    albumMap.clear();
+    artistCompleter = null;
+    ablumCompleter = null;
     updateNotifier.value++;
   }
 
@@ -121,12 +137,7 @@ class ArtistAlbumManager {
   }
 
   void updateArtistAlbum() {
-    clearNotifier.value++;
-    artistList.clear();
-    albumList.clear();
-    artistMap.clear();
-    albumMap.clear();
-
+    clear();
     classify();
   }
 

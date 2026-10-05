@@ -101,9 +101,9 @@ class Loader {
 
     globalPictureList = [];
 
-    library = Library();
-    artistAlbumManager = ArtistAlbumManager();
-    history = History();
+    library.reset();
+    artistAlbumManager.clear();
+    history.clear();
 
     await load();
   }
@@ -117,9 +117,9 @@ class Loader {
 
     globalPictureList = [];
 
-    artistAlbumManager = ArtistAlbumManager();
+    artistAlbumManager.clear();
 
-    history = History();
+    history.clear();
 
     await library.sync();
 
@@ -145,9 +145,9 @@ class Loader {
 
     firstSyncNotifier.value++;
 
-    artistAlbumManager = ArtistAlbumManager();
+    artistAlbumManager.clear();
 
-    history = History();
+    history.clear();
 
     await library.sync();
 

@@ -58,7 +58,7 @@ void main() {
     streamClient = mockStreamClient;
     sourceType = SourceType.navidrome;
     library.songList.clear();
-    history = History();
+    history.clear();
   });
 
   tearDown(() {
