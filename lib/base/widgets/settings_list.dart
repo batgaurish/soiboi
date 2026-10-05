@@ -29,12 +29,9 @@ import 'package:soiboi/layer/storage_cleanup_sheet.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
-import 'package:soiboi/base/services/emby_client.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/logger.dart';
-import 'package:soiboi/base/services/navidrome_client.dart';
 import 'package:soiboi/base/services/notification_service.dart';
-import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/services/system_ui_service.dart';
 import 'package:soiboi/base/utils/common_utils.dart';
 import 'package:soiboi/base/utils/media_query.dart';
@@ -492,27 +489,10 @@ class _SettingsListState extends State<SettingsList> {
                             if (context.mounted) {
                               Navigator.pop(context);
                             }
-                            sourceType = tmp;
-                            streamClient = null;
-                            if (sourceType == .navidrome &&
-                                config.navidromeBaseUrl != null) {
-                              streamClient = NavidromeClient(
-                                baseUrl: config.navidromeBaseUrl!,
-                                username: config.navidromeUsername!,
-                                password: config.navidromePassword!,
-                              );
-                            } else if (sourceType == .emby &&
-                                config.embyBaseUrl != null) {
-                              streamClient = EmbyClient(
-                                baseUrl: config.embyBaseUrl!,
-                                username: config.embyUsername!,
-                                password: config.embyPassword!,
-                              );
-                            }
+                            await config.switchSource(tmp);
                             setState(() {});
 
                             Loader.reload();
-                            config.save();
                           },
                         ),
                     ],
