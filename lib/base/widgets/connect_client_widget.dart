@@ -5,7 +5,8 @@ import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/emby_client.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/navidrome_client.dart';
 import 'package:soiboi/base/services/stream_client.dart';
@@ -82,7 +83,11 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
             SizedBox(height: 10),
             isTV
                 ? fakeTextField(l10n.username, usernameController)
-                : CustomTextField(l10n.username, usernameController, compact: false),
+                : CustomTextField(
+                    l10n.username,
+                    usernameController,
+                    compact: false,
+                  ),
 
             SizedBox(height: 10),
             isTV

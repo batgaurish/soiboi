@@ -9,7 +9,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/cookie_store.dart' as cookie_store;
 import 'package:soiboi/base/services/download_status.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/wrapper_service.dart';
 import 'package:soiboi/base/widgets/download_options.dart';

@@ -8,7 +8,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/song_filter.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
+import 'package:soiboi/base/widgets/context_menu.dart';
 import 'package:soiboi/base/widgets/quality_badge.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 

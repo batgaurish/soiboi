@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 
 Widget _buildTestApp({required Widget child}) {
@@ -17,94 +18,97 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('interaction services', () {
-    testWidgets('showCenterMessage displays overlay text and throttles duplicate messages', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_buildTestApp(child: const Text('Home')));
+    testWidgets(
+      'showCenterMessage displays overlay text and throttles duplicate messages',
+      (tester) async {
+        await tester.pumpWidget(_buildTestApp(child: const Text('Home')));
 
-      showCenterMessage('First Notification', duration: 1000);
-      await tester.pump();
+        showCenterMessage('First Notification', duration: 1000);
+        await tester.pump();
 
-      expect(find.text('First Notification'), findsOneWidget);
+        expect(find.text('First Notification'), findsOneWidget);
 
-      // Throttling: duplicate message within 2s should be ignored
-      showCenterMessage('First Notification', duration: 1000);
-      await tester.pump();
-      expect(find.text('First Notification'), findsOneWidget);
+        // Throttling: duplicate message within 2s should be ignored
+        showCenterMessage('First Notification', duration: 1000);
+        await tester.pump();
+        expect(find.text('First Notification'), findsOneWidget);
 
-      // Wait for duration to remove first entry
-      await tester.pump(const Duration(milliseconds: 1100));
-      expect(find.text('First Notification'), findsNothing);
-    });
+        // Wait for duration to remove first entry
+        await tester.pump(const Duration(milliseconds: 1100));
+        expect(find.text('First Notification'), findsNothing);
+      },
+    );
 
-    testWidgets('showCenterLoading and removeCenterLoading toggle loading overlay', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_buildTestApp(child: const Text('Home')));
+    testWidgets(
+      'showCenterLoading and removeCenterLoading toggle loading overlay',
+      (tester) async {
+        await tester.pumpWidget(_buildTestApp(child: const Text('Home')));
 
-      showCenterLoading();
-      await tester.pump();
+        showCenterLoading();
+        await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-      removeCenterLoading();
-      await tester.pump();
+        removeCenterLoading();
+        await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-    });
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
 
-    testWidgets('showConfirmDialog returns true on confirm and false on cancel', (
-      tester,
-    ) async {
-      bool? result;
+    testWidgets(
+      'showConfirmDialog returns true on confirm and false on cancel',
+      (tester) async {
+        bool? result;
 
-      await tester.pumpWidget(
-        _buildTestApp(
-          child: Builder(
-            builder: (context) {
-              return ElevatedButton(
-                onPressed: () async {
-                  result = await showConfirmDialog(
-                    context,
-                    'Delete item?',
-                    message: 'Sure?',
-                    confirmText: 'OK',
-                  );
-                },
-                child: const Text('Open Dialog'),
-              );
-            },
+        await tester.pumpWidget(
+          _buildTestApp(
+            child: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () async {
+                    result = await showConfirmDialog(
+                      context,
+                      'Delete item?',
+                      message: 'Sure?',
+                      confirmText: 'OK',
+                    );
+                  },
+                  child: const Text('Open Dialog'),
+                );
+              },
+            ),
           ),
-        ),
-      );
+        );
 
-      // 1. Confirm flow
-      await tester.tap(find.text('Open Dialog'));
-      await tester.pumpAndSettle();
+        // 1. Confirm flow
+        await tester.tap(find.text('Open Dialog'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Delete item?'), findsOneWidget);
-      expect(find.text('Sure?'), findsOneWidget);
+        expect(find.text('Delete item?'), findsOneWidget);
+        expect(find.text('Sure?'), findsOneWidget);
 
-      // Tap confirm button (second ElevatedButton in dialog)
-      final buttons = find.byType(ElevatedButton);
-      // The last button in the dialog row is the confirm button
-      await tester.tap(buttons.last);
-      await tester.pumpAndSettle();
+        // Tap confirm button (second ElevatedButton in dialog)
+        final buttons = find.byType(ElevatedButton);
+        // The last button in the dialog row is the confirm button
+        await tester.tap(buttons.last);
+        await tester.pumpAndSettle();
 
-      expect(result, isTrue);
+        expect(result, isTrue);
 
-      // 2. Cancel flow
-      await tester.tap(find.text('Open Dialog'));
-      await tester.pumpAndSettle();
+        // 2. Cancel flow
+        await tester.tap(find.text('Open Dialog'));
+        await tester.pumpAndSettle();
 
-      // Tap cancel button
-      final cancelButtons = find.byType(ElevatedButton);
-      // First button in the dialog row is Cancel
-      await tester.tap(cancelButtons.at(1));
-      await tester.pumpAndSettle();
+        // Tap cancel button
+        final cancelButtons = find.byType(ElevatedButton);
+        // First button in the dialog row is Cancel
+        await tester.tap(cancelButtons.at(1));
+        await tester.pumpAndSettle();
 
-      expect(result, isFalse);
-    });
+        expect(result, isFalse);
+      },
+    );
 
     testWidgets('getInputTextDialog inputs text and returns value', (
       tester,

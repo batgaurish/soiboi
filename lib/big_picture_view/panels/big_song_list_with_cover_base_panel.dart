@@ -12,7 +12,7 @@ import 'package:soiboi/base/data/folder.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/song_options.dart';
 import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/utils/common_utils.dart';
 import 'package:soiboi/base/utils/media_query.dart';
@@ -401,7 +401,8 @@ abstract class BigSongListWithCoverBasePanelState<
                               riveIcon: .sound,
                               width: 35,
                               height: 35,
-                              loopAnimation: isPlayingNotifier.value && !reduceMotion,
+                              loopAnimation:
+                                  isPlayingNotifier.value && !reduceMotion,
                               color: iconColor.value,
                             );
                           },

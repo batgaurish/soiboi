@@ -13,7 +13,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
 

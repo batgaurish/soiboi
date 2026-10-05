@@ -5,7 +5,7 @@ import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/playlist.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/song_options.dart';
 import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';

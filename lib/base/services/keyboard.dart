@@ -12,7 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/audio_handler.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
 import 'package:soiboi/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:soiboi/layer/global_search_layer.dart';

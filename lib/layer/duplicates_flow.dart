@@ -9,7 +9,8 @@ import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/data/storage_cleanup.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/widgets/quality_badge.dart';
 
 /// "ALAC", "AAC", "MP3": the codec half of the quality badge.

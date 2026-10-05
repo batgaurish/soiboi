@@ -3,7 +3,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/my_grid_delegate.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
@@ -229,11 +229,7 @@ extension CollectionListPage on CollectionListState {
             title: Text(text, style: .new(overflow: .ellipsis)),
             subtitle: item.subCount == null
                 ? null
-                : Text(
-                    AppLocalizations.of(
-                      context,
-                    ).songCount(item.subCount!),
-                  ),
+                : Text(AppLocalizations.of(context).songCount(item.subCount!)),
             onTap: item.onTap,
             onLongPress: () => openItemMenu(context, index),
           ),

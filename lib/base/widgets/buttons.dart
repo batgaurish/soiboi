@@ -5,7 +5,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/asset_images.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/widgets/play_queue_sheet.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/pages/play_queue_page.dart';
@@ -237,7 +237,9 @@ Widget showPlayQueueButton(double size, {Color? iconColor}) {
                             ),
                             clipBehavior: Clip.antiAliasWithSaveLayer,
                             child: AnimatedContainer(
-                              duration: motionDuration(Duration(milliseconds: 250)),
+                              duration: motionDuration(
+                                Duration(milliseconds: 250),
+                              ),
                               color: Color.alphaBlend(
                                 colorManager.getSpecificBgColor(),
                                 colorManager.getSpecificBgBaseColor(),
