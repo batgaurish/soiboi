@@ -327,8 +327,7 @@ extension _SongListPanel on _SongListState {
                               ),
                             ],
 
-                            if (isLibrary && isNotStreamSource ||
-                                folder != null) ...[
+                            if (hasLocalOrder) ...[
                               SizedBox(width: 15),
                               ElevatedButton(
                                 onPressed: () {
@@ -1024,7 +1023,7 @@ extension _SongListPanel on _SongListState {
             callback: () => goToArtist(song, context),
           ),
         );
-      } else if (isNotStreamSource && artist!.name != song.artist) {
+      } else if (offersGoToArtist(song)) {
         menuItems.add(
           MenuItem(
             text: l10n.go2Artist,

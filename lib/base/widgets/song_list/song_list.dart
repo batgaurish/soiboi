@@ -146,13 +146,21 @@ class _SongListState extends State<SongList> {
   /// Whether the Songs page's filter is hiding anything.
   bool get isFiltered => isLibrary && !songFilterNotifier.value.isEmpty;
 
+  /// Local libraries know file dates and keep their own order; a streaming
+  /// server's song list does neither.
+  bool get hasLocalOrder => isLibrary && isNotStreamSource || folder != null;
+
+  /// "Go to artist" is offered when [song] is by someone other than the
+  /// artist this list belongs to. Streaming artists are opened by id, which a
+  /// song's artist name cannot give.
+  bool offersGoToArtist(MyAudioMetadata song) =>
+      isNotStreamSource && artist!.name != song.artist;
+
   bool get reorderable {
     return searchValue.isEmpty &&
         sortTypeNotifier.value == 0 &&
         !isFiltered &&
-        (playlist != null ||
-            folder != null ||
-            (isLibrary && isNotStreamSource));
+        (playlist != null || hasLocalOrder);
   }
 
   bool get isFixed => isMobile || !reorderable;

@@ -1,4 +1,3 @@
-import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:path/path.dart';
@@ -109,10 +108,10 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
         if (tmp != 0) {
           return tmp;
         }
-        final albumA = artistAlbumManager
-            .albumMap[isStreamSource ? a.albumId : getAlbum(a)];
-        final albumB = artistAlbumManager
-            .albumMap[isStreamSource ? a.albumId : getAlbum(b)];
+        final albumA =
+            artistAlbumManager.albumMap[artistAlbumManager.albumKeyOf(a)];
+        final albumB =
+            artistAlbumManager.albumMap[artistAlbumManager.albumKeyOf(b)];
         if (albumA == null || albumB == null) {
           final albumTmp = a.compareAlbum.compareTo(b.compareAlbum);
           if (albumTmp != 0) {
@@ -147,10 +146,10 @@ void sortSongList(int sortType, List<MyAudioMetadata> songList) {
         if (tmp != 0) {
           return tmp;
         }
-        final albumA = artistAlbumManager
-            .albumMap[isStreamSource ? a.albumId : getAlbum(a)];
-        final albumB = artistAlbumManager
-            .albumMap[isStreamSource ? a.albumId : getAlbum(b)];
+        final albumA =
+            artistAlbumManager.albumMap[artistAlbumManager.albumKeyOf(a)];
+        final albumB =
+            artistAlbumManager.albumMap[artistAlbumManager.albumKeyOf(b)];
         if (albumA == null || albumB == null) {
           final albumTmp = a.compareAlbum.compareTo(b.compareAlbum);
           if (albumTmp != 0) {

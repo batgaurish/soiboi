@@ -103,9 +103,7 @@ class Loader {
     await playlistManager.load();
     await linkedPlaylists.refreshAll();
 
-    if (isNotStreamSource) {
-      artistAlbumManager.classify();
-    }
+    artistAlbumManager.classify();
     _busy = false;
     stateNotifier.value++;
   }
@@ -146,9 +144,7 @@ class Loader {
     await playlistManager.load();
     await linkedPlaylists.refreshAll();
 
-    if (isNotStreamSource) {
-      artistAlbumManager.classify();
-    }
+    artistAlbumManager.classify();
 
     _busy = false;
     stateNotifier.value++;
@@ -174,9 +170,7 @@ class Loader {
     await playlistManager.load();
     await linkedPlaylists.refreshAll();
 
-    if (isNotStreamSource) {
-      artistAlbumManager.classify();
-    }
+    artistAlbumManager.classify();
 
     _busy = false;
     stateNotifier.value++;
