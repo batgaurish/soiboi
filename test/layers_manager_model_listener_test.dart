@@ -12,6 +12,7 @@ import 'package:soiboi/layer/layers_manager.dart';
 
 void main() {
   setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
     final tempDir = await Directory.systemTemp.createTemp('layers_manager_test_');
     appSupportDir = tempDir;
   });
@@ -43,4 +44,22 @@ void main() {
     expect(await layersManager.popDetail('albums'), isFalse);
     expect(await layersManager.popDetail('settings'), isFalse);
   });
+
+  test('pushDetailIfNeed ignores unsupported types and does not hang', () async {
+    await layersManager.pushDetailIfNeed('unsupported_string');
+    await layersManager.pushDetailIfNeed(12345);
+  });
+
+  test('removeLayerIfNeed does not throw for unmounted items', () async {
+    final folder = Folder('test_folder', '/fake/path');
+    final artist = Artist('test_artist');
+    final album = Album('test_album');
+    final playlist = Playlist(name: 'test_playlist');
+
+    expect(() => layersManager.removeLayerIfNeed(folder), returnsNormally);
+    expect(() => layersManager.removeLayerIfNeed(artist), returnsNormally);
+    expect(() => layersManager.removeLayerIfNeed(album), returnsNormally);
+    expect(() => layersManager.removeLayerIfNeed(playlist), returnsNormally);
+  });
 }
+

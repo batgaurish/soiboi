@@ -250,9 +250,10 @@ class LayersManager {
       if (removedLayer == topRootLayer) {
         switchRootLayer('songs');
       }
-      // prevent black screen appear
-      await Future.delayed(Duration(milliseconds: 500));
-      rootPageMap.remove(removedLayer);
+      // Clean up cached page on next frame after root layer switch renders
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        rootPageMap.remove(removedLayer);
+      });
     } else if (target is Artist) {
       final rootLayer = getRootLayer('artists');
       if ((detailWidgetMap[rootLayer] as SingleArtistLayer?)?.artist ==
@@ -415,27 +416,27 @@ class LayersManager {
   final Map<String, String> _openedFrom = {};
 
   Future<void> pushDetailIfNeed(dynamic detail) async {
+    final String label;
+    final bool isSame;
     if (detail is Artist) {
-      if ((detailWidgetMap[getRootLayer('artists')] as SingleArtistLayer?)
-              ?.artist !=
-          detail) {
-        await Future.delayed(Duration(milliseconds: 500));
-        if (await popDetail('artists')) {
-          await Future.delayed(Duration(milliseconds: 500));
-        }
-        pushDetail('artists', detail);
-      }
+      label = 'artists';
+      final current =
+          detailWidgetMap[getRootLayer(label)] as SingleArtistLayer?;
+      isSame = current?.artist == detail;
+    } else if (detail is Album) {
+      label = 'albums';
+      final current =
+          detailWidgetMap[getRootLayer(label)] as SingleAlbumLayer?;
+      isSame = current?.album == detail;
     } else {
-      if ((detailWidgetMap[getRootLayer('albums')] as SingleAlbumLayer?)
-              ?.album !=
-          detail) {
-        await Future.delayed(Duration(milliseconds: 500));
-        if (await popDetail('albums')) {
-          await Future.delayed(Duration(milliseconds: 500));
-        }
+      return;
+    }
 
-        pushDetail('albums', detail);
+    if (!isSame) {
+      if (await popDetail(label)) {
+        await WidgetsBinding.instance.endOfFrame;
       }
+      pushDetail(label, detail);
     }
   }
 
