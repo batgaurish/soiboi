@@ -1,4 +1,4 @@
-part of '../../base/widgets/song_list.dart';
+part of 'song_list.dart';
 
 extension _SongListPage on _SongListState {
   Widget pageView(BuildContext context) {

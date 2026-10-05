@@ -28,7 +28,7 @@ import 'package:soiboi/base/services/global_search_service.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
-import 'package:soiboi/base/widgets/song_list.dart';
+import 'package:soiboi/base/widgets/song_list/song_list.dart';
 import 'package:soiboi/layer/catalog_sheet.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';

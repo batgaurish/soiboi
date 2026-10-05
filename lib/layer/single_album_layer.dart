@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/artist_album.dart';
-import 'package:soiboi/base/widgets/song_list.dart';
+import 'package:soiboi/base/widgets/song_list/song_list.dart';
 import 'package:soiboi/layer/albums_layer.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/layer/ranking_layer.dart';

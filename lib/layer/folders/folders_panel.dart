@@ -1,4 +1,4 @@
-part of '../../layer/folders_layer.dart';
+part of 'folders_layer.dart';
 
 extension FoldersPanel on FoldersLayer {
   Widget panelView(BuildContext context) {

@@ -15,7 +15,7 @@ import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/utils/media_query.dart';
-import 'package:soiboi/base/widgets/song_list.dart';
+import 'package:soiboi/base/widgets/song_list/song_list.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 

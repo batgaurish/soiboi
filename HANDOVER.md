@@ -233,7 +233,7 @@ regenerate it. Release app id `com.batgaurish.soiboi`; debug builds are
 4. Then `Version 1.1.8 (release candidate 1)`: pubspec 1.1.8+19,
    `versionNumber` 1.1.8.
 5. **Playlist pin and cover actions were undiscoverable on phones**
-   (`66ab86a`, `lib/portrait_view/pages/song_list_page.dart`). Since 1.1.6
+   (`66ab86a`, `lib/portrait_view/pages/song_list_page.dart`, now `lib/base/widgets/song_list/song_list_page.dart`). Since 1.1.6
    they were only reachable by long-pressing a playlist on the Playlists
    tab. The playlist page's ⋮ sheet now lists `playlistOptionItems()` (Pin
    to sidebar / Unpin, Set cover image, Remove cover image) and scrolls.

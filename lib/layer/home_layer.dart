@@ -41,7 +41,7 @@ import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/quality_badge.dart';
-import 'package:soiboi/base/widgets/song_list.dart';
+import 'package:soiboi/base/widgets/song_list/song_list.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/downloads_layer.dart';

@@ -1,4 +1,4 @@
-part of '../../layer/folders_layer.dart';
+part of 'folders_layer.dart';
 
 extension FoldersPage on FoldersLayer {
   Widget pageView(BuildContext context) {

@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/widgets/song_list.dart';
+import 'package:soiboi/base/widgets/song_list/song_list.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/layer/playlists_layer.dart';
