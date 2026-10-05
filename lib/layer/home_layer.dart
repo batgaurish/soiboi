@@ -138,7 +138,7 @@ class _HomeLayerState extends State<HomeLayer> {
         ]),
         builder: (context, _) {
           final moods = autoMoodPlaylists();
-          final upNext = playNextSongs();
+          final upNext = upNextSongs();
           final recent = history.recentlySongList.take(shelfLimit).toList();
           final added = recentlyAddedSongs();
           final addedAlbums = recentlyAddedAlbums();

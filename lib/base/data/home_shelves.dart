@@ -22,7 +22,7 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 const shelfLimit = 12;
 
 /// Tracks queued after the current one — "what's coming up".
-List<MyAudioMetadata> playNextSongs() {
+List<MyAudioMetadata> upNextSongs() {
   final index = audioHandler.currentIndex;
   if (index < 0) return const [];
   final start = index + 1;
