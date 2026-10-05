@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/widgets/my_navigator.dart';
-import 'package:soiboi/base/widgets/settings_list.dart';
+import 'package:soiboi/base/widgets/settings/settings_list.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
