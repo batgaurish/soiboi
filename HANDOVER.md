@@ -62,7 +62,7 @@ Two lines of work run side by side:
 | Branch | What goes there | Version on it now |
 |---|---|---|
 | `main` | Bug fixes for the stable 1.1.x line only | 1.1.8+19 (rc.2) |
-| `scope-expansion` | Everything from `docs/scope-expansion-plan.md`, plus what the user asks for on the beta | 1.2.0-beta.3+22 |
+| `scope-expansion` | Everything from `docs/scope-expansion-plan.md`, plus what the user asks for on the beta | 1.2.0-beta.5+24 |
 
 Rules the user set, verbatim or near it:
 
@@ -513,7 +513,7 @@ Commits, oldest first: `c60e7ef` 0.1, `66cbeda` 0.2, `3aacd4f` 0.3,
 
 ---
 
-## Tests and checks (state at `7ebd563`)
+## Tests and checks (state at `29c8008f`, beta.5 plus handover commits)
 
 - Dart: `flutter test --exclude-tags integration` → **381 pass, 1 skipped**
   (the real-covers fixture). On `main`: 216 pass.
