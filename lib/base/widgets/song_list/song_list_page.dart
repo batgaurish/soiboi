@@ -202,7 +202,7 @@ extension _SongListPage on _SongListState {
                       l10n.durationAscending,
                       l10n.durationDescending,
                     ];
-                    if (isLibrary && (isNotStreamSource) || folder != null) {
+                    if (hasLocalOrder) {
                       orderText.add(l10n.modifiedTimeAscending);
                       orderText.add(l10n.modifiedTimeDescending);
                       orderText.add(l10n.randomizeTemp);
@@ -727,8 +727,7 @@ extension _SongListPage on _SongListState {
                               goToArtist(song, context);
                             },
                           )
-                        else if (isNotStreamSource &&
-                            artist!.name != song.artist)
+                        else if (offersGoToArtist(song))
                           optionItem(
                             text: l10n.go2Artist,
                             leading: Icon(Icons.people),

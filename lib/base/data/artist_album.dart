@@ -54,7 +54,10 @@ class ArtistAlbumManager {
         : albumsUseLargePictureNotifier;
   }
 
+  /// Builds the artist and album lists from the local library. Streaming
+  /// sources fetch theirs from the server instead, so this does nothing.
   void classify() {
+    if (isStreamSource) return;
     artistList.clear();
     albumList.clear();
     artistMap.clear();
@@ -171,6 +174,11 @@ class ArtistAlbumManager {
     return false;
   }
 
+  /// The [albumMap] key for [song]'s album: the server's album id when
+  /// streaming, the album name for local files.
+  String? albumKeyOf(MyAudioMetadata song) =>
+      isStreamSource ? song.albumId : getAlbum(song);
+
   /// Finds or fetches an album for the given song.
   Future<Album?> albumFor(MyAudioMetadata song) async {
     if (isNotStreamSource) {
@@ -234,9 +242,7 @@ class ArtistAlbumManager {
   Future<int?> loadAlbums() async {
     if (ablumCompleter == null) {
       ablumCompleter = Completer<int?>();
-      final loadedAlbums = await streamClient?.getAlbumList(
-        albumList.length,
-      );
+      final loadedAlbums = await streamClient?.getAlbumList(albumList.length);
       if (loadedAlbums == null) {
         updateNotifier.value++;
         ablumCompleter!.complete(null);
