@@ -1,4 +1,4 @@
-part of '../../layer/license_layer.dart';
+part of 'license_layer.dart';
 
 extension _LicensePage on _LicenseLayerState {
   Widget pageView(BuildContext context) {

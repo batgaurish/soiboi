@@ -26,8 +26,8 @@ import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/base/theme/motion.dart';
 
-part '../portrait_view/pages/font_picker_page.dart';
-part '../landscape_view/panels/font_picker_panel.dart';
+part 'font_picker_page.dart';
+part 'font_picker_panel.dart';
 
 class FontPickerLayer extends StatefulWidget {
   const FontPickerLayer({super.key});

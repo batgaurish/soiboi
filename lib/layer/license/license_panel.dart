@@ -1,4 +1,4 @@
-part of '../../layer/license_layer.dart';
+part of 'license_layer.dart';
 
 extension _LicensePanel on _LicenseLayerState {
   Widget panelView(BuildContext context) {

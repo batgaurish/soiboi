@@ -12,8 +12,8 @@ import 'package:soiboi/layer/settings_layer.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-part '../portrait_view/pages/about_page.dart';
-part '../landscape_view/panels/about_panel.dart';
+part 'about_page.dart';
+part 'about_panel.dart';
 
 final aboutVisibleNotifier = ValueNotifier(true);
 

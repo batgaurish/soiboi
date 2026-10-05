@@ -7,13 +7,13 @@ import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/widgets/my_divider.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
-import 'package:soiboi/layer/about_layer.dart';
+import 'package:soiboi/layer/about/about_layer.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/portrait_view/my_search_field.dart';
 
-part '../portrait_view/pages/license_page.dart';
-part '../landscape_view/panels/license_panel.dart';
+part 'license_page.dart';
+part 'license_panel.dart';
 
 class LicenseLayer extends StatefulWidget {
   const LicenseLayer({super.key});

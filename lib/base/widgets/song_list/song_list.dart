@@ -51,8 +51,8 @@ import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/widgets/marquee_text.dart';
 
-part '../../landscape_view/panels/song_list_panel.dart';
-part '../../portrait_view/pages/song_list_page.dart';
+part 'song_list_panel.dart';
+part 'song_list_page.dart';
 
 class SongList extends StatefulWidget {
   final Playlist? playlist;

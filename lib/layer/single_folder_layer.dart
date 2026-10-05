@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/folder.dart';
-import 'package:soiboi/base/widgets/song_list.dart';
-import 'package:soiboi/layer/folders_layer.dart';
+import 'package:soiboi/base/widgets/song_list/song_list.dart';
+import 'package:soiboi/layer/folders/folders_layer.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 
 class SingleFolderLayer extends StatelessWidget {

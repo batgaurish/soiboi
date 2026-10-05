@@ -1,4 +1,4 @@
-part of '../../layer/about_layer.dart';
+part of 'about_layer.dart';
 
 extension _AboutPage on _AboutLayerState {
   Widget pageView(BuildContext context) {

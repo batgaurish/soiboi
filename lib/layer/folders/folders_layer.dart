@@ -14,8 +14,8 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 
-part '../landscape_view/panels/folders_panel.dart';
-part '../portrait_view/pages/folders_page.dart';
+part 'folders_panel.dart';
+part 'folders_page.dart';
 
 final GlobalKey<NavigatorState> foldersKey = GlobalKey();
 final foldersVisibleNotifier = ValueNotifier(true);

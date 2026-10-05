@@ -1,4 +1,4 @@
-part of '../../base/widgets/song_list.dart';
+part of 'song_list.dart';
 
 extension _SongListPanel on _SongListState {
   Widget panelView(BuildContext context) {

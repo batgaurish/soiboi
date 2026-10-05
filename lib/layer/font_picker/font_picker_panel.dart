@@ -1,4 +1,4 @@
-part of '../../layer/font_picker_layer.dart';
+part of 'font_picker_layer.dart';
 
 extension _FontPickerPanel on _FontPickerLayerState {
   Widget panelView(BuildContext context) {
