@@ -28,7 +28,7 @@ void main() {
 
   setUp(() {
     sourceType = SourceType.local;
-    library = Library();
+    library.reset();
   });
 
   tearDown(() {

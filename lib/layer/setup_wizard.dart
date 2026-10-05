@@ -409,7 +409,7 @@ class _SetupWizardState extends State<SetupWizard> {
               mouseCursor: SystemMouseCursors.click,
               onTap: () async {
                 sourceType = type;
-                library = Library();
+                library.reset();
                 if (isNotStreamSource) await library.initFolders();
                 if (mounted) setState(() {});
               },

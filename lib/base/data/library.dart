@@ -18,7 +18,7 @@ import 'package:soiboi/base/data/folder.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:pool/pool.dart';
 
-Library library = Library();
+final Library library = Library();
 
 final ValueNotifier<double> cacheSizeNotifier = ValueNotifier(0);
 
@@ -41,6 +41,31 @@ class Library {
   Library() {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     if (isNotStreamSource) {
+      _metadataDB = MetadataDB(
+        openMetadataDB('${sourceType.name}/metadata.db'),
+      );
+      _folderIdListFile = File(
+        "${getFolderConfigPath(sourceType)}/folder_id_list.json",
+      );
+      initFile(_folderIdListFile!, true);
+    }
+  }
+
+  void clear() {
+    id2Song.clear();
+    songList.clear();
+    folderList.clear();
+    canModify = false;
+    changeNotifier.value++;
+    folderListChangeNotifier.value++;
+    globalChangeNotifier.value++;
+    globalFolderListChangeNotifier.value++;
+  }
+
+  void reset({bool reinitDb = true}) {
+    clear();
+    if (reinitDb && isNotStreamSource) {
+      _metadataDB?.close();
       _metadataDB = MetadataDB(
         openMetadataDB('${sourceType.name}/metadata.db'),
       );

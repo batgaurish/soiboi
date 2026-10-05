@@ -7,7 +7,7 @@ import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 
-History history = History();
+final History history = History();
 
 class History {
   final List<MyAudioMetadata> rankingSongList = [];
@@ -18,6 +18,18 @@ class History {
 
   final List<Album> rankingAlbumList = [];
   final List<Album> recentlyAlbumList = [];
+
+  void clear() {
+    rankingSongList.clear();
+    recentlySongList.clear();
+    rankingAlbumList.clear();
+    recentlyAlbumList.clear();
+    rankingCompleter = null;
+    recentlyCompleter = null;
+    rankingChangeNotifier.value++;
+    recentlyChangeNotifier.value++;
+    globalChangeNotifier.value++;
+  }
 
   void load() {
     // Rebuilt, not appended to. A second load -- after a library sync, or a
