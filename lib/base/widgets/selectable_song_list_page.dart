@@ -5,6 +5,7 @@ import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/widgets/dialogs.dart';
 import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/song_deletion.dart';
+import 'package:soiboi/base/widgets/delete_songs_dialog.dart';
 import 'package:soiboi/base/widgets/playlist_widgets.dart';
 import 'package:soiboi/base/data/folder.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';

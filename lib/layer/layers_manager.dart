@@ -7,7 +7,7 @@ import 'package:soiboi/base/data/folder.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/picture_service.dart';
-import 'package:soiboi/base/utils/dynamic_detail_route.dart';
+import 'package:soiboi/layer/dynamic_detail_route.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/data/history.dart';

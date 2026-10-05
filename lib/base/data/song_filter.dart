@@ -6,7 +6,7 @@ library;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
-import 'package:soiboi/base/widgets/quality_badge.dart';
+import 'package:soiboi/base/utils/quality_info.dart';
 
 @immutable
 class SongFilter {

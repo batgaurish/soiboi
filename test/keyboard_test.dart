@@ -7,7 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
-import 'package:soiboi/base/services/keyboard.dart';
+import 'package:soiboi/layer/keyboard.dart';
 import 'package:soiboi/base/widgets/my_switch.dart';
 import 'package:soiboi/base/widgets/song_semantics.dart';
 import 'package:soiboi/landscape_view/sidebar.dart';

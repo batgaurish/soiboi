@@ -14,7 +14,7 @@ import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
-import 'package:soiboi/base/services/keyboard.dart';
+import 'package:soiboi/layer/keyboard.dart';
 import 'package:soiboi/base/services/my_tray_listener.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
 import 'package:soiboi/base/services/notification_service.dart';
