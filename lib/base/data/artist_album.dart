@@ -187,12 +187,12 @@ abstract class ArtistAlbumBase {
 
   final List<MyAudioMetadata> songList = [];
 
-  final bool isArtist;
+  bool get isArtist => this is Artist;
 
   MyPicture? _picture;
   MyPicture get picture => isStreamSource ? _picture! : getCoverSong().picture;
 
-  ArtistAlbumBase(this.name, this.isArtist, {this.id, String? coverArtId}) {
+  ArtistAlbumBase(this.name, {this.id, String? coverArtId}) {
     id ??= name;
     compareName = PinyinHelper.getPinyinE(name);
     if (isStreamSource) {
@@ -214,7 +214,7 @@ abstract class ArtistAlbumBase {
 }
 
 class Artist extends ArtistAlbumBase {
-  Artist(String name, {super.id, super.coverArtId}) : super(name, true);
+  Artist(super.name, {super.id, super.coverArtId});
 
   Set<Album> albumSet = {};
 
@@ -269,8 +269,7 @@ class Artist extends ArtistAlbumBase {
 }
 
 class Album extends ArtistAlbumBase {
-  Album(String name, {super.id, super.coverArtId, this.year})
-    : super(name, false);
+  Album(super.name, {super.id, super.coverArtId, this.year});
 
   Map<String, List<MyAudioMetadata>> artist2SongList = {};
   int? year;
