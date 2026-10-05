@@ -3,19 +3,30 @@ import 'package:material_ui/material_ui.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/app.dart';
 
+String? _lastMessage;
 DateTime? _lastShowTime;
+OverlayEntry? _lastMessageOverlayEntry;
 
 void showCenterMessage(String message, {int duration = 2000}) {
   final now = DateTime.now();
-  if (_lastShowTime != null &&
+  if (_lastMessage == message &&
+      _lastShowTime != null &&
       now.difference(_lastShowTime!) < const Duration(seconds: 2)) {
     return;
   }
+  _lastMessage = message;
   _lastShowTime = now;
 
   final overlay = globalNavigatorKey.currentState?.overlay;
   if (overlay == null) return;
-  final overlayEntry = OverlayEntry(
+
+  if (_lastMessageOverlayEntry?.mounted ?? false) {
+    _lastMessageOverlayEntry?.remove();
+  }
+  _lastMessageOverlayEntry = null;
+
+  late final OverlayEntry overlayEntry;
+  overlayEntry = OverlayEntry(
     builder: (context) => Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 300),
@@ -36,19 +47,31 @@ void showCenterMessage(String message, {int duration = 2000}) {
       ),
     ),
   );
+  _lastMessageOverlayEntry = overlayEntry;
 
   overlay.insert(overlayEntry);
 
   Future.delayed(Duration(milliseconds: duration), () {
-    overlayEntry.remove();
+    if (overlayEntry.mounted) {
+      overlayEntry.remove();
+    }
+    if (_lastMessageOverlayEntry == overlayEntry) {
+      _lastMessageOverlayEntry = null;
+    }
   });
 }
 
 OverlayEntry? _centerOverlayEntry;
 
-Future<void> showCenterLoading({Color? color}) async {
+void showCenterLoading({Color? color}) {
   final overlay = globalNavigatorKey.currentState?.overlay;
   if (overlay == null) return;
+
+  if (_centerOverlayEntry?.mounted ?? false) {
+    _centerOverlayEntry?.remove();
+  }
+  _centerOverlayEntry = null;
+
   _centerOverlayEntry = OverlayEntry(
     builder: (context) => Stack(
       children: [
@@ -66,7 +89,9 @@ Future<void> showCenterLoading({Color? color}) async {
 }
 
 void removeCenterLoading() {
-  _centerOverlayEntry?.remove();
+  if (_centerOverlayEntry?.mounted ?? false) {
+    _centerOverlayEntry?.remove();
+  }
   _centerOverlayEntry = null;
 }
 

@@ -14,7 +14,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('center_toast leaf service', () {
-    testWidgets('showCenterMessage displays message and throttles within 2s', (
+    testWidgets('showCenterMessage displays message and debounces duplicates within 2s', (
       tester,
     ) async {
       await tester.pumpWidget(_buildTestApp(child: const Text('Root')));
@@ -24,24 +24,34 @@ void main() {
 
       expect(find.text('Hello Toast'), findsOneWidget);
 
-      // Throttling: subsequent call inside 2s is dropped
-      showCenterMessage('Ignored Toast', duration: 500);
+      // Throttling: duplicate call inside 2s is dropped
+      showCenterMessage('Hello Toast', duration: 500);
       await tester.pump();
-      expect(find.text('Ignored Toast'), findsNothing);
+      expect(find.text('Hello Toast'), findsOneWidget);
+
+      // Distinct message is displayed
+      showCenterMessage('Second Toast', duration: 500);
+      await tester.pump();
+      expect(find.text('Second Toast'), findsOneWidget);
 
       // Advance clock past toast display duration
       await tester.pump(const Duration(milliseconds: 600));
-      expect(find.text('Hello Toast'), findsNothing);
+      expect(find.text('Second Toast'), findsNothing);
     });
 
-    testWidgets('showCenterLoading and removeCenterLoading toggle overlay', (
+    testWidgets('showCenterLoading and removeCenterLoading toggle overlay safely', (
       tester,
     ) async {
       await tester.pumpWidget(_buildTestApp(child: const Text('Root')));
 
-      await showCenterLoading();
+      showCenterLoading();
       await tester.pump();
 
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Repeated calls replace entry safely without orphaning
+      showCenterLoading();
+      await tester.pump();
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       removeCenterLoading();

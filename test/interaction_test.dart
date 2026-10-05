@@ -27,10 +27,10 @@ void main() {
 
       expect(find.text('First Notification'), findsOneWidget);
 
-      // Throttling: message within 2s should be ignored
-      showCenterMessage('Second Notification', duration: 1000);
+      // Throttling: duplicate message within 2s should be ignored
+      showCenterMessage('First Notification', duration: 1000);
       await tester.pump();
-      expect(find.text('Second Notification'), findsNothing);
+      expect(find.text('First Notification'), findsOneWidget);
 
       // Wait for duration to remove first entry
       await tester.pump(const Duration(milliseconds: 1100));
@@ -42,7 +42,7 @@ void main() {
     ) async {
       await tester.pumpWidget(_buildTestApp(child: const Text('Home')));
 
-      await showCenterLoading();
+      showCenterLoading();
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
