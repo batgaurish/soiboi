@@ -34,8 +34,6 @@ late AudioSession _session;
 late MyAudioHandler audioHandler;
 
 List<MyAudioMetadata> playQueue = [];
-String? playQueueForStreamId;
-const String playQueueForStreamName = '_soiboi_play_queue_';
 
 final ValueNotifier<MyAudioMetadata?> currentSongNotifier = ValueNotifier(null);
 final isPlayingNotifier = ValueNotifier(false);
