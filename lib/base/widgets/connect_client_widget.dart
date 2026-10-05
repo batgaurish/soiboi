@@ -24,33 +24,33 @@ class ConnectClientWidget extends StatefulWidget {
 }
 
 class _ConnectClientWidgetState extends State<ConnectClientWidget> {
-  final baseUrlTmp = TextEditingController();
-  final usernameTmp = TextEditingController();
-  final passwordTmp = TextEditingController();
+  final baseUrlController = TextEditingController();
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     if (widget.sourceType == .webdav) {
-      baseUrlTmp.text = webdavClient?.baseUrl ?? '';
-      usernameTmp.text = webdavClient?.username ?? '';
-      passwordTmp.text = webdavClient?.password ?? '';
+      baseUrlController.text = webdavClient?.baseUrl ?? '';
+      usernameController.text = webdavClient?.username ?? '';
+      passwordController.text = webdavClient?.password ?? '';
     } else if (widget.sourceType == .navidrome) {
-      baseUrlTmp.text = config.navidromeBaseUrl ?? '';
-      usernameTmp.text = config.navidromeUsername ?? '';
-      passwordTmp.text = config.navidromePassword ?? '';
+      baseUrlController.text = config.navidromeBaseUrl ?? '';
+      usernameController.text = config.navidromeUsername ?? '';
+      passwordController.text = config.navidromePassword ?? '';
     } else {
-      baseUrlTmp.text = config.embyBaseUrl ?? '';
-      usernameTmp.text = config.embyUsername ?? '';
-      passwordTmp.text = config.embyPassword ?? '';
+      baseUrlController.text = config.embyBaseUrl ?? '';
+      usernameController.text = config.embyUsername ?? '';
+      passwordController.text = config.embyPassword ?? '';
     }
   }
 
   @override
   void dispose() {
-    baseUrlTmp.dispose();
-    usernameTmp.dispose();
-    passwordTmp.dispose();
+    baseUrlController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
     super.dispose();
   }
 
@@ -76,20 +76,20 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
 
             SizedBox(height: 10),
             isTV
-                ? fakeTextField('Url', baseUrlTmp)
-                : CustomTextField('Url', baseUrlTmp, compact: false),
+                ? fakeTextField('Url', baseUrlController)
+                : CustomTextField('Url', baseUrlController, compact: false),
 
             SizedBox(height: 10),
             isTV
-                ? fakeTextField(l10n.username, usernameTmp)
-                : CustomTextField(l10n.username, usernameTmp, compact: false),
+                ? fakeTextField(l10n.username, usernameController)
+                : CustomTextField(l10n.username, usernameController, compact: false),
 
             SizedBox(height: 10),
             isTV
-                ? fakeTextField(l10n.password, passwordTmp)
+                ? fakeTextField(l10n.password, passwordController)
                 : CustomTextField(
                     l10n.password,
-                    passwordTmp,
+                    passwordController,
                     needObscure: true,
                     compact: false,
                   ),
@@ -221,9 +221,9 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
       if (widget.sourceType == .webdav) {
         final tmp = webdavClient;
         webdavClient = WebDavClient(
-          baseUrl: baseUrlTmp.text,
-          username: usernameTmp.text,
-          password: passwordTmp.text,
+          baseUrl: baseUrlController.text,
+          username: usernameController.text,
+          password: passwordController.text,
         );
         if (!await webdavClient!.ping()) {
           showCenterMessage('Can not connect to WebDAV');
@@ -233,9 +233,9 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
       } else if (widget.sourceType == .navidrome) {
         final tmp = streamClient;
         final navidromeClient = NavidromeClient(
-          baseUrl: baseUrlTmp.text,
-          username: usernameTmp.text,
-          password: passwordTmp.text,
+          baseUrl: baseUrlController.text,
+          username: usernameController.text,
+          password: passwordController.text,
         );
         if (!await navidromeClient.ping()) {
           showCenterMessage('Can not connect to Navidrome');
@@ -245,15 +245,15 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
         if (widget.sourceType == sourceType) {
           streamClient = navidromeClient;
         }
-        config.navidromeBaseUrl = baseUrlTmp.text;
-        config.navidromeUsername = usernameTmp.text;
-        config.navidromePassword = passwordTmp.text;
+        config.navidromeBaseUrl = baseUrlController.text;
+        config.navidromeUsername = usernameController.text;
+        config.navidromePassword = passwordController.text;
       } else {
         final tmp = streamClient;
         final embyClient = EmbyClient(
-          baseUrl: baseUrlTmp.text,
-          username: usernameTmp.text,
-          password: passwordTmp.text,
+          baseUrl: baseUrlController.text,
+          username: usernameController.text,
+          password: passwordController.text,
         );
 
         if (!await embyClient.ping()) {
@@ -264,9 +264,9 @@ class _ConnectClientWidgetState extends State<ConnectClientWidget> {
         if (widget.sourceType == sourceType) {
           streamClient = embyClient;
         }
-        config.embyBaseUrl = baseUrlTmp.text;
-        config.embyUsername = usernameTmp.text;
-        config.embyPassword = passwordTmp.text;
+        config.embyBaseUrl = baseUrlController.text;
+        config.embyUsername = usernameController.text;
+        config.embyPassword = passwordController.text;
       }
     } catch (e) {
       if (context.mounted) {

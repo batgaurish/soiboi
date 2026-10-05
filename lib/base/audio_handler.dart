@@ -75,8 +75,8 @@ class MyAudioHandler extends BaseAudioHandler {
   final _player = Player();
   bool _started = false;
   int currentIndex = -1;
-  List<MyAudioMetadata> _playQueueTmp = [];
-  int _tmpPlayMode = 0;
+  List<MyAudioMetadata> _unshuffledQueue = [];
+  int _playModeBeforeRepeat = 0;
   DateTime? _playLastSyncTime;
   Duration _playedDuration = Duration.zero;
 
@@ -235,13 +235,15 @@ class MyAudioHandler extends BaseAudioHandler {
     if (isNotStreamSource) {
       final json = await readJsonMapFile(_playQueueState!);
 
-      _playQueueTmp.addAll(_restoreQueue(json['playQueueTmp']));
+      _unshuffledQueue.addAll(
+        _restoreQueue(json['unshuffledQueue'] ?? json['playQueueTmp']),
+      );
       playQueue.addAll(_restoreQueue(json['playQueue']));
     } else {
       playQueue.clear();
       playQueue = await streamClient?.getPlayQueue() ?? [];
       if (playModeNotifier.value == 1) {
-        _playQueueTmp = List.from(playQueue);
+        _unshuffledQueue = List.from(playQueue);
       }
     }
   }
@@ -250,7 +252,8 @@ class MyAudioHandler extends BaseAudioHandler {
     if (isNotStreamSource) {
       _playQueueState!.writeAsStringSync(
         jsonEncode({
-          'playQueueTmp': _playQueueTmp.map((e) => e.id).toList(),
+          'unshuffledQueue': _unshuffledQueue.map((e) => e.id).toList(),
+          'playQueueTmp': _unshuffledQueue.map((e) => e.id).toList(),
           'playQueue': playQueue.map((e) => e.id).toList(),
         }),
       );
@@ -298,7 +301,10 @@ class MyAudioHandler extends BaseAudioHandler {
 
     currentIndex = json['currentIndex'] as int? ?? -1;
     playModeNotifier.value = json['playMode'] as int? ?? 0;
-    _tmpPlayMode = json['tmpPlayMode'] as int? ?? 0;
+    _playModeBeforeRepeat =
+        json['playModeBeforeRepeat'] as int? ??
+        json['tmpPlayMode'] as int? ??
+        0;
 
     volumeNotifier.value = json['volume'] as double? ?? 0.3;
 
@@ -312,7 +318,8 @@ class MyAudioHandler extends BaseAudioHandler {
       jsonEncode({
         'currentIndex': currentIndex,
         'playMode': playModeNotifier.value,
-        'tmpPlayMode': _tmpPlayMode,
+        'playModeBeforeRepeat': _playModeBeforeRepeat,
+        'tmpPlayMode': _playModeBeforeRepeat,
         'volume': volumeNotifier.value,
       }),
     );
@@ -343,8 +350,8 @@ class MyAudioHandler extends BaseAudioHandler {
     currentIndex = result.currentIndex;
     if (result.wasNewlyInserted &&
         (playModeNotifier.value == 1 ||
-            (playModeNotifier.value == 2 && audioHandler._tmpPlayMode == 1))) {
-      _playQueueTmp.add(song);
+            (playModeNotifier.value == 2 && _playModeBeforeRepeat == 1))) {
+      _unshuffledQueue.add(song);
     }
     return true;
   }
@@ -357,8 +364,8 @@ class MyAudioHandler extends BaseAudioHandler {
     currentIndex = result.currentIndex;
     if (result.wasNewlyInserted &&
         (playModeNotifier.value == 1 ||
-            (playModeNotifier.value == 2 && audioHandler._tmpPlayMode == 1))) {
-      _playQueueTmp.add(song);
+            (playModeNotifier.value == 2 && _playModeBeforeRepeat == 1))) {
+      _unshuffledQueue.add(song);
     }
     return true;
   }
@@ -383,7 +390,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     playQueue = List.from(source);
     if (playModeNotifier.value == 1 ||
-        (playModeNotifier.value == 2 && audioHandler._tmpPlayMode == 1)) {
+        (playModeNotifier.value == 2 && _playModeBeforeRepeat == 1)) {
       shuffle();
     }
     await audioHandler.load();
@@ -405,7 +412,7 @@ class MyAudioHandler extends BaseAudioHandler {
     if (playQueue.isEmpty) {
       return;
     }
-    _playQueueTmp = List.from(playQueue);
+    _unshuffledQueue = List.from(playQueue);
     final others = List.of(playQueue)..removeAt(currentIndex);
     others.shuffle();
     playQueue = [playQueue[currentIndex], ...others];
@@ -419,14 +426,14 @@ class MyAudioHandler extends BaseAudioHandler {
 
     switch (newPlayMode) {
       case 0:
-        if (_playQueueTmp.isNotEmpty) {
-          playQueue = List.from(_playQueueTmp);
-          _playQueueTmp = [];
+        if (_unshuffledQueue.isNotEmpty) {
+          playQueue = List.from(_unshuffledQueue);
+          _unshuffledQueue = [];
           currentIndex = playQueue.indexOf(currentSongNotifier.value!);
         }
         break;
       case 1:
-        if (_playQueueTmp.isEmpty) {
+        if (_unshuffledQueue.isEmpty) {
           shuffle();
         }
         break;
@@ -443,18 +450,18 @@ class MyAudioHandler extends BaseAudioHandler {
 
   void toggleRepeat() {
     if (playModeNotifier.value != 2) {
-      _tmpPlayMode = playModeNotifier.value;
+      _playModeBeforeRepeat = playModeNotifier.value;
       playModeNotifier.value = 2;
     } else {
-      playModeNotifier.value = _tmpPlayMode;
+      playModeNotifier.value = _playModeBeforeRepeat;
     }
     savePlayState();
   }
 
   void delete(int index) {
     MyAudioMetadata tmp = playQueue[index];
-    if (_playQueueTmp.isNotEmpty) {
-      _playQueueTmp.remove(tmp);
+    if (_unshuffledQueue.isNotEmpty) {
+      _unshuffledQueue.remove(tmp);
     }
     playQueue.removeAt(index);
   }
@@ -462,7 +469,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> clear() async {
     stop();
     playQueue = [];
-    _playQueueTmp = [];
+    _unshuffledQueue = [];
     currentIndex = -1;
     currentSongNotifier.value = null;
     currentCoverArtColor = Colors.grey;
@@ -477,7 +484,7 @@ class MyAudioHandler extends BaseAudioHandler {
     _positionTimer = null;
 
     playQueue = [];
-    _playQueueTmp = [];
+    _unshuffledQueue = [];
     currentIndex = -1;
     currentSongNotifier.value = null;
     currentCoverArtColor = Colors.grey;
@@ -497,7 +504,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> sync() async {
     if (isNotStreamSource) {
       playQueue = getNewQueue(playQueue);
-      _playQueueTmp = getNewQueue(_playQueueTmp);
+      _unshuffledQueue = getNewQueue(_unshuffledQueue);
       final currentSong = currentSongNotifier.value;
       if (currentSong != null) {
         final tmpCurrentSong = library.id2Song[currentSong.id];

@@ -40,8 +40,8 @@ class BigSingleAlbumPanel extends StatefulWidget {
 }
 
 class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
-  late final bool useCurrentSongForBgTmp;
-  late final MyPicture? backgroundPictureTmp;
+  late final bool _savedUseCurrentSongForBg;
+  late final MyPicture? _savedBackgroundPicture;
 
   List<MyAudioMetadata> currentSongList = [];
 
@@ -59,8 +59,8 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
 
   @override
   void initState() {
-    useCurrentSongForBgTmp = useCurrentSongForBg;
-    backgroundPictureTmp = backgroundPicture;
+    _savedUseCurrentSongForBg = useCurrentSongForBg;
+    _savedBackgroundPicture = backgroundPicture;
     useCurrentSongForBg = false;
 
     baseColor = widget.baseColor;
@@ -87,13 +87,13 @@ class _BigSingleAlbumPanelState extends State<BigSingleAlbumPanel> {
 
   @override
   void dispose() {
-    useCurrentSongForBg = useCurrentSongForBgTmp;
+    useCurrentSongForBg = _savedUseCurrentSongForBg;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       colorManager.updateBigPictureRelatedColors(
         useCurrentSongForBg
             ? currentSongNotifier.value?.picture
-            : backgroundPictureTmp,
+            : _savedBackgroundPicture,
       );
     });
     super.dispose();

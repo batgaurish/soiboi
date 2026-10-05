@@ -36,8 +36,8 @@ class BigSingleArtistPanel extends StatefulWidget {
 }
 
 class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
-  late final bool useCurrentSongForBgTmp;
-  late final MyPicture? backgroundPictureTmp;
+  late final bool _savedUseCurrentSongForBg;
+  late final MyPicture? _savedBackgroundPicture;
   final _scrollController = ScrollController();
 
   void update() {
@@ -48,8 +48,8 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
 
   @override
   void initState() {
-    useCurrentSongForBgTmp = useCurrentSongForBg;
-    backgroundPictureTmp = backgroundPicture;
+    _savedUseCurrentSongForBg = useCurrentSongForBg;
+    _savedBackgroundPicture = backgroundPicture;
     useCurrentSongForBg = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -67,7 +67,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
 
   @override
   void dispose() {
-    useCurrentSongForBg = useCurrentSongForBgTmp;
+    useCurrentSongForBg = _savedUseCurrentSongForBg;
     if (isStreamSource) {
       widget.artist.changeNotifier.removeListener(update);
     }
@@ -75,7 +75,7 @@ class _BigSingleArtistPanelState extends State<BigSingleArtistPanel> {
       colorManager.updateBigPictureRelatedColors(
         useCurrentSongForBg
             ? currentSongNotifier.value?.picture
-            : backgroundPictureTmp,
+            : _savedBackgroundPicture,
       );
     });
     _scrollController.dispose();
