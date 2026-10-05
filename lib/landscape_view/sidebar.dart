@@ -183,7 +183,7 @@ class Sidebar extends StatelessWidget {
                         label: 'search',
 
                         leading: Icon(Icons.search_rounded, size: 30),
-                        content: 'Search',
+                        content: l10n.search,
 
                         onTap: () {
                           layersManager.switchRootLayer('search');
@@ -273,7 +273,7 @@ class Sidebar extends StatelessWidget {
                         label: 'smart',
 
                         leading: Icon(Icons.auto_awesome_outlined, size: 30),
-                        content: 'Smart playlists',
+                        content: l10n.smartPlaylists,
 
                         onTap: () {
                           layersManager.switchRootLayer('smart');

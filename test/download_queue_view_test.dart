@@ -10,6 +10,7 @@ import 'package:soiboi/base/services/archive_service.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/download_queue_manager.dart';
 import 'package:soiboi/layer/download_queue_sheet.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 
 void main() {
   final gates = <String, Completer<DownloadFailure?>>{};
@@ -58,6 +59,8 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(
             context,

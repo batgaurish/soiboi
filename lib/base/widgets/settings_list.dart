@@ -318,7 +318,7 @@ class _SettingsListState extends State<SettingsList> {
   Widget downloadFolderListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.folder_special_outlined, size: 30),
-      title: const Text('Download folder'),
+      title: Text(l10n.downloadFolder),
       subtitle: ValueListenableBuilder<String>(
         valueListenable: downloadFolderNotifier,
         builder: (context, value, child) => Text(
@@ -341,51 +341,58 @@ class _SettingsListState extends State<SettingsList> {
   Widget analyseLibraryListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.graphic_eq_rounded, size: 30),
-      title: const Text('Analyse Library'),
+      title: Text(l10n.analyseLibrary),
       subtitle: ValueListenableBuilder<String>(
         valueListenable: _analyseStatus,
         builder: (context, value, child) => Text(
-          value.isEmpty ? 'Needed for smart playlists and mood shelves' : value,
+          value.isEmpty ? l10n.analyseLibraryHint : value,
           style: TextStyle(fontSize: 12, color: textColor.value),
         ),
       ),
       onTap: () async {
         if (_analysing) {
-          showCenterMessage('Already analysing');
+          showCenterMessage(l10n.alreadyAnalysing);
           return;
         }
         _analysing = true;
-        _analyseStatus.value = 'Starting…';
+        _analyseStatus.value = l10n.starting;
         final summary = await analyseLibrary(
           onProgress: (p) {
             _analyseStatus.value = p.folderCount > 1
-                ? '${p.status} (folder ${p.folderIndex + 1}/${p.folderCount})'
+                ? l10n.analyseFolderProgress(
+                    p.status,
+                    p.folderIndex + 1,
+                    p.folderCount,
+                  )
                 : p.status;
           },
         );
         _analysing = false;
         if (summary.unavailable) {
-          _analyseStatus.value = 'Not available on this device';
+          _analyseStatus.value = l10n.notAvailableOnDevice;
         } else if (summary.error != null) {
-          _analyseStatus.value = 'Failed: ${summary.error}';
+          _analyseStatus.value = l10n.failedWithError('${summary.error}');
         } else {
           _analyseStatus.value =
-              '${summary.analysed} analysed · ${summary.skipped} already done'
-              '${summary.pending > 0 ? " · ${summary.pending} unreadable" : ""}';
+              l10n.analyseSummary(summary.analysed, summary.skipped) +
+              (summary.pending > 0
+                  ? l10n.analyseUnreadable(summary.pending)
+                  : '');
         }
       },
     );
   }
 
   Widget aiListTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ValueListenableBuilder(
       valueListenable: aiConfigNotifier,
       builder: (context, config, _) => ListTile(
         leading: Icon(Icons.auto_awesome_rounded, size: iconSize),
-        title: const Text('AI provider and key'),
+        title: Text(l10n.aiProviderAndKey),
         subtitle: Text(
           config == null
-              ? 'Not set up. Free keys from Gemini or OpenRouter'
+              ? l10n.aiNotSetUp
               : '${config.info.label} · ${config.effectiveModel}',
         ),
         onTap: () => openAiSetup(context),
@@ -713,19 +720,19 @@ class _SettingsListState extends State<SettingsList> {
   }
 
   Widget downloadLogsListTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: Icon(Icons.article_outlined, size: iconSize),
-      title: const Text('Download logs'),
+      title: Text(l10n.downloadLogs),
       subtitle: Text(
-        'Tap to read the last week of logs. The switch adds a log button to '
-        'each download in the queue.',
+        l10n.downloadLogsHint,
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
       onTap: () => showSavedDownloadLogs(context),
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
-          semanticLabel: 'Download logs',
+          semanticLabel: l10n.downloadLogs,
           valueNotifier: showDownloadLogsNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -736,12 +743,15 @@ class _SettingsListState extends State<SettingsList> {
   }
 
   Widget reduceMotionListTile() {
+    final l10n = AppLocalizations.of(context);
     String describe(MotionPreference preference, bool systemReduces) =>
         switch (preference) {
           MotionPreference.system =>
-            'Following the system (${systemReduces ? 'reduced' : 'full'})',
-          MotionPreference.reduced => 'On: no sliding, zooming or scrolling',
-          MotionPreference.full => 'Off: all animations',
+            systemReduces
+                ? l10n.motionFollowingSystemReduced
+                : l10n.motionFollowingSystemFull,
+          MotionPreference.reduced => l10n.motionReducedDescription,
+          MotionPreference.full => l10n.motionFullDescription,
         };
     return ListenableBuilder(
       listenable: Listenable.merge([
@@ -750,7 +760,7 @@ class _SettingsListState extends State<SettingsList> {
       ]),
       builder: (context, _) => ListTile(
         leading: Icon(Icons.motion_photos_off_outlined, size: iconSize),
-        title: const Text('Reduce motion'),
+        title: Text(l10n.reduceMotion),
         subtitle: Text(
           describe(
             motionPreferenceNotifier.value,
@@ -768,9 +778,9 @@ class _SettingsListState extends State<SettingsList> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   for (final (preference, title) in [
-                    (MotionPreference.system, 'Follow the system'),
-                    (MotionPreference.reduced, 'Reduce motion'),
-                    (MotionPreference.full, 'Full motion'),
+                    (MotionPreference.system, l10n.followTheSystem),
+                    (MotionPreference.reduced, l10n.reduceMotion),
+                    (MotionPreference.full, l10n.fullMotion),
                   ])
                     ListTile(
                       title: Text(title),
@@ -794,14 +804,15 @@ class _SettingsListState extends State<SettingsList> {
   }
 
   Widget notificationsListTile() {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: Icon(Icons.notifications_outlined, size: iconSize),
-      title: const Text('Notifications'),
+      title: Text(l10n.notifications),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Download progress and results, and app updates',
+            l10n.notificationsHint,
             style: TextStyle(fontSize: 12, color: textColor.value),
           ),
           Align(
@@ -812,7 +823,7 @@ class _SettingsListState extends State<SettingsList> {
                 visualDensity: VisualDensity.compact,
               ),
               onPressed: _sendTestNotification,
-              child: const Text('Send a test'),
+              child: Text(l10n.sendATest),
             ),
           ),
         ],
@@ -820,7 +831,7 @@ class _SettingsListState extends State<SettingsList> {
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
-          semanticLabel: 'Notifications',
+          semanticLabel: l10n.notifications,
           valueNotifier: notificationsEnabledNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -837,12 +848,13 @@ class _SettingsListState extends State<SettingsList> {
   /// result: every call a feature makes, so both platforms can be checked
   /// by hand.
   Future<void> _sendTestNotification() async {
+    final l10n = AppLocalizations.of(context);
     if (!notificationsEnabledNotifier.value) {
-      showCenterMessage('Notifications are turned off');
+      showCenterMessage(l10n.notificationsOff);
       return;
     }
     if (!await notifications.requestPermission()) {
-      showCenterMessage('Notifications are not allowed for Soiboi');
+      showCenterMessage(l10n.notificationsNotAllowed);
       return;
     }
     const key = 'settings-test';
@@ -851,8 +863,8 @@ class _SettingsListState extends State<SettingsList> {
         key,
         AppNotification(
           kind: NotificationKind.progress,
-          title: 'Test download',
-          body: 'Step ${step + 1} of 6',
+          title: l10n.testDownload,
+          body: l10n.stepOf(step + 1, 6),
           progress: step * 20,
         ),
       );
@@ -861,10 +873,10 @@ class _SettingsListState extends State<SettingsList> {
     await notifications.dismiss(key);
     await notifications.show(
       '$key-result',
-      const AppNotification(
+      AppNotification(
         kind: NotificationKind.result,
-        title: 'Test finished',
-        body: 'A progress notification was shown, updated and dismissed.',
+        title: l10n.testFinished,
+        body: l10n.testFinishedBody,
       ),
     );
   }
@@ -931,7 +943,7 @@ class _SettingsListState extends State<SettingsList> {
   Widget flavourListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: AppIcon(themeImage, size: iconSize),
-      title: const Text('Flavour'),
+      title: Text(l10n.flavour),
       subtitle: ValueListenableBuilder(
         valueListenable: flavourNotifier,
         builder: (context, value, child) => Text(
@@ -953,8 +965,8 @@ class _SettingsListState extends State<SettingsList> {
                 builder: (context, value, child) {
                   return Column(
                     children: [
-                      const Text(
-                        'Flavour',
+                      Text(
+                        l10n.flavour,
                         style: TextStyle(fontSize: 18, fontWeight: .bold),
                       ),
                       for (final flavour in Flavour.values)
@@ -995,25 +1007,26 @@ class _SettingsListState extends State<SettingsList> {
   Widget colorSourceListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.palette_outlined, size: 30),
-      title: const Text('Colour source'),
+      title: Text(l10n.colourSource),
       subtitle: ValueListenableBuilder(
         valueListenable: colorSourceNotifier,
         builder: (context, source, child) {
           final loaded = dynamicDarkNotifier.value != null;
           final label = switch (source) {
-            ColorSource.off => 'App colours (default)',
+            ColorSource.off => l10n.appColoursDefault,
             ColorSource.matugen =>
               !loaded
-                  ? 'No colours found — tap to set up'
+                  ? l10n.noColoursTapToSetUp
                   // Says where the colours actually came from: with two routes
                   // (an existing matugen setup's file, or generating from the
                   // wallpaper) "it worked" is not enough to debug from.
                   : dynamicColorSourceDescription ??
                         (Platform.isAndroid
                             ? 'Material You'
-                            : 'Matched via matugen'),
-            ColorSource.prebuilt =>
-              'Prebuilt · ${prebuiltPaletteNotifier.value.label}',
+                            : l10n.matchedViaMatugen),
+            ColorSource.prebuilt => l10n.prebuiltWithName(
+              prebuiltPaletteNotifier.value.label,
+            ),
           };
           return Text(
             label,
@@ -1026,6 +1039,7 @@ class _SettingsListState extends State<SettingsList> {
   }
 
   Future<void> _openColorSourcePicker(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     await showAnimationDialog(
       context: context,
       child: ValueListenableBuilder(
@@ -1037,14 +1051,14 @@ class _SettingsListState extends State<SettingsList> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Colour source',
+                Text(
+                  l10n.colourSource,
                   style: TextStyle(fontSize: 18, fontWeight: .bold),
                 ),
                 ListTile(
-                  title: const Text('App colours'),
-                  subtitle: const Text(
-                    'Default — no system or prebuilt colours',
+                  title: Text(l10n.appColours),
+                  subtitle: Text(
+                    l10n.appColoursHint,
                     style: TextStyle(fontSize: 11),
                   ),
                   onTap: () {
@@ -1063,7 +1077,7 @@ class _SettingsListState extends State<SettingsList> {
                   subtitle: Text(
                     Platform.isAndroid
                         ? "Your wallpaper's system palette"
-                        : 'Reads or generates a matugen scheme',
+                        : l10n.matugenHint,
                     style: const TextStyle(fontSize: 11),
                   ),
                   onTap: () async {
@@ -1075,9 +1089,9 @@ class _SettingsListState extends State<SettingsList> {
                       : null,
                 ),
                 ListTile(
-                  title: const Text('Prebuilt palette'),
-                  subtitle: const Text(
-                    'Dracula, Nord, Catppuccin, and more',
+                  title: Text(l10n.prebuiltPalette),
+                  subtitle: Text(
+                    l10n.prebuiltPaletteHint,
                     style: TextStyle(fontSize: 11),
                   ),
                   onTap: () async {
@@ -1097,6 +1111,7 @@ class _SettingsListState extends State<SettingsList> {
   }
 
   Future<void> _openMatugenDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(
       text: matugenPathNotifier.value.isEmpty
           ? defaultMatugenPath
@@ -1127,13 +1142,8 @@ class _SettingsListState extends State<SettingsList> {
                       // Android derives the palette itself, from the
                       // wallpaper, and hands it over whole — there is
                       // nothing to configure and nothing to run.
-                      ? 'Uses the Material You palette Android builds '
-                            'from your wallpaper, so Soiboi matches the '
-                            'rest of your system. Needs Android 12 or '
-                            'newer.'
-                      : 'Matches the rest of your desktop. Reads an '
-                            'existing matugen scheme if you have one, '
-                            'otherwise generates one from your wallpaper.',
+                      ? l10n.materialYouExplainer
+                      : l10n.matugenExplainer,
                   style: TextStyle(fontSize: 12, color: textColor.value),
                 ),
                 const SizedBox(height: 12),
@@ -1144,7 +1154,7 @@ class _SettingsListState extends State<SettingsList> {
                 // is matugen's alone.
                 Row(
                   children: [
-                    const Text('Scheme', style: TextStyle(fontSize: 12)),
+                    Text(l10n.scheme, style: const TextStyle(fontSize: 12)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButton<String>(
@@ -1174,16 +1184,16 @@ class _SettingsListState extends State<SettingsList> {
                               : await generateMatugenPalette();
                           setDialogState(() {
                             status = ok
-                                ? 'Using a ${schemeLabel(scheme)} scheme '
-                                      'from your wallpaper'
+                                ? l10n.usingSchemeFromWallpaper(
+                                    schemeLabel(scheme),
+                                  )
                                 : Platform.isAndroid
-                                ? 'Android did not provide a palette'
-                                : 'Could not generate — is matugen '
-                                      'installed?';
+                                ? l10n.androidNoPalette
+                                : l10n.matugenCouldNotGenerate;
                           });
                           if (ok) {
-                            dynamicColorSourceDescription =
-                                '${schemeLabel(scheme)} from your wallpaper';
+                            dynamicColorSourceDescription = l10n
+                                .schemeFromWallpaper(schemeLabel(scheme));
                             colorSourceNotifier.value = ColorSource.matugen;
                             leaveVividMainTheme();
                             setting.save();
@@ -1199,10 +1209,10 @@ class _SettingsListState extends State<SettingsList> {
                   TextField(
                     controller: controller,
                     style: const TextStyle(fontSize: 12),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       isDense: true,
                       border: OutlineInputBorder(),
-                      labelText: 'matugen JSON (optional)',
+                      labelText: l10n.matugenJsonOptional,
                     ),
                   ),
                 if (status != null) ...[
@@ -1221,7 +1231,7 @@ class _SettingsListState extends State<SettingsList> {
                         colorManager.updateColors();
                         Navigator.of(context).pop();
                       },
-                      child: const Text('Turn off'),
+                      child: Text(l10n.turnOff),
                     ),
                     const SizedBox(width: 8),
                     FilledButton(
@@ -1233,12 +1243,8 @@ class _SettingsListState extends State<SettingsList> {
                         if (!ok) {
                           setDialogState(
                             () => status = Platform.isAndroid
-                                ? 'Android did not provide a palette. '
-                                      'Material You needs Android 12 '
-                                      'or newer.'
-                                : 'No colours found, and matugen '
-                                      'could not generate any from '
-                                      'your wallpaper',
+                                ? l10n.androidNoPaletteLong
+                                : l10n.noColoursMatugenFailed,
                           );
                           return;
                         }
@@ -1248,7 +1254,7 @@ class _SettingsListState extends State<SettingsList> {
                         colorManager.updateColors();
                         if (context.mounted) Navigator.of(context).pop();
                       },
-                      child: const Text('Use these colours'),
+                      child: Text(l10n.useTheseColours),
                     ),
                   ],
                 ),
@@ -1262,6 +1268,7 @@ class _SettingsListState extends State<SettingsList> {
   }
 
   Future<void> _openPrebuiltPaletteDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final isDark = mainPageThemeNotifier.value == .dark;
     await showAnimationDialog(
       context: context,
@@ -1272,8 +1279,8 @@ class _SettingsListState extends State<SettingsList> {
           padding: const EdgeInsets.all(15.0),
           child: Column(
             children: [
-              const Text(
-                'Prebuilt palette',
+              Text(
+                l10n.prebuiltPalette,
                 style: TextStyle(fontSize: 18, fontWeight: .bold),
               ),
               const SizedBox(height: 6),
@@ -1364,7 +1371,7 @@ class _SettingsListState extends State<SettingsList> {
                                   // go looking for and do not find, so the
                                   // tile now says so.
                                   subtitle: Text(
-                                    'Colours taken from the album art',
+                                    l10n.coloursFromAlbumArt,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: textColor.value,
@@ -1433,7 +1440,7 @@ class _SettingsListState extends State<SettingsList> {
                                   // go looking for and do not find, so the
                                   // tile now says so.
                                   subtitle: Text(
-                                    'Colours taken from the album art',
+                                    l10n.coloursFromAlbumArt,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: textColor.value,
@@ -1573,7 +1580,7 @@ class _SettingsListState extends State<SettingsList> {
       subtitle: ValueListenableBuilder(
         valueListenable: listenBrainzUserNotifier,
         builder: (context, value, child) => Text(
-          value.isEmpty ? 'Not connected — using local play counts' : value,
+          value.isEmpty ? l10n.listenBrainzNotConnected : value,
           style: TextStyle(fontSize: 12, color: textColor.value),
         ),
       ),
@@ -1593,8 +1600,7 @@ class _SettingsListState extends State<SettingsList> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your username ranks Home by everything you listen to, '
-                  'not just this device. Read-only, no token needed.',
+                  l10n.listenBrainzExplainer,
                   style: TextStyle(fontSize: 12, color: textColor.value),
                 ),
                 const SizedBox(height: 14),
@@ -1615,7 +1621,7 @@ class _SettingsListState extends State<SettingsList> {
   Widget appleAccountListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.account_circle_outlined, size: 30),
-      title: const Text('Apple Music account'),
+      title: Text(l10n.appleMusicAccount),
       subtitle: ListenableBuilder(
         listenable: Listenable.merge([
           cookie_store.signedInNotifier,
@@ -1626,12 +1632,14 @@ class _SettingsListState extends State<SettingsList> {
           final signedIn = cookie_store.signedInNotifier.value;
           final expiry = cookie_store.sessionExpiryNotifier.value;
           final detail = wrapperService.signedIn.value
-              ? 'Signed in through the lossless wrapper · cookies not needed'
+              ? l10n.signedInViaWrapper
               : signedIn && expiry != null
-              ? 'Signed in · expires ${expiry.toLocal().toString().split(' ').first}'
+              ? l10n.signedInExpires(
+                  expiry.toLocal().toString().split(' ').first,
+                )
               : signedIn
-              ? 'Signed in'
-              : 'Not signed in — needed to download';
+              ? l10n.signedIn
+              : l10n.notSignedInNeeded;
           return Text(
             detail,
             style: TextStyle(fontSize: 12, color: textColor.value),
@@ -1645,7 +1653,7 @@ class _SettingsListState extends State<SettingsList> {
                 onPressed: () async {
                   await cookie_store.signOut();
                 },
-                child: const Text('Sign out'),
+                child: Text(l10n.signOut),
               )
             : const Icon(Icons.chevron_right_rounded),
       ),
@@ -1662,7 +1670,7 @@ class _SettingsListState extends State<SettingsList> {
   Widget downloadQualityListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.high_quality_outlined, size: 30),
-      title: const Text('Download quality'),
+      title: Text(l10n.downloadQuality),
       subtitle: ValueListenableBuilder(
         valueListenable: downloadCodecNotifier,
         builder: (context, codec, child) => Text(
@@ -1681,8 +1689,8 @@ class _SettingsListState extends State<SettingsList> {
               padding: const EdgeInsets.all(18.0),
               child: Column(
                 children: [
-                  const Text(
-                    'Download quality',
+                  Text(
+                    l10n.downloadQuality,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
@@ -1701,11 +1709,12 @@ class _SettingsListState extends State<SettingsList> {
   /// The first-run wizard again: folders, Apple Music sign-in, download
   /// options and ListenBrainz in one guided pass.
   Widget setupWizardListTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.auto_fix_high_outlined, size: 30),
-      title: const Text('Setup wizard'),
+      title: Text(l10n.setupWizard),
       subtitle: Text(
-        'Folders, Apple Music sign-in, downloads, ListenBrainz',
+        l10n.setupWizardHint,
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
@@ -1732,27 +1741,27 @@ class _SettingsListState extends State<SettingsList> {
 
   /// Guided setup for the bundled lossless wrapper.
   Widget losslessListTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.high_quality_rounded, size: 30),
-      title: const Text('Lossless (ALAC)'),
+      title: Text(l10n.losslessAlac),
       subtitle: ListenableBuilder(
         listenable: Listenable.merge([
           wrapperService.state,
           wrapperService.signedIn,
         ]),
-        builder: (context, _) => Text(
-          switch (wrapperService.state.value.stage) {
-            WrapperStage.ready => 'Ready',
-            WrapperStage.needsLibraries => 'Needs setup',
-            WrapperStage.signedOut || WrapperStage.needsCode => 'Needs sign-in',
-            WrapperStage.unsupported => 'Not available in this build',
-            // Stopped between downloads is normal once signed in.
-            _ when wrapperService.signedIn.value =>
-              'Signed in · starts when a download needs it',
-            _ => 'Set up',
-          },
-          style: TextStyle(fontSize: 12, color: textColor.value),
-        ),
+        builder: (context, _) => Text(switch (wrapperService
+            .state
+            .value
+            .stage) {
+          WrapperStage.ready => l10n.ready,
+          WrapperStage.needsLibraries => l10n.needsSetup,
+          WrapperStage.signedOut || WrapperStage.needsCode => l10n.needsSignIn,
+          WrapperStage.unsupported => l10n.notAvailableInBuild,
+          // Stopped between downloads is normal once signed in.
+          _ when wrapperService.signedIn.value => l10n.signedInStartsOnDemand,
+          _ => l10n.setUp,
+        }, style: TextStyle(fontSize: 12, color: textColor.value)),
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: () =>
@@ -1764,18 +1773,18 @@ class _SettingsListState extends State<SettingsList> {
   Widget widevineListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.lock_outline, size: 30),
-      title: const Text('Widevine device (advanced)'),
+      title: Text(l10n.widevineAdvanced),
       subtitle: ValueListenableBuilder(
         valueListenable: useWrapperNotifier,
         builder: (context, _, child) {
           final detail = useWrapperNotifier.value
               ? wrapperUrlNotifier.value.isEmpty
-                    ? 'Wrapper enabled — set URL'
-                    : 'Wrapper: ${wrapperUrlNotifier.value}'
+                    ? l10n.wrapperEnabledSetUrl
+                    : l10n.wrapperWithUrl(wrapperUrlNotifier.value)
               : wvdPathNotifier.value != null &&
                     wvdPathNotifier.value!.isNotEmpty
-              ? 'WVD file set'
-              : 'Using the built-in device';
+              ? l10n.wvdFileSet
+              : l10n.usingBuiltInDevice;
           return Text(
             detail,
             style: TextStyle(fontSize: 12, color: textColor.value),
@@ -1801,8 +1810,8 @@ class _SettingsListState extends State<SettingsList> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Widevine configuration',
+                    Text(
+                      l10n.widevineConfiguration,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -1810,18 +1819,14 @@ class _SettingsListState extends State<SettingsList> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'AAC downloads use the Widevine device built into the '
-                      'downloader, so they need nothing here. ALAC is '
-                      'protected by FairPlay instead and needs a wrapper-v2 '
-                      'service: turn on the wrapper and enter its address. '
-                      'A .wvd file only replaces the AAC device.',
+                      l10n.widevineExplainer,
                       style: TextStyle(fontSize: 11, color: textColor.value),
                     ),
                     const SizedBox(height: 16),
                     // Mode toggle
                     SwitchListTile(
-                      title: const Text('Use wrapper service'),
-                      subtitle: const Text('Instead of a local .wvd file'),
+                      title: Text(l10n.useWrapperService),
+                      subtitle: Text(l10n.insteadOfWvd),
                       value: useWrapperNotifier.value,
                       onChanged: (v) {
                         setDialogState(() => useWrapperNotifier.value = v);
@@ -1832,10 +1837,10 @@ class _SettingsListState extends State<SettingsList> {
                     if (useWrapperNotifier.value)
                       TextField(
                         controller: wrapperController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           isDense: true,
                           border: OutlineInputBorder(),
-                          labelText: 'Wrapper URL',
+                          labelText: l10n.wrapperUrl,
                           hintText: 'https://...',
                         ),
                         style: const TextStyle(fontSize: 13),
@@ -1846,10 +1851,10 @@ class _SettingsListState extends State<SettingsList> {
                           Expanded(
                             child: TextField(
                               controller: wvdController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 isDense: true,
                                 border: OutlineInputBorder(),
-                                labelText: 'WVD file path',
+                                labelText: l10n.wvdFilePath,
                                 hintText: '/path/to/device.wvd',
                               ),
                               style: const TextStyle(fontSize: 13),
@@ -1857,9 +1862,9 @@ class _SettingsListState extends State<SettingsList> {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            tooltip: 'Choose a .wvd file',
+                            tooltip: l10n.chooseWvdFile,
                             icon: labelIcon(
-                              'Choose a .wvd file',
+                              l10n.chooseWvdFile,
                               const Icon(Icons.folder_open),
                             ),
                             onPressed: () async {
@@ -1881,7 +1886,7 @@ class _SettingsListState extends State<SettingsList> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
+                          child: Text(l10n.cancel),
                         ),
                         const SizedBox(width: 8),
                         FilledButton(
@@ -1900,7 +1905,7 @@ class _SettingsListState extends State<SettingsList> {
                             setting.save();
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Save'),
+                          child: Text(l10n.save),
                         ),
                       ],
                     ),
@@ -1917,15 +1922,15 @@ class _SettingsListState extends State<SettingsList> {
   Widget lrclibListTile(AppLocalizations l10n) {
     return ListTile(
       leading: AppIcon(lyricsImage, size: iconSize),
-      title: const Text('Fetch lyrics from LRCLIB'),
+      title: Text(l10n.fetchLyricsLrclib),
       subtitle: Text(
-        'Only for tracks with no local lyrics',
+        l10n.fetchLyricsLrclibHint,
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
       trailing: SizedBox(
         width: 50,
         child: MySwitch(
-          semanticLabel: 'Fetch lyrics from LRCLIB',
+          semanticLabel: l10n.fetchLyricsLrclib,
           valueNotifier: lrclibEnabledNotifier,
           onToggleCallBack: () {
             setting.save();
@@ -1990,11 +1995,11 @@ class _SettingsListState extends State<SettingsList> {
       leading: AppIcon(checkUpdateImage, size: iconSize),
       title: Text(l10n.checkUpdate),
       subtitle: Text(
-        'You have $versionNumber',
+        l10n.youHaveVersion(versionNumber),
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
       onTap: () async {
-        showCenterMessage('Checking for updates…');
+        showCenterMessage(l10n.checkingForUpdates);
         final check = await checkForUpdate();
         if (!context.mounted) return;
         switch (check.state) {
@@ -2004,7 +2009,7 @@ class _SettingsListState extends State<SettingsList> {
             showCenterMessage(l10n.alreadyLatest);
           case UpdateState.failed:
             showCenterMessage(
-              'Could not check for updates: ${check.error}',
+              l10n.couldNotCheckUpdates('${check.error}'),
               duration: 5000,
             );
         }
@@ -2018,9 +2023,10 @@ class _SettingsListState extends State<SettingsList> {
   /// playlist runs for several minutes and nobody sits on that screen waiting
   /// — this is how you check on it from wherever you actually are.
   Widget downloadQueueListTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.download_outlined, size: 30),
-      title: const Text('Download queue'),
+      title: Text(l10n.downloadQueue),
       subtitle: ValueListenableBuilder<List<DownloadJob>>(
         valueListenable: downloadQueue.jobs,
         builder: (context, jobs, child) {
@@ -2030,10 +2036,10 @@ class _SettingsListState extends State<SettingsList> {
               .length;
           return Text(
             active > 0
-                ? '$active in progress'
+                ? l10n.inProgressCount(active)
                 : failed > 0
-                ? '$failed failed — tap to retry'
-                : 'Nothing downloading',
+                ? l10n.failedTapToRetry(failed)
+                : l10n.nothingDownloading,
             style: TextStyle(
               fontSize: 12,
               color: failed > 0 && active == 0 ? Colors.red : textColor.value,
@@ -2047,11 +2053,12 @@ class _SettingsListState extends State<SettingsList> {
 
   /// What the archive costs on this device, and how to get some of it back.
   Widget storageListTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.sd_storage_outlined, size: 30),
-      title: const Text('Storage'),
+      title: Text(l10n.storage),
       subtitle: Text(
-        'Review the largest, least played and oldest tracks',
+        l10n.storageHint,
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
       onTap: () => showStorageCleanupSheet(context),
@@ -2060,11 +2067,12 @@ class _SettingsListState extends State<SettingsList> {
 
   /// The same song held twice, typically an AAC copy and a later ALAC one.
   Widget duplicatesListTile(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: const Icon(Icons.library_add_check_outlined, size: 30),
-      title: const Text('Remove duplicates'),
+      title: Text(l10n.removeDuplicates),
       subtitle: Text(
-        'Keep one copy of each song. You pick the codec when copies differ.',
+        l10n.removeDuplicatesHint,
         style: TextStyle(fontSize: 12, color: textColor.value),
       ),
       onTap: () => removeDuplicates(context),
@@ -2160,12 +2168,14 @@ class _SettingsListState extends State<SettingsList> {
                                   }
                                   logger.export2Directory(result);
                                   if (context.mounted) {
-                                    showCenterMessage('Export to $result');
+                                    showCenterMessage(l10n.exportedTo(result));
                                   }
                                 } else {
                                   result = '${appDocsDir.path}/logs';
                                   logger.export2Directory(result);
-                                  showCenterMessage('Export to Soiboi/logs');
+                                  showCenterMessage(
+                                    l10n.exportedTo('Soiboi/logs'),
+                                  );
                                 }
                               },
                               child: Text(l10n.exportLog),

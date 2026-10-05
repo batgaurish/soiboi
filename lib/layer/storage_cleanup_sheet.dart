@@ -7,6 +7,7 @@
 /// told.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
@@ -62,14 +63,14 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
   }
 
   Future<void> _deleteSelected() async {
+    final l10n = AppLocalizations.of(context);
     final chosen = _entries
         .where((entry) => _selected.contains(entry.song.id))
         .toList();
     if (chosen.isEmpty) return;
     final confirmed = await showConfirmDialog(
       context,
-      'Delete ${chosen.length} ${chosen.length == 1 ? "track" : "tracks"} '
-      '(${formatBytes(totalBytes(chosen))})',
+      l10n.deleteTracksConfirm(chosen.length, formatBytes(totalBytes(chosen))),
     );
     if (!confirmed) return;
 
@@ -87,11 +88,12 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
     _selected.clear();
     setState(() => _deleting = false);
     _reload();
-    showCenterMessage('Freed ${formatBytes(reclaimed)}');
+    showCenterMessage(l10n.freedBytes(formatBytes(reclaimed)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final selectedEntries = _entries
         .where((entry) => _selected.contains(entry.song.id))
         .toList();
@@ -103,7 +105,7 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Storage',
+              l10n.storage,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -113,9 +115,11 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
             const SizedBox(height: 4),
             Text(
               _entries.isEmpty
-                  ? 'Nothing stored on this device.'
-                  : '${_entries.length} tracks · '
-                        '${formatBytes(totalBytes(_entries))} on this device',
+                  ? l10n.nothingStored
+                  : l10n.storedSummary(
+                      _entries.length,
+                      formatBytes(totalBytes(_entries)),
+                    ),
               style: TextStyle(fontSize: 12, color: textColor.value),
             ),
             const SizedBox(height: 12),
@@ -156,22 +160,24 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
                 Expanded(
                   child: Text(
                     selectedEntries.isEmpty
-                        ? 'Select tracks to delete'
-                        : '${selectedEntries.length} selected · '
-                              '${formatBytes(totalBytes(selectedEntries))}',
+                        ? l10n.selectTracksToDelete
+                        : l10n.selectedSize(
+                            selectedEntries.length,
+                            formatBytes(totalBytes(selectedEntries)),
+                          ),
                     style: TextStyle(fontSize: 12, color: textColor.value),
                   ),
                 ),
                 if (selectedEntries.isNotEmpty && !_deleting)
                   TextButton(
                     onPressed: () => setState(_selected.clear),
-                    child: const Text('Clear'),
+                    child: Text(l10n.clear),
                   ),
                 FilledButton(
                   onPressed: selectedEntries.isEmpty || _deleting
                       ? null
                       : _deleteSelected,
-                  child: Text(_deleting ? 'Deleting…' : 'Delete'),
+                  child: Text(_deleting ? l10n.deleting : l10n.delete),
                 ),
               ],
             ),
@@ -182,6 +188,7 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
   }
 
   Widget _row(StorageEntry entry) {
+    final l10n = AppLocalizations.of(context);
     final song = entry.song;
     final selected = _selected.contains(song.id);
     // Whichever fact the current ordering is about — showing play count while
@@ -190,11 +197,13 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
     final detail = switch (_sort) {
       CleanupSort.largest => getArtist(song),
       CleanupSort.leastPlayed =>
-        song.playCount == 0 ? 'Never played' : '${song.playCount} plays',
+        song.playCount == 0
+            ? l10n.neverPlayed
+            : l10n.playCountLabel(song.playCount),
       CleanupSort.oldest =>
         song.lastPlayed == null
-            ? 'Never played'
-            : 'Last played ${_ago(song.lastPlayed!)}',
+            ? l10n.neverPlayed
+            : l10n.lastPlayed(_ago(l10n, song.lastPlayed!)),
     };
 
     return ListTile(
@@ -233,12 +242,12 @@ class _StorageCleanupSheetState extends State<_StorageCleanupSheet> {
     });
   }
 
-  String _ago(DateTime when) {
+  String _ago(AppLocalizations l10n, DateTime when) {
     final days = DateTime.now().difference(when).inDays;
-    if (days < 1) return 'today';
-    if (days < 30) return '$days days ago';
-    if (days < 365) return '${days ~/ 30} months ago';
+    if (days < 1) return l10n.today;
+    if (days < 30) return l10n.daysAgo(days);
+    if (days < 365) return l10n.monthsAgo(days ~/ 30);
     final years = days ~/ 365;
-    return years == 1 ? 'a year ago' : '$years years ago';
+    return l10n.yearsAgo(years);
   }
 }

@@ -16,6 +16,7 @@
 /// — rather than teaching this screen how to be a second music library.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
@@ -90,6 +91,7 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final body = Column(
       children: [
         Padding(
@@ -99,7 +101,7 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
             focusNode: _focus,
             style: TextStyle(fontSize: 15, color: textColor.value),
             decoration: InputDecoration(
-              hintText: 'Songs, albums, artists, playlists',
+              hintText: l10n.searchHint,
               isDense: true,
               filled: true,
               fillColor: searchFieldColor.value,
@@ -107,9 +109,9 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
               suffixIcon: _controller.text.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: 'Clear search',
+                      tooltip: l10n.clearSearch,
                       icon: labelIcon(
-                        'Clear search',
+                        l10n.clearSearch,
                         const Icon(Icons.close_rounded, size: 18),
                       ),
                       onPressed: _controller.clear,
@@ -146,7 +148,7 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Search'),
+        title: Text(l10n.search),
         centerTitle: true,
       ),
       body: body,
@@ -154,12 +156,10 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
   }
 
   Widget _body() {
+    final l10n = AppLocalizations.of(context);
     final results = _results;
     if (results == null) {
-      return _hint(
-        'Search your whole library at once — songs, albums, artists and '
-        'playlists, wherever they live.',
-      );
+      return _hint(l10n.searchIntro);
     }
     if (results.isEmpty) {
       // Offering the catalog is the point: not owning something is exactly
@@ -167,13 +167,13 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
       // dead end that says "no results" and stops.
       return Column(
         children: [
-          _hint('Nothing in your library matches "${results.query}".'),
+          _hint(l10n.nothingMatches(results.query)),
           const SizedBox(height: 4),
           TextButton.icon(
             onPressed: () =>
                 showCatalogArtistSheet(context, results.query.trim()),
             icon: const Icon(Icons.travel_explore_rounded, size: 18),
-            label: const Text('Look for it on Apple Music'),
+            label: Text(l10n.lookOnAppleMusic),
           ),
         ],
       );
@@ -182,16 +182,16 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
       children: [
-        _section('Songs', results.songs.length, [
+        _section(l10n.songs, results.songs.length, [
           for (final song in results.songs) _songRow(song, results.songs),
         ]),
-        _section('Albums', results.albums.length, [
+        _section(l10n.albums, results.albums.length, [
           for (final album in results.albums) _albumRow(album),
         ]),
-        _section('Artists', results.artists.length, [
+        _section(l10n.artists, results.artists.length, [
           for (final artist in results.artists) _artistRow(artist),
         ]),
-        _section('Playlists', results.playlists.length, [
+        _section(l10n.playlists, results.playlists.length, [
           for (final hit in results.playlists) _playlistRow(hit),
         ]),
       ],
@@ -284,9 +284,7 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
   Widget _albumRow(Album album) => _row(
     icon: Icons.album_rounded,
     title: album.name,
-    subtitle:
-        '${album.songList.length} '
-        '${album.songList.length == 1 ? "track" : "tracks"}',
+    subtitle: AppLocalizations.of(context).trackCount(album.songList.length),
     onTap: () => layersManager.pushDetail('albums', album),
   );
 
@@ -298,10 +296,11 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
   );
 
   Widget _playlistRow(PlaylistHit hit) {
+    final l10n = AppLocalizations.of(context);
     final label = switch (hit.kind) {
-      PlaylistKind.saved => 'Playlist',
-      PlaylistKind.smart => 'Smart playlist',
-      PlaylistKind.mood => 'Mood',
+      PlaylistKind.saved => l10n.playlist,
+      PlaylistKind.smart => l10n.smartPlaylist,
+      PlaylistKind.mood => l10n.mood,
     };
     return _row(
       icon: switch (hit.kind) {
@@ -310,9 +309,7 @@ class _GlobalSearchLayerState extends State<GlobalSearchLayer> {
         PlaylistKind.mood => hit.mood!.icon,
       },
       title: hit.name,
-      subtitle:
-          '$label · ${hit.trackCount} '
-          '${hit.trackCount == 1 ? "track" : "tracks"}',
+      subtitle: '$label · ${l10n.trackCount(hit.trackCount)}',
       onTap: () {
         // Saved playlists are real navigation destinations and have a layer;
         // smart and mood ones are answers to a question, so they open the
