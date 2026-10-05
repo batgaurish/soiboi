@@ -347,7 +347,7 @@ class Library {
       Map<String, String>? headers;
       bool isWebdav = path.startsWith('http://') || path.startsWith('https://');
       if (isWebdav) {
-        final tmpPath = await covertToRedirectPathIfNeed(path);
+        final tmpPath = await convertToRedirectPathIfNeed(path);
         if (tmpPath == null) {
           headers = webdavClient?.headers;
         } else {

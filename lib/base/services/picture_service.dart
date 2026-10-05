@@ -44,7 +44,7 @@ class MyPicture {
     }
   }
 
-  factory MyPicture.form(String id, {String? md5Hash}) {
+  factory MyPicture.from(String id, {String? md5Hash}) {
     final picture = MyPicture(id, md5Hash: md5Hash);
     globalPictureList.add(picture);
     return picture;
@@ -79,7 +79,7 @@ Future<void> _loadPicture(MyPicture picture) async {
         bytes = await readPictureAsync(picture.id);
         break;
       case .webdav:
-        final tmpPath = await covertToRedirectPathIfNeed(picture.id);
+        final tmpPath = await convertToRedirectPathIfNeed(picture.id);
         if (tmpPath == null) {
           bytes = await readPictureAsync(
             picture.id,

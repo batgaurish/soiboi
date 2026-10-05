@@ -122,7 +122,7 @@ String getPicturesPath(SourceType sourceType) {
 
 final _httpClient = http.Client();
 
-Future<String?> covertToRedirectPathIfNeed(String path) async {
+Future<String?> convertToRedirectPathIfNeed(String path) async {
   final request = http.Request('HEAD', Uri.parse(path))
     ..followRedirects = false
     ..headers.addAll(webdavClient?.headers ?? {});

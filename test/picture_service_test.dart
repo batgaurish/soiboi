@@ -36,9 +36,9 @@ void main() {
       expect(pic.isLoaded, isFalse);
     });
 
-    test('form factory registers instance in globalPictureList', () {
+    test('from factory registers instance in globalPictureList', () {
       globalPictureList.clear();
-      final pic = MyPicture.form('form_id');
+      final pic = MyPicture.from('from_id');
       expect(globalPictureList.contains(pic), isTrue);
     });
 

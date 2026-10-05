@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/rendering.dart';
 
-class MyGirdDelegate extends SliverGridDelegate {
-  MyGirdDelegate({
+class MyGridDelegate extends SliverGridDelegate {
+  MyGridDelegate({
     required this.maxCrossAxisExtent,
     this.mainAxisSpacing = 0.0,
     this.crossAxisSpacing = 0.0,
@@ -45,7 +45,7 @@ class MyGirdDelegate extends SliverGridDelegate {
   }
 
   @override
-  bool shouldRelayout(covariant MyGirdDelegate oldDelegate) {
+  bool shouldRelayout(covariant MyGridDelegate oldDelegate) {
     return oldDelegate.maxCrossAxisExtent != maxCrossAxisExtent ||
         oldDelegate.mainAxisSpacing != mainAxisSpacing ||
         oldDelegate.crossAxisSpacing != crossAxisSpacing ||

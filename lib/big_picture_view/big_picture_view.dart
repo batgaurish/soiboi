@@ -96,13 +96,13 @@ class _BigPictureViewState extends State<BigPictureView> {
                   return SizedBox.shrink();
                 }
                 final pageWidth = MediaQuery.widthOf(context);
-                final pageHight = MediaQuery.heightOf(context);
+                final pageHeight = MediaQuery.heightOf(context);
 
                 return RepaintBoundary(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(
                       sigmaX: pageWidth * 0.03,
-                      sigmaY: pageHight * 0.03,
+                      sigmaY: pageHeight * 0.03,
                     ),
                     child: AnimatedContainer(
                       duration: motionDuration(Duration(milliseconds: 500)),

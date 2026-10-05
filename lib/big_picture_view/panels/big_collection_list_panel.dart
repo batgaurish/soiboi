@@ -3,7 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/utils/media_query.dart';
-import 'package:soiboi/base/utils/my_gird_delegate.dart';
+import 'package:soiboi/base/utils/my_grid_delegate.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/scale_widget.dart';
 import 'package:soiboi/base/theme/motion.dart';
@@ -49,7 +49,7 @@ abstract class BigCollectionListPanelState
         horizontal: isTooNarrow(context) ? 20 : 40,
         vertical: 75 + getTopOffset(context),
       ),
-      gridDelegate: MyGirdDelegate(
+      gridDelegate: MyGridDelegate(
         maxCrossAxisExtent: 200,
         crossAxisSpacing: 20,
         mainAxisSpacing: 10,

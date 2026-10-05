@@ -62,7 +62,7 @@ class MyAudioMetadata {
     this.lastPlayed,
   }) {
     final md5Hash = md5.convert(utf8.encode(id)).toString();
-    picture = MyPicture.form(isStreamSource ? id : path!, md5Hash: md5Hash);
+    picture = MyPicture.from(isStreamSource ? id : path!, md5Hash: md5Hash);
 
     if (sourceType != .local) {
       cachePath = '${getCachesPath(sourceType)}/$md5Hash';

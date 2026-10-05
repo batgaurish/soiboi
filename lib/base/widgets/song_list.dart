@@ -477,7 +477,7 @@ class _SongListState extends State<SongList> {
                   borderRadius: size / 10,
                   picture: picture,
                   elevation: 5,
-                  color: colorManager.getSpecificMainPageCoverArtBaseColorForm(
+                  color: colorManager.getSpecificMainPageCoverArtBaseColorFor(
                     picture,
                   ), // keep stable color
                 );
