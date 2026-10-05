@@ -3,7 +3,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/motion.dart';
-import 'package:soiboi/base/utils/my_gird_delegate.dart';
+import 'package:soiboi/base/utils/my_grid_delegate.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/collection_list.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
@@ -171,7 +171,7 @@ extension CollectionListPanel on CollectionListState {
             valueListenable: useLargePictureNotifier,
             builder: (context, useLargePicture, child) {
               return SliverGrid.builder(
-                gridDelegate: MyGirdDelegate(
+                gridDelegate: MyGridDelegate(
                   maxCrossAxisExtent: useLargePicture ? 240 : 120,
                   crossAxisSpacing: 15,
                   mainAxisSpacing: 5,

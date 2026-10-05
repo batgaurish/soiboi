@@ -99,7 +99,7 @@ class _MySearchFieldState extends State<MySearchField> {
                       ),
                       filled: true,
                       fillColor: colorManager
-                          .getSpecificMainPageSearchFieldColorForm(
+                          .getSpecificMainPageSearchFieldColorFor(
                             widget.useCurrentSong
                                 ? currentSongNotifier.value?.picture
                                 : backgroundPicture,

@@ -163,7 +163,7 @@ class MyAudioHandler extends BaseAudioHandler {
     }
   }
 
-  void updatePlaybackState({Duration? postion, bool stop = false}) {
+  void updatePlaybackState({Duration? position, bool stop = false}) {
     playbackState.add(
       PlaybackState(
         controls: [
@@ -175,7 +175,7 @@ class MyAudioHandler extends BaseAudioHandler {
         playing: isPlayingNotifier.value,
         processingState: stop ? .idle : .ready,
         speed: _player.state.rate,
-        updatePosition: postion ?? _player.state.position,
+        updatePosition: position ?? _player.state.position,
       ),
     );
   }
@@ -599,7 +599,8 @@ class MyAudioHandler extends BaseAudioHandler {
         bool needHeader = false;
         switch (sourceType) {
           case .webdav:
-            final tmpPath = await covertToRedirectPathIfNeed(currentSong.path!);
+            final tmpPath =
+                await convertToRedirectPathIfNeed(currentSong.path!);
             if (tmpPath == null) {
               needHeader = true;
             } else {
@@ -636,7 +637,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
     updateServiceMediaItem(currentSong);
 
-    updatePlaybackState(postion: Duration.zero);
+    updatePlaybackState(position: Duration.zero);
 
     if (start == null) {
       _positionState.writeAsString(Duration.zero.inMilliseconds.toString());
@@ -697,7 +698,7 @@ class MyAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> seek(Duration position) async {
-    updatePlaybackState(postion: position);
+    updatePlaybackState(position: position);
     await _player.seek(position);
     // ensure position is updated
     await Future.delayed(Duration(milliseconds: 50));

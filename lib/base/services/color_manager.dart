@@ -451,7 +451,7 @@ class ColorManager {
     }
   }
 
-  Color? getSpecificMainPageCoverArtBaseColorForm(MyPicture? picture) {
+  Color? getSpecificMainPageCoverArtBaseColorFor(MyPicture? picture) {
     return mainPageThemeNotifier.value == .vivid
         ? picture == null
               ? Colors.grey
@@ -461,7 +461,7 @@ class ColorManager {
         : panelColor.value;
   }
 
-  Color? getSpecificMainPageSearchFieldColorForm(MyPicture? picture) {
+  Color? getSpecificMainPageSearchFieldColorFor(MyPicture? picture) {
     return mainPageThemeNotifier.value == .vivid
         ? picture == null
               ? Colors.grey.withAlpha(75)

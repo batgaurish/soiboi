@@ -5,7 +5,7 @@ import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/utils/media_query.dart';
-import 'package:soiboi/base/utils/my_gird_delegate.dart';
+import 'package:soiboi/base/utils/my_grid_delegate.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/collection_list.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
@@ -248,7 +248,7 @@ extension CollectionListPage on CollectionListState {
       builder: (context, useLargePicture, child) {
         return GridView.builder(
           padding: EdgeInsets.symmetric(horizontal: 20),
-          gridDelegate: MyGirdDelegate(
+          gridDelegate: MyGridDelegate(
             maxCrossAxisExtent: useLargePicture ? 180 : 120,
             crossAxisSpacing: 10,
             mainAxisSpacing: 5,

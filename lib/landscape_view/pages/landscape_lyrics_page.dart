@@ -50,7 +50,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
     });
     final mediaQueryData = MediaQuery.of(context);
     final pageWidth = mediaQueryData.size.width;
-    final pageHight =
+    final pageHeight =
         mediaQueryData.size.height -
         mediaQueryData.padding.top -
         mediaQueryData.padding.bottom;
@@ -70,18 +70,18 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
         );
       },
       child: immersiveWideLayoutNotifier.value
-          ? content(pageWidth, pageHight)
-          : SafeArea(child: content(pageWidth, pageHight)),
+          ? content(pageWidth, pageHeight)
+          : SafeArea(child: content(pageWidth, pageHeight)),
     );
   }
 
-  Widget content(double pageWidth, double pageHight) {
+  Widget content(double pageWidth, double pageHeight) {
     return ValueListenableBuilder(
       valueListenable: currentSongNotifier,
       builder: (context, currentSong, child) {
         final coverArtSize = min(
           pageWidth * (isMobile ? 0.35 : 0.3),
-          pageHight * (isMobile ? 0.7 : 0.6),
+          pageHeight * (isMobile ? 0.7 : 0.6),
         );
 
         return Material(
@@ -98,7 +98,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                   child: BackdropFilter(
                     filter: ImageFilter.blur(
                       sigmaX: pageWidth * 0.03,
-                      sigmaY: pageHight * 0.03,
+                      sigmaY: pageHeight * 0.03,
                     ),
                     child: AnimatedContainer(
                       duration: motionDuration(Duration(milliseconds: 300)),
@@ -119,7 +119,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                     Spacer(),
                     Column(
                       children: [
-                        if (pageHight >= 600) SizedBox(height: 75),
+                        if (pageHeight >= 600) SizedBox(height: 75),
                         Spacer(),
                         Hero(
                           tag: 'cover',
@@ -148,9 +148,9 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                             ),
                           ),
                         ),
-                        if (pageHight >= 600) ...[
-                          information(coverArtSize, pageHight, currentSong),
-                          playControls(coverArtSize, pageHight, currentSong),
+                        if (pageHeight >= 600) ...[
+                          information(coverArtSize, pageHeight, currentSong),
+                          playControls(coverArtSize, pageHeight, currentSong),
                         ],
 
                         Spacer(),
@@ -163,12 +163,12 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                         children: [
                           if (!isMobile) SizedBox(height: 75),
 
-                          if (pageHight < 600) ...[
+                          if (pageHeight < 600) ...[
                             SizedBox(height: 15),
 
                             information(
                               pageWidth * 0.4,
-                              pageHight,
+                              pageHeight,
                               currentSong,
                             ),
                           ],
@@ -182,7 +182,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                                   ? SizedBox()
                                   : LyricsListView(
                                       key: ValueKey(currentSong),
-                                      expanded: pageHight < 600 ? false : true,
+                                      expanded: pageHeight < 600 ? false : true,
                                       lines: currentSong.parsedLyrics!.lines,
                                       isKaraoke:
                                           currentSong.parsedLyrics!.isKaraoke,
@@ -192,10 +192,10 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                             ),
                           ),
 
-                          if (pageHight < 600) ...[
+                          if (pageHeight < 600) ...[
                             playControls(
                               pageWidth * 0.45,
-                              pageHight,
+                              pageHeight,
                               currentSong,
                             ),
                             SizedBox(height: 10),
@@ -209,7 +209,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
               ),
 
               Positioned(
-                right: pageHight < 600 ? pageWidth * 0.05 : 60,
+                right: pageHeight < 600 ? pageWidth * 0.05 : 60,
                 bottom: 100,
                 child: ValueListenableBuilder(
                   valueListenable: immersiveModeNotifier,
@@ -245,7 +245,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                     ];
                     return Offstage(
                       offstage: value,
-                      child: pageHight <= 600
+                      child: pageHeight <= 600
                           ? Column(children: children)
                           : Row(children: children),
                     );
@@ -275,12 +275,12 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
 
   Widget information(
     double width,
-    double pageHight,
+    double pageHeight,
     MyAudioMetadata? currentSong,
   ) {
     return Column(
       children: [
-        SizedBox(height: pageHight * 0.01),
+        SizedBox(height: pageHeight * 0.01),
         SizedBox(
           width: width - 30,
           height: scaledExtent(context, 36, textShare: 0.8),
@@ -325,14 +325,14 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
           ),
         ),
 
-        SizedBox(height: pageHight * 0.01),
+        SizedBox(height: pageHeight * 0.01),
       ],
     );
   }
 
   Widget playControls(
     double width,
-    double pageHight,
+    double pageHeight,
     MyAudioMetadata? currentSong,
   ) {
     return ValueListenableBuilder(
@@ -399,7 +399,7 @@ class _LandscapeLyricsPageState extends State<LandscapeLyricsPage> {
                   ],
                 ),
               ),
-            SizedBox(height: pageHight * 0.02),
+            SizedBox(height: pageHeight * 0.02),
           ],
         );
       },

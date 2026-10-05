@@ -43,7 +43,7 @@ class LandscapeView extends StatelessWidget {
               return SizedBox.shrink();
             }
             final pageWidth = MediaQuery.widthOf(context);
-            final pageHight = MediaQuery.heightOf(context);
+            final pageHeight = MediaQuery.heightOf(context);
 
             // Without this, this always-visible background blur has no
             // layer of its own, so every resize (e.g. un-maximizing) forces
@@ -54,7 +54,7 @@ class LandscapeView extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(
                   sigmaX: pageWidth * 0.03,
-                  sigmaY: pageHight * 0.03,
+                  sigmaY: pageHeight * 0.03,
                 ),
                 child: ValueListenableBuilder(
                   valueListenable: layersManager.backgroundChangeNotifier,
