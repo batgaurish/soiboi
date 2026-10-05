@@ -121,6 +121,16 @@ void main() {
     expect(history.recentlySongList[1].id, 's2');
   });
 
+  test('addSongTimes scrobbles when sourceType is emby', () async {
+    sourceType = SourceType.emby;
+    mockStreamClient.scrobbledIds.clear();
+    final s1 = makeSong('s1', playCount: 1);
+
+    await history.addSongTimes(s1, 2);
+
+    expect(mockStreamClient.scrobbledIds, ['s1', 's1']);
+  });
+
   test('loadAlbums loads ranking and recent albums from stream client', () async {
     final albumA = Album('Album 1', id: 'a1');
     final albumB = Album('Album 2', id: 'a2');
