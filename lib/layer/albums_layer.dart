@@ -1,7 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/artist_album.dart';
-import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/widgets/collection_list.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/asset_images.dart';
@@ -77,13 +75,8 @@ class _AlbumsLayerState extends CollectionListState {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (artistAlbumManager.albumList.isNotEmpty ||
-          (isNotStreamSource && !Loader.busy)) {
-        updateCurrentList();
-      } else if (isStreamSource) {
-        reachEnd = await artistAlbumManager.loadAlbums() == 0;
-        updateCurrentList();
-      }
+      reachEnd = await artistAlbumManager.ensureAlbums();
+      updateCurrentList();
     });
     artistAlbumManager.updateNotifier.addListener(updateCurrentList);
   }

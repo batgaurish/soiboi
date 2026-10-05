@@ -15,7 +15,6 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/services/song_deletion.dart';
-import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/utils/zoom_page_route.dart';
 import 'package:soiboi/base/widgets/cover_art_widget.dart';
@@ -1277,18 +1276,17 @@ void goToArtist(
       getArtists(getArtist(song)),
       excludedArtist: excludedArtist,
     );
-    artist = artistAlbumManager.artistMap[artistName];
+    if (artistName == null) {
+      return;
+    }
+    artist = await artistAlbumManager.artistFor(artistName);
     if (artist == null) {
       return;
     }
   } else {
-    if (artistAlbumManager.artistList.isEmpty) {
-      showCenterLoading();
-      await artistAlbumManager.loadArtists();
-      removeCenterLoading();
-    }
-
-    artist = artistAlbumManager.artistMap[song.artist];
+    showCenterLoading();
+    artist = await artistAlbumManager.artistFor(song.artist);
+    removeCenterLoading();
     if (artist == null) {
       showCenterMessage('Get artist failed');
       return;
@@ -1314,30 +1312,6 @@ void goToArtist(
   }
 }
 
-Future<Album?> _loadStreamAlbum(MyAudioMetadata song) async {
-  // it probably would not happen
-  if (song.albumId == null) {
-    showCenterMessage('Can not get this album');
-    return null;
-  }
-
-  showCenterLoading();
-  if (artistAlbumManager.albumList.isEmpty) {
-    await artistAlbumManager.loadAlbums();
-  }
-  if (artistAlbumManager.albumMap[song.albumId] == null) {
-    final album = await streamClient?.getAlbum(song.albumId!);
-    if (album != null) {
-      artistAlbumManager.albumList.add(album);
-      artistAlbumManager.sortAlbums();
-      artistAlbumManager.updateNotifier.value++;
-    }
-  }
-  removeCenterLoading();
-
-  return artistAlbumManager.albumMap[song.albumId];
-}
-
 void goToAlbum(
   MyAudioMetadata song, {
   bool bigPictureMode = false,
@@ -1345,11 +1319,18 @@ void goToAlbum(
 }) async {
   await Future.delayed(Duration(milliseconds: 250));
 
+  if (isStreamSource && song.albumId == null) {
+    showCenterMessage('Can not get this album');
+    return;
+  }
+
   Album? album;
-  if (isNotStreamSource) {
-    album = artistAlbumManager.albumMap[getAlbum(song)];
+  if (isStreamSource) {
+    showCenterLoading();
+    album = await artistAlbumManager.albumFor(song);
+    removeCenterLoading();
   } else {
-    album = await _loadStreamAlbum(song);
+    album = await artistAlbumManager.albumFor(song);
   }
   if (album == null) {
     showCenterMessage('Get album failed');
@@ -1377,12 +1358,6 @@ void goToAlbum(
   layersManager.switchRootLayer('albums');
 
   showCenterLoading();
-  if (isNotStreamSource) {
-    await layersManager.pushDetailIfNeed(
-      artistAlbumManager.albumMap[getAlbum(song)],
-    );
-  } else {
-    await layersManager.pushDetailIfNeed(album);
-  }
+  await layersManager.pushDetailIfNeed(album);
   removeCenterLoading();
 }
