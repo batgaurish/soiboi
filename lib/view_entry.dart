@@ -10,7 +10,6 @@ import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/widgets/context_menu.dart';
 import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/system_ui_service.dart';
-import 'package:soiboi/base/services/taskbar_service.dart';
 import 'package:soiboi/base/utils/dynamic_lyrics_page_route.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/data/setting.dart';
@@ -58,7 +57,7 @@ class _ViewEntryState extends State<ViewEntry> with WidgetsBindingObserver {
       } else if (Platform.isMacOS) {
         await NativeMenu.initIcons();
       } else if (Platform.isWindows) {
-        setupTaskbar();
+        audioHandler.refreshTaskbar();
       }
     });
   }

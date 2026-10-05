@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 
 /// The result of moving a song within/into the play queue: where the
@@ -15,7 +14,7 @@ class QueueInsertResult {
 }
 
 /// Index bookkeeping for play-queue reordering, split out of
-/// [MyAudioHandler] so it can be unit tested without a live Player/platform
+/// MyAudioHandler so it can be unit tested without a live Player/platform
 /// channel - it only touches the queue list and the current index, no I/O.
 class PlayQueueLogic {
   /// Moves [song] to play right after [currentIndex] (or inserts it there

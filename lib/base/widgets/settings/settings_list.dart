@@ -10,7 +10,6 @@ import 'package:soiboi/base/widgets/download_options.dart';
 import 'package:soiboi/base/widgets/listenbrainz_form.dart';
 import 'package:soiboi/layer/setup_wizard.dart';
 import 'package:soiboi/layer/saved_download_logs.dart';
-import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/backup_service.dart';
 import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/data/playlist.dart';

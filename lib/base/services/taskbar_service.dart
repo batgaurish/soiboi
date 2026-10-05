@@ -1,32 +1,32 @@
-import 'package:soiboi/base/audio_handler.dart';
 import 'package:windows_taskbar/windows_taskbar.dart';
 
-void setupTaskbar() async {
+/// Windows taskbar thumbnail buttons. The player passes its own actions in,
+/// so this service does not depend on it.
+void setupTaskbar({
+  required bool isPlaying,
+  required void Function() onPrevious,
+  required void Function() onTogglePlay,
+  required void Function() onNext,
+}) async {
   await WindowsTaskbar.setThumbnailToolbar([
     ThumbnailToolbarButton(
       ThumbnailToolbarAssetIcon('assets/previous.ico'),
       'Previous',
-      () {
-        audioHandler.skipToPrevious();
-      },
+      onPrevious,
     ),
 
     ThumbnailToolbarButton(
       ThumbnailToolbarAssetIcon(
-        isPlayingNotifier.value ? 'assets/pause.ico' : 'assets/play.ico',
+        isPlaying ? 'assets/pause.ico' : 'assets/play.ico',
       ),
-      isPlayingNotifier.value ? 'Pause' : 'Play',
-      () {
-        audioHandler.togglePlay();
-      },
+      isPlaying ? 'Pause' : 'Play',
+      onTogglePlay,
     ),
 
     ThumbnailToolbarButton(
       ThumbnailToolbarAssetIcon('assets/next.ico'),
       'Next',
-      () {
-        audioHandler.skipToNext();
-      },
+      onNext,
     ),
   ]);
 }

@@ -6,6 +6,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:soiboi/base/data/loader.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
 import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/services/play_queue_logic.dart';
@@ -44,8 +45,6 @@ final isPlayingNotifier = ValueNotifier(false);
 final playModeNotifier = ValueNotifier(0);
 final volumeNotifier = ValueNotifier(0.3);
 
-final autoPlayOnStartupNotifier = ValueNotifier(false);
-
 Future<void> initAudioService() async {
   MediaKit.ensureInitialized();
   audioHandler = await AudioService.init(
@@ -57,6 +56,7 @@ Future<void> initAudioService() async {
       androidNotificationOngoing: true,
     ),
   );
+  Loader.playback = audioHandler;
   _session = await AudioSession.instance;
   await _session.configure(AudioSessionConfiguration.music());
 
@@ -73,7 +73,7 @@ Future<void> initAudioService() async {
   });
 }
 
-class MyAudioHandler extends BaseAudioHandler {
+class MyAudioHandler extends BaseAudioHandler implements LibraryPlayback {
   final _player = Player();
   bool _started = false;
   int currentIndex = -1;
@@ -158,7 +158,7 @@ class MyAudioHandler extends BaseAudioHandler {
     isPlayingNotifier.value = isPlaying;
     if (Platform.isWindows) {
       if (!windowIsClosed) {
-        setupTaskbar();
+        refreshTaskbar();
       }
     }
   }
@@ -223,6 +223,7 @@ class MyAudioHandler extends BaseAudioHandler {
     return result;
   }
 
+  @override
   Future<void> loadStates() async {
     _prepare();
     await _loadPlayState();
@@ -480,6 +481,7 @@ class MyAudioHandler extends BaseAudioHandler {
     saveAllStates();
   }
 
+  @override
   void justClear() {
     _player.stop();
     updateIsPlaying(false);
@@ -497,6 +499,7 @@ class MyAudioHandler extends BaseAudioHandler {
   List<MyAudioMetadata> getNewQueue(List<MyAudioMetadata> oldQueue) =>
       PlayQueueLogic.remap(oldQueue, library.id2Song);
 
+  @override
   Future<void> sync() async {
     if (isNotStreamSource) {
       playQueue = getNewQueue(playQueue);
@@ -725,6 +728,14 @@ class MyAudioHandler extends BaseAudioHandler {
     currentIndex = PlayQueueLogic.previousIndex(currentIndex, playQueue.length);
     await load();
   }
+
+  /// Redraws the Windows taskbar buttons for the current play state.
+  void refreshTaskbar() => setupTaskbar(
+    isPlaying: isPlayingNotifier.value,
+    onPrevious: skipToPrevious,
+    onTogglePlay: togglePlay,
+    onNext: skipToNext,
+  );
 
   void togglePlay() {
     if (isPlayingNotifier.value) {

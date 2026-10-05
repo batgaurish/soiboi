@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
-import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/font_manager.dart';
@@ -27,7 +26,24 @@ bool firstLaunch = true;
 /// wizard was never finished.
 final needsSetupNotifier = ValueNotifier(false);
 
+/// What the loader needs from the player when the library changes. The
+/// player registers itself as [Loader.playback], so the data layer never
+/// imports the playback layer above it.
+abstract interface class LibraryPlayback {
+  /// Restores the saved queue and position once the library is loaded.
+  Future<void> loadStates();
+
+  /// Stops and empties the queue before a full reload.
+  void justClear();
+
+  /// Swaps the queue's songs for their rescanned copies.
+  Future<void> sync();
+}
+
 class Loader {
+  /// The player, once it has started; see [LibraryPlayback].
+  static LibraryPlayback? playback;
+
   static bool _busy = false;
 
   static bool get busy => _busy;
@@ -80,7 +96,7 @@ class Loader {
 
     await library.load();
 
-    await audioHandler.loadStates();
+    await playback?.loadStates();
 
     history.load();
 
@@ -97,7 +113,7 @@ class Loader {
   static Future<void> reload() async {
     clearDataLayersNotifier.value++;
     pictureLoadScheduler.clear();
-    audioHandler.justClear();
+    playback?.justClear();
 
     globalPictureList = [];
 
@@ -123,7 +139,7 @@ class Loader {
 
     await library.sync();
 
-    audioHandler.sync();
+    playback?.sync();
 
     history.load();
 
@@ -151,7 +167,7 @@ class Loader {
 
     await library.sync();
 
-    await audioHandler.loadStates();
+    await playback?.loadStates();
 
     history.load();
 
