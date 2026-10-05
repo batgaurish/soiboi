@@ -9,7 +9,7 @@ import 'package:soiboi/base/theme/motion.dart';
 import 'package:soiboi/base/theme/color_source.dart';
 import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/notification_service.dart';
 import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/app.dart';
