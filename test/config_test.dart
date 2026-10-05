@@ -149,4 +149,25 @@ void main() {
     const storage = FlutterSecureStorage();
     expect(await storage.read(key: 'isPremium'), 'true');
   });
+
+  test('switchSource updates sourceType, rebuilds streamClient, and saves', () async {
+    final cfg = Config();
+    cfg.file = File('${tempDir.path}/config.json');
+    cfg.navidromeBaseUrl = 'https://music.example.com';
+    cfg.navidromeUsername = 'navi_user';
+    cfg.navidromePassword = 'navi_pw';
+
+    await cfg.switchSource(SourceType.navidrome);
+
+    expect(sourceType, SourceType.navidrome);
+    expect(isStreamSource, isTrue);
+    expect(isNotStreamSource, isFalse);
+    expect(streamClient, isA<NavidromeClient>());
+
+    await cfg.switchSource(SourceType.local);
+    expect(sourceType, SourceType.local);
+    expect(isStreamSource, isFalse);
+    expect(isNotStreamSource, isTrue);
+    expect(streamClient, isNull);
+  });
 }

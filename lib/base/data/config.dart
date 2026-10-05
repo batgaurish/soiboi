@@ -130,23 +130,40 @@ class Config {
       }
     }
 
-    if (sourceType == .navidrome && navidromeMap != null) {
+    buildStreamClient();
+
+    if (_hasPlainTextPassword(map)) {
+      await save();
+    }
+  }
+
+  void buildStreamClient() {
+    streamClient = null;
+    if (sourceType == SourceType.navidrome &&
+        navidromeBaseUrl != null &&
+        navidromeUsername != null &&
+        navidromePassword != null) {
       streamClient = NavidromeClient(
         baseUrl: navidromeBaseUrl!,
         username: navidromeUsername!,
         password: navidromePassword!,
       );
-    } else if (sourceType == .emby && embyMap != null) {
+    } else if (sourceType == SourceType.emby &&
+        embyBaseUrl != null &&
+        embyUsername != null &&
+        embyPassword != null) {
       streamClient = EmbyClient(
         baseUrl: embyBaseUrl!,
         username: embyUsername!,
         password: embyPassword!,
       );
     }
+  }
 
-    if (_hasPlainTextPassword(map)) {
-      await save();
-    }
+  Future<void> switchSource(SourceType newSource) async {
+    sourceType = newSource;
+    buildStreamClient();
+    await save();
   }
 
   Future<void> savePremium() async {
