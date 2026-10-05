@@ -96,7 +96,7 @@ Rules the user set, verbatim or near it:
   user's Apple ID credentials. **Never regenerate the Android signing key.**
   **Never run `dart format lib`**: format only files you touched.
 
-### Where things stand right now (2026-09-25)
+### Where things stand right now (2026-10-05)
 
 Published: **v1.1.7** is the latest official release. Test pre-releases
 (all `--prerelease --latest=false`, so the updater never offers them):
@@ -111,13 +111,13 @@ Published: **v1.1.7** is the latest official release. Test pre-releases
 | `v1.2.0-beta.4` | `7ebd563` | scope-expansion | 23 | APK + Linux tarball |
 | `v1.2.0-beta.5` | `0e3277a` | scope-expansion | 24 | APK + Linux tarball |
 
-beta.3 is the one to test on the branch; rc.2 on the stable line. beta.3's
-versionCode 22 installs over everything; going back to an RC afterwards
+beta.5 is the one to test on the branch; rc.2 on the stable line. beta.5's
+versionCode 24 installs over everything; going back to an RC afterwards
 needs an uninstall. Local copies of every asset are in
 `~/soiboi-test-builds/`.
 
 - `origin/main` is at **`66ab86a`** (rc.2 = rc.1 + the pin/cover fix).
-- `origin/scope-expansion` is at `7ebd563` (Version 1.2.0-beta.4) plus this handover.
+- `origin/scope-expansion` is at `0e3277a` (Version 1.2.0-beta.5) plus handover commits.
 - `origin/desloppify/pass-2` is at `1cb092d` (fast-forward merged into scope-expansion).
 - `versionNumber` on the branch stays `1.2.0`; `test/version_test.dart`
   compares only the numeric part of the pubspec version.
@@ -142,14 +142,15 @@ checkout `tools/apply_patches.sh`, `flutter build apk --release
 tools/package_linux.sh --release`, smoke-test the extracted tarball on Xvfb
 (`timeout 25 ./soiboi` exits 124), `gh release create`.
 
-**What the user will do next:** test beta.3 (and rc.2), then say whether it
+**What the user will do next:** test beta.5 (and rc.2), then say whether it
 is time to cut an official release. Don't start that on your own. When they
 say go, the likely shape is: release 1.1.8 from `main` (tag `v1.1.8`,
 `--latest`, APK + Linux), and separately decide with them how and when the
 branch lands on `main` (the plan says the branch stays separate until the
 final release is debugged, so ask).
 
-**Asked of the user to test on beta.3:** queue a big playlist, then a second
+**Asked of the user to test (beta.3 items, still open; beta.5 adds the queue
+groups/track dropdowns and the Unresolved tracks card):** queue a big playlist, then a second
 one while it runs (the first must keep going, Stop must stop it); lock the
 phone during a long playlist (background downloads, the 3.1 "Done when");
 Delete from device from Home, the player menu and the Songs page; Sort,
