@@ -12,7 +12,6 @@ import 'package:soiboi/base/data/config.dart';
 import 'package:soiboi/base/services/iap_service.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
-import 'package:soiboi/layer/premium_layer.dart';
 
 class _FakeInAppPurchasePlatform extends InAppPurchasePlatform {
   final purchaseController = StreamController<List<PurchaseDetails>>.broadcast();

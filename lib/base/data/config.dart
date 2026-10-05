@@ -11,7 +11,6 @@ import 'package:soiboi/base/services/navidrome_client.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
 import 'package:soiboi/base/utils/path.dart';
-import 'package:soiboi/layer/premium_layer.dart';
 
 final config = Config();
 
