@@ -41,15 +41,17 @@ class _RankingLayerState extends CollectionListState {
     final list = history.rankingAlbumList
         .where((e) => (e.name.toLowerCase().contains(value.toLowerCase())))
         .toList();
-    currentPictureList = list.map((e) => e.picture).toList();
-    currentTextList = list.map((e) => e.name).toList();
-    currentOnTapList = list
+    currentItems = list
         .map(
-          (e) => () {
-            if (e.picture.isLoaded) {
-              layersManager.pushDetail('ranking', e);
-            }
-          },
+          (e) => CollectionItem(
+            picture: e.picture,
+            text: e.name,
+            onTap: () {
+              if (e.picture.isLoaded) {
+                layersManager.pushDetail('ranking', e);
+              }
+            },
+          ),
         )
         .toList();
     changeNotifier.value++;

@@ -1,6 +1,23 @@
-part of "../../base/widgets/collection_list.dart";
+import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/asset_images.dart';
+import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/utils/media_query.dart';
+import 'package:soiboi/base/utils/my_gird_delegate.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/collection_list.dart';
+import 'package:soiboi/base/widgets/cover_art_widget.dart';
+import 'package:soiboi/base/widgets/icon_label.dart';
+import 'package:soiboi/base/widgets/my_divider.dart';
+import 'package:soiboi/base/widgets/my_sheet.dart';
+import 'package:soiboi/base/widgets/my_switch.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
+import 'package:soiboi/portrait_view/my_search_field.dart';
 
-extension _CollectionListPage on CollectionListState {
+extension CollectionListPage on CollectionListState {
   Widget pageView(BuildContext context) {
     final fab = floatingAction(context);
     return Scaffold(
@@ -191,10 +208,11 @@ extension _CollectionListPage on CollectionListState {
   Widget listView() {
     return ListView.builder(
       itemExtent: scaledExtent(context, 64),
-      itemCount: currentPictureList.length,
+      itemCount: currentItems.length,
       itemBuilder: (context, index) {
-        final picture = currentPictureList[index];
-        final text = currentTextList[index];
+        final item = currentItems[index];
+        final picture = item.picture;
+        final text = item.text;
         return Center(
           child: ListTile(
             contentPadding: EdgeInsets.symmetric(horizontal: 20),
@@ -209,16 +227,14 @@ extension _CollectionListPage on CollectionListState {
               ),
             ),
             title: Text(text, style: .new(overflow: .ellipsis)),
-            subtitle: currentSubCountList == null
+            subtitle: item.subCount == null
                 ? null
                 : Text(
                     AppLocalizations.of(
                       context,
-                    ).songCount(currentSubCountList![index]),
+                    ).songCount(item.subCount!),
                   ),
-            onTap: () {
-              currentOnTapList[index].call();
-            },
+            onTap: item.onTap,
             onLongPress: () => openItemMenu(context, index),
           ),
         );
@@ -238,10 +254,11 @@ extension _CollectionListPage on CollectionListState {
             mainAxisSpacing: 5,
             textExtent: 25,
           ),
-          itemCount: currentPictureList.length,
+          itemCount: currentItems.length,
           itemBuilder: (context, index) {
-            final picture = currentPictureList[index];
-            final text = currentTextList[index];
+            final item = currentItems[index];
+            final picture = item.picture;
+            final text = item.text;
 
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -250,24 +267,13 @@ extension _CollectionListPage on CollectionListState {
                   container: true,
                   button: true,
                   label: text,
-                  onTap: () => currentOnTapList[index].call(),
+                  onTap: item.onTap,
                   onLongPress: () => openItemMenu(context, index),
                   child: Column(
                     children: [
                       GestureDetector(
                         excludeFromSemantics: true,
-                        child: Hero(
-                          tag: (picture?.id ?? '') + label + text,
-                          transitionOnUserGestures: true,
-                          child: CoverArtWidget(
-                            size: constraints.maxWidth,
-                            borderRadius: constraints.maxWidth / 10,
-                            picture: picture,
-                          ),
-                        ),
-                        onTap: () {
-                          currentOnTapList[index].call();
-                        },
+                        onTap: item.onTap,
                         onLongPressStart: (details) => openItemMenu(
                           context,
                           index,
@@ -277,6 +283,15 @@ extension _CollectionListPage on CollectionListState {
                           context,
                           index,
                           details.globalPosition,
+                        ),
+                        child: Hero(
+                          tag: (picture?.id ?? '') + label + text,
+                          transitionOnUserGestures: true,
+                          child: CoverArtWidget(
+                            size: constraints.maxWidth,
+                            borderRadius: constraints.maxWidth / 10,
+                            picture: picture,
+                          ),
                         ),
                       ),
                       SizedBox(

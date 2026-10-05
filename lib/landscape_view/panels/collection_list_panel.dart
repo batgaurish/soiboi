@@ -1,6 +1,18 @@
-part of "../../base/widgets/collection_list.dart";
+import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/base/data/setting.dart';
+import 'package:soiboi/base/services/color_manager.dart';
+import 'package:soiboi/base/theme/motion.dart';
+import 'package:soiboi/base/utils/my_gird_delegate.dart';
+import 'package:soiboi/base/widgets/app_icon.dart';
+import 'package:soiboi/base/widgets/collection_list.dart';
+import 'package:soiboi/base/widgets/cover_art_widget.dart';
+import 'package:soiboi/base/widgets/my_divider.dart';
+import 'package:soiboi/base/widgets/my_switch.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
+import 'package:soiboi/landscape_view/title_bar.dart';
 
-extension _CollectionListPanel on CollectionListState {
+extension CollectionListPanel on CollectionListState {
   Widget panelView(BuildContext context) {
     final fab = floatingAction(context);
     if (fab == null) return _panelBody(context);
@@ -55,7 +67,7 @@ extension _CollectionListPanel on CollectionListState {
                 valueListenable: changeNotifier,
                 builder: (context, _, child) {
                   return Text(
-                    countFunction(currentPictureList.length),
+                    countFunction(currentItems.length),
                     style: TextStyle(fontSize: 12),
                   );
                 },
@@ -165,10 +177,11 @@ extension _CollectionListPanel on CollectionListState {
                   mainAxisSpacing: 5,
                   textExtent: 30,
                 ),
-                itemCount: currentPictureList.length,
+                itemCount: currentItems.length,
                 itemBuilder: (context, index) {
-                  final picture = currentPictureList[index];
-                  final text = currentTextList[index];
+                  final item = currentItems[index];
+                  final picture = item.picture;
+                  final text = item.text;
                   return LayoutBuilder(
                     builder: (context, constraints) {
                       // One item for a screen reader: the name, opening on
@@ -178,7 +191,7 @@ extension _CollectionListPanel on CollectionListState {
                         container: true,
                         button: true,
                         label: text,
-                        onTap: () => currentOnTapList[index].call(),
+                        onTap: item.onTap,
                         onLongPress: () => openItemMenu(context, index),
                         child: Column(
                           children: [
@@ -189,7 +202,13 @@ extension _CollectionListPanel on CollectionListState {
                               splashColor: Colors.transparent,
                               hoverColor: Colors.transparent,
                               highlightColor: Colors.transparent,
-
+                              onTap: item.onTap,
+                              onLongPress: () => openItemMenu(context, index),
+                              onSecondaryTapUp: (details) => openItemMenu(
+                                context,
+                                index,
+                                details.globalPosition,
+                              ),
                               child: Hero(
                                 tag: (picture?.id ?? '') + label + text,
                                 child: CoverArtWidget(
@@ -197,15 +216,6 @@ extension _CollectionListPanel on CollectionListState {
                                   borderRadius: constraints.maxWidth / 10,
                                   picture: picture,
                                 ),
-                              ),
-                              onTap: () {
-                                currentOnTapList[index].call();
-                              },
-                              onLongPress: () => openItemMenu(context, index),
-                              onSecondaryTapUp: (details) => openItemMenu(
-                                context,
-                                index,
-                                details.globalPosition,
                               ),
                             ),
                             SizedBox(height: 5),

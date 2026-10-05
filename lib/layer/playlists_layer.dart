@@ -47,21 +47,20 @@ class _PlaylistsLayerState extends CollectionListState {
       return playlist.name.toLowerCase().contains(value.toLowerCase());
     }).toList();
 
-    currentPictureList = list.map((e) => e.coverPicture).toList();
-    currentTextList = list.map((e) => e.name).toList();
-    currentSubCountList = list.map((e) => e.totalCount).toList();
-    currentOnTapList = list
+    currentItems = list
         .map(
-          (e) => () {
-            if (e.coverPicture == null || e.coverPicture!.isLoaded) {
-              layersManager.pushDetail('playlists', e);
-            }
-          },
-        )
-        .toList();
-    currentOnMenuList = list
-        .map<void Function(BuildContext, Offset)?>(
-          (e) => (context, position) => _showPlaylistMenu(context, e, position),
+          (e) => CollectionItem(
+            picture: e.coverPicture,
+            text: e.name,
+            subCount: e.totalCount,
+            onTap: () {
+              if (e.coverPicture == null || e.coverPicture!.isLoaded) {
+                layersManager.pushDetail('playlists', e);
+              }
+            },
+            onMenu: (context, position) =>
+                _showPlaylistMenu(context, e, position),
+          ),
         )
         .toList();
     changeNotifier.value++;
@@ -120,8 +119,8 @@ class _PlaylistsLayerState extends CollectionListState {
     final l10n = AppLocalizations.of(context);
     title = l10n.playlists;
     searchHint = l10n.searchPlaylists;
-    if (currentTextList.isNotEmpty) {
-      currentTextList[0] = l10n.favorites;
+    if (currentItems.isNotEmpty) {
+      currentItems[0] = currentItems[0].copyWith(text: l10n.favorites);
     }
     return super.build(context);
   }

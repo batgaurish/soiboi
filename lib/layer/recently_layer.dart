@@ -41,15 +41,17 @@ class _RecentlyLayerState extends CollectionListState {
     final list = history.recentlyAlbumList
         .where((e) => (e.name.toLowerCase().contains(value.toLowerCase())))
         .toList();
-    currentPictureList = list.map((e) => e.picture).toList();
-    currentTextList = list.map((e) => e.name).toList();
-    currentOnTapList = list
+    currentItems = list
         .map(
-          (e) => () {
-            if (e.picture.isLoaded) {
-              layersManager.pushDetail('recently', e);
-            }
-          },
+          (e) => CollectionItem(
+            picture: e.picture,
+            text: e.name,
+            onTap: () {
+              if (e.picture.isLoaded) {
+                layersManager.pushDetail('recently', e);
+              }
+            },
+          ),
         )
         .toList();
     changeNotifier.value++;

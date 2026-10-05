@@ -1,27 +1,40 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/app.dart';
-import 'package:soiboi/base/services/interaction.dart';
 import 'package:soiboi/base/services/picture_service.dart';
-import 'package:soiboi/base/utils/my_gird_delegate.dart';
-import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/my_navigator.dart';
-import 'package:soiboi/base/widgets/my_sheet.dart';
-import 'package:soiboi/l10n/generated/app_localizations.dart';
-import 'package:soiboi/landscape_view/title_bar.dart';
-import 'package:soiboi/base/data/setting.dart';
-import 'package:soiboi/base/services/color_manager.dart';
-import 'package:soiboi/base/asset_images.dart';
-import 'package:soiboi/base/widgets/my_divider.dart';
-import 'package:soiboi/base/widgets/my_switch.dart';
-import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
-import 'package:soiboi/portrait_view/my_search_field.dart';
-import 'package:soiboi/base/widgets/app_icon.dart';
-import 'package:soiboi/base/widgets/icon_label.dart';
-import 'package:soiboi/base/utils/media_query.dart';
-import 'package:soiboi/base/theme/motion.dart';
+import 'package:soiboi/landscape_view/panels/collection_list_panel.dart';
+import 'package:soiboi/portrait_view/pages/collection_list_page.dart';
 
-part '../../landscape_view/panels/collection_list_panel.dart';
-part '../../portrait_view/pages/collection_list_page.dart';
+class CollectionItem {
+  final MyPicture? picture;
+  final String text;
+  final int? subCount;
+  final VoidCallback onTap;
+  final void Function(BuildContext context, Offset position)? onMenu;
+
+  const CollectionItem({
+    required this.picture,
+    required this.text,
+    this.subCount,
+    required this.onTap,
+    this.onMenu,
+  });
+
+  CollectionItem copyWith({
+    MyPicture? picture,
+    String? text,
+    int? subCount,
+    VoidCallback? onTap,
+    void Function(BuildContext context, Offset position)? onMenu,
+  }) {
+    return CollectionItem(
+      picture: picture ?? this.picture,
+      text: text ?? this.text,
+      subCount: subCount ?? this.subCount,
+      onTap: onTap ?? this.onTap,
+      onMenu: onMenu ?? this.onMenu,
+    );
+  }
+}
 
 abstract class CollectionList extends StatefulWidget {
   const CollectionList({super.key});
@@ -31,19 +44,12 @@ abstract class CollectionListState extends State<CollectionList> {
   final GlobalKey<NavigatorState> globalKey = GlobalKey();
   final visibleNotifier = ValueNotifier(true);
 
-  List<MyPicture?> currentPictureList = [];
-  List<String> currentTextList = [];
-  List<int>? currentSubCountList;
-  List<Function> currentOnTapList = [];
-
-  /// Optional long-press / right-click menu per item, given where to open.
-  List<void Function(BuildContext context, Offset position)?>
-  currentOnMenuList = [];
+  List<CollectionItem> currentItems = [];
 
   /// Opens item [index]'s menu at [position], or at the item's centre.
   void openItemMenu(BuildContext context, int index, [Offset? position]) {
-    if (index >= currentOnMenuList.length) return;
-    final menu = currentOnMenuList[index];
+    if (index >= currentItems.length) return;
+    final menu = currentItems[index].onMenu;
     if (menu == null) return;
     final box = context.findRenderObject() as RenderBox?;
     menu(
