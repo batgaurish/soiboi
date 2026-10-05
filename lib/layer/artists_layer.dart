@@ -43,15 +43,17 @@ class _ArtistsLayerState extends CollectionListState {
     if (randomizeNotifier!.value) {
       list.shuffle();
     }
-    currentPictureList = list.map((e) => e.picture).toList();
-    currentTextList = list.map((e) => e.name).toList();
-    currentOnTapList = list
+    currentItems = list
         .map(
-          (e) => () {
-            if (e.picture.isLoaded) {
-              layersManager.pushDetail('artists', e);
-            }
-          },
+          (e) => CollectionItem(
+            picture: e.picture,
+            text: e.name,
+            onTap: () {
+              if (e.picture.isLoaded) {
+                layersManager.pushDetail('artists', e);
+              }
+            },
+          ),
         )
         .toList();
 
