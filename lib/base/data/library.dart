@@ -15,7 +15,6 @@ import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
 import 'package:soiboi/base/utils/path.dart';
 import 'package:soiboi/base/data/folder.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:pool/pool.dart';
 
@@ -30,10 +29,12 @@ class Library {
   List<MyAudioMetadata> songList = [];
 
   final changeNotifier = ValueNotifier(0);
+  static final globalChangeNotifier = ValueNotifier<int>(0);
 
   File? _folderIdListFile;
   List<Folder> folderList = [];
   final folderListChangeNotifier = ValueNotifier(0);
+  static final globalFolderListChangeNotifier = ValueNotifier<int>(0);
 
   bool canModify = false;
 
@@ -88,7 +89,6 @@ class Library {
         continue;
       }
       folder.delete();
-      layersManager.removeLayerIfNeed(folder);
     }
 
     folderList = newFolderList;
@@ -97,6 +97,7 @@ class Library {
     );
 
     folderListChangeNotifier.value++;
+    globalFolderListChangeNotifier.value++;
     return true;
   }
 
@@ -141,12 +142,13 @@ class Library {
         }
 
         changeNotifier.value++;
-        layersManager.updateBackground();
+        globalChangeNotifier.value++;
         offset += rows.length;
       } while (true);
 
       canModify = true;
       changeNotifier.value++;
+      globalChangeNotifier.value++;
 
       for (final folder in folderList) {
         await folder.load();
@@ -296,7 +298,7 @@ class Library {
 
   void update() {
     changeNotifier.value++;
-    layersManager.updateBackground();
+    globalChangeNotifier.value++;
     if (isNotStreamSource) {
       _saveMetadata();
     }
@@ -304,7 +306,7 @@ class Library {
 
   void _syncNotify() {
     changeNotifier.value++;
-    layersManager.updateBackground();
+    globalChangeNotifier.value++;
   }
 
   /// Set when a sync dropped a cached cover, so it clears Flutter's image

@@ -33,6 +33,7 @@ import 'package:soiboi/layer/smart_playlists_layer.dart';
 import 'package:soiboi/layer/global_search_layer.dart';
 import 'package:soiboi/layer/home_layer.dart';
 import 'package:soiboi/base/data/library.dart';
+import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 
@@ -64,6 +65,45 @@ class LayersManager {
 
   final backgroundChangeNotifier = ValueNotifier(0);
   final switchNotifier = ValueNotifier(0);
+
+  LayersManager() {
+    _initListeners();
+  }
+
+  void _initListeners() {
+    currentSongNotifier.addListener(() {
+      if (viewModeNotifier.value != .bigPicture) {
+        updateBackground();
+      }
+    });
+
+    Loader.clearDataLayersNotifier.addListener(() {
+      if (viewModeNotifier.value == .normal) {
+        clearDataLayers();
+      }
+    });
+
+    Loader.firstSyncNotifier.addListener(() {
+      switchRootLayer('songs');
+    });
+
+    ArtistAlbumManager.clearNotifier.addListener(clearArtistAlbum);
+
+    Library.globalChangeNotifier.addListener(updateBackground);
+    Folder.globalChangeNotifier.addListener(updateBackground);
+    History.globalChangeNotifier.addListener(updateBackground);
+    PlaylistManager.globalUpdateNotifier.addListener(updateBackground);
+
+    Library.globalFolderListChangeNotifier.addListener(() {
+      final rootLayer = getRootLayer('folders');
+      final currentFolder =
+          (detailWidgetMap[rootLayer] as SingleFolderLayer?)?.folder;
+      if (currentFolder != null && !library.folderList.contains(currentFolder)) {
+        popDetail('folders');
+      }
+      updateBackground();
+    });
+  }
 
   Widget createPage(Widget layer) {
     final layerInfo = layerInfoMap.putIfAbsent(

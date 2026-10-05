@@ -10,7 +10,6 @@ import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/utils/path.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 
@@ -21,7 +20,8 @@ class PlaylistManager {
 
   List<Playlist> playlists = [];
   Map<String, Playlist> playlistMap = {};
-  ValueNotifier<int> updateNotifier = ValueNotifier(0);
+  static final globalUpdateNotifier = ValueNotifier<int>(0);
+  ValueNotifier<int> get updateNotifier => globalUpdateNotifier;
 
   /// Playlists shown in the sidebar. Every playlist is on the Playlists tab;
   /// only pinned ones (and Favorite, always) also get a sidebar entry, so a
@@ -267,7 +267,6 @@ class Playlist {
   void _coverChanged() {
     changeNotifier.value++;
     playlistManager.updateNotifier.value++;
-    layersManager.updateBackground();
   }
 
   int get totalCount => songList.length;
@@ -307,7 +306,7 @@ class Playlist {
 
     canModify = true;
     changeNotifier.value++;
-    layersManager.updateBackground();
+    playlistManager.updateNotifier.value++;
   }
 
   Future<void> reload() async {
@@ -358,7 +357,6 @@ class Playlist {
     canModify = false;
     changeNotifier.value++;
     playlistManager.updateNotifier.value++;
-    layersManager.updateBackground();
 
     final songIds = songList.map((e) => e.id).toList();
     await songListFile?.writeAsString(jsonEncode(songIds));

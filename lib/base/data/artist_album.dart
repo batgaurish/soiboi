@@ -9,7 +9,6 @@ import 'package:soiboi/base/services/picture_service.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 
 ArtistAlbumManager artistAlbumManager = ArtistAlbumManager();
 
@@ -21,6 +20,7 @@ class ArtistAlbumManager {
   // streamSoure will has duplicate name album
   Map<String, Album> albumMap = {};
   final updateNotifier = ValueNotifier(0);
+  static final clearNotifier = ValueNotifier<int>(0);
 
   ArtistAlbumManager() {
     artistsIsAscendingNotifier.addListener(() {
@@ -118,7 +118,7 @@ class ArtistAlbumManager {
   }
 
   void updateArtistAlbum() {
-    layersManager.clearArtistAlbum();
+    clearNotifier.value++;
     artistList.clear();
     albumList.clear();
     artistMap.clear();

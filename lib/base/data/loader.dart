@@ -19,7 +19,6 @@ import 'package:soiboi/base/data/setting.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:soiboi/base/services/picture_load_scheduler.dart';
 import 'package:soiboi/base/services/picture_service.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 
 bool firstLaunch = true;
 
@@ -34,6 +33,8 @@ class Loader {
   static bool get busy => _busy;
 
   static final stateNotifier = ValueNotifier(0);
+  static final clearDataLayersNotifier = ValueNotifier<int>(0);
+  static final firstSyncNotifier = ValueNotifier<int>(0);
 
   static Future<void> init() async {
     if (Platform.isAndroid) {
@@ -88,9 +89,7 @@ class Loader {
   }
 
   static Future<void> reload() async {
-    if (viewModeNotifier.value == .normal) {
-      layersManager.clearDataLayers();
-    }
+    clearDataLayersNotifier.value++;
     pictureLoadScheduler.clear();
     audioHandler.justClear();
 
@@ -107,9 +106,7 @@ class Loader {
     _busy = true;
     stateNotifier.value++;
 
-    if (viewModeNotifier.value == .normal) {
-      layersManager.clearDataLayers();
-    }
+    clearDataLayersNotifier.value++;
 
     globalPictureList = [];
 
@@ -138,7 +135,7 @@ class Loader {
     _busy = true;
     stateNotifier.value++;
 
-    layersManager.switchRootLayer('songs');
+    firstSyncNotifier.value++;
 
     artistAlbumManager = ArtistAlbumManager();
 

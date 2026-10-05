@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/services/stream_client.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 
@@ -15,6 +14,7 @@ class History {
   final List<MyAudioMetadata> recentlySongList = [];
   final rankingChangeNotifier = ValueNotifier(0);
   final recentlyChangeNotifier = ValueNotifier(0);
+  static final globalChangeNotifier = ValueNotifier<int>(0);
 
   final List<Album> rankingAlbumList = [];
   final List<Album> recentlyAlbumList = [];
@@ -83,14 +83,13 @@ class History {
     }
 
     _add2Recently(song);
-
-    layersManager.updateBackground();
   }
 
   void _add2Recently(MyAudioMetadata song) {
     recentlySongList.remove(song);
     recentlySongList.insert(0, song);
     recentlyChangeNotifier.value++;
+    globalChangeNotifier.value++;
   }
 
   Completer<int?>? rankingCompleter;
