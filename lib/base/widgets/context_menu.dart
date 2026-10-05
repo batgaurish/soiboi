@@ -7,6 +7,7 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/services/song_deletion.dart';
+import 'package:soiboi/base/widgets/delete_songs_dialog.dart';
 import 'package:soiboi/base/widgets/my_divider.dart';
 import 'package:soiboi/base/widgets/playlist_widgets.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';

@@ -6,7 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
-import 'package:soiboi/base/services/keyboard.dart';
+import 'package:soiboi/layer/keyboard.dart';
 import 'package:audio_tags_lofty/audio_tags_lofty.dart';
 
 class _FakeHandler implements MyAudioHandler {

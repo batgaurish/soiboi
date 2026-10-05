@@ -13,7 +13,7 @@ import 'package:soiboi/base/widgets/cover_art_widget.dart';
 import 'package:soiboi/base/widgets/playlist_widgets.dart';
 import 'package:soiboi/base/widgets/song_info.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
-import 'package:soiboi/base/services/keyboard.dart';
+import 'package:soiboi/layer/keyboard.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
