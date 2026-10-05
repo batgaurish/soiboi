@@ -89,7 +89,7 @@ class SongList extends StatefulWidget {
 class _SongListState extends State<SongList> {
   String title = '';
   List<MyAudioMetadata> songList = [];
-  List<MyAudioMetadata> tmpSongList = [];
+  List<MyAudioMetadata> searchResults = [];
 
   Playlist? playlist;
   Artist? artist;
@@ -210,7 +210,7 @@ class _SongListState extends State<SongList> {
     prepareing = false;
 
     var currentSongList = List<MyAudioMetadata>.from(
-      searchValue.isEmpty ? songList : tmpSongList,
+      searchValue.isEmpty ? songList : searchResults,
     );
     if (isFiltered) {
       currentSongList = songFilterNotifier.value.apply(currentSongList);
@@ -240,14 +240,14 @@ class _SongListState extends State<SongList> {
     searchTimer?.cancel();
     searchTimer = Timer(Duration(milliseconds: 300), () async {
       if (searchValue.isNotEmpty) {
-        tmpSongList.clear();
+        searchResults.clear();
         if (isLibrary && sourceType == .navidrome) {
-          tmpSongList = await _fetchSongList(0) ?? [];
+          searchResults = await _fetchSongList(0) ?? [];
           if (!mounted) {
             return;
           }
         } else {
-          tmpSongList = filterSongList(songList, searchValue);
+          searchResults = filterSongList(songList, searchValue);
         }
       }
       _reachEnd = false;
@@ -280,7 +280,7 @@ class _SongListState extends State<SongList> {
         _reachEnd = fetchedSongList.isEmpty;
         songList.addAll(fetchedSongList);
       } else {
-        final fetchedSongList = await _fetchSongList(tmpSongList.length);
+        final fetchedSongList = await _fetchSongList(searchResults.length);
         if (!mounted) {
           return;
         }
@@ -289,7 +289,7 @@ class _SongListState extends State<SongList> {
           return;
         }
         _reachEnd = fetchedSongList.isEmpty;
-        tmpSongList.addAll(fetchedSongList);
+        searchResults.addAll(fetchedSongList);
       }
       updateSongList();
     }

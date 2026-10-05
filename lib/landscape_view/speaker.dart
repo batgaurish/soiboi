@@ -4,7 +4,7 @@ import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 
-double? _volumeTmp;
+double? _volumeBeforeMute;
 
 class Speaker extends StatelessWidget {
   final Color color;
@@ -20,22 +20,22 @@ class Speaker extends StatelessWidget {
             color: color,
             tooltip: 'Unmute',
             onPressed: () {
-              if (_volumeTmp != null) {
-                volumeNotifier.value = _volumeTmp!;
-                audioHandler.setVolume(_volumeTmp!);
+              if (_volumeBeforeMute != null) {
+                volumeNotifier.value = _volumeBeforeMute!;
+                audioHandler.setVolume(_volumeBeforeMute!);
                 audioHandler.savePlayState();
               }
             },
             icon: labelIcon('Unmute', AppIcon(speakerOffImage, size: 25)),
           );
         }
-        _volumeTmp = null;
+        _volumeBeforeMute = null;
 
         return IconButton(
           color: color,
           tooltip: 'Mute',
           onPressed: () {
-            _volumeTmp = volumeNotifier.value;
+            _volumeBeforeMute = volumeNotifier.value;
             volumeNotifier.value = 0;
             audioHandler.setVolume(0);
             audioHandler.savePlayState();
