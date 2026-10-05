@@ -73,7 +73,7 @@ class Loader {
 
     await library.load();
 
-    audioHandler.loadStates();
+    await audioHandler.loadStates();
 
     history.load();
 
@@ -146,7 +146,7 @@ class Loader {
 
     await library.sync();
 
-    audioHandler.loadStates();
+    await audioHandler.loadStates();
 
     history.load();
 
