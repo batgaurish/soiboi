@@ -1387,6 +1387,1578 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a Music Source'**
   String get chooseMusicSource;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @smartPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart playlists'**
+  String get smartPlaylists;
+
+  /// No description provided for @newSmartPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'New smart playlist'**
+  String get newSmartPlaylist;
+
+  /// No description provided for @nothingHereYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get nothingHereYet;
+
+  /// No description provided for @smartPlaylistExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'A smart playlist stores a question rather than a list of songs, and answers it against your library every time you open it — so \"lossless tracks I have not played this year\" stays true as the library grows.'**
+  String get smartPlaylistExplainer;
+
+  /// No description provided for @editRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit rules'**
+  String get editRules;
+
+  /// No description provided for @trackCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 track} other{{count} tracks}}'**
+  String trackCount(int count);
+
+  /// No description provided for @rulesJoinAll.
+  ///
+  /// In en, this message translates to:
+  /// **' and '**
+  String get rulesJoinAll;
+
+  /// No description provided for @rulesJoinAny.
+  ///
+  /// In en, this message translates to:
+  /// **' or '**
+  String get rulesJoinAny;
+
+  /// No description provided for @startFromTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from a template'**
+  String get startFromTemplate;
+
+  /// No description provided for @startFromTemplateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a vibe and tweak it, or start from a blank ruleset.'**
+  String get startFromTemplateHint;
+
+  /// No description provided for @startFromScratch.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from scratch'**
+  String get startFromScratch;
+
+  /// No description provided for @name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get name;
+
+  /// No description provided for @match.
+  ///
+  /// In en, this message translates to:
+  /// **'Match'**
+  String get match;
+
+  /// No description provided for @allRules.
+  ///
+  /// In en, this message translates to:
+  /// **'All rules'**
+  String get allRules;
+
+  /// No description provided for @anyRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Any rule'**
+  String get anyRule;
+
+  /// No description provided for @noRulesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No rules yet — this would select the whole library.'**
+  String get noRulesYet;
+
+  /// No description provided for @addRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Add rule'**
+  String get addRule;
+
+  /// No description provided for @limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit'**
+  String get limit;
+
+  /// No description provided for @tracksMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 track matches} other{{count} tracks match}}'**
+  String tracksMatch(int count);
+
+  /// No description provided for @removeRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove rule'**
+  String get removeRule;
+
+  /// No description provided for @yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
+
+  /// No description provided for @signedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get signedIn;
+
+  /// No description provided for @notSignedInYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in yet — complete the login above.'**
+  String get notSignedInYet;
+
+  /// No description provided for @signInAppleMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Apple Music'**
+  String get signInAppleMusic;
+
+  /// No description provided for @checking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get checking;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @selectCookiesFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select cookies.txt'**
+  String get selectCookiesFile;
+
+  /// No description provided for @importAppleCookies.
+  ///
+  /// In en, this message translates to:
+  /// **'Import your Apple Music cookies'**
+  String get importAppleCookies;
+
+  /// No description provided for @importAppleCookiesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to music.apple.com in your browser, export the cookies with a \"cookies.txt\" extension, then select the file here.\n\nOnly Apple cookies are kept — anything else in the export is discarded.'**
+  String get importAppleCookiesHint;
+
+  /// No description provided for @reading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading…'**
+  String get reading;
+
+  /// No description provided for @chooseCookiesFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose cookies.txt'**
+  String get chooseCookiesFile;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs, albums, artists, playlists'**
+  String get searchHint;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// No description provided for @searchIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your whole library at once — songs, albums, artists and playlists, wherever they live.'**
+  String get searchIntro;
+
+  /// No description provided for @nothingMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in your library matches \"{query}\".'**
+  String nothingMatches(String query);
+
+  /// No description provided for @lookOnAppleMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Look for it on Apple Music'**
+  String get lookOnAppleMusic;
+
+  /// No description provided for @playlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get playlist;
+
+  /// No description provided for @smartPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart playlist'**
+  String get smartPlaylist;
+
+  /// No description provided for @mood.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood'**
+  String get mood;
+
+  /// No description provided for @updateRestarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Restarting into the new version…'**
+  String get updateRestarting;
+
+  /// No description provided for @updateFinishAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the install in the Android prompt.'**
+  String get updateFinishAndroid;
+
+  /// No description provided for @updateYouHave.
+  ///
+  /// In en, this message translates to:
+  /// **'{tag} · you have {version}'**
+  String updateYouHave(String tag, String version);
+
+  /// No description provided for @prereleaseSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **' · prerelease'**
+  String get prereleaseSuffix;
+
+  /// No description provided for @noReleaseNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No release notes.'**
+  String get noReleaseNotes;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Update download'**
+  String get updateDownload;
+
+  /// No description provided for @noDownloadForPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'This release has no download for {platform}.'**
+  String noDownloadForPlatform(String platform);
+
+  /// No description provided for @openReleases.
+  ///
+  /// In en, this message translates to:
+  /// **'Open releases'**
+  String get openReleases;
+
+  /// No description provided for @bytesOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{received} of {total}'**
+  String bytesOf(String received, String total);
+
+  /// No description provided for @startingDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting download…'**
+  String get startingDownload;
+
+  /// No description provided for @later.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get later;
+
+  /// No description provided for @downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get downloading;
+
+  /// No description provided for @downloadAndInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Download & install'**
+  String get downloadAndInstall;
+
+  /// No description provided for @deleteTracksConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Delete 1 track ({size})} other{Delete {count} tracks ({size})}}'**
+  String deleteTracksConfirm(int count, String size);
+
+  /// No description provided for @freedBytes.
+  ///
+  /// In en, this message translates to:
+  /// **'Freed {size}'**
+  String freedBytes(String size);
+
+  /// No description provided for @storage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get storage;
+
+  /// No description provided for @nothingStored.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing stored on this device.'**
+  String get nothingStored;
+
+  /// No description provided for @storedSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 track} other{{count} tracks}} · {size} on this device'**
+  String storedSummary(int count, String size);
+
+  /// No description provided for @selectTracksToDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Select tracks to delete'**
+  String get selectTracksToDelete;
+
+  /// No description provided for @selectedSize.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected · {size}'**
+  String selectedSize(int count, String size);
+
+  /// No description provided for @deleting.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting…'**
+  String get deleting;
+
+  /// No description provided for @neverPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Never played'**
+  String get neverPlayed;
+
+  /// No description provided for @playCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 play} other{{count} plays}}'**
+  String playCountLabel(int count);
+
+  /// No description provided for @lastPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Last played {when}'**
+  String lastPlayed(String when);
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'today'**
+  String get today;
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day ago} other{{count} days ago}}'**
+  String daysAgo(int count);
+
+  /// No description provided for @monthsAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month ago} other{{count} months ago}}'**
+  String monthsAgo(int count);
+
+  /// No description provided for @yearsAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{a year ago} other{{count} years ago}}'**
+  String yearsAgo(int count);
+
+  /// No description provided for @queueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in the queue. Anything you archive shows up here, and keeps going if you leave the screen.'**
+  String get queueEmpty;
+
+  /// No description provided for @downloadQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Download queue'**
+  String get downloadQueue;
+
+  /// No description provided for @finishedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} finished'**
+  String finishedCount(int count);
+
+  /// No description provided for @pausedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} paused'**
+  String pausedCount(int count);
+
+  /// No description provided for @inQueueCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} in the queue'**
+  String inQueueCount(int count);
+
+  /// No description provided for @resume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resume;
+
+  /// No description provided for @pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pause;
+
+  /// No description provided for @stopAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop all'**
+  String get stopAll;
+
+  /// No description provided for @log.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get log;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @stopThisDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop this download'**
+  String get stopThisDownload;
+
+  /// No description provided for @removeFromQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue'**
+  String get removeFromQueue;
+
+  /// No description provided for @stateDone.
+  ///
+  /// In en, this message translates to:
+  /// **'done'**
+  String get stateDone;
+
+  /// No description provided for @stateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'failed'**
+  String get stateFailed;
+
+  /// No description provided for @stateAlreadyInLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'already in your library'**
+  String get stateAlreadyInLibrary;
+
+  /// No description provided for @stateSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'skipped'**
+  String get stateSkipped;
+
+  /// No description provided for @stateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'downloading'**
+  String get stateDownloading;
+
+  /// No description provided for @alreadyInLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your library'**
+  String get alreadyInLibrary;
+
+  /// No description provided for @trackNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Track {index}'**
+  String trackNumber(int index);
+
+  /// No description provided for @stateWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'waiting'**
+  String get stateWaiting;
+
+  /// No description provided for @stateDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'downloaded'**
+  String get stateDownloaded;
+
+  /// No description provided for @stateFailedWith.
+  ///
+  /// In en, this message translates to:
+  /// **'failed. {reason}'**
+  String stateFailedWith(String reason);
+
+  /// No description provided for @stateCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'cancelled'**
+  String get stateCancelled;
+
+  /// No description provided for @doneCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} done'**
+  String doneCount(int count);
+
+  /// No description provided for @doneOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} done'**
+  String doneOfTotal(int done, int total);
+
+  /// No description provided for @alreadyThereCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} already there'**
+  String alreadyThereCount(int count);
+
+  /// No description provided for @skippedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} skipped'**
+  String skippedCount(int count);
+
+  /// No description provided for @failedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed'**
+  String failedCount(int count);
+
+  /// No description provided for @cancelledCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} cancelled'**
+  String cancelledCount(int count);
+
+  /// No description provided for @nowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'now {label}'**
+  String nowLabel(String label);
+
+  /// No description provided for @showTracksFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Show tracks: {name}'**
+  String showTracksFor(String name);
+
+  /// No description provided for @showTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Show tracks'**
+  String get showTracks;
+
+  /// No description provided for @hideTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide tracks'**
+  String get hideTracks;
+
+  /// No description provided for @logFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Log: {label}'**
+  String logFor(String label);
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @logCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Log copied'**
+  String get logCopied;
+
+  /// No description provided for @notInAppleCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found in the Apple Music catalog'**
+  String get notInAppleCatalog;
+
+  /// No description provided for @couldNotLoadTrackList.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the track list'**
+  String get couldNotLoadTrackList;
+
+  /// No description provided for @lookingUpAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up the album…'**
+  String get lookingUpAlbum;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
+
+  /// No description provided for @longPressToPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press to pick tracks'**
+  String get longPressToPick;
+
+  /// No description provided for @playOwnedTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Play the {count} tracks you have'**
+  String playOwnedTracks(int count);
+
+  /// No description provided for @archiving.
+  ///
+  /// In en, this message translates to:
+  /// **'Archiving…'**
+  String get archiving;
+
+  /// No description provided for @archiveCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive {count}'**
+  String archiveCount(int count);
+
+  /// No description provided for @loadingTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading tracks…'**
+  String get loadingTracks;
+
+  /// No description provided for @noTracksForAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracks listed for this album'**
+  String get noTracksForAlbum;
+
+  /// No description provided for @inYourLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'In your library'**
+  String get inYourLibrary;
+
+  /// No description provided for @stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stop;
+
+  /// No description provided for @preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get preview;
+
+  /// No description provided for @archiveThisTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive this track'**
+  String get archiveThisTrack;
+
+  /// No description provided for @releasesInCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} releases in the catalog'**
+  String releasesInCatalog(int count);
+
+  /// No description provided for @lookingUpReleases.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up releases…'**
+  String get lookingUpReleases;
+
+  /// No description provided for @noReleasesListed.
+  ///
+  /// In en, this message translates to:
+  /// **'No releases listed'**
+  String get noReleasesListed;
+
+  /// No description provided for @ownedOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{owned} of {total} in your library'**
+  String ownedOfTotal(int owned, int total);
+
+  /// No description provided for @archivingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Archiving {current} of {total}{detail}'**
+  String archivingProgress(int current, int total, String detail);
+
+  /// No description provided for @archiveProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive progress'**
+  String get archiveProgress;
+
+  /// No description provided for @countOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total}'**
+  String countOfTotal(int done, int total);
+
+  /// No description provided for @downloadFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Download folder'**
+  String get downloadFolder;
+
+  /// No description provided for @analyseLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyse Library'**
+  String get analyseLibrary;
+
+  /// No description provided for @analyseLibraryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed for smart playlists and mood shelves'**
+  String get analyseLibraryHint;
+
+  /// No description provided for @alreadyAnalysing.
+  ///
+  /// In en, this message translates to:
+  /// **'Already analysing'**
+  String get alreadyAnalysing;
+
+  /// No description provided for @starting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting…'**
+  String get starting;
+
+  /// No description provided for @analyseFolderProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{status} (folder {index}/{count})'**
+  String analyseFolderProgress(String status, int index, int count);
+
+  /// No description provided for @notAvailableOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this device'**
+  String get notAvailableOnDevice;
+
+  /// No description provided for @failedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {error}'**
+  String failedWithError(String error);
+
+  /// No description provided for @analyseSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{analysed} analysed · {skipped} already done'**
+  String analyseSummary(int analysed, int skipped);
+
+  /// No description provided for @analyseUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **' · {count} unreadable'**
+  String analyseUnreadable(int count);
+
+  /// No description provided for @aiProviderAndKey.
+  ///
+  /// In en, this message translates to:
+  /// **'AI provider and key'**
+  String get aiProviderAndKey;
+
+  /// No description provided for @aiNotSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set up. Free keys from Gemini or OpenRouter'**
+  String get aiNotSetUp;
+
+  /// No description provided for @downloadLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Download logs'**
+  String get downloadLogs;
+
+  /// No description provided for @downloadLogsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to read the last week of logs. The switch adds a log button to each download in the queue.'**
+  String get downloadLogsHint;
+
+  /// No description provided for @motionFollowingSystemReduced.
+  ///
+  /// In en, this message translates to:
+  /// **'Following the system (reduced)'**
+  String get motionFollowingSystemReduced;
+
+  /// No description provided for @motionFollowingSystemFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Following the system (full)'**
+  String get motionFollowingSystemFull;
+
+  /// No description provided for @motionReducedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'On: no sliding, zooming or scrolling'**
+  String get motionReducedDescription;
+
+  /// No description provided for @motionFullDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: all animations'**
+  String get motionFullDescription;
+
+  /// No description provided for @reduceMotion.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce motion'**
+  String get reduceMotion;
+
+  /// No description provided for @followTheSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the system'**
+  String get followTheSystem;
+
+  /// No description provided for @fullMotion.
+  ///
+  /// In en, this message translates to:
+  /// **'Full motion'**
+  String get fullMotion;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// No description provided for @notificationsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Download progress and results, and app updates'**
+  String get notificationsHint;
+
+  /// No description provided for @sendATest.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a test'**
+  String get sendATest;
+
+  /// No description provided for @notificationsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are turned off'**
+  String get notificationsOff;
+
+  /// No description provided for @notificationsNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are not allowed for Soiboi'**
+  String get notificationsNotAllowed;
+
+  /// No description provided for @testDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Test download'**
+  String get testDownload;
+
+  /// No description provided for @stepOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of {total}'**
+  String stepOf(int step, int total);
+
+  /// No description provided for @testFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Test finished'**
+  String get testFinished;
+
+  /// No description provided for @testFinishedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A progress notification was shown, updated and dismissed.'**
+  String get testFinishedBody;
+
+  /// No description provided for @flavour.
+  ///
+  /// In en, this message translates to:
+  /// **'Flavour'**
+  String get flavour;
+
+  /// No description provided for @colourSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour source'**
+  String get colourSource;
+
+  /// No description provided for @appColoursDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'App colours (default)'**
+  String get appColoursDefault;
+
+  /// No description provided for @noColoursTapToSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'No colours found — tap to set up'**
+  String get noColoursTapToSetUp;
+
+  /// No description provided for @matchedViaMatugen.
+  ///
+  /// In en, this message translates to:
+  /// **'Matched via matugen'**
+  String get matchedViaMatugen;
+
+  /// No description provided for @prebuiltWithName.
+  ///
+  /// In en, this message translates to:
+  /// **'Prebuilt · {name}'**
+  String prebuiltWithName(String name);
+
+  /// No description provided for @appColours.
+  ///
+  /// In en, this message translates to:
+  /// **'App colours'**
+  String get appColours;
+
+  /// No description provided for @appColoursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Default — no system or prebuilt colours'**
+  String get appColoursHint;
+
+  /// No description provided for @matugenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads or generates a matugen scheme'**
+  String get matugenHint;
+
+  /// No description provided for @prebuiltPalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Prebuilt palette'**
+  String get prebuiltPalette;
+
+  /// No description provided for @prebuiltPaletteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Dracula, Nord, Catppuccin, and more'**
+  String get prebuiltPaletteHint;
+
+  /// No description provided for @materialYouExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses the Material You palette Android builds from your wallpaper, so Soiboi matches the rest of your system. Needs Android 12 or newer.'**
+  String get materialYouExplainer;
+
+  /// No description provided for @matugenExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches the rest of your desktop. Reads an existing matugen scheme if you have one, otherwise generates one from your wallpaper.'**
+  String get matugenExplainer;
+
+  /// No description provided for @scheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheme'**
+  String get scheme;
+
+  /// No description provided for @usingSchemeFromWallpaper.
+  ///
+  /// In en, this message translates to:
+  /// **'Using a {scheme} scheme from your wallpaper'**
+  String usingSchemeFromWallpaper(String scheme);
+
+  /// No description provided for @androidNoPalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Android did not provide a palette'**
+  String get androidNoPalette;
+
+  /// No description provided for @matugenCouldNotGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not generate — is matugen installed?'**
+  String get matugenCouldNotGenerate;
+
+  /// No description provided for @schemeFromWallpaper.
+  ///
+  /// In en, this message translates to:
+  /// **'{scheme} from your wallpaper'**
+  String schemeFromWallpaper(String scheme);
+
+  /// No description provided for @matugenJsonOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'matugen JSON (optional)'**
+  String get matugenJsonOptional;
+
+  /// No description provided for @turnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off'**
+  String get turnOff;
+
+  /// No description provided for @androidNoPaletteLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Android did not provide a palette. Material You needs Android 12 or newer.'**
+  String get androidNoPaletteLong;
+
+  /// No description provided for @noColoursMatugenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'No colours found, and matugen could not generate any from your wallpaper'**
+  String get noColoursMatugenFailed;
+
+  /// No description provided for @useTheseColours.
+  ///
+  /// In en, this message translates to:
+  /// **'Use these colours'**
+  String get useTheseColours;
+
+  /// No description provided for @coloursFromAlbumArt.
+  ///
+  /// In en, this message translates to:
+  /// **'Colours taken from the album art'**
+  String get coloursFromAlbumArt;
+
+  /// No description provided for @listenBrainzNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected — using local play counts'**
+  String get listenBrainzNotConnected;
+
+  /// No description provided for @listenBrainzExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your username ranks Home by everything you listen to, not just this device. Read-only, no token needed.'**
+  String get listenBrainzExplainer;
+
+  /// No description provided for @appleMusicAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Music account'**
+  String get appleMusicAccount;
+
+  /// No description provided for @signedInViaWrapper.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in through the lossless wrapper · cookies not needed'**
+  String get signedInViaWrapper;
+
+  /// No description provided for @signedInExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in · expires {date}'**
+  String signedInExpires(String date);
+
+  /// No description provided for @notSignedInNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in — needed to download'**
+  String get notSignedInNeeded;
+
+  /// No description provided for @signOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get signOut;
+
+  /// No description provided for @downloadQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Download quality'**
+  String get downloadQuality;
+
+  /// No description provided for @setupWizard.
+  ///
+  /// In en, this message translates to:
+  /// **'Setup wizard'**
+  String get setupWizard;
+
+  /// No description provided for @setupWizardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Folders, Apple Music sign-in, downloads, ListenBrainz'**
+  String get setupWizardHint;
+
+  /// No description provided for @losslessAlac.
+  ///
+  /// In en, this message translates to:
+  /// **'Lossless (ALAC)'**
+  String get losslessAlac;
+
+  /// No description provided for @ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get ready;
+
+  /// No description provided for @needsSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs setup'**
+  String get needsSetup;
+
+  /// No description provided for @needsSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs sign-in'**
+  String get needsSignIn;
+
+  /// No description provided for @notAvailableInBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available in this build'**
+  String get notAvailableInBuild;
+
+  /// No description provided for @signedInStartsOnDemand.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in · starts when a download needs it'**
+  String get signedInStartsOnDemand;
+
+  /// No description provided for @setUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up'**
+  String get setUp;
+
+  /// No description provided for @widevineAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Widevine device (advanced)'**
+  String get widevineAdvanced;
+
+  /// No description provided for @wrapperEnabledSetUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrapper enabled — set URL'**
+  String get wrapperEnabledSetUrl;
+
+  /// No description provided for @wrapperWithUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrapper: {url}'**
+  String wrapperWithUrl(String url);
+
+  /// No description provided for @wvdFileSet.
+  ///
+  /// In en, this message translates to:
+  /// **'WVD file set'**
+  String get wvdFileSet;
+
+  /// No description provided for @usingBuiltInDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the built-in device'**
+  String get usingBuiltInDevice;
+
+  /// No description provided for @widevineConfiguration.
+  ///
+  /// In en, this message translates to:
+  /// **'Widevine configuration'**
+  String get widevineConfiguration;
+
+  /// No description provided for @widevineExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'AAC downloads use the Widevine device built into the downloader, so they need nothing here. ALAC is protected by FairPlay instead and needs a wrapper-v2 service: turn on the wrapper and enter its address. A .wvd file only replaces the AAC device.'**
+  String get widevineExplainer;
+
+  /// No description provided for @useWrapperService.
+  ///
+  /// In en, this message translates to:
+  /// **'Use wrapper service'**
+  String get useWrapperService;
+
+  /// No description provided for @insteadOfWvd.
+  ///
+  /// In en, this message translates to:
+  /// **'Instead of a local .wvd file'**
+  String get insteadOfWvd;
+
+  /// No description provided for @wrapperUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrapper URL'**
+  String get wrapperUrl;
+
+  /// No description provided for @wvdFilePath.
+  ///
+  /// In en, this message translates to:
+  /// **'WVD file path'**
+  String get wvdFilePath;
+
+  /// No description provided for @chooseWvdFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a .wvd file'**
+  String get chooseWvdFile;
+
+  /// No description provided for @fetchLyricsLrclib.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch lyrics from LRCLIB'**
+  String get fetchLyricsLrclib;
+
+  /// No description provided for @fetchLyricsLrclibHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for tracks with no local lyrics'**
+  String get fetchLyricsLrclibHint;
+
+  /// No description provided for @youHaveVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {version}'**
+  String youHaveVersion(String version);
+
+  /// No description provided for @checkingForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get checkingForUpdates;
+
+  /// No description provided for @couldNotCheckUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check for updates: {error}'**
+  String couldNotCheckUpdates(String error);
+
+  /// No description provided for @inProgressCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} in progress'**
+  String inProgressCount(int count);
+
+  /// No description provided for @failedTapToRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} failed — tap to retry'**
+  String failedTapToRetry(int count);
+
+  /// No description provided for @nothingDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloading'**
+  String get nothingDownloading;
+
+  /// No description provided for @storageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the largest, least played and oldest tracks'**
+  String get storageHint;
+
+  /// No description provided for @removeDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove duplicates'**
+  String get removeDuplicates;
+
+  /// No description provided for @removeDuplicatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep one copy of each song. You pick the codec when copies differ.'**
+  String get removeDuplicatesHint;
+
+  /// No description provided for @exportedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Export to {path}'**
+  String exportedTo(String path);
+
+  /// No description provided for @downloadStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Download status'**
+  String get downloadStatus;
+
+  /// No description provided for @unresolvedTracksNeedChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unresolved tracks, need your choice'**
+  String get unresolvedTracksNeedChoice;
+
+  /// No description provided for @archiveFromAppleMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive from Apple Music'**
+  String get archiveFromAppleMusic;
+
+  /// No description provided for @archive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get archive;
+
+  /// No description provided for @archiveExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs, albums or playlists. Files are downloaded, tagged and added to your library on this device. Downloads are queued, so they keep going if you leave this screen.'**
+  String get archiveExplainer;
+
+  /// No description provided for @resumeDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume downloads'**
+  String get resumeDownloads;
+
+  /// No description provided for @pauseDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause downloads'**
+  String get pauseDownloads;
+
+  /// No description provided for @stopAllDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop all downloads'**
+  String get stopAllDownloads;
+
+  /// No description provided for @openQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Open queue'**
+  String get openQueue;
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get downloadFailed;
+
+  /// No description provided for @yourAppleMusicPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Apple Music playlists'**
+  String get yourAppleMusicPlaylists;
+
+  /// No description provided for @applePlaylistsExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive any playlist from your library directly — no link to copy.'**
+  String get applePlaylistsExplainer;
+
+  /// No description provided for @showMyPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Show my playlists'**
+  String get showMyPlaylists;
+
+  /// No description provided for @readingYourLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your library…'**
+  String get readingYourLibrary;
+
+  /// No description provided for @signIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get signIn;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get tryAgain;
+
+  /// No description provided for @noPlaylistsInAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlists in this account yet.'**
+  String get noPlaylistsInAccount;
+
+  /// No description provided for @saveAsLocalPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as local playlist'**
+  String get saveAsLocalPlaylist;
+
+  /// No description provided for @queueingName.
+  ///
+  /// In en, this message translates to:
+  /// **'Queueing {name}…'**
+  String queueingName(String name);
+
+  /// No description provided for @queuedSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued {queued} · skipped {skipped} not in the catalog'**
+  String queuedSkipped(int queued, int skipped);
+
+  /// No description provided for @queuedName.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued {name}'**
+  String queuedName(String name);
+
+  /// No description provided for @queuedTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued {count} tracks'**
+  String queuedTracks(int count);
+
+  /// No description provided for @importAPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a playlist'**
+  String get importAPlaylist;
+
+  /// No description provided for @importHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a playlist link, or Artist - Title lines'**
+  String get importHint;
+
+  /// No description provided for @import.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get import;
+
+  /// No description provided for @importExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a public {sources} link, or a tracklist with one Artist - Title per line for anything else. Its tracks are matched against the Apple Music catalog so you can archive the ones you want — nothing is downloaded from the other platform.'**
+  String importExplainer(String sources);
+
+  /// No description provided for @playlistWord.
+  ///
+  /// In en, this message translates to:
+  /// **'playlist'**
+  String get playlistWord;
+
+  /// No description provided for @listOr.
+  ///
+  /// In en, this message translates to:
+  /// **'{first} or {last}'**
+  String listOr(String first, String last);
+
+  /// No description provided for @notAPlaylistLink.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a playlist link this app can read.'**
+  String get notAPlaylistLink;
+
+  /// No description provided for @couldNotReadPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read that playlist.'**
+  String get couldNotReadPlaylist;
+
+  /// No description provided for @weeklyDiscoveries.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly discoveries'**
+  String get weeklyDiscoveries;
+
+  /// No description provided for @listenBrainzWeeklyExplainer.
+  ///
+  /// In en, this message translates to:
+  /// **'ListenBrainz builds a weekly exploration and jams playlist from your listening. Add your username to browse and archive them here — no account link or token needed, the lists are public.'**
+  String get listenBrainzWeeklyExplainer;
+
+  /// No description provided for @listenBrainzUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'ListenBrainz username'**
+  String get listenBrainzUsername;
+
+  /// No description provided for @connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get connect;
+
+  /// No description provided for @couldNotLoadPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load this playlist'**
+  String get couldNotLoadPlaylist;
+
+  /// No description provided for @archivingProgressSimple.
+  ///
+  /// In en, this message translates to:
+  /// **'Archiving {current} of {total}…'**
+  String archivingProgressSimple(int current, int total);
+
+  /// No description provided for @matchingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching {current} of {total}…'**
+  String matchingProgress(int current, int total);
+
+  /// No description provided for @matchedOfTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{matched} of {total} matched'**
+  String matchedOfTotal(int matched, int total);
+
+  /// No description provided for @matchingToCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching tracks to the Apple Music catalog…'**
+  String get matchingToCatalog;
+
+  /// No description provided for @savedPlaylistAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\" with all {total} songs'**
+  String savedPlaylistAll(String name, int total);
+
+  /// No description provided for @savedPlaylistPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\": {matched} of {total} songs are in your library. The rest join it when downloaded.'**
+  String savedPlaylistPartial(String name, int matched, int total);
 }
 
 class _AppLocalizationsDelegate

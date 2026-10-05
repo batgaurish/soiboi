@@ -12,6 +12,7 @@
 /// from inside a layer's nested navigator where a raw modal sheet does not.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -64,6 +65,7 @@ class DownloadQueueView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ValueListenableBuilder<List<DownloadJob>>(
       valueListenable: downloadQueue.jobs,
       builder: (context, jobs, _) {
@@ -71,8 +73,7 @@ class DownloadQueueView extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
             child: Text(
-              'Nothing in the queue. Anything you archive shows up here, and '
-              'keeps going if you leave the screen.',
+              l10n.queueEmpty,
               style: TextStyle(fontSize: 12.5, color: textColor.value),
             ),
           );
@@ -87,7 +88,7 @@ class DownloadQueueView extends StatelessWidget {
           children: [
             if (showTitle) ...[
               Text(
-                'Download queue',
+                l10n.downloadQueue,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -96,7 +97,7 @@ class DownloadQueueView extends StatelessWidget {
               ),
               const SizedBox(height: 12),
             ],
-            _controls(active.length, finished.length),
+            _controls(l10n, active.length, finished.length),
             const SizedBox(height: 8),
             // Inline, the page around this scrolls with unbounded height, so
             // an uncapped list grows to every row and, being a scrollable
@@ -104,11 +105,11 @@ class DownloadQueueView extends StatelessWidget {
             // the whole Downloads page. Capped, it scrolls in its own box and
             // drags elsewhere scroll the page.
             if (showTitle)
-              Flexible(child: _list(active, finished))
+              Flexible(child: _list(l10n, active, finished))
             else
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 360),
-                child: _list(active, finished),
+                child: _list(l10n, active, finished),
               ),
           ],
         );
@@ -116,7 +117,11 @@ class DownloadQueueView extends StatelessWidget {
     );
   }
 
-  Widget _list(List<DownloadJob> active, List<DownloadJob> finished) {
+  Widget _list(
+    AppLocalizations l10n,
+    List<DownloadJob> active,
+    List<DownloadJob> finished,
+  ) {
     // Jobs queued as one playlist's tracks sit under one header, where the
     // group's first job would be; everything else is a row of its own.
     final groups = <String, List<DownloadJob>>{};
@@ -128,13 +133,16 @@ class DownloadQueueView extends StatelessWidget {
       for (final job in jobs) {
         final group = job.group;
         if (group == null) {
-          yield KeyedSubtree(key: ValueKey('job:${job.id}'), child: _row(job));
+          yield KeyedSubtree(
+            key: ValueKey('job:${job.id}'),
+            child: _row(l10n, job),
+          );
         } else if (shown.add(group)) {
           yield _DownloadGroup(
             key: ValueKey('group:$group'),
             name: group,
             jobs: groups[group]!,
-            row: _row,
+            row: (job) => _row(l10n, job),
           );
         }
       }
@@ -152,7 +160,7 @@ class DownloadQueueView extends StatelessWidget {
 
   /// Pause, stop and the bulk actions. Pause and stop both take effect at
   /// once; a paused job goes back to the front of the queue.
-  Widget _controls(int activeCount, int finishedCount) {
+  Widget _controls(AppLocalizations l10n, int activeCount, int finishedCount) {
     return ValueListenableBuilder<bool>(
       valueListenable: downloadQueue.paused,
       // Wraps rather than overflows: at 200% text a phone has no room for
@@ -164,34 +172,34 @@ class DownloadQueueView extends StatelessWidget {
             padding: const EdgeInsets.only(right: 8),
             child: Text(
               activeCount == 0
-                  ? '$finishedCount finished'
+                  ? l10n.finishedCount(finishedCount)
                   : paused
-                  ? '$activeCount paused'
-                  : '$activeCount in the queue',
+                  ? l10n.pausedCount(activeCount)
+                  : l10n.inQueueCount(activeCount),
               style: TextStyle(fontSize: 12, color: textColor.value),
             ),
           ),
           if (activeCount > 0)
             TextButton(
               onPressed: () => downloadQueue.setPaused(!paused),
-              child: Text(paused ? 'Resume' : 'Pause'),
+              child: Text(paused ? l10n.resume : l10n.pause),
             ),
           if (activeCount > 0)
             TextButton(
               onPressed: downloadQueue.stopAll,
-              child: const Text('Stop all'),
+              child: Text(l10n.stopAll),
             ),
           if (finishedCount > 0)
             TextButton(
               onPressed: downloadQueue.clearFinished,
-              child: const Text('Clear'),
+              child: Text(l10n.clear),
             ),
         ],
       ),
     );
   }
 
-  Widget _row(DownloadJob job) {
+  Widget _row(AppLocalizations l10n, DownloadJob job) {
     final (icon, tint) = switch (job.state) {
       DownloadJobState.done => (Icons.check_rounded, seekBarColor.value),
       DownloadJobState.failed => (Icons.error_outline, failureTextColor()),
@@ -211,7 +219,7 @@ class DownloadQueueView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _jobRow(job, icon, tint, detail),
+        _jobRow(l10n, job, icon, tint, detail),
         // A playlist or album link is one job: its tracks, once the
         // downloader reports them.
         ValueListenableBuilder<int>(
@@ -223,8 +231,8 @@ class DownloadQueueView extends StatelessWidget {
                   child: _Expander(
                     key: ValueKey('tracks:${job.id}'),
                     name: job.label,
-                    summary: trackSummary(job.tracks),
-                    children: [for (final t in job.tracks) _trackRow(t)],
+                    summary: trackSummary(l10n, job.tracks),
+                    children: [for (final t in job.tracks) _trackRow(l10n, t)],
                   ),
                 ),
         ),
@@ -232,7 +240,13 @@ class DownloadQueueView extends StatelessWidget {
     );
   }
 
-  Widget _jobRow(DownloadJob job, IconData icon, Color tint, String? detail) {
+  Widget _jobRow(
+    AppLocalizations l10n,
+    DownloadJob job,
+    IconData icon,
+    Color tint,
+    String? detail,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -243,7 +257,7 @@ class DownloadQueueView extends StatelessWidget {
             // One item for a screen reader: the download and where it is.
             child: Semantics(
               container: true,
-              label: _spoken(job, detail),
+              label: _spoken(l10n, job, detail),
               excludeSemantics: true,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,9 +304,12 @@ class DownloadQueueView extends StatelessWidget {
                 : IconButton(
                     iconSize: 17,
                     visualDensity: VisualDensity.compact,
-                    tooltip: 'Log',
+                    tooltip: l10n.log,
                     onPressed: () => showDownloadLog(context, job),
-                    icon: labelIcon('Log', const Icon(Icons.article_outlined)),
+                    icon: labelIcon(
+                      l10n.log,
+                      const Icon(Icons.article_outlined),
+                    ),
                   ),
           ),
           // The catalog's fix first; Retry beside it when the fix is
@@ -306,9 +323,9 @@ class DownloadQueueView extends StatelessWidget {
             IconButton(
               iconSize: 17,
               visualDensity: VisualDensity.compact,
-              tooltip: 'Retry',
+              tooltip: l10n.retry,
               onPressed: () => downloadQueue.retry(job),
-              icon: labelIcon('Retry', const Icon(Icons.refresh_rounded)),
+              icon: labelIcon(l10n.retry, const Icon(Icons.refresh_rounded)),
             ),
           if (job.state == DownloadJobState.queued ||
               job.state == DownloadJobState.running)
@@ -316,13 +333,13 @@ class DownloadQueueView extends StatelessWidget {
               iconSize: 17,
               visualDensity: VisualDensity.compact,
               tooltip: job.state == DownloadJobState.running
-                  ? 'Stop this download'
-                  : 'Remove from queue',
+                  ? l10n.stopThisDownload
+                  : l10n.removeFromQueue,
               onPressed: () => downloadQueue.cancel(job),
               icon: labelIcon(
                 job.state == DownloadJobState.running
-                    ? 'Stop this download'
-                    : 'Remove from queue',
+                    ? l10n.stopThisDownload
+                    : l10n.removeFromQueue,
                 const Icon(Icons.close_rounded),
               ),
             ),
@@ -331,32 +348,39 @@ class DownloadQueueView extends StatelessWidget {
     );
   }
 
-  Widget _trackRow(TrackStatus track) {
+  Widget _trackRow(AppLocalizations l10n, TrackStatus track) {
     final (icon, tint, state) = switch (track.state) {
-      TrackState.done => (Icons.check_rounded, seekBarColor.value, 'done'),
-      TrackState.failed => (Icons.error_outline, failureTextColor(), 'failed'),
+      TrackState.done => (
+        Icons.check_rounded,
+        seekBarColor.value,
+        l10n.stateDone,
+      ),
+      TrackState.failed => (
+        Icons.error_outline,
+        failureTextColor(),
+        l10n.stateFailed,
+      ),
       TrackState.skipped => (
         Icons.remove_rounded,
         textColor.value,
-        track.owned ? 'already in your library' : 'skipped',
+        track.owned ? l10n.stateAlreadyInLibrary : l10n.stateSkipped,
       ),
       TrackState.downloading => (
         Icons.download_rounded,
         seekBarColor.value,
-        'downloading',
+        l10n.stateDownloading,
       ),
     };
     final detail = switch (track.state) {
       TrackState.failed => describeFailure(track.detail).sentence,
-      TrackState.skipped =>
-        track.owned ? 'Already in your library' : track.detail,
+      TrackState.skipped => track.owned ? l10n.alreadyInLibrary : track.detail,
       _ => null,
     };
     return Semantics(
       container: true,
       excludeSemantics: true,
       label: [
-        'Track ${track.index}',
+        l10n.trackNumber(track.index),
         track.title,
         state,
         if (track.state != TrackState.skipped || !track.owned) ?detail,
@@ -405,17 +429,23 @@ class DownloadQueueView extends StatelessWidget {
     );
   }
 
-  static String _spoken(DownloadJob job, String? detail) {
+  static String _spoken(
+    AppLocalizations l10n,
+    DownloadJob job,
+    String? detail,
+  ) {
     final state = switch (job.state) {
-      DownloadJobState.queued => 'waiting',
+      DownloadJobState.queued => l10n.stateWaiting,
       DownloadJobState.running => [
-        'downloading',
+        l10n.stateDownloading,
         if (job.status.isNotEmpty) job.status,
         '${job.progress}%',
       ].join(', '),
-      DownloadJobState.done => 'downloaded',
-      DownloadJobState.failed => 'failed. ${job.failure?.sentence ?? ''}',
-      DownloadJobState.cancelled => 'cancelled',
+      DownloadJobState.done => l10n.stateDownloaded,
+      DownloadJobState.failed => l10n.stateFailedWith(
+        job.failure?.sentence ?? '',
+      ),
+      DownloadJobState.cancelled => l10n.stateCancelled,
     };
     return '${job.label}, $state';
   }
@@ -442,7 +472,7 @@ class DownloadQueueView extends StatelessWidget {
 }
 
 /// "12 of 50 done · 3 already there · 1 failed": where a list of tracks is.
-String trackSummary(List<TrackStatus> tracks) {
+String trackSummary(AppLocalizations l10n, List<TrackStatus> tracks) {
   final total = tracks.map((t) => t.total).nonNulls.firstOrNull;
   int count(TrackState state) => tracks.where((t) => t.state == state).length;
   final owned = tracks.where((t) => t.owned).length;
@@ -450,24 +480,24 @@ String trackSummary(List<TrackStatus> tracks) {
   final failed = count(TrackState.failed);
   return [
     total == null
-        ? '${count(TrackState.done)} done'
-        : '${count(TrackState.done)} of $total done',
-    if (owned > 0) '$owned already there',
-    if (skipped > 0) '$skipped skipped',
-    if (failed > 0) '$failed failed',
+        ? l10n.doneCount(count(TrackState.done))
+        : l10n.doneOfTotal(count(TrackState.done), total),
+    if (owned > 0) l10n.alreadyThereCount(owned),
+    if (skipped > 0) l10n.skippedCount(skipped),
+    if (failed > 0) l10n.failedCount(failed),
   ].join(' · ');
 }
 
 /// "12 of 50 done · 1 failed" for a playlist queued as separate jobs.
-String groupSummary(List<DownloadJob> jobs) {
+String groupSummary(AppLocalizations l10n, List<DownloadJob> jobs) {
   int count(DownloadJobState state) =>
       jobs.where((j) => j.state == state).length;
   final failed = count(DownloadJobState.failed);
   final cancelled = count(DownloadJobState.cancelled);
   return [
-    '${count(DownloadJobState.done)} of ${jobs.length} done',
-    if (failed > 0) '$failed failed',
-    if (cancelled > 0) '$cancelled cancelled',
+    l10n.doneOfTotal(count(DownloadJobState.done), jobs.length),
+    if (failed > 0) l10n.failedCount(failed),
+    if (cancelled > 0) l10n.cancelledCount(cancelled),
   ].join(' · ');
 }
 
@@ -486,14 +516,15 @@ class _DownloadGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final running = jobs
         .where((j) => j.state == DownloadJobState.running)
         .firstOrNull;
     return _Expander(
       name: name,
       summary: [
-        groupSummary(jobs),
-        if (running != null) 'now ${running.label}',
+        groupSummary(l10n, jobs),
+        if (running != null) l10n.nowLabel(running.label),
       ].join(' · '),
       heading: true,
       children: [
@@ -531,11 +562,12 @@ class _ExpanderState extends State<_Expander> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final header = Semantics(
       container: true,
       button: true,
       expanded: _open,
-      label: 'Show tracks: ${widget.name}',
+      label: l10n.showTracksFor(widget.name),
       value: widget.summary,
       // The InkWell adds the tap and focus to this node; the texts inside
       // would only repeat the label.
@@ -576,7 +608,7 @@ class _ExpanderState extends State<_Expander> {
                         Text(
                           widget.heading
                               ? widget.summary
-                              : '${_open ? 'Hide' : 'Show'} tracks · '
+                              : '${_open ? l10n.hideTracks : l10n.showTracks} · '
                                     '${widget.summary}',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
@@ -684,6 +716,7 @@ class _DownloadLogViewState extends State<DownloadLogView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(
@@ -693,7 +726,7 @@ class _DownloadLogViewState extends State<DownloadLogView> {
             children: [
               Expanded(
                 child: Text(
-                  'Log: ${widget.job.label}',
+                  l10n.logFor(widget.job.label),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -704,14 +737,14 @@ class _DownloadLogViewState extends State<DownloadLogView> {
                 ),
               ),
               IconButton(
-                tooltip: 'Copy',
+                tooltip: l10n.copy,
                 icon: labelIcon(
-                  'Copy',
+                  l10n.copy,
                   const Icon(Icons.copy_rounded, size: 18),
                 ),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: _text));
-                  showCenterMessage('Log copied');
+                  showCenterMessage(l10n.logCopied);
                 },
               ),
             ],

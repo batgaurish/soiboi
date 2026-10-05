@@ -9,6 +9,7 @@
 /// screen uses, so it works with nothing configured and no account.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/services/apple_catalog_service.dart';
@@ -187,12 +188,13 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
   }
 
   Future<void> _load() async {
+    final l10n = AppLocalizations.of(context);
     _localAlbum = matchAlbum(widget.album);
 
     final album = await resolveAppleAlbum(widget.artist, widget.album);
     if (!mounted) return;
     if (album == null) {
-      setState(() => _error = 'Not found in the Apple Music catalog');
+      setState(() => _error = l10n.notInAppleCatalog);
       return;
     }
     setState(() => _album = album);
@@ -201,7 +203,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
     if (!mounted) return;
     setState(() {
       _tracks = tracks ?? const [];
-      if (tracks == null) _error = 'Could not load the track list';
+      if (tracks == null) _error = l10n.couldNotLoadTrackList;
     });
   }
 
@@ -267,6 +269,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final album = _album;
     final tracks = _tracks;
 
@@ -283,7 +286,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
       return _SheetScaffold(
         title: widget.album,
         subtitle: widget.artist,
-        child: _busy('Looking up the album…'),
+        child: _busy(l10n.lookingUpAlbum),
       );
     }
 
@@ -308,7 +311,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
         album.artist,
         if (album.releaseYear != null) album.releaseYear!,
         if (album.genre != null) album.genre!,
-        if (album.trackCount != null) '${album.trackCount} tracks',
+        if (album.trackCount != null) l10n.trackCount(album.trackCount!),
       ].join(' · '),
       footer: tracks == null || archivable.isEmpty
           ? null
@@ -322,8 +325,8 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                         )
                       : Text(
                           selecting
-                              ? '${chosen.length} selected'
-                              : 'Long press to pick tracks',
+                              ? l10n.selectedCount(chosen.length)
+                              : l10n.longPressToPick,
                           style: TextStyle(
                             fontSize: 12,
                             color: textColor.value,
@@ -334,10 +337,10 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                 // worth listening to while the rest downloads.
                 if (!selecting && owned.isNotEmpty) ...[
                   IconButton(
-                    tooltip: 'Play the ${owned.length} tracks you have',
+                    tooltip: l10n.playOwnedTracks(owned.length),
                     onPressed: () => audioHandler.setPlayQueue(owned, 0),
                     icon: labelIcon(
-                      'Play the ${owned.length} tracks you have',
+                      l10n.playOwnedTracks(owned.length),
                       const Icon(Icons.play_circle_fill_rounded),
                     ),
                   ),
@@ -354,8 +357,8 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                     }),
                     child: Text(
                       chosen.length == archivable.length
-                          ? 'Clear'
-                          : 'Select all',
+                          ? l10n.clear
+                          : l10n.selectAll,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -365,17 +368,19 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                       ? null
                       : () => _archive(chosen),
                   child: Text(
-                    _sending ? 'Archiving…' : 'Archive ${chosen.length}',
+                    _sending
+                        ? l10n.archiving
+                        : l10n.archiveCount(chosen.length),
                   ),
                 ),
               ],
             ),
       child: tracks == null
-          ? _busy('Loading tracks…')
+          ? _busy(l10n.loadingTracks)
           : tracks.isEmpty
           ? Center(
               child: Text(
-                _error ?? 'No tracks listed for this album',
+                _error ?? l10n.noTracksForAlbum,
                 style: TextStyle(fontSize: 12, color: textColor.value),
               ),
             )
@@ -387,6 +392,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
   }
 
   Widget _trackRow(AppleTrack track, bool selecting) {
+    final l10n = AppLocalizations.of(context);
     final selected = _selected.contains(track.url);
     final done = _archived.contains(track.url);
     final owned = _localCopyOf(track) != null;
@@ -426,7 +432,7 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
       ),
       subtitle: owned
           ? Text(
-              'In your library',
+              l10n.inYourLibrary,
               style: TextStyle(fontSize: 11, color: textColor.value),
             )
           : duration == null
@@ -453,11 +459,11 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                       return IconButton(
                         iconSize: 19,
                         visualDensity: VisualDensity.compact,
-                        tooltip: active ? 'Stop' : 'Preview',
+                        tooltip: active ? l10n.stop : l10n.preview,
                         onPressed: () =>
                             togglePreview(track.url, track.previewUrl),
                         icon: labelIcon(
-                          active ? 'Stop' : 'Preview',
+                          active ? l10n.stop : l10n.preview,
                           Icon(
                             active
                                 ? Icons.stop_circle_outlined
@@ -471,10 +477,10 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
                 IconButton(
                   iconSize: 18,
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Archive this track',
+                  tooltip: l10n.archiveThisTrack,
                   onPressed: _sending || done ? null : () => _archive([track]),
                   icon: labelIcon(
-                    'Archive this track',
+                    l10n.archiveThisTrack,
                     Icon(
                       done ? Icons.check_rounded : Icons.download_outlined,
                       color: done ? seekBarColor.value : null,
@@ -506,29 +512,31 @@ class _CatalogArtistSheetState extends State<_CatalogArtistSheet> {
   }
 
   Future<void> _load() async {
+    final l10n = AppLocalizations.of(context);
     final albums = await appleArtistAlbums(widget.artist);
     if (!mounted) return;
     setState(() {
       _albums = albums ?? const [];
-      if (albums == null) _error = 'Not found in the Apple Music catalog';
+      if (albums == null) _error = l10n.notInAppleCatalog;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final albums = _albums;
 
     return _SheetScaffold(
       title: widget.artist,
       subtitle: albums == null || albums.isEmpty
           ? null
-          : '${albums.length} releases in the catalog',
+          : l10n.releasesInCatalog(albums.length),
       child: albums == null
-          ? _busy('Looking up releases…')
+          ? _busy(l10n.lookingUpReleases)
           : albums.isEmpty
           ? Center(
               child: Text(
-                _error ?? 'No releases listed',
+                _error ?? l10n.noReleasesListed,
                 style: TextStyle(fontSize: 12, color: textColor.value),
               ),
             )
@@ -578,11 +586,11 @@ class _CatalogArtistSheetState extends State<_CatalogArtistSheet> {
                     [
                       if (album.releaseYear != null) album.releaseYear!,
                       if (album.trackCount != null)
-                        '${album.trackCount} tracks',
+                        l10n.trackCount(album.trackCount!),
                       if (full)
-                        'In your library'
+                        l10n.inYourLibrary
                       else if (partial)
-                        '$localCount of ${album.trackCount} in your library',
+                        l10n.ownedOfTotal(localCount, album.trackCount!),
                     ].join(' · '),
                     style: TextStyle(fontSize: 11, color: textColor.value),
                   ),
@@ -624,6 +632,7 @@ class _ArchiveProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ValueListenableBuilder<List<DownloadJob>>(
       valueListenable: downloadQueue.jobs,
       builder: (context, _, _) {
@@ -634,7 +643,7 @@ class _ArchiveProgress extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Archiving ${done + 1} of $total$detail',
+              l10n.archivingProgress(done + 1, total, detail),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12, color: textColor.value),
@@ -646,10 +655,10 @@ class _ArchiveProgress extends StatelessWidget {
                   ? null
                   : (done + (job?.progress ?? 0) / 100) / total,
               semanticsLabel: nameWithValue(
-                'Archive progress',
-                '$done of $total',
+                l10n.archiveProgress,
+                l10n.countOfTotal(done, total),
               ),
-              semanticsValue: '$done of $total',
+              semanticsValue: l10n.countOfTotal(done, total),
             ),
           ],
         );

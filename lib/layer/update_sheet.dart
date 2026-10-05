@@ -7,6 +7,7 @@
 /// here now.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
@@ -50,6 +51,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
   String? _handedOff;
 
   Future<void> _downloadAndInstall() async {
+    final l10n = AppLocalizations.of(context);
     final asset = widget.release.assetForThisPlatform;
     if (asset == null) return;
 
@@ -91,8 +93,8 @@ class _UpdateSheetState extends State<_UpdateSheet> {
 
     setState(() {
       _handedOff = Platform.isLinux
-          ? 'Restarting into the new version…'
-          : 'Finish the install in the Android prompt.';
+          ? l10n.updateRestarting
+          : l10n.updateFinishAndroid;
     });
 
     // Linux only: the swap script is already waiting on this process, so the
@@ -107,6 +109,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final release = widget.release;
     final asset = release.assetForThisPlatform;
 
@@ -128,8 +131,8 @@ class _UpdateSheetState extends State<_UpdateSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${release.tag} · you have $versionNumber'
-              '${release.prerelease ? " · prerelease" : ""}',
+              '${l10n.updateYouHave(release.tag, versionNumber)}'
+              '${release.prerelease ? l10n.prereleaseSuffix : ""}',
               style: TextStyle(fontSize: 12, color: textColor.value),
             ),
             const SizedBox(height: 12),
@@ -137,7 +140,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
               child: SingleChildScrollView(
                 child: release.notes.trim().isEmpty
                     ? Text(
-                        'No release notes.',
+                        l10n.noReleaseNotes,
                         style: TextStyle(
                           fontSize: 12.5,
                           color: textColor.value,
@@ -179,7 +182,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
                     // zero for a 600 MB download reads as a hang.
                     value: _total > 0 ? value : null,
                     semanticsLabel: nameWithValue(
-                      'Update download',
+                      l10n.updateDownload,
                       _total > 0 ? percentLabel(_received / _total) : '',
                     ),
                     semanticsValue: _total > 0
@@ -201,6 +204,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
   }
 
   Widget _footer(ReleaseAsset? asset) {
+    final l10n = AppLocalizations.of(context);
     if (_handedOff != null) {
       return Row(
         children: [
@@ -224,14 +228,14 @@ class _UpdateSheetState extends State<_UpdateSheet> {
         children: [
           Expanded(
             child: Text(
-              'This release has no download for ${Platform.operatingSystem}.',
+              l10n.noDownloadForPlatform(Platform.operatingSystem),
               style: TextStyle(fontSize: 12, color: textColor.value),
             ),
           ),
           TextButton(
             onPressed: () =>
                 launchUrl(Uri.parse('https://github.com/$updateRepo/releases')),
-            child: const Text('Open releases'),
+            child: Text(l10n.openReleases),
           ),
         ],
       );
@@ -243,8 +247,11 @@ class _UpdateSheetState extends State<_UpdateSheet> {
           child: Text(
             _busy
                 ? _total > 0
-                      ? '${formatBytes(_received)} of ${formatBytes(_total)}'
-                      : 'Starting download…'
+                      ? l10n.bytesOf(
+                          formatBytes(_received),
+                          formatBytes(_total),
+                        )
+                      : l10n.startingDownload
                 : '${asset.name} · ${formatBytes(asset.sizeBytes)}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -255,11 +262,11 @@ class _UpdateSheetState extends State<_UpdateSheet> {
         if (!_busy)
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Later'),
+            child: Text(l10n.later),
           ),
         FilledButton(
           onPressed: _busy ? null : _downloadAndInstall,
-          child: Text(_busy ? 'Downloading…' : 'Download & install'),
+          child: Text(_busy ? l10n.downloading : l10n.downloadAndInstall),
         ),
       ],
     );

@@ -11,6 +11,7 @@
 /// on a desktop anyway, which is where the awkwardness belongs.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -89,6 +90,7 @@ class _AppleSignInLayerState extends State<AppleSignInLayer> {
   String? _status;
 
   Future<void> _check({bool silent = false}) async {
+    final l10n = AppLocalizations.of(context);
     if (_checking) return;
     setState(() => _checking = true);
     final ok = await _harvest();
@@ -96,16 +98,17 @@ class _AppleSignInLayerState extends State<AppleSignInLayer> {
     setState(() {
       _checking = false;
       _status = ok
-          ? 'Signed in'
+          ? l10n.signedIn
           : silent
           ? null
-          : 'Not signed in yet — complete the login above.';
+          : l10n.notSignedInYet;
     });
     if (ok && mounted) Navigator.of(context).maybePop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (!Platform.isAndroid && !Platform.isIOS) {
       return const _DesktopImport();
     }
@@ -114,11 +117,11 @@ class _AppleSignInLayerState extends State<AppleSignInLayer> {
       backgroundColor: pageBackgroundColor.value,
       appBar: AppBar(
         backgroundColor: panelColor.value,
-        title: const Text('Sign in to Apple Music'),
+        title: Text(l10n.signInAppleMusic),
         actions: [
           TextButton(
             onPressed: _checking ? null : () => _check(),
-            child: Text(_checking ? 'Checking…' : 'Done'),
+            child: Text(_checking ? l10n.checking : l10n.done),
           ),
         ],
       ),
@@ -175,11 +178,12 @@ class _DesktopImportState extends State<_DesktopImport> {
   bool _busy = false;
 
   Future<void> _pick() async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     // This fork exposes static methods rather than the upstream
     // FilePicker.platform instance.
     final result = await FilePicker.pickFiles(
-      dialogTitle: 'Select cookies.txt',
+      dialogTitle: l10n.selectCookiesFile,
       type: FileType.any,
     );
     final path = result?.files.single.path;
@@ -192,7 +196,7 @@ class _DesktopImportState extends State<_DesktopImport> {
     setState(() {
       _busy = false;
       _status = ok
-          ? 'Signed in'
+          ? l10n.signedIn
           : "That file didn't contain an Apple Music session. Make sure you "
                 'were signed in when you exported it.';
     });
@@ -201,11 +205,12 @@ class _DesktopImportState extends State<_DesktopImport> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: pageBackgroundColor.value,
       appBar: AppBar(
         backgroundColor: panelColor.value,
-        title: const Text('Sign in to Apple Music'),
+        title: Text(l10n.signInAppleMusic),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -217,7 +222,7 @@ class _DesktopImportState extends State<_DesktopImport> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Import your Apple Music cookies',
+                  l10n.importAppleCookies,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -226,10 +231,7 @@ class _DesktopImportState extends State<_DesktopImport> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Sign in to music.apple.com in your browser, export the '
-                  'cookies with a "cookies.txt" extension, then select the '
-                  'file here.\n\nOnly Apple cookies are kept — anything else '
-                  'in the export is discarded.',
+                  l10n.importAppleCookiesHint,
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
@@ -240,7 +242,7 @@ class _DesktopImportState extends State<_DesktopImport> {
                 FilledButton.icon(
                   onPressed: _busy ? null : _pick,
                   icon: const Icon(Icons.folder_open, size: 18),
-                  label: Text(_busy ? 'Reading…' : 'Choose cookies.txt'),
+                  label: Text(_busy ? l10n.reading : l10n.chooseCookiesFile),
                 ),
                 if (_status != null) ...[
                   const SizedBox(height: 16),

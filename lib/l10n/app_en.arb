@@ -276,5 +276,767 @@
   "immersiveWideLayout": "Immersive for Wide Layout",
   "menuOnRight": "Open Menu from Right",
   "save": "Save",
-  "chooseMusicSource": "Choose a Music Source"
+  "chooseMusicSource": "Choose a Music Source",
+  "search": "Search",
+  "smartPlaylists": "Smart playlists",
+  "newSmartPlaylist": "New smart playlist",
+  "nothingHereYet": "Nothing here yet",
+  "smartPlaylistExplainer": "A smart playlist stores a question rather than a list of songs, and answers it against your library every time you open it — so \"lossless tracks I have not played this year\" stays true as the library grows.",
+  "editRules": "Edit rules",
+  "trackCount": "{count, plural, =1{1 track} other{{count} tracks}}",
+  "@trackCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "rulesJoinAll": " and ",
+  "rulesJoinAny": " or ",
+  "startFromTemplate": "Start from a template",
+  "startFromTemplateHint": "Pick a vibe and tweak it, or start from a blank ruleset.",
+  "startFromScratch": "Start from scratch",
+  "name": "Name",
+  "match": "Match",
+  "allRules": "All rules",
+  "anyRule": "Any rule",
+  "noRulesYet": "No rules yet — this would select the whole library.",
+  "addRule": "Add rule",
+  "limit": "Limit",
+  "tracksMatch": "{count, plural, =1{1 track matches} other{{count} tracks match}}",
+  "@tracksMatch": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "removeRule": "Remove rule",
+  "yes": "Yes",
+  "no": "No",
+  "signedIn": "Signed in",
+  "notSignedInYet": "Not signed in yet — complete the login above.",
+  "signInAppleMusic": "Sign in to Apple Music",
+  "checking": "Checking…",
+  "done": "Done",
+  "selectCookiesFile": "Select cookies.txt",
+  "importAppleCookies": "Import your Apple Music cookies",
+  "importAppleCookiesHint": "Sign in to music.apple.com in your browser, export the cookies with a \"cookies.txt\" extension, then select the file here.\n\nOnly Apple cookies are kept — anything else in the export is discarded.",
+  "reading": "Reading…",
+  "chooseCookiesFile": "Choose cookies.txt",
+  "searchHint": "Songs, albums, artists, playlists",
+  "clearSearch": "Clear search",
+  "searchIntro": "Search your whole library at once — songs, albums, artists and playlists, wherever they live.",
+  "nothingMatches": "Nothing in your library matches \"{query}\".",
+  "@nothingMatches": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "lookOnAppleMusic": "Look for it on Apple Music",
+  "playlist": "Playlist",
+  "smartPlaylist": "Smart playlist",
+  "mood": "Mood",
+  "updateRestarting": "Restarting into the new version…",
+  "updateFinishAndroid": "Finish the install in the Android prompt.",
+  "updateYouHave": "{tag} · you have {version}",
+  "@updateYouHave": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "prereleaseSuffix": " · prerelease",
+  "noReleaseNotes": "No release notes.",
+  "updateDownload": "Update download",
+  "noDownloadForPlatform": "This release has no download for {platform}.",
+  "@noDownloadForPlatform": {
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "openReleases": "Open releases",
+  "bytesOf": "{received} of {total}",
+  "@bytesOf": {
+    "placeholders": {
+      "received": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "startingDownload": "Starting download…",
+  "later": "Later",
+  "downloading": "Downloading…",
+  "downloadAndInstall": "Download & install",
+  "deleteTracksConfirm": "{count, plural, =1{Delete 1 track ({size})} other{Delete {count} tracks ({size})}}",
+  "@deleteTracksConfirm": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "freedBytes": "Freed {size}",
+  "@freedBytes": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storage": "Storage",
+  "nothingStored": "Nothing stored on this device.",
+  "storedSummary": "{count, plural, =1{1 track} other{{count} tracks}} · {size} on this device",
+  "@storedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "selectTracksToDelete": "Select tracks to delete",
+  "selectedSize": "{count} selected · {size}",
+  "@selectedSize": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "deleting": "Deleting…",
+  "neverPlayed": "Never played",
+  "playCountLabel": "{count, plural, =1{1 play} other{{count} plays}}",
+  "@playCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lastPlayed": "Last played {when}",
+  "@lastPlayed": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "today": "today",
+  "daysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "monthsAgo": "{count, plural, =1{1 month ago} other{{count} months ago}}",
+  "@monthsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "yearsAgo": "{count, plural, =1{a year ago} other{{count} years ago}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueEmpty": "Nothing in the queue. Anything you archive shows up here, and keeps going if you leave the screen.",
+  "downloadQueue": "Download queue",
+  "finishedCount": "{count} finished",
+  "@finishedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pausedCount": "{count} paused",
+  "@pausedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inQueueCount": "{count} in the queue",
+  "@inQueueCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resume": "Resume",
+  "pause": "Pause",
+  "stopAll": "Stop all",
+  "log": "Log",
+  "retry": "Retry",
+  "stopThisDownload": "Stop this download",
+  "removeFromQueue": "Remove from queue",
+  "stateDone": "done",
+  "stateFailed": "failed",
+  "stateAlreadyInLibrary": "already in your library",
+  "stateSkipped": "skipped",
+  "stateDownloading": "downloading",
+  "alreadyInLibrary": "Already in your library",
+  "trackNumber": "Track {index}",
+  "@trackNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "stateWaiting": "waiting",
+  "stateDownloaded": "downloaded",
+  "stateFailedWith": "failed. {reason}",
+  "@stateFailedWith": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "stateCancelled": "cancelled",
+  "doneCount": "{count} done",
+  "@doneCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "doneOfTotal": "{done} of {total} done",
+  "@doneOfTotal": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "alreadyThereCount": "{count} already there",
+  "@alreadyThereCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "skippedCount": "{count} skipped",
+  "@skippedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedCount": "{count} failed",
+  "@failedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cancelledCount": "{count} cancelled",
+  "@cancelledCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "nowLabel": "now {label}",
+  "@nowLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "showTracksFor": "Show tracks: {name}",
+  "@showTracksFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "showTracks": "Show tracks",
+  "hideTracks": "Hide tracks",
+  "logFor": "Log: {label}",
+  "@logFor": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "copy": "Copy",
+  "logCopied": "Log copied",
+  "notInAppleCatalog": "Not found in the Apple Music catalog",
+  "couldNotLoadTrackList": "Could not load the track list",
+  "lookingUpAlbum": "Looking up the album…",
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "longPressToPick": "Long press to pick tracks",
+  "playOwnedTracks": "Play the {count} tracks you have",
+  "@playOwnedTracks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "archiving": "Archiving…",
+  "archiveCount": "Archive {count}",
+  "@archiveCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loadingTracks": "Loading tracks…",
+  "noTracksForAlbum": "No tracks listed for this album",
+  "inYourLibrary": "In your library",
+  "stop": "Stop",
+  "preview": "Preview",
+  "archiveThisTrack": "Archive this track",
+  "releasesInCatalog": "{count} releases in the catalog",
+  "@releasesInCatalog": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lookingUpReleases": "Looking up releases…",
+  "noReleasesListed": "No releases listed",
+  "ownedOfTotal": "{owned} of {total} in your library",
+  "@ownedOfTotal": {
+    "placeholders": {
+      "owned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "archivingProgress": "Archiving {current} of {total}{detail}",
+  "@archivingProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveProgress": "Archive progress",
+  "countOfTotal": "{done} of {total}",
+  "@countOfTotal": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadFolder": "Download folder",
+  "analyseLibrary": "Analyse Library",
+  "analyseLibraryHint": "Needed for smart playlists and mood shelves",
+  "alreadyAnalysing": "Already analysing",
+  "starting": "Starting…",
+  "analyseFolderProgress": "{status} (folder {index}/{count})",
+  "@analyseFolderProgress": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notAvailableOnDevice": "Not available on this device",
+  "failedWithError": "Failed: {error}",
+  "@failedWithError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "analyseSummary": "{analysed} analysed · {skipped} already done",
+  "@analyseSummary": {
+    "placeholders": {
+      "analysed": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "analyseUnreadable": " · {count} unreadable",
+  "@analyseUnreadable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiProviderAndKey": "AI provider and key",
+  "aiNotSetUp": "Not set up. Free keys from Gemini or OpenRouter",
+  "downloadLogs": "Download logs",
+  "downloadLogsHint": "Tap to read the last week of logs. The switch adds a log button to each download in the queue.",
+  "motionFollowingSystemReduced": "Following the system (reduced)",
+  "motionFollowingSystemFull": "Following the system (full)",
+  "motionReducedDescription": "On: no sliding, zooming or scrolling",
+  "motionFullDescription": "Off: all animations",
+  "reduceMotion": "Reduce motion",
+  "followTheSystem": "Follow the system",
+  "fullMotion": "Full motion",
+  "notifications": "Notifications",
+  "notificationsHint": "Download progress and results, and app updates",
+  "sendATest": "Send a test",
+  "notificationsOff": "Notifications are turned off",
+  "notificationsNotAllowed": "Notifications are not allowed for Soiboi",
+  "testDownload": "Test download",
+  "stepOf": "Step {step} of {total}",
+  "@stepOf": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "testFinished": "Test finished",
+  "testFinishedBody": "A progress notification was shown, updated and dismissed.",
+  "flavour": "Flavour",
+  "colourSource": "Colour source",
+  "appColoursDefault": "App colours (default)",
+  "noColoursTapToSetUp": "No colours found — tap to set up",
+  "matchedViaMatugen": "Matched via matugen",
+  "prebuiltWithName": "Prebuilt · {name}",
+  "@prebuiltWithName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "appColours": "App colours",
+  "appColoursHint": "Default — no system or prebuilt colours",
+  "matugenHint": "Reads or generates a matugen scheme",
+  "prebuiltPalette": "Prebuilt palette",
+  "prebuiltPaletteHint": "Dracula, Nord, Catppuccin, and more",
+  "materialYouExplainer": "Uses the Material You palette Android builds from your wallpaper, so Soiboi matches the rest of your system. Needs Android 12 or newer.",
+  "matugenExplainer": "Matches the rest of your desktop. Reads an existing matugen scheme if you have one, otherwise generates one from your wallpaper.",
+  "scheme": "Scheme",
+  "usingSchemeFromWallpaper": "Using a {scheme} scheme from your wallpaper",
+  "@usingSchemeFromWallpaper": {
+    "placeholders": {
+      "scheme": {
+        "type": "String"
+      }
+    }
+  },
+  "androidNoPalette": "Android did not provide a palette",
+  "matugenCouldNotGenerate": "Could not generate — is matugen installed?",
+  "schemeFromWallpaper": "{scheme} from your wallpaper",
+  "@schemeFromWallpaper": {
+    "placeholders": {
+      "scheme": {
+        "type": "String"
+      }
+    }
+  },
+  "matugenJsonOptional": "matugen JSON (optional)",
+  "turnOff": "Turn off",
+  "androidNoPaletteLong": "Android did not provide a palette. Material You needs Android 12 or newer.",
+  "noColoursMatugenFailed": "No colours found, and matugen could not generate any from your wallpaper",
+  "useTheseColours": "Use these colours",
+  "coloursFromAlbumArt": "Colours taken from the album art",
+  "listenBrainzNotConnected": "Not connected — using local play counts",
+  "listenBrainzExplainer": "Your username ranks Home by everything you listen to, not just this device. Read-only, no token needed.",
+  "appleMusicAccount": "Apple Music account",
+  "signedInViaWrapper": "Signed in through the lossless wrapper · cookies not needed",
+  "signedInExpires": "Signed in · expires {date}",
+  "@signedInExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notSignedInNeeded": "Not signed in — needed to download",
+  "signOut": "Sign out",
+  "downloadQuality": "Download quality",
+  "setupWizard": "Setup wizard",
+  "setupWizardHint": "Folders, Apple Music sign-in, downloads, ListenBrainz",
+  "losslessAlac": "Lossless (ALAC)",
+  "ready": "Ready",
+  "needsSetup": "Needs setup",
+  "needsSignIn": "Needs sign-in",
+  "notAvailableInBuild": "Not available in this build",
+  "signedInStartsOnDemand": "Signed in · starts when a download needs it",
+  "setUp": "Set up",
+  "widevineAdvanced": "Widevine device (advanced)",
+  "wrapperEnabledSetUrl": "Wrapper enabled — set URL",
+  "wrapperWithUrl": "Wrapper: {url}",
+  "@wrapperWithUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "wvdFileSet": "WVD file set",
+  "usingBuiltInDevice": "Using the built-in device",
+  "widevineConfiguration": "Widevine configuration",
+  "widevineExplainer": "AAC downloads use the Widevine device built into the downloader, so they need nothing here. ALAC is protected by FairPlay instead and needs a wrapper-v2 service: turn on the wrapper and enter its address. A .wvd file only replaces the AAC device.",
+  "useWrapperService": "Use wrapper service",
+  "insteadOfWvd": "Instead of a local .wvd file",
+  "wrapperUrl": "Wrapper URL",
+  "wvdFilePath": "WVD file path",
+  "chooseWvdFile": "Choose a .wvd file",
+  "fetchLyricsLrclib": "Fetch lyrics from LRCLIB",
+  "fetchLyricsLrclibHint": "Only for tracks with no local lyrics",
+  "youHaveVersion": "You have {version}",
+  "@youHaveVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "checkingForUpdates": "Checking for updates…",
+  "couldNotCheckUpdates": "Could not check for updates: {error}",
+  "@couldNotCheckUpdates": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "inProgressCount": "{count} in progress",
+  "@inProgressCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedTapToRetry": "{count} failed — tap to retry",
+  "@failedTapToRetry": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "nothingDownloading": "Nothing downloading",
+  "storageHint": "Review the largest, least played and oldest tracks",
+  "removeDuplicates": "Remove duplicates",
+  "removeDuplicatesHint": "Keep one copy of each song. You pick the codec when copies differ.",
+  "exportedTo": "Export to {path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadStatus": "Download status",
+  "unresolvedTracksNeedChoice": "Unresolved tracks, need your choice",
+  "archiveFromAppleMusic": "Archive from Apple Music",
+  "archive": "Archive",
+  "archiveExplainer": "Songs, albums or playlists. Files are downloaded, tagged and added to your library on this device. Downloads are queued, so they keep going if you leave this screen.",
+  "resumeDownloads": "Resume downloads",
+  "pauseDownloads": "Pause downloads",
+  "stopAllDownloads": "Stop all downloads",
+  "openQueue": "Open queue",
+  "downloadFailed": "Download failed",
+  "yourAppleMusicPlaylists": "Your Apple Music playlists",
+  "applePlaylistsExplainer": "Archive any playlist from your library directly — no link to copy.",
+  "showMyPlaylists": "Show my playlists",
+  "readingYourLibrary": "Reading your library…",
+  "signIn": "Sign in",
+  "tryAgain": "Try again",
+  "noPlaylistsInAccount": "No playlists in this account yet.",
+  "saveAsLocalPlaylist": "Save as local playlist",
+  "queueingName": "Queueing {name}…",
+  "@queueingName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "queuedSkipped": "Queued {queued} · skipped {skipped} not in the catalog",
+  "@queuedSkipped": {
+    "placeholders": {
+      "queued": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "queuedName": "Queued {name}",
+  "@queuedName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "queuedTracks": "Queued {count} tracks",
+  "@queuedTracks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importAPlaylist": "Import a playlist",
+  "importHint": "Paste a playlist link, or Artist - Title lines",
+  "import": "Import",
+  "importExplainer": "Paste a public {sources} link, or a tracklist with one Artist - Title per line for anything else. Its tracks are matched against the Apple Music catalog so you can archive the ones you want — nothing is downloaded from the other platform.",
+  "@importExplainer": {
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistWord": "playlist",
+  "listOr": "{first} or {last}",
+  "@listOr": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "notAPlaylistLink": "That is not a playlist link this app can read.",
+  "couldNotReadPlaylist": "Could not read that playlist.",
+  "weeklyDiscoveries": "Weekly discoveries",
+  "listenBrainzWeeklyExplainer": "ListenBrainz builds a weekly exploration and jams playlist from your listening. Add your username to browse and archive them here — no account link or token needed, the lists are public.",
+  "listenBrainzUsername": "ListenBrainz username",
+  "connect": "Connect",
+  "couldNotLoadPlaylist": "Could not load this playlist",
+  "archivingProgressSimple": "Archiving {current} of {total}…",
+  "@archivingProgressSimple": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "matchingProgress": "Matching {current} of {total}…",
+  "@matchingProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "matchedOfTotal": "{matched} of {total} matched",
+  "@matchedOfTotal": {
+    "placeholders": {
+      "matched": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "matchingToCatalog": "Matching tracks to the Apple Music catalog…",
+  "savedPlaylistAll": "Saved \"{name}\" with all {total} songs",
+  "@savedPlaylistAll": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "savedPlaylistPartial": "Saved \"{name}\": {matched} of {total} songs are in your library. The rest join it when downloaded.",
+  "@savedPlaylistPartial": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "matched": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }

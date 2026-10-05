@@ -6,6 +6,7 @@
 /// from.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/landscape_view/title_bar.dart';
 import 'package:soiboi/base/data/library.dart';
@@ -29,6 +30,7 @@ class SmartPlaylistsLayer extends StatefulWidget {
 class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final playlists = smartPlaylists.playlists;
 
     final page = Scaffold(
@@ -40,7 +42,7 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
         // Same reason as Downloads: on a narrow layout the drawer is the only
         // way out, and this screen has no portrait wrapper to supply one.
         leading: isTooNarrow(context) ? customAppBarLeading(context) : null,
-        title: const Text('Smart playlists'),
+        title: Text(l10n.smartPlaylists),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -48,10 +50,10 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
         actions: [
           IconButton(
             icon: labelIcon(
-              'New smart playlist',
+              l10n.newSmartPlaylist,
               const Icon(Icons.add_rounded),
             ),
-            tooltip: 'New smart playlist',
+            tooltip: l10n.newSmartPlaylist,
             onPressed: () => _edit(null),
           ),
         ],
@@ -90,7 +92,7 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
           Icon(Icons.auto_awesome_outlined, size: 42, color: textColor.value),
           const SizedBox(height: 14),
           Text(
-            'Nothing here yet',
+            AppLocalizations.of(context).nothingHereYet,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -99,10 +101,7 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
           ),
           const SizedBox(height: 6),
           Text(
-            'A smart playlist stores a question rather than a list of songs, '
-            'and answers it against your library every time you open it — so '
-            '"lossless tracks I have not played this year" stays true as the '
-            'library grows.',
+            AppLocalizations.of(context).smartPlaylistExplainer,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12.5, color: textColor.value),
           ),
@@ -110,7 +109,7 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
           FilledButton.icon(
             onPressed: () => _edit(null),
             icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text('New smart playlist'),
+            label: Text(AppLocalizations.of(context).newSmartPlaylist),
           ),
         ],
       ),
@@ -118,6 +117,7 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
   );
 
   Widget _row(SmartPlaylist playlist) {
+    final l10n = AppLocalizations.of(context);
     // Counted now rather than stored: the answer changes with the library, and
     // a stale number beside a live playlist is worse than no number.
     final count = playlist.evaluate(library.songList).length;
@@ -136,10 +136,10 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
       ),
       trailing: IconButton(
         icon: labelIcon(
-          'Edit rules',
+          l10n.editRules,
           const Icon(Icons.edit_outlined, size: 20),
         ),
-        tooltip: 'Edit rules',
+        tooltip: l10n.editRules,
         onPressed: () => _edit(playlist),
       ),
       onTap: () {
@@ -160,12 +160,13 @@ class _SmartPlaylistsLayerState extends State<SmartPlaylistsLayer> {
   /// A one-line reading of the rules, so the list says what each playlist
   /// means without opening the editor.
   String _describe(SmartPlaylist playlist, int count) {
-    final joiner = playlist.matchAll ? ' and ' : ' or ';
+    final l10n = AppLocalizations.of(context);
+    final joiner = playlist.matchAll ? l10n.rulesJoinAll : l10n.rulesJoinAny;
     final rules = playlist.rules
         .map((r) => '${r.field.label} ${r.operator.label} ${r.value}')
         .join(joiner);
     return [
-      count == 1 ? '1 track' : '$count tracks',
+      l10n.trackCount(count),
       if (rules.isNotEmpty) rules,
       playlist.sort.label,
     ].join(' · ');
@@ -213,11 +214,12 @@ class _TemplatePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
         Text(
-          'Start from a template',
+          l10n.startFromTemplate,
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -226,7 +228,7 @@ class _TemplatePicker extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Pick a vibe and tweak it, or start from a blank ruleset.',
+          l10n.startFromTemplateHint,
           style: TextStyle(fontSize: 12, color: textColor.value),
         ),
         const SizedBox(height: 14),
@@ -240,7 +242,7 @@ class _TemplatePicker extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Start from scratch'),
+            child: Text(l10n.startFromScratch),
           ),
         ),
       ],
@@ -343,6 +345,7 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // Live, because the whole point of rules is hard to picture until you see
     // what they select.
     final matches = _draft.evaluate(library.songList).length;
@@ -353,7 +356,7 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.existing == null ? 'New smart playlist' : 'Edit rules',
+            widget.existing == null ? l10n.newSmartPlaylist : l10n.editRules,
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
@@ -364,10 +367,10 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
           TextField(
             controller: _name,
             style: const TextStyle(fontSize: 13),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
-              labelText: 'Name',
+              labelText: l10n.name,
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -375,16 +378,16 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
           Row(
             children: [
               Text(
-                'Match',
+                l10n.match,
                 style: TextStyle(fontSize: 12, color: textColor.value),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               SegmentedButton<bool>(
                 showSelectedIcon: false,
                 style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                segments: const [
-                  ButtonSegment(value: true, label: Text('All rules')),
-                  ButtonSegment(value: false, label: Text('Any rule')),
+                segments: [
+                  ButtonSegment(value: true, label: Text(l10n.allRules)),
+                  ButtonSegment(value: false, label: Text(l10n.anyRule)),
                 ],
                 selected: {_matchAll},
                 onSelectionChanged: (s) => setState(() => _matchAll = s.first),
@@ -396,7 +399,7 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
             child: _rules.isEmpty
                 ? Center(
                     child: Text(
-                      'No rules yet — this would select the whole library.',
+                      l10n.noRulesYet,
                       style: TextStyle(fontSize: 12, color: textColor.value),
                     ),
                   )
@@ -418,7 +421,7 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
                 ),
               ),
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add rule'),
+              label: Text(l10n.addRule),
             ),
           ),
           const Divider(height: 18),
@@ -440,10 +443,10 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
               // Meaningless for a shuffle, so it is not offered there.
               if (_sort != SmartSort.random)
                 IconButton(
-                  tooltip: _descending ? 'Descending' : 'Ascending',
+                  tooltip: _descending ? l10n.descending : l10n.ascending,
                   onPressed: () => setState(() => _descending = !_descending),
                   icon: labelIcon(
-                    _descending ? 'Descending' : 'Ascending',
+                    _descending ? l10n.descending : l10n.ascending,
                     Icon(
                       _descending
                           ? Icons.arrow_downward_rounded
@@ -459,10 +462,10 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
                   controller: _limit,
                   keyboardType: TextInputType.number,
                   style: const TextStyle(fontSize: 12),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     isDense: true,
                     border: OutlineInputBorder(),
-                    labelText: 'Limit',
+                    labelText: l10n.limit,
                   ),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -474,7 +477,7 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
             children: [
               Expanded(
                 child: Text(
-                  matches == 1 ? '1 track matches' : '$matches tracks match',
+                  l10n.tracksMatch(matches),
                   style: TextStyle(fontSize: 12, color: textColor.value),
                 ),
               ),
@@ -484,14 +487,14 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
                     await smartPlaylists.remove(widget.existing!.name);
                     if (context.mounted) Navigator.of(context).pop(true);
                   },
-                  child: const Text('Delete'),
+                  child: Text(l10n.delete),
                 ),
               const SizedBox(width: 6),
               FilledButton(
                 // A playlist with no name cannot be found again, so that is
                 // the one thing required.
                 onPressed: _name.text.trim().isEmpty ? null : _save,
-                child: const Text('Save'),
+                child: Text(l10n.save),
               ),
             ],
           ),
@@ -501,6 +504,7 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
   }
 
   Widget _ruleRow(int index) {
+    final l10n = AppLocalizations.of(context);
     final rule = _rules[index];
     final operators = SmartOperator.forKind(rule.field.kind);
 
@@ -566,10 +570,10 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
           IconButton(
             visualDensity: VisualDensity.compact,
             icon: labelIcon(
-              'Remove rule',
+              l10n.removeRule,
               const Icon(Icons.close_rounded, size: 18),
             ),
-            tooltip: 'Remove rule',
+            tooltip: l10n.removeRule,
             onPressed: () => setState(() => _rules.removeAt(index)),
           ),
         ],
@@ -578,6 +582,7 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
   }
 
   Widget _valueField(int index, SmartRule rule) {
+    final l10n = AppLocalizations.of(context);
     if (rule.field.kind == SmartFieldKind.flag) {
       final isYes = rule.value.toLowerCase() != 'no';
       return DropdownButton<bool>(
@@ -585,9 +590,9 @@ class _SmartPlaylistEditorState extends State<_SmartPlaylistEditor> {
         value: isYes,
         dropdownColor: menuColor.value,
         style: TextStyle(fontSize: 12, color: textColor.value),
-        items: const [
-          DropdownMenuItem(value: true, child: Text('Yes')),
-          DropdownMenuItem(value: false, child: Text('No')),
+        items: [
+          DropdownMenuItem(value: true, child: Text(l10n.yes)),
+          DropdownMenuItem(value: false, child: Text(l10n.no)),
         ],
         onChanged: (yes) => setState(() {
           _rules[index] = SmartRule(

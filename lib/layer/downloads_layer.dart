@@ -9,6 +9,7 @@
 /// (cookies), and a working pipeline runtime for this platform.
 library;
 
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -124,6 +125,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final body = ListenableBuilder(
       listenable: Listenable.merge([
         appleAuthListenable,
@@ -138,7 +140,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           slivers: [
             SliverToBoxAdapter(
               child: _card(
-                title: 'Download status',
+                title: l10n.downloadStatus,
                 child: const DownloadStatusPanel(),
               ),
             ),
@@ -151,7 +153,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                 builder: (context, tracks, _) => tracks.isEmpty
                     ? const SizedBox.shrink()
                     : _card(
-                        title: 'Unresolved tracks, need your choice',
+                        title: l10n.unresolvedTracksNeedChoice,
                         child: const UnresolvedTracksList(),
                       ),
               ),
@@ -190,7 +192,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text('Downloads'),
+        title: Text(l10n.downloads),
         centerTitle: true,
       ),
       body: body,
@@ -238,12 +240,13 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   }
 
   Widget _archiveCard() {
+    final l10n = AppLocalizations.of(context);
     final ready =
         hasAppleAuth &&
         (pipelineCapabilitiesNotifier.value?.canDownload ?? false);
     final busy = _submitting;
     return _card(
-      title: 'Archive from Apple Music',
+      title: l10n.archiveFromAppleMusic,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -272,15 +275,13 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               const SizedBox(width: 10),
               FilledButton(
                 onPressed: ready && !busy ? _archiveUrl : null,
-                child: const Text('Archive'),
+                child: Text(l10n.archive),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            'Songs, albums or playlists. Files are downloaded, tagged and '
-            'added to your library on this device. Downloads are queued, so '
-            'they keep going if you leave this screen.',
+            l10n.archiveExplainer,
             style: TextStyle(fontSize: 12, color: textColor.value),
           ),
         ],
@@ -293,6 +294,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   /// The same widget Settings opens as a sheet, so there is exactly one idea
   /// of what is downloading rather than this screen's copy and the queue's.
   Widget _queueCard() {
+    final l10n = AppLocalizations.of(context);
     return ValueListenableBuilder<List<DownloadJob>>(
       valueListenable: downloadQueue.jobs,
       builder: (context, jobs, _) {
@@ -300,7 +302,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
             .where((job) => job.state == DownloadJobState.failed)
             .toList();
         return _card(
-          title: 'Download queue',
+          title: l10n.downloadQueue,
           action: jobs.isEmpty
               ? null
               : Row(
@@ -313,11 +315,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                           iconSize: 18,
                           visualDensity: VisualDensity.compact,
                           tooltip: paused
-                              ? 'Resume downloads'
-                              : 'Pause downloads',
+                              ? l10n.resumeDownloads
+                              : l10n.pauseDownloads,
                           onPressed: () => downloadQueue.setPaused(!paused),
                           icon: labelIcon(
-                            paused ? 'Resume downloads' : 'Pause downloads',
+                            paused ? l10n.resumeDownloads : l10n.pauseDownloads,
                             Icon(
                               paused
                                   ? Icons.play_arrow_rounded
@@ -329,10 +331,10 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                       IconButton(
                         iconSize: 18,
                         visualDensity: VisualDensity.compact,
-                        tooltip: 'Stop all downloads',
+                        tooltip: l10n.stopAllDownloads,
                         onPressed: downloadQueue.stopAll,
                         icon: labelIcon(
-                          'Stop all downloads',
+                          l10n.stopAllDownloads,
                           const Icon(Icons.stop_rounded),
                         ),
                       ),
@@ -340,10 +342,10 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                     IconButton(
                       iconSize: 18,
                       visualDensity: VisualDensity.compact,
-                      tooltip: 'Open queue',
+                      tooltip: l10n.openQueue,
                       onPressed: () => showDownloadQueueSheet(context),
                       icon: labelIcon(
-                        'Open queue',
+                        l10n.openQueue,
                         const Icon(Icons.open_in_full_rounded),
                       ),
                     ),
@@ -373,7 +375,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                             TextSpan(
                               text:
                                   failed.last.failure?.title ??
-                                  'Download failed',
+                                  l10n.downloadFailed,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -412,15 +414,16 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   /// the user paste their own playlist links one at a time was never
   /// necessary.
   Widget _applePlaylistsCard() {
+    final l10n = AppLocalizations.of(context);
     return _card(
-      title: 'Your Apple Music playlists',
+      title: l10n.yourAppleMusicPlaylists,
       action: _appleLoaded && !_appleLoading
           ? IconButton(
               icon: labelIcon(
-                'Refresh',
+                l10n.refresh,
                 const Icon(Icons.refresh_rounded, size: 20),
               ),
-              tooltip: 'Refresh',
+              tooltip: l10n.refresh,
               onPressed: _loadApplePlaylists,
             )
           : null,
@@ -429,15 +432,14 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
         children: [
           if (!_appleLoaded && !_appleLoading) ...[
             Text(
-              'Archive any playlist from your library directly — no link to '
-              'copy.',
+              l10n.applePlaylistsExplainer,
               style: TextStyle(fontSize: 12.5, color: textColor.value),
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _loadApplePlaylists,
               icon: const Icon(Icons.library_music_outlined, size: 18),
-              label: const Text('Show my playlists'),
+              label: Text(l10n.showMyPlaylists),
             ),
           ] else if (_appleLoading) ...[
             Row(
@@ -452,7 +454,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Reading your library…',
+                  l10n.readingYourLibrary,
                   style: TextStyle(fontSize: 12.5, color: textColor.value),
                 ),
               ],
@@ -475,11 +477,11 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                       if (mounted) await _loadApplePlaylists();
                     }
                   : _loadApplePlaylists,
-              child: Text(_appleNeedsSignIn ? 'Sign in' : 'Try again'),
+              child: Text(_appleNeedsSignIn ? l10n.signIn : l10n.tryAgain),
             ),
           ] else if (_applePlaylists.isEmpty) ...[
             Text(
-              'No playlists in this account yet.',
+              l10n.noPlaylistsInAccount,
               style: TextStyle(fontSize: 12.5, color: textColor.value),
             ),
           ] else ...[
@@ -496,6 +498,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   }
 
   Widget _applePlaylistRow(ApplePlaylist playlist) {
+    final l10n = AppLocalizations.of(context);
     final count = playlist.trackCount;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -543,18 +546,18 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           ),
           IconButton(
             icon: labelIcon(
-              'Save as local playlist',
+              l10n.saveAsLocalPlaylist,
               const Icon(Icons.playlist_add_rounded, size: 20),
             ),
-            tooltip: 'Save as local playlist',
+            tooltip: l10n.saveAsLocalPlaylist,
             onPressed: () => _linkApplePlaylist(playlist),
           ),
           IconButton(
             icon: labelIcon(
-              'Archive',
+              l10n.archive,
               const Icon(Icons.download_rounded, size: 20),
             ),
-            tooltip: 'Archive',
+            tooltip: l10n.archive,
             onPressed: () => _archiveApplePlaylist(playlist),
           ),
         ],
@@ -590,7 +593,8 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   }
 
   Future<void> _archiveApplePlaylist(ApplePlaylist playlist) async {
-    showCenterMessage('Queueing ${playlist.name}…');
+    final l10n = AppLocalizations.of(context);
+    showCenterMessage(l10n.queueingName(playlist.name));
     final outcome = await archiveApplePlaylist(playlist, _appleStorefront);
     if (!mounted) return;
     if (outcome.error case final error?) {
@@ -602,19 +606,21 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     }
     showCenterMessage(
       outcome.skipped > 0
-          ? 'Queued ${outcome.queued} · skipped ${outcome.skipped} not in the '
-                'catalog'
-          : 'Queued ${outcome.queued == 1 ? playlist.name : "${outcome.queued} tracks"}',
+          ? l10n.queuedSkipped(outcome.queued, outcome.skipped)
+          : outcome.queued == 1
+          ? l10n.queuedName(playlist.name)
+          : l10n.queuedTracks(outcome.queued),
       duration: 4000,
     );
   }
 
   /// Makes a local playlist from songs already downloaded; nothing is queued.
   Future<void> _linkApplePlaylist(ApplePlaylist playlist) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final result = await linkApplePlaylist(playlist);
       if (!mounted || result == null) return;
-      showCenterMessage(linkedMessage(result), duration: 4000);
+      showCenterMessage(linkedMessage(l10n, result), duration: 4000);
     } on AppleLibraryException catch (e) {
       showCenterMessage(e.message, duration: 4000);
     }
@@ -628,8 +634,9 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   /// against Apple's catalog, and lets you choose. Same sheet as a weekly
   /// discovery, because from that point on it is the same problem.
   Widget _importCard() {
+    final l10n = AppLocalizations.of(context);
     return _card(
-      title: 'Import a playlist',
+      title: l10n.importAPlaylist,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -646,7 +653,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                   keyboardType: TextInputType.multiline,
                   style: TextStyle(fontSize: 14, color: textColor.value),
                   decoration: InputDecoration(
-                    hintText: 'Paste a playlist link, or Artist - Title lines',
+                    hintText: l10n.importHint,
                     // The hint and the field edge both defaulted to Material's
                     // own colours, which this app never themes, so on a dark
                     // palette the example URL was barely legible and the box
@@ -685,7 +692,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               const SizedBox(width: 10),
               FilledButton(
                 onPressed: _importing ? null : _import,
-                child: Text(_importing ? 'Reading…' : 'Import'),
+                child: Text(_importing ? l10n.reading : l10n.import),
               ),
             ],
           ),
@@ -707,11 +714,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
           ],
           const SizedBox(height: 12),
           Text(
-            'Paste a public ${_importSourceNames()} link, or a tracklist with '
-            'one Artist - Title per line for anything else. Its tracks '
-            'are matched against the Apple Music catalog so you can archive '
-            'the ones you want — nothing is downloaded from the other '
-            'platform.',
+            l10n.importExplainer(_importSourceNames(l10n)),
             style: TextStyle(fontSize: 12, color: textColor.value),
           ),
         ],
@@ -721,18 +724,22 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
 
   /// The platforms that actually accept a link, named from the registry rather
   /// than hard-coded, so this sentence cannot drift from what is registered.
-  String _importSourceNames() {
+  String _importSourceNames(AppLocalizations l10n) {
     final names = [
       for (final source in playlistSources)
         if (source.acceptsLinks && source is! TracklistSource)
           source.displayName,
     ];
-    if (names.isEmpty) return 'playlist';
+    if (names.isEmpty) return l10n.playlistWord;
     if (names.length == 1) return names.single;
-    return '${names.sublist(0, names.length - 1).join(', ')} or ${names.last}';
+    return l10n.listOr(
+      names.sublist(0, names.length - 1).join(', '),
+      names.last,
+    );
   }
 
   Future<void> _import() async {
+    final l10n = AppLocalizations.of(context);
     final text = _importController.text.trim();
     if (text.isEmpty || _importing) return;
     setState(() {
@@ -744,7 +751,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
     if (match == null) {
       setState(() {
         _importing = false;
-        _importError = 'That is not a playlist link this app can read.';
+        _importError = l10n.notAPlaylistLink;
       });
       return;
     }
@@ -758,7 +765,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
       final source = match.source;
       setState(() {
         _importing = false;
-        _importError = source.lastError ?? 'Could not read that playlist.';
+        _importError = source.lastError ?? l10n.couldNotReadPlaylist;
       });
       return;
     }
@@ -781,28 +788,27 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   /// only once playlists load, the username lives several screens away in
   /// Settings, and nothing on this screen suggests the feature exists.
   Widget _discoverPromptCard() {
+    final l10n = AppLocalizations.of(context);
     return _card(
-      title: 'Weekly discoveries',
+      title: l10n.weeklyDiscoveries,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ListenBrainz builds a weekly exploration and jams playlist from '
-            'your listening. Add your username to browse and archive them '
-            'here — no account link or token needed, the lists are public.',
+            l10n.listenBrainzWeeklyExplainer,
             style: TextStyle(fontSize: 12.5, color: textColor.value),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _lbUserController,
                   style: const TextStyle(fontSize: 13),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     isDense: true,
                     border: OutlineInputBorder(),
-                    hintText: 'ListenBrainz username',
+                    hintText: l10n.listenBrainzUsername,
                   ),
                   onSubmitted: (_) => _connectListenBrainz(),
                 ),
@@ -810,7 +816,7 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
               const SizedBox(width: 10),
               FilledButton(
                 onPressed: _connectListenBrainz,
-                child: const Text('Connect'),
+                child: Text(l10n.connect),
               ),
             ],
           ),
@@ -828,8 +834,9 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
   }
 
   Widget _discoverCard() {
+    final l10n = AppLocalizations.of(context);
     return _card(
-      title: 'Weekly discoveries',
+      title: l10n.weeklyDiscoveries,
       child: Column(
         children: [
           for (final playlist in _discover.take(8))
@@ -916,6 +923,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
   }
 
   Future<void> _load() async {
+    final l10n = AppLocalizations.of(context);
     // Show whatever the card already resolved so the sheet is not blank while
     // the rest arrives, then always ask for the full list.
     final cached = cachedDiscoveryTracks(widget.playlist);
@@ -938,7 +946,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     if (!mounted) return;
     setState(() => _resolving = null);
     if (tracks == null) {
-      setState(() => _error = 'Could not load this playlist');
+      setState(() => _error = l10n.couldNotLoadPlaylist);
       return;
     }
     setState(() => _tracks = tracks);
@@ -1016,6 +1024,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
   }
 
   Future<void> _linkWholePlaylist({bool quiet = false}) async {
+    final l10n = AppLocalizations.of(context);
     final tracks = _tracks;
     if (tracks == null || tracks.isEmpty) return;
     final result = await linkedPlaylists.link(widget.playlist.title, [
@@ -1029,7 +1038,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
           LinkedTrack(track.artist, track.title),
     ]);
     if (quiet || !mounted || result == null) return;
-    showCenterMessage(linkedMessage(result), duration: 4000);
+    showCenterMessage(linkedMessage(l10n, result), duration: 4000);
   }
 
   String _rowKey(DiscoveryTrack track) => '${track.artist}|${track.title}';
@@ -1045,6 +1054,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
     List<DiscoveryTrack> tracks,
     List<DiscoveryTrack> downloadable,
   ) {
+    final l10n = AppLocalizations.of(context);
     final selecting = _selected.isNotEmpty;
     final chosen = selecting
         ? downloadable.where((t) => _selected.contains(_rowKey(t))).toList()
@@ -1057,17 +1067,17 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
             _sending
                 // Counted, not spinning: a fifty-track playlist takes minutes
                 // and "Archiving…" alone gives no sign of progress.
-                ? 'Archiving $_archivedInBatch of $_batchSize…'
+                ? l10n.archivingProgressSimple(_archivedInBatch, _batchSize)
                 : _resolving != null
                 // The playlist's real length, not the count matched so far:
                 // otherwise the number climbs and looks like tracks appearing
                 // out of nowhere.
-                ? 'Matching ${tracks.length} of $_resolving…'
+                ? l10n.matchingProgress(tracks.length, _resolving!)
                 : selecting
-                ? '${chosen.length} selected'
+                ? l10n.selectedCount(chosen.length)
                 : downloadable.length == tracks.length
-                ? '${tracks.length} tracks'
-                : '${downloadable.length} of ${tracks.length} matched',
+                ? l10n.trackCount(tracks.length)
+                : l10n.matchedOfTotal(downloadable.length, tracks.length),
             style: TextStyle(fontSize: 12, color: textColor.value),
           ),
         ),
@@ -1081,7 +1091,9 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
               }
             }),
             child: Text(
-              chosen.length == downloadable.length ? 'Clear' : 'Select all',
+              chosen.length == downloadable.length
+                  ? l10n.clear
+                  : l10n.selectAll,
             ),
           ),
           const SizedBox(width: 4),
@@ -1089,10 +1101,10 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
         if (!selecting && !_sending)
           IconButton(
             icon: labelIcon(
-              'Save as local playlist',
+              l10n.saveAsLocalPlaylist,
               const Icon(Icons.playlist_add_rounded, size: 20),
             ),
-            tooltip: 'Save as local playlist',
+            tooltip: l10n.saveAsLocalPlaylist,
             onPressed: _resolving != null ? null : _linkWholePlaylist,
           ),
         FilledButton(
@@ -1101,7 +1113,9 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
           onPressed: chosen.isEmpty || _sending || _resolving != null
               ? null
               : () => _archive(chosen),
-          child: Text(_sending ? 'Archiving…' : 'Archive ${chosen.length}'),
+          child: Text(
+            _sending ? l10n.archiving : l10n.archiveCount(chosen.length),
+          ),
         ),
       ],
     );
@@ -1116,6 +1130,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tracks = _tracks;
     // Only resolved tracks can be fetched; the rest are shown with their
     // warning so the gap is visible rather than a silent no-op.
@@ -1143,7 +1158,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
             if (_error != null)
               Text(_error!, style: const TextStyle(color: Colors.red))
             else if (tracks == null)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 28),
                 child: Center(
                   child: Column(
@@ -1151,7 +1166,7 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                       CircularProgressIndicator(),
                       SizedBox(height: 12),
                       Text(
-                        'Matching tracks to the Apple Music catalog…',
+                        l10n.matchingToCatalog,
                         style: TextStyle(fontSize: 12),
                       ),
                     ],
@@ -1236,11 +1251,11 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                                 return IconButton(
                                   iconSize: 19,
                                   visualDensity: VisualDensity.compact,
-                                  tooltip: active ? 'Stop' : 'Preview',
+                                  tooltip: active ? l10n.stop : l10n.preview,
                                   onPressed: () =>
                                       togglePreview(key, track.previewUrl),
                                   icon: labelIcon(
-                                    active ? 'Stop' : 'Preview',
+                                    active ? l10n.stop : l10n.preview,
                                     Icon(
                                       active
                                           ? Icons.stop_circle_outlined
@@ -1255,13 +1270,13 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
                             IconButton(
                               iconSize: 18,
                               visualDensity: VisualDensity.compact,
-                              tooltip: 'Archive this track',
+                              tooltip: l10n.archiveThisTrack,
                               onPressed:
                                   _sending || _queued.contains(track.title)
                                   ? null
                                   : () => _archive([track]),
                               icon: labelIcon(
-                                'Archive this track',
+                                l10n.archiveThisTrack,
                                 Icon(
                                   _queued.contains(track.title)
                                       ? Icons.check_rounded
@@ -1289,7 +1304,11 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
 }
 
 /// What saving a local playlist did, in a line.
-String linkedMessage(LinkResult result) => result.matched == result.total
-    ? 'Saved "${result.playlistName}" with all ${result.total} songs'
-    : 'Saved "${result.playlistName}": ${result.matched} of ${result.total} '
-          'songs are in your library. The rest join it when downloaded.';
+String linkedMessage(AppLocalizations l10n, LinkResult result) =>
+    result.matched == result.total
+    ? l10n.savedPlaylistAll(result.playlistName, result.total)
+    : l10n.savedPlaylistPartial(
+        result.playlistName,
+        result.matched,
+        result.total,
+      );
