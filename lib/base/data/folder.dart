@@ -9,7 +9,7 @@ import 'package:soiboi/base/utils/path.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
-import 'package:soiboi/base/widgets/manage_music_folders.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';

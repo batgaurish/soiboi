@@ -44,8 +44,6 @@ import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/widgets/manage_music_folders.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/loader.dart';
-import 'package:soiboi/layer/premium_layer.dart';
-import 'package:soiboi/portrait_view/portrait_view.dart';
 import 'package:soiboi/portrait_view/sleep_timer.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/my_switch.dart';

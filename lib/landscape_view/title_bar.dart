@@ -10,8 +10,6 @@ import 'package:soiboi/base/services/keyboard.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/layer/layers_manager.dart';
-import 'package:soiboi/layer/lyrics_page_layer.dart';
-import 'package:soiboi/mini_view/mini_view.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';

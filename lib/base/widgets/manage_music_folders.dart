@@ -24,8 +24,6 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 
-final ValueNotifier<bool> recursiveScanNotifier = ValueNotifier(false);
-
 class ManageMusicFolders extends StatefulWidget {
   const ManageMusicFolders({super.key, this.inline, this.onChanged});
 

@@ -11,13 +11,6 @@ import 'package:soiboi/base/services/lyric.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/theme/motion.dart';
-
-final lyricsFontSizeOffsetNotifier = ValueNotifier(0.0);
-final lyricsTimeOffsetNotifier = ValueNotifier(0);
-final lyricsFontWeightNotifier = ValueNotifier(FontWeight.bold);
-
-final updateLyricsNotifier = ValueNotifier(0);
-
 class LyricsListView extends StatefulWidget {
   final bool expanded;
   final List<LyricLine> lines;

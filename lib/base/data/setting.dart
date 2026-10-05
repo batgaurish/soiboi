@@ -11,12 +11,10 @@ import 'package:soiboi/base/theme/dynamic_color.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/notification_service.dart';
-import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/utils/path.dart';
-import 'package:soiboi/base/widgets/manage_music_folders.dart';
-import 'package:soiboi/portrait_view/portrait_view.dart';
 
+final recursiveScanNotifier = ValueNotifier(false);
 final artistsIsListViewNotifier = ValueNotifier(true);
 final artistsIsAscendingNotifier = ValueNotifier(true);
 final artistsUseLargePictureNotifier = ValueNotifier(false);

@@ -9,8 +9,8 @@ import 'package:soiboi/base/data/folder.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
+import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/utils/path.dart';
-import 'package:soiboi/base/widgets/manage_music_folders.dart';
 
 MyAudioMetadata makeSong(String id, String path) {
   return MyAudioMetadata(

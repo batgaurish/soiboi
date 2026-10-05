@@ -17,8 +17,6 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/lyric.dart';
 import 'package:soiboi/base/utils/path.dart';
-import 'package:soiboi/base/widgets/equalizer.dart';
-import 'package:soiboi/base/widgets/lyric_list_view.dart';
 import 'package:soiboi/base/data/history.dart';
 import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/utils/contrast_color_generator.dart';
@@ -27,7 +25,14 @@ import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'dart:async';
 
-import 'package:soiboi/portrait_view/sleep_timer.dart';
+final List<int> freqs = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+List<double> gains = List.filled(freqs.length, 0);
+
+final ValueNotifier<bool> sleepTimerOnNotifier = ValueNotifier(false);
+final ValueNotifier<int> remainTimesNotifier = ValueNotifier(0);
+final ValueNotifier<bool> pauseAfterCompletedNotifier = ValueNotifier(false);
+bool needPause = false;
+Timer? pauseTimer;
 
 late AudioSession _session;
 

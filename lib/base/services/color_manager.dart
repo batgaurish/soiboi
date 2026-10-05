@@ -8,7 +8,6 @@ import 'package:soiboi/base/utils/contrast.dart';
 import 'package:soiboi/base/utils/contrast_color_generator.dart';
 
 export 'package:soiboi/base/utils/contrast.dart';
-import 'package:soiboi/layer/lyrics_page_layer.dart';
 
 final colorManager = ColorManager();
 

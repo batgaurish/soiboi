@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show PlatformDispatcher;
 
@@ -67,9 +68,26 @@ final ValueNotifier<String?> fontFamilyFileNotifier = ValueNotifier(null);
 final List<String> importedFonts = [];
 
 final isPremiumNotifier = ValueNotifier(true);
+final trialRemainingMinNotifier = ValueNotifier(-1);
 
 enum ViewMode { normal, mini, bigPicture }
 
 final viewModeNotifier = ValueNotifier(ViewMode.normal);
 
 final immersiveWideLayoutNotifier = ValueNotifier(true);
+
+bool displayLyricsPage = false;
+final endDrawerNotifier = ValueNotifier<bool>(false);
+
+final miniModeDisplayOverlayNotifier = ValueNotifier<bool>(true);
+Timer? miniModeHideOverlayTimer;
+double miniViewMainHeight = 85;
+bool miniViewDisplayBottom = false;
+final miniViewDisplayLyricsNotifier = ValueNotifier<bool>(true);
+bool miniModeSwitching = false;
+
+final lyricsFontSizeOffsetNotifier = ValueNotifier(0.0);
+final lyricsTimeOffsetNotifier = ValueNotifier(0);
+final lyricsFontWeightNotifier = ValueNotifier(FontWeight.bold);
+final updateLyricsNotifier = ValueNotifier(0);
+

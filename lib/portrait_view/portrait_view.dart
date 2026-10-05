@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/widgets/ai_widgets.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/landscape_view/sidebar.dart';
@@ -15,7 +16,6 @@ final GlobalKey<ScaffoldState> portraitKey = GlobalKey();
 /// it, so a sidebar opened by hand never quits on back.
 bool drawerOpenedByBack = false;
 bool isDrawerOpen = false;
-final endDrawerNotifier = ValueNotifier(false);
 
 class PortraitView extends StatefulWidget {
   const PortraitView({super.key});

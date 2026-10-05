@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
-import 'package:soiboi/mini_view/mini_view.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

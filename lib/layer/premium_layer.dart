@@ -13,8 +13,6 @@ import 'package:soiboi/layer/settings_layer.dart';
 import 'package:soiboi/portrait_view/custom_appbar_leading.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 
-final trialRemainingMinNotifier = ValueNotifier(-1);
-
 class PremiumLayer extends StatefulWidget {
   const PremiumLayer({super.key});
 

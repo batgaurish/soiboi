@@ -6,16 +6,10 @@ import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/asset_images.dart';
 import 'package:soiboi/base/widgets/my_switch.dart';
-import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/my_sheet.dart';
-import 'package:soiboi/layer/lyrics_page_layer.dart';
+import 'package:soiboi/base/app.dart';
+import 'package:soiboi/l10n/generated/app_localizations.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
-
-ValueNotifier<bool> sleepTimerOnNotifier = ValueNotifier(false);
-ValueNotifier<int> remainTimesNotifier = ValueNotifier(0);
-ValueNotifier<bool> pauseAfterCompletedNotifier = ValueNotifier(false);
-bool needPause = false;
-Timer? pauseTimer;
 
 void displayTimedPauseSetting(BuildContext context) {
   pauseTimer?.cancel();

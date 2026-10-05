@@ -23,14 +23,6 @@ import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/widgets/icon_label.dart';
 import 'package:soiboi/l10n/generated/app_localizations.dart';
 
-final miniModeDisplayOverlayNotifier = ValueNotifier(true);
-Timer? miniModeHideOverlayTimer;
-late double miniViewMainHeight;
-late bool miniViewDisplayBottom;
-final miniViewDisplayLyricsNotifier = ValueNotifier(true);
-
-bool miniModeSwitching = false;
-
 class MiniView extends StatefulWidget {
   const MiniView({super.key});
 
