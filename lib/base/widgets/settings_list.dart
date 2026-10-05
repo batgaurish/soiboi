@@ -241,11 +241,13 @@ class _SettingsListState extends State<SettingsList> {
 
         if (!isMobile)
           sliverBox(
-            paddingForLandscape(exitOnClose(l10n)),
+            paddingForLandscape(exitOnCloseListTile(l10n)),
           ), // always landscape style
 
         if (!Platform.isIOS)
-          sliverBox(paddingIfNeed(isLandscape, checkUpdate(context, l10n))),
+          sliverBox(
+            paddingIfNeed(isLandscape, checkUpdateListTile(context, l10n)),
+          ),
 
         sliverBox(paddingIfNeed(isLandscape, viewLogListTile(context, l10n))),
 
@@ -1952,7 +1954,7 @@ class _SettingsListState extends State<SettingsList> {
     );
   }
 
-  Widget exitOnClose(AppLocalizations l10n) {
+  Widget exitOnCloseListTile(AppLocalizations l10n) {
     return ListTile(
       leading: AppIcon(powerOffImage),
 
@@ -1984,7 +1986,7 @@ class _SettingsListState extends State<SettingsList> {
   /// not exist, so every check this app ever made answered 404. It also only
   /// offered to open a browser; the actual download and install now happen in
   /// the sheet.
-  Widget checkUpdate(BuildContext context, AppLocalizations l10n) {
+  Widget checkUpdateListTile(BuildContext context, AppLocalizations l10n) {
     return ListTile(
       leading: AppIcon(checkUpdateImage, size: iconSize),
       title: Text(l10n.checkUpdate),

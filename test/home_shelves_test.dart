@@ -63,18 +63,18 @@ void main() {
     playlistManager.playlistMap.clear();
   });
 
-  group('playNextSongs', () {
+  group('upNextSongs', () {
     test('returns empty when currentIndex is negative or at/past end of queue', () {
       playQueue.addAll([makeSong('1'), makeSong('2')]);
 
       fakeHandler.currentIndex = -1;
-      expect(playNextSongs(), isEmpty);
+      expect(upNextSongs(), isEmpty);
 
       fakeHandler.currentIndex = 1; // last element
-      expect(playNextSongs(), isEmpty);
+      expect(upNextSongs(), isEmpty);
 
       fakeHandler.currentIndex = 5;
-      expect(playNextSongs(), isEmpty);
+      expect(upNextSongs(), isEmpty);
     });
 
     test('returns upcoming songs clamped to shelfLimit (12)', () {
@@ -82,7 +82,7 @@ void main() {
       playQueue.addAll(songs);
 
       fakeHandler.currentIndex = 2;
-      final next = playNextSongs();
+      final next = upNextSongs();
 
       expect(next.length, shelfLimit);
       expect(next.first.id, 'song_3');
@@ -94,7 +94,7 @@ void main() {
       playQueue.addAll(songs);
 
       fakeHandler.currentIndex = 2;
-      final next = playNextSongs();
+      final next = upNextSongs();
 
       expect(next.length, 2);
       expect(next[0].id, 'song_3');
