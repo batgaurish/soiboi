@@ -10,7 +10,6 @@ import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/pipeline_runner.dart';
 import 'package:soiboi/base/services/webdav_client.dart';
 import 'package:soiboi/base/data/setting.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:path/path.dart';
@@ -49,6 +48,7 @@ class Folder {
   ValueNotifier<int> sortTypeNotifier = ValueNotifier(0);
 
   final changeNotifier = ValueNotifier(0);
+  static final globalChangeNotifier = ValueNotifier<int>(0);
 
   bool canModify = false;
 
@@ -154,7 +154,7 @@ class Folder {
 
     canModify = true;
     changeNotifier.value++;
-    layersManager.updateBackground();
+    globalChangeNotifier.value++;
   }
 
   Future<void> _saveSongIdList() async {
@@ -170,7 +170,7 @@ class Folder {
 
   Future<void> update() async {
     changeNotifier.value++;
-    layersManager.updateBackground();
+    globalChangeNotifier.value++;
     await _saveSongIdList();
   }
 

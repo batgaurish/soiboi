@@ -18,7 +18,6 @@ import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 import 'package:soiboi/base/services/center_toast.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/utils/path.dart';
 
@@ -419,7 +418,7 @@ class SmartPlaylistView extends Playlist {
     songList = spec.evaluate(library.songList);
     canModify = true;
     changeNotifier.value++;
-    layersManager.updateBackground();
+    playlistManager.updateNotifier.value++;
   }
 
   // A smart playlist's contents are an answer, not a list. Adding or removing

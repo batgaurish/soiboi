@@ -18,7 +18,6 @@ import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/lyric.dart';
 import 'package:soiboi/base/utils/path.dart';
 import 'package:soiboi/base/data/history.dart';
-import 'package:soiboi/layer/layers_manager.dart';
 import 'package:soiboi/base/utils/contrast_color_generator.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
@@ -138,9 +137,7 @@ class MyAudioHandler extends BaseAudioHandler {
             currentSongNotifier.value?.picture,
           );
         }
-        return;
       }
-      layersManager.updateBackground();
     });
 
     // _player.stream.position.listen((position) {
