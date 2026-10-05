@@ -349,8 +349,10 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     currentIndex = result.currentIndex;
     if (result.wasNewlyInserted &&
-        (playModeNotifier.value == 1 ||
-            (playModeNotifier.value == 2 && _playModeBeforeRepeat == 1))) {
+        PlayQueueLogic.isShuffled(
+          playModeNotifier.value,
+          _playModeBeforeRepeat,
+        )) {
       _unshuffledQueue.add(song);
     }
     return true;
@@ -363,8 +365,10 @@ class MyAudioHandler extends BaseAudioHandler {
     }
     currentIndex = result.currentIndex;
     if (result.wasNewlyInserted &&
-        (playModeNotifier.value == 1 ||
-            (playModeNotifier.value == 2 && _playModeBeforeRepeat == 1))) {
+        PlayQueueLogic.isShuffled(
+          playModeNotifier.value,
+          _playModeBeforeRepeat,
+        )) {
       _unshuffledQueue.add(song);
     }
     return true;
@@ -385,12 +389,14 @@ class MyAudioHandler extends BaseAudioHandler {
     if (targetIndex != null) {
       currentIndex = targetIndex;
     } else {
-      currentIndex = playMode == 0 ? 0 : math.Random().nextInt(source.length);
+      currentIndex = PlayQueueLogic.startIndex(playMode, source.length);
       playModeNotifier.value = playMode;
     }
     playQueue = List.from(source);
-    if (playModeNotifier.value == 1 ||
-        (playModeNotifier.value == 2 && _playModeBeforeRepeat == 1)) {
+    if (PlayQueueLogic.isShuffled(
+      playModeNotifier.value,
+      _playModeBeforeRepeat,
+    )) {
       shuffle();
     }
     await audioHandler.load();
@@ -413,9 +419,7 @@ class MyAudioHandler extends BaseAudioHandler {
       return;
     }
     _unshuffledQueue = List.from(playQueue);
-    final others = List.of(playQueue)..removeAt(currentIndex);
-    others.shuffle();
-    playQueue = [playQueue[currentIndex], ...others];
+    playQueue = PlayQueueLogic.shuffledAround(playQueue, currentIndex);
     currentIndex = 0;
   }
 
@@ -490,16 +494,8 @@ class MyAudioHandler extends BaseAudioHandler {
     currentCoverArtColor = Colors.grey;
   }
 
-  List<MyAudioMetadata> getNewQueue(List<MyAudioMetadata> oldQueue) {
-    final List<MyAudioMetadata> newPlayQueue = [];
-    for (final song in oldQueue) {
-      final newSong = library.id2Song[song.id];
-      if (newSong != null) {
-        newPlayQueue.add(newSong);
-      }
-    }
-    return newPlayQueue;
-  }
+  List<MyAudioMetadata> getNewQueue(List<MyAudioMetadata> oldQueue) =>
+      PlayQueueLogic.remap(oldQueue, library.id2Song);
 
   Future<void> sync() async {
     if (isNotStreamSource) {
@@ -606,8 +602,9 @@ class MyAudioHandler extends BaseAudioHandler {
         bool needHeader = false;
         switch (sourceType) {
           case .webdav:
-            final tmpPath =
-                await convertToRedirectPathIfNeed(currentSong.path!);
+            final tmpPath = await convertToRedirectPathIfNeed(
+              currentSong.path!,
+            );
             if (tmpPath == null) {
               needHeader = true;
             } else {
@@ -717,7 +714,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> skipToNext() async {
     if (playQueue.isEmpty) return;
 
-    currentIndex = (currentIndex + 1) % playQueue.length;
+    currentIndex = PlayQueueLogic.nextIndex(currentIndex, playQueue.length);
     await load();
   }
 
@@ -725,7 +722,7 @@ class MyAudioHandler extends BaseAudioHandler {
   Future<void> skipToPrevious() async {
     if (playQueue.isEmpty) return;
 
-    currentIndex = (currentIndex + playQueue.length - 1) % playQueue.length;
+    currentIndex = PlayQueueLogic.previousIndex(currentIndex, playQueue.length);
     await load();
   }
 

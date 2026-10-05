@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
 
@@ -71,4 +73,44 @@ class PlayQueueLogic {
       return QueueInsertResult(currentIndex, true);
     }
   }
+
+  /// Whether the queue is in shuffle order, so songs added to it also belong
+  /// in the pre-shuffle queue. Shuffle is play mode 1; repeat (2) keeps the
+  /// order of the mode it replaced.
+  static bool isShuffled(int playMode, int playModeBeforeRepeat) =>
+      playMode == 1 || (playMode == 2 && playModeBeforeRepeat == 1);
+
+  /// [queue] shuffled with the song at [currentIndex] kept first, so the
+  /// track playing now carries on and everything after it is random. The
+  /// current song is then at index 0.
+  static List<MyAudioMetadata> shuffledAround(
+    List<MyAudioMetadata> queue,
+    int currentIndex, [
+    math.Random? random,
+  ]) {
+    final others = List.of(queue)..removeAt(currentIndex);
+    others.shuffle(random);
+    return [queue[currentIndex], ...others];
+  }
+
+  /// The index to start a new queue of [length] songs at: the top in order
+  /// (play mode 0), anywhere when shuffling.
+  static int startIndex(int playMode, int length, [math.Random? random]) =>
+      playMode == 0 ? 0 : (random ?? math.Random()).nextInt(length);
+
+  /// The index after [currentIndex], wrapping to the start.
+  static int nextIndex(int currentIndex, int length) =>
+      (currentIndex + 1) % length;
+
+  /// The index before [currentIndex], wrapping to the end.
+  static int previousIndex(int currentIndex, int length) =>
+      (currentIndex + length - 1) % length;
+
+  /// [queue] with each song swapped for its current copy in [byId], dropping
+  /// songs the library no longer has. Used after a rescan, when the queue
+  /// still holds the old objects.
+  static List<MyAudioMetadata> remap(
+    List<MyAudioMetadata> queue,
+    Map<String, MyAudioMetadata> byId,
+  ) => [for (final song in queue) ?byId[song.id]];
 }
