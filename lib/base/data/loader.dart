@@ -32,11 +32,16 @@ class Loader {
 
   static bool get busy => _busy;
 
+  static void _ensureBusyProvider() {
+    ArtistAlbumManager.isBusyProvider ??= () => _busy;
+  }
+
   static final stateNotifier = ValueNotifier(0);
   static final clearDataLayersNotifier = ValueNotifier<int>(0);
   static final firstSyncNotifier = ValueNotifier<int>(0);
 
   static Future<void> init() async {
+    _ensureBusyProvider();
     if (Platform.isAndroid) {
       await Permission.storage.request();
       await Permission.audio.request();
@@ -69,6 +74,7 @@ class Loader {
   }
 
   static Future<void> load() async {
+    _ensureBusyProvider();
     _busy = true;
     stateNotifier.value++;
 
@@ -103,6 +109,7 @@ class Loader {
   }
 
   static Future<void> sync() async {
+    _ensureBusyProvider();
     _busy = true;
     stateNotifier.value++;
 
@@ -132,6 +139,7 @@ class Loader {
   }
 
   static Future<void> firstSync() async {
+    _ensureBusyProvider();
     _busy = true;
     stateNotifier.value++;
 

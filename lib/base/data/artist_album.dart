@@ -13,6 +13,9 @@ import 'package:soiboi/base/utils/metadata_utils.dart';
 ArtistAlbumManager artistAlbumManager = ArtistAlbumManager();
 
 class ArtistAlbumManager {
+  static bool Function()? isBusyProvider;
+  bool get isBusy => isBusyProvider?.call() ?? false;
+
   List<Artist> artistList = [];
   Map<String, Artist> artistMap = {};
 
@@ -131,12 +134,74 @@ class ArtistAlbumManager {
   Completer<void>? artistCompleter;
   Completer<int?>? ablumCompleter;
 
+  /// Ensures albums are loaded for the current source.
+  /// For local sources or if already populated, returns false.
+  /// For stream sources, loads the initial batch and returns true if end of list is reached.
+  Future<bool> ensureAlbums() async {
+    if (albumList.isNotEmpty || (isNotStreamSource && !isBusy)) {
+      return false;
+    }
+    if (isStreamSource) {
+      final count = await loadAlbums();
+      return count == 0;
+    }
+    return false;
+  }
+
+  /// Ensures artists are loaded for the current source.
+  /// No-op if already populated or for ready local sources.
+  Future<bool> ensureArtists() async {
+    if (artistList.isNotEmpty || (isNotStreamSource && !isBusy)) {
+      return false;
+    }
+    if (isStreamSource) {
+      await loadArtists();
+    }
+    return false;
+  }
+
+  /// Finds or fetches an album for the given song.
+  Future<Album?> albumFor(MyAudioMetadata song) async {
+    if (isNotStreamSource) {
+      return albumMap[getAlbum(song)];
+    }
+    if (song.albumId == null) {
+      return null;
+    }
+    if (albumList.isEmpty) {
+      await loadAlbums();
+    }
+    if (albumMap[song.albumId] == null) {
+      final album = await streamClient?.getAlbum(song.albumId!);
+      if (album != null) {
+        albumList.add(album);
+        sortAlbums();
+        updateNotifier.value++;
+      }
+    }
+    return albumMap[song.albumId];
+  }
+
+  /// Finds or fetches an artist by name.
+  Future<Artist?> artistFor(String? artistName) async {
+    if (artistName == null) {
+      return null;
+    }
+    if (isNotStreamSource) {
+      return artistMap[artistName];
+    }
+    if (artistList.isEmpty) {
+      await loadArtists();
+    }
+    return artistMap[artistName];
+  }
+
   Future<void> loadArtists() async {
     if (artistCompleter == null) {
       artistCompleter = Completer<void>();
       final tmpArtistList = await streamClient?.getArtistList();
       if (tmpArtistList == null) {
-        artistAlbumManager.updateNotifier.value++;
+        updateNotifier.value++;
         artistCompleter!.complete();
         return;
       }
@@ -146,11 +211,11 @@ class ArtistAlbumManager {
         artistMap[artist.name] = artist;
       }
       sortArtists();
-      artistAlbumManager.updateNotifier.value++;
+      updateNotifier.value++;
       artistCompleter!.complete();
       return;
     }
-    artistAlbumManager.updateNotifier.value++;
+    updateNotifier.value++;
     return artistCompleter!.future;
   }
 
@@ -158,23 +223,23 @@ class ArtistAlbumManager {
   Future<int?> loadAlbums() async {
     if (ablumCompleter == null) {
       ablumCompleter = Completer<int?>();
-      final albumList = await streamClient?.getAlbumList(
-        artistAlbumManager.albumList.length,
+      final loadedAlbums = await streamClient?.getAlbumList(
+        albumList.length,
       );
-      if (albumList == null) {
-        artistAlbumManager.updateNotifier.value++;
+      if (loadedAlbums == null) {
+        updateNotifier.value++;
         ablumCompleter!.complete(null);
         ablumCompleter = null;
         return null;
       }
 
-      artistAlbumManager.albumList.addAll(albumList);
+      albumList.addAll(loadedAlbums);
       sortAlbums();
-      artistAlbumManager.updateNotifier.value++;
+      updateNotifier.value++;
 
-      ablumCompleter!.complete(albumList.length);
+      ablumCompleter!.complete(loadedAlbums.length);
       ablumCompleter = null;
-      return albumList.length;
+      return loadedAlbums.length;
     }
     return ablumCompleter!.future;
   }

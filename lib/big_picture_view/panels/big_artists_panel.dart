@@ -1,7 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/artist_album.dart';
-import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/data/setting.dart';
 import 'package:soiboi/base/utils/zoom_page_route.dart';
 import 'package:soiboi/big_picture_view/panels/big_collection_list_panel.dart';
@@ -25,13 +23,8 @@ class _BigArtistsPanelState extends BigCollectionListPanelState {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (artistAlbumManager.artistList.isNotEmpty ||
-          (isNotStreamSource && !Loader.busy)) {
-        updateCurrentList();
-      } else if (isStreamSource) {
-        await artistAlbumManager.loadArtists();
-        updateCurrentList();
-      }
+      await artistAlbumManager.ensureArtists();
+      updateCurrentList();
     });
     artistAlbumManager.updateNotifier.addListener(updateCurrentList);
   }
