@@ -100,9 +100,9 @@ dependencies:
       url: https://github.com/axel10/windows_taskbar.git
       ref: e5ff1f094b4376b5b81999d9da6c423177e90bba  # pinned; upstream tracks master
 
-  intl: any
-  material_ui: any
-  cupertino_ui: any
+  intl: ^0.20.2
+  material_ui: ^1.1.0
+  cupertino_ui: ^1.0.1
   dynamic_color: ^2.1.0
 dependency_overrides:
   media_kit_libs_windows_audio:
