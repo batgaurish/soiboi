@@ -275,52 +275,64 @@ class LayersManager {
     }
   }
 
+  static final Map<String, ({GlobalKey<NavigatorState> key, ValueNotifier<bool> visible})>
+      _rootDescriptors = {
+    'artists': (key: artistsKey, visible: artistsVisibleNotifier),
+    'albums': (key: albumsKey, visible: albumsVisibleNotifier),
+    'ranking': (key: rankingKey, visible: rankingVisibleNotifier),
+    'recently': (key: recentlyKey, visible: recentlyVisibleNotifier),
+    'folders': (key: foldersKey, visible: foldersVisibleNotifier),
+    'playlists': (key: playlistsKey, visible: playlistsVisibleNotifier),
+    'settings': (key: settingsKey, visible: settingsVisibleNotifier),
+  };
+
+  ({GlobalKey<NavigatorState> key, ValueNotifier<bool> visible}) _getDescriptor(
+    String label,
+  ) {
+    return _rootDescriptors[label] ??
+        (key: settingsKey, visible: settingsVisibleNotifier);
+  }
+
+  Widget _createDetailLayer(String label, dynamic detail) {
+    switch (label) {
+      case 'artists':
+        return SingleArtistLayer(artist: detail);
+      case 'albums':
+        return SingleAlbumLayer(album: detail);
+      case 'folders':
+        return SingleFolderLayer(folder: detail);
+      case 'ranking':
+        return SingleAlbumLayer(album: detail, rootLabel: 'ranking');
+      case 'recently':
+        return SingleAlbumLayer(album: detail, rootLabel: 'recently');
+      case 'playlists':
+        return SinglePlaylistLayer(playlist: detail, isRoot: false);
+      default:
+        switch (detail) {
+          case 'about':
+            return AboutLayer();
+          case 'license':
+            return LicenseLayer();
+          case 'premium':
+            return PremiumLayer();
+          default:
+            return FontPickerLayer();
+        }
+    }
+  }
+
   void pushDetail(String label, dynamic detail) async {
     if (viewModeNotifier.value == .bigPicture) {
       return;
     }
     final rootLayer = getRootLayer(label);
 
-    late GlobalKey<NavigatorState> rootKey;
-    late ValueNotifier<bool> visibleNotifier;
-    late Widget detailLayer;
-    if (label == 'artists') {
-      rootKey = artistsKey;
-      visibleNotifier = artistsVisibleNotifier;
-      detailLayer = SingleArtistLayer(artist: detail);
-    } else if (label == 'albums') {
-      rootKey = albumsKey;
-      visibleNotifier = albumsVisibleNotifier;
-      detailLayer = SingleAlbumLayer(album: detail);
-    } else if (label == 'folders') {
-      rootKey = foldersKey;
-      visibleNotifier = foldersVisibleNotifier;
-      detailLayer = SingleFolderLayer(folder: detail);
-    } else if (label == 'ranking') {
-      rootKey = rankingKey;
-      visibleNotifier = rankingVisibleNotifier;
-      detailLayer = SingleAlbumLayer(album: detail, rootLabel: 'ranking');
-    } else if (label == 'recently') {
-      rootKey = recentlyKey;
-      visibleNotifier = recentlyVisibleNotifier;
-      detailLayer = SingleAlbumLayer(album: detail, rootLabel: 'recently');
-    } else if (label == 'playlists') {
-      rootKey = playlistsKey;
-      visibleNotifier = playlistsVisibleNotifier;
-      detailLayer = SinglePlaylistLayer(playlist: detail, isRoot: false);
-    } else {
-      rootKey = settingsKey;
-      visibleNotifier = settingsVisibleNotifier;
-      if (detail == 'about') {
-        detailLayer = AboutLayer();
-      } else if (detail == 'license') {
-        visibleNotifier = aboutVisibleNotifier;
-        detailLayer = LicenseLayer();
-      } else if (detail == 'premium') {
-        detailLayer = PremiumLayer();
-      } else {
-        detailLayer = FontPickerLayer();
-      }
+    final descriptor = _getDescriptor(label);
+    final rootKey = descriptor.key;
+    var visibleNotifier = descriptor.visible;
+    final detailLayer = _createDetailLayer(label, detail);
+    if (label == 'settings' && detail == 'license') {
+      visibleNotifier = aboutVisibleNotifier;
     }
     // The tab's navigator exists only once the tab has been built. Opening an
     // album from Home before ever visiting Albums pushed onto nothing, so the
@@ -371,33 +383,12 @@ class LayersManager {
     final detailLayer = detailWidgetMap.remove(rootLayer);
     final parentLayer = parentWidgetMap.remove(detailLayer);
 
-    late GlobalKey<NavigatorState> rootKey;
-    late ValueNotifier<bool> visibleNotifier;
-    if (label == 'artists') {
-      rootKey = artistsKey;
-      visibleNotifier = artistsVisibleNotifier;
-    } else if (label == 'albums') {
-      rootKey = albumsKey;
-      visibleNotifier = albumsVisibleNotifier;
-    } else if (label == 'ranking') {
-      rootKey = rankingKey;
-      visibleNotifier = rankingVisibleNotifier;
-    } else if (label == 'recently') {
-      rootKey = recentlyKey;
-      visibleNotifier = recentlyVisibleNotifier;
-    } else if (label == 'folders') {
-      rootKey = foldersKey;
-      visibleNotifier = foldersVisibleNotifier;
-    } else if (label == 'playlists') {
-      rootKey = playlistsKey;
-      visibleNotifier = playlistsVisibleNotifier;
-    } else {
-      rootKey = settingsKey;
-      visibleNotifier = settingsVisibleNotifier;
-      if (detailLayer is LicenseLayer) {
-        detailWidgetMap[rootLayer] = parentLayer;
-        visibleNotifier = aboutVisibleNotifier;
-      }
+    final descriptor = _getDescriptor(label);
+    final rootKey = descriptor.key;
+    var visibleNotifier = descriptor.visible;
+    if (detailLayer is LicenseLayer) {
+      detailWidgetMap[rootLayer] = parentLayer;
+      visibleNotifier = aboutVisibleNotifier;
     }
 
     await layersManager.updateBackground();

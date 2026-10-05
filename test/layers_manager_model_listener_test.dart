@@ -36,4 +36,11 @@ void main() {
     expect(() => History.globalChangeNotifier.value++, returnsNormally);
     expect(() => playlistManager.updateNotifier.value++, returnsNormally);
   });
+
+  test('popDetail returns false when no detail exists or label unknown', () async {
+    expect(await layersManager.popDetail('nonexistent'), isFalse);
+    expect(await layersManager.popDetail('artists'), isFalse);
+    expect(await layersManager.popDetail('albums'), isFalse);
+    expect(await layersManager.popDetail('settings'), isFalse);
+  });
 }
