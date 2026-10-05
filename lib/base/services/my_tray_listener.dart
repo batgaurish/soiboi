@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/exit.dart';
 import 'package:soiboi/base/services/my_window_listener.dart';
-import 'package:soiboi/base/services/taskbar_service.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -14,7 +13,7 @@ class MyTrayListener extends TrayListener {
     windowIsClosed = false;
     if (Platform.isWindows) {
       await Future.delayed(Duration(milliseconds: 300));
-      setupTaskbar();
+      audioHandler.refreshTaskbar();
     }
   }
 
@@ -31,7 +30,7 @@ class MyTrayListener extends TrayListener {
       windowIsClosed = false;
       if (Platform.isWindows) {
         await Future.delayed(Duration(milliseconds: 300));
-        setupTaskbar();
+        audioHandler.refreshTaskbar();
       }
     } else if (menuItem.key == 'exit') {
       exitApp();

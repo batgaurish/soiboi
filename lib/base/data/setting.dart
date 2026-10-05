@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:soiboi/base/audio_handler.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/base/theme/motion.dart';
@@ -13,6 +12,9 @@ import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/notification_service.dart';
 import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/utils/path.dart';
+
+/// Start playing the restored queue as soon as the app opens.
+final autoPlayOnStartupNotifier = ValueNotifier(false);
 
 final recursiveScanNotifier = ValueNotifier(false);
 final artistsIsListViewNotifier = ValueNotifier(true);
