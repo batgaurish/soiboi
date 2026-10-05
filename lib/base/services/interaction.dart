@@ -32,69 +32,8 @@ import 'package:smooth_corner/smooth_corner.dart';
 import 'package:soiboi/base/widgets/app_icon.dart';
 import 'package:soiboi/base/utils/media_query.dart';
 import 'package:soiboi/base/theme/motion.dart';
-
-DateTime? _lastShowTime;
-
-void showCenterMessage(String message, {int duration = 2000}) {
-  final now = DateTime.now();
-  if (_lastShowTime != null &&
-      now.difference(_lastShowTime!) < const Duration(seconds: 2)) {
-    return;
-  }
-  _lastShowTime = now;
-
-  final overlay = globalNavigatorKey.currentState?.overlay;
-  if (overlay == null) return;
-  final overlayEntry = OverlayEntry(
-    builder: (context) => Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 300),
-        child: Material(
-          color: Colors.black,
-          shape: SmoothRectangleBorder(
-            smoothness: 1,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              message,
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-
-  overlay.insert(overlayEntry);
-
-  Future.delayed(Duration(milliseconds: duration), () {
-    overlayEntry.remove();
-  });
-}
-
-OverlayEntry? _centerOverlayEntry;
-
-Future<void> showCenterLoading() async {
-  final overlay = globalNavigatorKey.currentState?.overlay;
-  if (overlay == null) return;
-  _centerOverlayEntry = OverlayEntry(
-    builder: (context) => Stack(
-      children: [
-        const ModalBarrier(dismissible: false, color: Colors.transparent),
-        Center(child: CircularProgressIndicator(color: iconColor.value)),
-      ],
-    ),
-  );
-
-  overlay.insert(_centerOverlayEntry!);
-}
-
-void removeCenterLoading() {
-  _centerOverlayEntry?.remove();
-  _centerOverlayEntry = null;
-}
+import 'package:soiboi/base/services/center_toast.dart';
+export 'package:soiboi/base/services/center_toast.dart';
 
 /// Asks before [action]. [message] replaces the generic "continue?" line,
 /// for when the consequence needs spelling out; [confirmText] replaces
@@ -426,13 +365,6 @@ Future<T?> showAnimationDialog<T>({
       );
     },
   );
-}
-
-ValueNotifier<bool> vibrationOnNoitifier = ValueNotifier(true);
-void tryVibrate() {
-  if (vibrationOnNoitifier.value) {
-    HapticFeedback.heavyImpact();
-  }
 }
 
 class MenuItem {

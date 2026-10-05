@@ -4,7 +4,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
-import 'package:soiboi/base/services/interaction.dart';
+import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/services/stream_client.dart';
 
