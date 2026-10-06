@@ -532,7 +532,8 @@ class _DownloadsLayerState extends State<DownloadsLayer> {
                 ),
                 Text(
                   [
-                    if (count != null) '$count tracks',
+                    if (count != null)
+                      AppLocalizations.of(context).trackCount(count),
                     // Worth saying: these are queued track by track, so the
                     // queue fills with songs rather than one playlist entry.
                     if (!playlist.hasCatalogUrl) 'your own playlist',

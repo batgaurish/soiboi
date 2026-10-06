@@ -578,7 +578,11 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                           ),
                           const SizedBox(height: 5),
                           Text(
-                            _total == null ? 'Loading…' : '$_total tracks',
+                            _total == null
+                                ? 'Loading…'
+                                : AppLocalizations.of(
+                                    context,
+                                  ).trackCount(_total!),
                             style: TextStyle(
                               fontSize: 11,
                               color: textColor.value,
@@ -768,7 +772,7 @@ class _CollectionCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${item.songList.length} tracks',
+                AppLocalizations.of(context).trackCount(item.songList.length),
                 maxLines: 1,
                 style: TextStyle(fontSize: 11, color: textColor.value),
               ),
