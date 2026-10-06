@@ -93,7 +93,12 @@ class NavidromeClient extends StreamClient {
         '\n[$runtimeType]\n[request]$path\n[query]$query\n[options]$options\n[error]Dio: ${e.message} (${e.response?.statusCode}\n[data]${e.response?.data.toString()})',
       );
 
-      if (errorMessage.isNotEmpty) {
+      if (showRealError) {
+        showCenterMessage(
+          e.response?.data?.toString() ?? e.message ?? 'Network error',
+          duration: 3000,
+        );
+      } else if (errorMessage.isNotEmpty) {
         showCenterMessage(errorMessage, duration: 3000);
       }
 
@@ -103,7 +108,9 @@ class NavidromeClient extends StreamClient {
         '\n[$runtimeType]\n[request]$path\n[query]$query\n[options]$options\n[error]$e',
       );
 
-      if (errorMessage.isNotEmpty) {
+      if (showRealError) {
+        showCenterMessage(e.toString(), duration: 3000);
+      } else if (errorMessage.isNotEmpty) {
         showCenterMessage(errorMessage, duration: 3000);
       }
 

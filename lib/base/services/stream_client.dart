@@ -34,26 +34,49 @@ abstract class StreamClient {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  /// Ping the remote streaming server to check connectivity and credentials.
+  /// Returns `true` if server responded with an OK status, `false` otherwise.
   Future<bool> ping();
 
+  /// Searches for songs matching [query].
+  ///
+  /// Paging uses positional [size] (maximum songs) and [offset] (starting index).
+  /// Returns `null` on network or protocol error, or an empty list if no results match.
   Future<List<MyAudioMetadata>?> searchSongs(
     String query,
     int size,
     int offset,
   );
 
+  /// Retrieves a paginated list of songs using positional [size] and [offset].
+  ///
+  /// Returns `null` on error, or an empty list if no songs exist in the range.
   Future<List<MyAudioMetadata>?> getSongs(int size, int offset);
 
+  /// Retrieves all artists. Returns `null` on error.
   Future<List<Artist>?> getArtistList();
 
+  /// Retrieves albums for the artist specified by [id].
+  ///
+  /// Returns `null` if the request fails or if the backend does not support
+  /// an artist-to-album query (e.g. [EmbyClient], where artist songs are queried directly).
   Future<List<Album>?> getArtistAlbumList(String id);
 
+  /// Retrieves all songs belonging to the artist specified by [id].
+  ///
+  /// Returns `null` on error.
   Future<List<MyAudioMetadata>?> getArtistSongs(String id);
 
+  /// Retrieves albums starting at [offset] with an optional sort [type].
+  ///
+  /// Page size is determined by backend limit defaults (500 items).
+  /// Returns `null` on error.
   Future<List<Album>?> getAlbumList(int offset, {String type});
 
+  /// Retrieves album details for [id]. Returns `null` on error or if unsupported.
   Future<Album?> getAlbum(String id);
 
+  /// Retrieves songs within the album specified by [id]. Returns `null` on error.
   Future<List<MyAudioMetadata>?> getAlbumSongs(String id);
 
   // use playlist to save playqueue(no limit)
