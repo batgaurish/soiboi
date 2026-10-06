@@ -188,11 +188,13 @@ class _CatalogAlbumSheetState extends State<_CatalogAlbumSheet> {
   }
 
   Future<void> _load() async {
-    final l10n = AppLocalizations.of(context);
     _localAlbum = matchAlbum(widget.album);
 
     final album = await resolveAppleAlbum(widget.artist, widget.album);
     if (!mounted) return;
+    // Not before the await: _load runs from initState, where inherited
+    // widgets cannot be read yet.
+    final l10n = AppLocalizations.of(context);
     if (album == null) {
       setState(() => _error = l10n.notInAppleCatalog);
       return;
@@ -512,9 +514,10 @@ class _CatalogArtistSheetState extends State<_CatalogArtistSheet> {
   }
 
   Future<void> _load() async {
-    final l10n = AppLocalizations.of(context);
     final albums = await appleArtistAlbums(widget.artist);
     if (!mounted) return;
+    // Not before the await: _load runs from initState.
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _albums = albums ?? const [];
       if (albums == null) _error = l10n.notInAppleCatalog;
