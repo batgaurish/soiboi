@@ -40,9 +40,18 @@ endif()
 # Be cautious about adding new options here, as plugins use this function by
 # default. In most cases, you should add new options to specific targets instead
 # of modifying this function.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-error=unused-but-set-global
+  HAVE_WNO_ERROR_UNUSED_BUT_SET_GLOBAL)
+
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_14)
   target_compile_options(${TARGET} PRIVATE -Wall -Werror)
+  # clang 23 added -Wunused-but-set-global, which rive_native's plugin trips;
+  # keep it a warning so a third-party plugin cannot fail the build.
+  if(HAVE_WNO_ERROR_UNUSED_BUT_SET_GLOBAL)
+    target_compile_options(${TARGET} PRIVATE -Wno-error=unused-but-set-global)
+  endif()
   target_compile_options(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:-O3>")
   target_compile_definitions(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
 endfunction()
