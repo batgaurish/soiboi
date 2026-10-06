@@ -575,11 +575,14 @@ class EmbyClient extends StreamClient {
     return response != null;
   }
 
+  /// Emby does not provide a dedicated artist-to-album endpoint in this client;
+  /// artist songs are queried directly via [getArtistSongs].
   @override
   Future<List<Album>?> getArtistAlbumList(String id) async {
     return null;
   }
 
+  /// Individual album detail query is not needed; album tracks are queried via [getAlbumSongs].
   @override
   Future<Album?> getAlbum(String id) async {
     return null;
