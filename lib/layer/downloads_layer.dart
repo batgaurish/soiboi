@@ -923,7 +923,6 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
   }
 
   Future<void> _load() async {
-    final l10n = AppLocalizations.of(context);
     // Show whatever the card already resolved so the sheet is not blank while
     // the rest arrives, then always ask for the full list.
     final cached = cachedDiscoveryTracks(widget.playlist);
@@ -944,6 +943,9 @@ class _DiscoverPlaylistSheetState extends State<_DiscoverPlaylistSheet> {
       },
     );
     if (!mounted) return;
+    // Not before the await: _load runs from initState, where inherited
+    // widgets cannot be read yet.
+    final l10n = AppLocalizations.of(context);
     setState(() => _resolving = null);
     if (tracks == null) {
       setState(() => _error = l10n.couldNotLoadPlaylist);
