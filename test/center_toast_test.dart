@@ -14,51 +14,74 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('center_toast leaf service', () {
-    testWidgets('showCenterMessage displays message and debounces duplicates within 2s', (
+    testWidgets(
+      'showCenterMessage displays message and debounces duplicates within 2s',
+      (tester) async {
+        await tester.pumpWidget(_buildTestApp(child: const Text('Root')));
+
+        showCenterMessage('Hello Toast', duration: 500);
+        await tester.pump();
+
+        expect(find.text('Hello Toast'), findsOneWidget);
+
+        // Throttling: duplicate call inside 2s is dropped
+        showCenterMessage('Hello Toast', duration: 500);
+        await tester.pump();
+        expect(find.text('Hello Toast'), findsOneWidget);
+
+        // Distinct message is displayed
+        showCenterMessage('Second Toast', duration: 500);
+        await tester.pump();
+        expect(find.text('Second Toast'), findsOneWidget);
+
+        // Advance clock past toast display duration
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(find.text('Second Toast'), findsNothing);
+      },
+    );
+
+    // goToAlbum on a local library shows and removes the loader before a
+    // frame is drawn; the barrier must not outlive it and block every tap.
+    testWidgets('loading removed in the frame it was shown leaves no barrier', (
       tester,
     ) async {
-      await tester.pumpWidget(_buildTestApp(child: const Text('Root')));
-
-      showCenterMessage('Hello Toast', duration: 500);
-      await tester.pump();
-
-      expect(find.text('Hello Toast'), findsOneWidget);
-
-      // Throttling: duplicate call inside 2s is dropped
-      showCenterMessage('Hello Toast', duration: 500);
-      await tester.pump();
-      expect(find.text('Hello Toast'), findsOneWidget);
-
-      // Distinct message is displayed
-      showCenterMessage('Second Toast', duration: 500);
-      await tester.pump();
-      expect(find.text('Second Toast'), findsOneWidget);
-
-      // Advance clock past toast display duration
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(find.text('Second Toast'), findsNothing);
-    });
-
-    testWidgets('showCenterLoading and removeCenterLoading toggle overlay safely', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_buildTestApp(child: const Text('Root')));
+      var taps = 0;
+      await tester.pumpWidget(
+        _buildTestApp(
+          child: TextButton(onPressed: () => taps++, child: const Text('Tap')),
+        ),
+      );
 
       showCenterLoading();
-      await tester.pump();
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      // Repeated calls replace entry safely without orphaning
-      showCenterLoading();
-      await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
       removeCenterLoading();
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
+      await tester.tap(find.text('Tap'));
+      expect(taps, 1);
     });
+
+    testWidgets(
+      'showCenterLoading and removeCenterLoading toggle overlay safely',
+      (tester) async {
+        await tester.pumpWidget(_buildTestApp(child: const Text('Root')));
+
+        showCenterLoading();
+        await tester.pump();
+
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // Repeated calls replace entry safely without orphaning
+        showCenterLoading();
+        await tester.pump();
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        removeCenterLoading();
+        await tester.pump();
+
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
 
     test('tryVibrate executes safely without throwing', () {
       vibrationOnNoitifier.value = false;
