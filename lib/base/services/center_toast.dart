@@ -20,9 +20,8 @@ void showCenterMessage(String message, {int duration = 2000}) {
   final overlay = globalNavigatorKey.currentState?.overlay;
   if (overlay == null) return;
 
-  if (_lastMessageOverlayEntry?.mounted ?? false) {
-    _lastMessageOverlayEntry?.remove();
-  }
+  // A new message replaces the one on screen.
+  _lastMessageOverlayEntry?.remove();
   _lastMessageOverlayEntry = null;
 
   late final OverlayEntry overlayEntry;
@@ -52,10 +51,9 @@ void showCenterMessage(String message, {int duration = 2000}) {
   overlay.insert(overlayEntry);
 
   Future.delayed(Duration(milliseconds: duration), () {
-    if (overlayEntry.mounted) {
-      overlayEntry.remove();
-    }
+    // Only if a newer message has not already replaced (and removed) it.
     if (_lastMessageOverlayEntry == overlayEntry) {
+      overlayEntry.remove();
       _lastMessageOverlayEntry = null;
     }
   });
@@ -67,10 +65,7 @@ void showCenterLoading({Color? color}) {
   final overlay = globalNavigatorKey.currentState?.overlay;
   if (overlay == null) return;
 
-  if (_centerOverlayEntry?.mounted ?? false) {
-    _centerOverlayEntry?.remove();
-  }
-  _centerOverlayEntry = null;
+  removeCenterLoading();
 
   _centerOverlayEntry = OverlayEntry(
     builder: (context) => Stack(
@@ -88,11 +83,15 @@ void showCenterLoading({Color? color}) {
   overlay.insert(_centerOverlayEntry!);
 }
 
+/// Takes the loading barrier down. Not guarded on `OverlayEntry.mounted`:
+/// that turns true only once the entry has been built, so a load that
+/// finishes within the frame it started in would leave the barrier up and
+/// swallow every tap. The entry is tracked here instead, so it is removed
+/// exactly once.
 void removeCenterLoading() {
-  if (_centerOverlayEntry?.mounted ?? false) {
-    _centerOverlayEntry?.remove();
-  }
+  final entry = _centerOverlayEntry;
   _centerOverlayEntry = null;
+  entry?.remove();
 }
 
 ValueNotifier<bool> vibrationOnNoitifier = ValueNotifier(true);
