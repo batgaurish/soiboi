@@ -110,14 +110,16 @@ Published: **v1.1.7** is the latest official release. Test pre-releases
 | `v1.2.0-beta.3` | `f6823bd` | scope-expansion | 22 | APK + Linux tarball |
 | `v1.2.0-beta.4` | `7ebd563` | scope-expansion | 23 | APK + Linux tarball |
 | `v1.2.0-beta.5` | `0e3277a` | scope-expansion | 24 | APK + Linux tarball |
+| `v1.2.0-beta.6` | `cce0504` | scope-expansion | 25 | APK + Linux tarball |
 
-beta.5 is the one to test on the branch; rc.2 on the stable line. beta.5's
-versionCode 24 installs over everything; going back to an RC afterwards
+beta.6 is the one to test on the branch; rc.2 on the stable line. beta.6
+is the desloppify pass (refactors, l10n, tests; see its release notes).
+beta.6's versionCode 25 installs over everything; going back to an RC afterwards
 needs an uninstall. Local copies of every asset are in
 `~/soiboi-test-builds/`.
 
 - `origin/main` is at **`66ab86a`** (rc.2 = rc.1 + the pin/cover fix).
-- `origin/scope-expansion` is at `0e3277a` (Version 1.2.0-beta.5) plus handover commits.
+- `origin/scope-expansion` is at `cce0504` (Version 1.2.0-beta.6) plus handover commits.
 - `origin/desloppify/pass-2` is at `1cb092d` (fast-forward merged into scope-expansion).
 - `versionNumber` on the branch stays `1.2.0`; `test/version_test.dart`
   compares only the numeric part of the pubspec version.
