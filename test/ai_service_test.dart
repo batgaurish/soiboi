@@ -158,4 +158,101 @@ void main() {
     );
     expect(() => extractJsonObject('no json here'), throwsA(isA<AiException>()));
   });
+
+  group('streaming', () {
+    test('openai-compatible deltas are read, noise is ignored', () {
+      String? t(String l) => sseText(l, anthropic: false);
+      expect(t('data: {"choices":[{"delta":{"content":"he"}}]}'), 'he');
+      expect(t('data: {"choices":[{"delta":{"role":"assistant"}}]}'), isNull);
+      expect(t('data: [DONE]'), isNull);
+      expect(t(': keep-alive'), isNull);
+      expect(t('data: {not json'), isNull);
+    });
+
+    test('anthropic text deltas are read, refusals are spotted', () {
+      expect(
+        sseText(
+          'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"hi"}}',
+          anthropic: true,
+        ),
+        'hi',
+      );
+      expect(
+        sseRefused('data: {"type":"message_delta","delta":{"stop_reason":"refusal"}}'),
+        isTrue,
+      );
+      expect(sseRefused('data: {"delta":{"stop_reason":"end_turn"}}'), isFalse);
+    });
+
+    test('a streamed answer is assembled and reported as it grows', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((req) async {
+        await utf8.decodeStream(req);
+        req.response.headers.contentType = ContentType('text', 'event-stream');
+        for (final piece in ['{"name": "x", ', '"tracks": [1, 2]}']) {
+          req.response.write(
+            'data: ${jsonEncode({
+              'choices': [
+                {
+                  'delta': {'content': piece},
+                },
+              ],
+            })}\n\n',
+          );
+          await req.response.flush();
+        }
+        req.response.write('data: [DONE]\n\n');
+        await req.response.close();
+      });
+      final c = AiConfig(
+        provider: AiProvider.custom,
+        key: 'k',
+        model: 'm',
+        baseUrl: 'http://127.0.0.1:${server.port}',
+      );
+      final seen = <String>[];
+      final text = await aiCompleteStreaming(
+        c,
+        system: 's',
+        prompt: 'p',
+        onText: seen.add,
+      );
+      expect(text, '{"name": "x", "tracks": [1, 2]}');
+      expect(seen.length, 2);
+      expect(seen.first, '{"name": "x", ');
+    });
+
+    test('a provider that ignores stream still works', () async {
+      final c = AiConfig(
+        provider: AiProvider.openRouter,
+        key: 'sk-test',
+        model: 'm1',
+        baseUrl: fake.base,
+      );
+      final text = await aiCompleteStreaming(c, system: 's', prompt: 'p');
+      expect(text, 'compat says hi');
+      expect((fake.requests.single['body'] as Map)['stream'], isTrue);
+    });
+
+    test('a refused key on a stream is a readable error', () async {
+      fake.status = 401;
+      final c = AiConfig(
+        provider: AiProvider.groq,
+        key: 'nope',
+        model: 'm',
+        baseUrl: fake.base,
+      );
+      await expectLater(
+        aiCompleteStreaming(c, system: 's', prompt: 'p'),
+        throwsA(
+          isA<AiException>().having(
+            (e) => e.message,
+            'message',
+            contains('The key was refused'),
+          ),
+        ),
+      );
+    });
+  });
 }

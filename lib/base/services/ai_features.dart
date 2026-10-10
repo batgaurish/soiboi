@@ -15,24 +15,18 @@ import 'package:soiboi/base/data/artist_album.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/ai_playlist_logic.dart';
 import 'package:soiboi/base/services/ai_service.dart';
+import 'package:soiboi/base/services/ai_tags.dart';
 import 'package:soiboi/base/services/listenbrainz_service.dart';
 
-/// Tracks sent per request. A line is ~15 tokens, so this stays well inside
-/// the smallest free-tier context windows.
-const _maxTracks = 3000;
+/// Most songs sent to the model in one playlist request. Past this the wait
+/// is mostly the model reading, and a model asked to pick from thousands of
+/// lines does no better than one asked to pick from a few hundred good ones.
+const _maxCandidates = 400;
 
-String _line(int i, MyAudioMetadata s) {
-  final parts = [
-    '$i',
-    s.title ?? '',
-    s.artist ?? '',
-    s.album ?? '',
-    s.genre ?? '',
-    s.year?.toString() ?? '',
-  ];
-  return parts.map((p) => p.replaceAll('|', '/').trim()).join(' | ');
-}
+/// What the Ask AI sheet shows while a request runs, or null when idle.
+final aiProgressNotifier = ValueNotifier<String?>(null);
 
 class AiPlaylist {
   AiPlaylist(this.name, this.songs);
@@ -42,53 +36,140 @@ class AiPlaylist {
 
 /// Asks for a playlist matching [request] from the local library, then saves
 /// it. Returns what was saved.
+///
+/// A big library is narrowed before anything is sent. When songs carry saved
+/// vibe tags, a tiny first request turns the wording into a brief and the
+/// tags pick the songs that fit; otherwise a varied sample goes. The model
+/// then orders and trims a few hundred compact lines instead of reading the
+/// whole library.
 Future<AiPlaylist> aiMakePlaylist(String request) async {
   final config = aiConfigNotifier.value;
   if (config == null) throw AiException('AI is not set up yet');
-  final songs = library.songList.take(_maxTracks).toList();
+  await aiTags.load();
+
+  // The same recording often sits in a library twice (single and album).
+  final seen = <String>{};
+  final songs = [
+    for (final s in library.songList)
+      if ((s.title ?? '').trim().isNotEmpty &&
+          seen.add('${s.title}|${s.artist}'.toLowerCase()))
+        s,
+  ];
   if (songs.isEmpty) throw AiException('Your library is empty');
 
-  final catalogue = [
-    for (var i = 0; i < songs.length; i++) _line(i, songs[i]),
-  ].join('\n');
+  final tracks = [
+    for (final s in songs)
+      Track(title: s.title!, artist: s.artist ?? '', vibe: aiTags.of(s)),
+  ];
 
-  final answer = await aiComplete(
-    config,
-    system:
-        'You build playlists from a personal music library. You may only '
-        'choose tracks from the numbered list given. Reply with JSON only, '
-        'no prose, in exactly this shape: '
-        '{"name": "short playlist title", "tracks": [track numbers in play '
-        'order]}. Pick between 10 and 40 tracks unless the request asks for '
-        'a number. Order them so the playlist flows.',
-    prompt:
-        'Request: $request\n\n'
-        'Library (number | title | artist | album | genre | year):\n'
-        '$catalogue',
-  );
+  try {
+    var narrowed = false;
+    var candidates = List.generate(tracks.length, (i) => i);
+    if (tracks.length > _maxCandidates) {
+      VibeBrief? brief;
+      if (aiTags.coverage(songs) >= 0.3) {
+        aiProgressNotifier.value = 'Reading your request';
+        brief = await _brief(config, request);
+      }
+      candidates = pickCandidates(
+        tracks,
+        brief ?? const VibeBrief(),
+        cap: _maxCandidates,
+      );
+      narrowed = brief != null;
+    }
 
-  final json = extractJsonObject(answer);
-  final picked = <MyAudioMetadata>[];
-  final seen = <int>{};
-  for (final n in (json['tracks'] as List? ?? const [])) {
-    final i = n is int ? n : int.tryParse('$n');
-    if (i == null || i < 0 || i >= songs.length || !seen.add(i)) continue;
-    picked.add(songs[i]);
+    final ask = requestedCount(request);
+    // Ask for a few over: the model counts loosely and undershoots more
+    // often than it overshoots.
+    final over = ask == null ? 0 : (ask.count * 1.2).ceil();
+    final want = ask == null
+        ? null
+        : (over > candidates.length ? candidates.length : over);
+    final catalogue = [
+      for (var n = 0; n < candidates.length; n++)
+        compactLine(n, tracks[candidates[n]]),
+    ].join('\n');
+
+    aiProgressNotifier.value = 'Choosing from ${candidates.length} songs';
+    final answer = await aiCompleteStreaming(
+      config,
+      system:
+          'You build playlists from a personal music library. You may only '
+          'choose tracks from the numbered list given. Reply with JSON only, '
+          'no prose, in exactly this shape: '
+          '{"name": "short playlist title", "tracks": [track numbers in play '
+          'order]}. ${want == null ? 'Pick between 15 and 40 tracks.' : 'Pick $want tracks.'} '
+          'Honour what the request rules out as firmly as what it asks for. '
+          'Where a mood is given after a song it is how the song feels. '
+          'Order them so the playlist flows.',
+      prompt:
+          'Request: $request\n\n'
+          'Library (number | title | artist | moods):\n$catalogue',
+      onText: (text) {
+        final n = picksSoFar(text);
+        if (n > 0) aiProgressNotifier.value = 'Picked $n songs';
+      },
+    );
+
+    final json = extractJsonObject(answer);
+    final order = <int>[];
+    final seenPicks = <int>{};
+    for (final n in (json['tracks'] as List? ?? const [])) {
+      final i = n is int ? n : int.tryParse('$n');
+      if (i == null || i < 0 || i >= candidates.length || !seenPicks.add(i)) {
+        continue;
+      }
+      order.add(i);
+    }
+    if (order.isEmpty) {
+      throw AiException('No tracks in your library matched that');
+    }
+
+    // The model counts loosely. It was asked for a few over, so a short
+    // answer is topped up from songs the tags already vouch for, and a long
+    // one is cut back to what was asked.
+    if (ask != null && order.length < ask.count && narrowed) {
+      for (var i = 0; i < candidates.length && order.length < ask.count; i++) {
+        if (tracks[candidates[i]].vibe != null && seenPicks.add(i)) {
+          order.add(i);
+        }
+      }
+    }
+    final keep = ask != null && !ask.atLeast
+        ? order.take(ask.count).toList()
+        : order;
+    final picked = [for (final i in keep) songs[candidates[i]]];
+
+    final name = await _freeName(
+      (json['name'] as String?)?.trim().isNotEmpty == true
+          ? json['name'] as String
+          : request,
+    );
+    await playlistManager.createPlaylist(name);
+    final playlist = playlistManager.getPlaylistByName(name);
+    if (playlist == null) throw AiException('Could not save the playlist');
+    await playlist.add(picked);
+    return AiPlaylist(name, picked);
+  } finally {
+    aiProgressNotifier.value = null;
   }
-  if (picked.isEmpty) {
-    throw AiException('No tracks in your library matched that');
-  }
+}
 
-  final name = await _freeName(
-    (json['name'] as String?)?.trim().isNotEmpty == true
-        ? json['name'] as String
-        : request,
-  );
-  await playlistManager.createPlaylist(name);
-  final playlist = playlistManager.getPlaylistByName(name);
-  if (playlist == null) throw AiException('Could not save the playlist');
-  await playlist.add(picked);
-  return AiPlaylist(name, picked);
+/// The request as a [VibeBrief], from a tiny call that carries no library.
+/// Null when it fails, so the playlist still gets made from a sample and a
+/// bad key still surfaces as the real error on the main request.
+Future<VibeBrief?> _brief(AiConfig config, String request) async {
+  try {
+    final answer = await aiComplete(
+      config,
+      system: briefSystemPrompt,
+      prompt: 'Request: $request',
+    );
+    return VibeBrief.fromJson(extractJsonObject(answer));
+  } on AiException {
+    return null;
+  }
 }
 
 /// [name], or "name (2)" and so on if a playlist already has it.

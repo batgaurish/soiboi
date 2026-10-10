@@ -5,9 +5,11 @@
 /// right as the library changes: "lossless tracks I haven't played this year"
 /// keeps meaning that after the next download, without anyone maintaining it.
 ///
-/// Only fields the library already knows are queryable. Nothing here needs
-/// audio analysis, a network call or a service account, so a smart playlist
-/// works on a phone with no signal — which is the point of the app.
+/// Only fields the library already knows are queryable. Nothing here needs a
+/// network call or a service account at the time a playlist is opened, so a
+/// smart playlist works on a phone with no signal — which is the point of the
+/// app. Mood, positivity and language come from tags the AI wrote once and the
+/// app saved; reading them is local.
 library;
 
 import 'dart:convert';
@@ -17,6 +19,7 @@ import 'package:soiboi/base/app.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/ai_tags.dart';
 import 'package:soiboi/base/services/center_toast.dart';
 import 'package:soiboi/base/services/logger.dart';
 import 'package:soiboi/base/utils/path.dart';
@@ -38,6 +41,12 @@ enum SmartField {
   danceable('Danceable', SmartFieldKind.number),
   relaxed('Relaxed', SmartFieldKind.number),
   aggressive('Aggressive', SmartFieldKind.number),
+  // From the AI's saved tags, not the audio. Empty until the library has been
+  // tagged, so a rule on these matches nothing rather than everything.
+  mood('Mood', SmartFieldKind.text),
+  valence('Positivity', SmartFieldKind.text),
+  vibeEnergy('Felt energy', SmartFieldKind.text),
+  language('Language', SmartFieldKind.text),
   lastPlayed('Last played', SmartFieldKind.date),
   added('Date added', SmartFieldKind.date),
   favourite('Favourite', SmartFieldKind.flag);
@@ -131,6 +140,10 @@ class SmartRule {
     SmartField.albumArtist => song.albumArtist,
     SmartField.genre => song.genre,
     SmartField.format => song.format,
+    SmartField.mood => aiTags.of(song)?.moods.join(' '),
+    SmartField.valence => aiTags.of(song)?.valence,
+    SmartField.vibeEnergy => aiTags.of(song)?.energy,
+    SmartField.language => aiTags.of(song)?.language,
     _ => null,
   };
 

@@ -181,6 +181,12 @@ Future<void> saveAiConfig(AiConfig? config) async {
 
 const _timeout = Duration(minutes: 4);
 
+/// How long a stream may go quiet once it has started. The first byte gets
+/// the full [_timeout]: hosted models cold-start and queue before they say
+/// anything, but once they are talking a long silence means the connection
+/// is dead.
+const _streamIdle = Duration(seconds: 90);
+
 /// One request, one text answer.
 Future<String> aiComplete(
   AiConfig config, {
@@ -188,35 +194,163 @@ Future<String> aiComplete(
   required String prompt,
 }) async {
   if (!config.isUsable) throw AiException('AI is not set up yet');
-  return config.provider == AiProvider.anthropic
-      ? _anthropic(config, system, prompt)
-      : _openAiCompatible(config, system, prompt);
-}
-
-Future<String> _anthropic(AiConfig c, String system, String prompt) async {
   final resp = await http
       .post(
-        Uri.parse('${c.effectiveBaseUrl}/v1/messages'),
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': c.key.trim(),
-          'anthropic-version': '2023-06-01',
-          // A declined request is retried on Anthropic's recommended model
-          // instead of coming back as a refusal.
-          'anthropic-beta': 'server-side-fallback-2026-07-01',
-        },
-        body: jsonEncode({
-          'model': c.effectiveModel,
-          'max_tokens': 16000,
-          'fallbacks': 'default',
-          'system': system,
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-        }),
+        _endpoint(config),
+        headers: _headers(config),
+        body: _body(config, system, prompt, stream: false),
       )
       .timeout(_timeout);
-  final body = _decode(resp);
+  return config.provider == AiProvider.anthropic
+      ? _anthropicText(_decode(resp))
+      : _openAiText(_decode(resp));
+}
+
+/// Like [aiComplete], but reads the answer as it is written and reports the
+/// text so far through [onText]. The caller can show progress, and a slow
+/// model stops looking like a frozen one.
+///
+/// Falls back to reading the whole body when the provider ignores `stream`
+/// and answers with plain JSON.
+Future<String> aiCompleteStreaming(
+  AiConfig config, {
+  required String system,
+  required String prompt,
+  void Function(String textSoFar)? onText,
+}) async {
+  if (!config.isUsable) throw AiException('AI is not set up yet');
+  final anthropic = config.provider == AiProvider.anthropic;
+  final client = http.Client();
+  try {
+    final request = http.Request('POST', _endpoint(config))
+      ..headers.addAll(_headers(config))
+      ..body = _body(config, system, prompt, stream: true);
+    final resp = await client.send(request).timeout(_timeout);
+
+    final isStream =
+        resp.statusCode == 200 &&
+        (resp.headers['content-type'] ?? '').contains('text/event-stream');
+    if (!isStream) {
+      final whole = await http.Response.fromStream(resp).timeout(_timeout);
+      final body = _decode(whole);
+      final text = anthropic ? _anthropicText(body) : _openAiText(body);
+      onText?.call(text);
+      return text;
+    }
+
+    final text = StringBuffer();
+    final lines = resp.stream
+        .timeout(_streamIdle)
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+    await for (final line in lines) {
+      if (anthropic && sseRefused(line)) {
+        throw AiException('Claude declined this request');
+      }
+      final piece = sseText(line, anthropic: anthropic);
+      if (piece == null || piece.isEmpty) continue;
+      text.write(piece);
+      onText?.call(text.toString());
+    }
+    final out = text.toString();
+    if (out.trim().isEmpty) throw AiException('The model sent back nothing');
+    return out;
+  } on TimeoutException {
+    throw AiException(
+      'The model stopped answering. Try again, or pick a faster model.',
+    );
+  } finally {
+    client.close();
+  }
+}
+
+/// The text carried by one server-sent-events line, or null for any line that
+/// carries none (comments, keep-alives, role announcements, `[DONE]`).
+@visibleForTesting
+String? sseText(String line, {required bool anthropic}) {
+  final data = _sseData(line);
+  if (data == null) return null;
+  if (anthropic) {
+    final delta = data['delta'];
+    return delta is Map && delta['type'] == 'text_delta'
+        ? delta['text'] as String?
+        : null;
+  }
+  final choices = data['choices'];
+  if (choices is! List || choices.isEmpty || choices.first is! Map) return null;
+  final delta = (choices.first as Map)['delta'];
+  return delta is Map ? delta['content'] as String? : null;
+}
+
+/// Whether a Claude stream line reports that the request was declined.
+@visibleForTesting
+bool sseRefused(String line) {
+  final delta = _sseData(line)?['delta'];
+  return delta is Map && delta['stop_reason'] == 'refusal';
+}
+
+Map<String, dynamic>? _sseData(String line) {
+  if (!line.startsWith('data:')) return null;
+  final raw = line.substring(5).trim();
+  if (raw.isEmpty || raw == '[DONE]') return null;
+  try {
+    final data = jsonDecode(raw);
+    return data is Map<String, dynamic> ? data : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+Uri _endpoint(AiConfig c) => Uri.parse(
+  c.provider == AiProvider.anthropic
+      ? '${c.effectiveBaseUrl}/v1/messages'
+      : '${c.effectiveBaseUrl}/chat/completions',
+);
+
+Map<String, String> _headers(AiConfig c) {
+  if (c.provider == AiProvider.anthropic) {
+    return {
+      'content-type': 'application/json',
+      'x-api-key': c.key.trim(),
+      'anthropic-version': '2023-06-01',
+      // A declined request is retried on Anthropic's recommended model
+      // instead of coming back as a refusal.
+      'anthropic-beta': 'server-side-fallback-2026-07-01',
+    };
+  }
+  return {
+    'content-type': 'application/json',
+    if (c.key.trim().isNotEmpty) 'authorization': 'Bearer ${c.key.trim()}',
+    // OpenRouter shows these on its activity page; harmless elsewhere.
+    'x-title': 'Soiboi',
+    'http-referer': 'https://github.com/batgaurish/soiboi',
+  };
+}
+
+String _body(AiConfig c, String system, String prompt, {required bool stream}) {
+  if (c.provider == AiProvider.anthropic) {
+    return jsonEncode({
+      'model': c.effectiveModel,
+      'max_tokens': 16000,
+      'fallbacks': 'default',
+      if (stream) 'stream': true,
+      'system': system,
+      'messages': [
+        {'role': 'user', 'content': prompt},
+      ],
+    });
+  }
+  return jsonEncode({
+    'model': c.effectiveModel,
+    if (stream) 'stream': true,
+    'messages': [
+      {'role': 'system', 'content': system},
+      {'role': 'user', 'content': prompt},
+    ],
+  });
+}
+
+String _anthropicText(Map<String, dynamic> body) {
   if (body['stop_reason'] == 'refusal') {
     throw AiException('Claude declined this request');
   }
@@ -229,27 +363,7 @@ Future<String> _anthropic(AiConfig c, String system, String prompt) async {
   return text;
 }
 
-Future<String> _openAiCompatible(AiConfig c, String system, String prompt) async {
-  final resp = await http
-      .post(
-        Uri.parse('${c.effectiveBaseUrl}/chat/completions'),
-        headers: {
-          'content-type': 'application/json',
-          if (c.key.trim().isNotEmpty) 'authorization': 'Bearer ${c.key.trim()}',
-          // OpenRouter shows these on its activity page; harmless elsewhere.
-          'x-title': 'Soiboi',
-          'http-referer': 'https://github.com/batgaurish/soiboi',
-        },
-        body: jsonEncode({
-          'model': c.effectiveModel,
-          'messages': [
-            {'role': 'system', 'content': system},
-            {'role': 'user', 'content': prompt},
-          ],
-        }),
-      )
-      .timeout(_timeout);
-  final body = _decode(resp);
+String _openAiText(Map<String, dynamic> body) {
   final choices = body['choices'] as List? ?? const [];
   final message = choices.isEmpty ? null : (choices.first as Map)['message'];
   final text = message is Map ? message['content'] as String? : null;
