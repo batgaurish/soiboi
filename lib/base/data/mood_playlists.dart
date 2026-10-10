@@ -6,6 +6,11 @@
 /// every threshold (a missing number is not zero), so an unanalysed library
 /// produces no mood cards.
 ///
+/// Two sources, best first. Once the AI has tagged enough of the library, the
+/// shelf reads those tags: a tag can say a song is happy or sad, which nothing
+/// measured from the audio can. Until then it falls back to the audio
+/// features, which only know loud and quiet, fast and slow.
+///
 /// The primary mood is time-of-day: a different spec for morning, daytime,
 /// evening and night. "Deep Focus" is always offered so the shelf is never a
 /// singleton. If nothing passes the gate, the shelf does not render at all.
@@ -15,6 +20,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/data/smart_playlist.dart';
 import 'package:soiboi/base/my_audio_metadata.dart';
+import 'package:soiboi/base/services/ai_tags.dart';
 
 /// One mood shown on Home, with the list and count already resolved.
 class MoodCardData {
@@ -31,6 +37,43 @@ class MoodCardData {
 }
 
 const _minTracks = 5;
+
+/// Share of the library that must carry tags before the shelf trusts them. Below
+/// this the shelf would be built from a sliver of the library and look empty.
+const _minTaggedShare = 0.2;
+
+/// Songs tagged with any of [moods].
+SmartPlaylist _anyMood(String name, List<String> moods) => SmartPlaylist(
+  name: name,
+  rules: [
+    for (final m in moods)
+      SmartRule(
+        field: SmartField.mood,
+        operator: SmartOperator.contains,
+        value: m,
+      ),
+  ],
+  matchAll: false,
+  sort: SmartSort.random,
+);
+
+SmartPlaylist _taggedPrimaryFor(int hour) {
+  if (hour >= 5 && hour < 11) {
+    return _anyMood('Morning Light', ['uplifting', 'warm', 'happy']);
+  }
+  if (hour >= 11 && hour < 17) {
+    return _anyMood('Upbeat Mix', ['upbeat', 'party', 'happy']);
+  }
+  if (hour >= 17 && hour < 22) {
+    return _anyMood('Wind Down', ['calm', 'warm', 'romantic']);
+  }
+  return _anyMood('Late Night Drive', [
+    'dreamy',
+    'melancholic',
+    'nostalgic',
+    'calm',
+  ]);
+}
 
 SmartPlaylist _morning() => const SmartPlaylist(
   name: 'Morning Light',
@@ -144,6 +187,7 @@ IconData _icon(int hour) {
 bool moodsNeedAnalysis({List<MyAudioMetadata>? songs}) {
   final source = songs ?? library.songList;
   return source.isNotEmpty &&
+      aiTags.coverage(source) < _minTaggedShare &&
       !source.any(
         (s) => s.energy != null || s.danceable != null || s.relaxed != null,
       );
@@ -162,9 +206,16 @@ List<MoodCardData> autoMoodPlaylists({
   final hour = (now ?? DateTime.now()).hour;
   final source = songs ?? library.songList;
 
+  final tagged = aiTags.coverage(source) >= _minTaggedShare;
   final candidates = [
-    (icon: _icon(hour), playlist: _primaryFor(hour)),
-    (icon: Icons.self_improvement_rounded, playlist: _focus()),
+    (
+      icon: _icon(hour),
+      playlist: tagged ? _taggedPrimaryFor(hour) : _primaryFor(hour),
+    ),
+    (
+      icon: Icons.self_improvement_rounded,
+      playlist: tagged ? _anyMood('Deep Focus', ['focus', 'calm']) : _focus(),
+    ),
   ];
 
   final out = <MoodCardData>[];

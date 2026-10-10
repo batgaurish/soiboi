@@ -10,6 +10,8 @@ library;
 import 'package:material_ui/material_ui.dart';
 import 'package:soiboi/base/services/ai_features.dart';
 import 'package:soiboi/base/services/ai_service.dart';
+import 'package:soiboi/base/services/ai_tags.dart';
+import 'package:soiboi/base/data/library.dart';
 import 'package:soiboi/base/services/color_manager.dart';
 import 'package:soiboi/base/theme/flavour.dart';
 import 'package:soiboi/layer/catalog_sheet.dart';
@@ -33,6 +35,7 @@ class _AskAiPanelState extends State<AskAiPanel> {
   String? _error;
   AiPlaylist? _playlist;
   List<AiAlbumPick>? _picks;
+  String? _tagNote;
 
   static const _ideas = [
     'Late night drive, nothing too loud',
@@ -72,6 +75,78 @@ class _AskAiPanelState extends State<AskAiPanel> {
       return;
     }
     _run(() async => _playlist = await aiMakePlaylist(request));
+  }
+
+  Future<void> _tagLibrary() async {
+    setState(() {
+      _error = null;
+      _tagNote = null;
+    });
+    try {
+      final n = await aiTagLibrary();
+      _tagNote = n == 0 ? 'Every song is already tagged' : 'Tagged $n songs';
+    } on AiException catch (e) {
+      _error = e.message;
+    } catch (e) {
+      _error = 'Something went wrong: $e';
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// Offers the one-time tagging pass, and shows it running.
+  Widget _tagCard() {
+    return ValueListenableBuilder(
+      valueListenable: aiTaggingProgress,
+      builder: (context, progress, _) => ValueListenableBuilder(
+        valueListenable: aiTags.changeNotifier,
+        builder: (context, _, _) {
+          final songs = library.songList;
+          if (songs.isEmpty) return const SizedBox.shrink();
+          final tagged = songs.where((s) => aiTags.of(s) != null).length;
+          final running = progress != null;
+          if (!running && tagged == songs.length && _tagNote == null) {
+            return const SizedBox.shrink();
+          }
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    progress == null
+                        ? _tagNote ?? '$tagged of ${songs.length} songs tagged'
+                        : 'Tagging ${progress.done} of ${progress.total}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: highlightTextColor.value,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tagging asks the AI once how each song feels. Playlists '
+                    'then match the mood better and come back faster.',
+                    style: TextStyle(fontSize: 11, color: textColor.value),
+                  ),
+                  const SizedBox(height: 8),
+                  if (running)
+                    OutlinedButton(
+                      onPressed: cancelTagging,
+                      child: const Text('Stop'),
+                    )
+                  else if (tagged < songs.length)
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _tagLibrary,
+                      icon: const Icon(Icons.sell_outlined),
+                      label: Text(tagged == 0 ? 'Tag my library' : 'Tag the rest'),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _recommend() =>
@@ -167,11 +242,31 @@ class _AskAiPanelState extends State<AskAiPanel> {
         style: TextStyle(fontSize: 11, color: textColor.value),
       ),
       const SizedBox(height: 20),
+      _tagCard(),
       if (_busy)
-        const Center(
+        Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
-            child: CircularProgressIndicator(),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const CircularProgressIndicator(),
+                ValueListenableBuilder(
+                  valueListenable: aiProgressNotifier,
+                  builder: (context, text, _) => text == null
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            text,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: textColor.value,
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       if (_error != null)

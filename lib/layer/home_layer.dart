@@ -16,6 +16,7 @@
 library;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:soiboi/base/services/ai_tags.dart';
 import 'package:soiboi/base/data/loader.dart';
 import 'package:soiboi/base/utils/metadata_utils.dart';
 import 'package:soiboi/base/services/ai_features.dart';
@@ -136,6 +137,7 @@ class _HomeLayerState extends State<HomeLayer> {
           artistAlbumManager.updateNotifier,
           currentSongNotifier,
           library.changeNotifier,
+          aiTags.changeNotifier,
         ]),
         builder: (context, _) {
           final moods = autoMoodPlaylists();
