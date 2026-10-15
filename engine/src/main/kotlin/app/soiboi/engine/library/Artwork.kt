@@ -20,7 +20,8 @@ import java.util.concurrent.ConcurrentHashMap
  * Python process each.
  */
 class Artwork(private val cacheDir: File, private val runner: PipelineRunner, private val servers: () -> Map<SongOrigin, MusicServer>) {
-    private val known = ConcurrentHashMap<String, File?>()
+    // A ConcurrentHashMap refuses null, so "this song has no cover" is an empty Optional.
+    private val known = ConcurrentHashMap<String, java.util.Optional<File>>()
     private val gate = Semaphore(3)
 
     private fun key(song: Song) = "${song.origin}:${song.albumId ?: song.path ?: song.id}"
@@ -28,9 +29,9 @@ class Artwork(private val cacheDir: File, private val runner: PipelineRunner, pr
     /** The cover image file for [song], or null when it has none. Albums share one cover across their songs for connector sources. */
     suspend fun coverFor(song: Song): File? {
         val k = key(song)
-        if (known.containsKey(k)) return known[k]
+        known[k]?.let { return it.orElse(null) }
         val file = gate.withPermit { if (song.origin == SongOrigin.Local) local(song) else remote(song) }
-        known[k] = file
+        known[k] = java.util.Optional.ofNullable(file)
         return file
     }
 
@@ -44,6 +45,13 @@ class Artwork(private val cacheDir: File, private val runner: PipelineRunner, pr
     }
 
     private suspend fun remote(song: Song): File? {
+        // An addon track carries its cover as a plain URL.
+        if (song.origin == SongOrigin.Addon) {
+            val url = song.coverId?.takeIf { it.startsWith("http") } ?: return null
+            val target = File(cacheDir, MessageDigest.getInstance("MD5").digest(url.toByteArray()).joinToString("") { "%02x".format(it) } + ".img")
+            if (target.exists()) return target
+            return if (downloadTo(url, emptyMap(), target)) target else null
+        }
         val server = servers()[song.origin] ?: return null
         val url = server.coverUrl(song) ?: return null
         val name = MessageDigest.getInstance("MD5").digest("$url".toByteArray()).joinToString("") { "%02x".format(it) }

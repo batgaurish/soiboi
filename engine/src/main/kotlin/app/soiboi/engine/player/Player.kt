@@ -322,8 +322,9 @@ class Player(
     /** Swaps queue entries for their rescanned copies and drops songs the library no longer has. */
     fun syncWithLibrary() {
         val q = _queue.value
-        val list = q.songs.mapNotNull { library.song(it.id) }
-        val cur = q.current?.let { library.song(it.id) }
+        // Addon songs live outside the library until saved; a rescan must not drop them from the queue.
+        val list = q.songs.mapNotNull { library.song(it.id) ?: it.takeIf { s -> s.origin == SongOrigin.Addon } }
+        val cur = q.current?.let { library.song(it.id) ?: it.takeIf { s -> s.origin == SongOrigin.Addon } }
         _queue.value = QueueState(list, cur?.let { list.indexOf(it) } ?: if (list.isEmpty()) -1 else 0)
         unshuffled = PlayQueueLogic.remap(unshuffled, list.map { it.id }.toSet())
     }

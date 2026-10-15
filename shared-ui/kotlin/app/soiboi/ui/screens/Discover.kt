@@ -71,6 +71,7 @@ fun DiscoverScreen(app: AppController) {
     var appleBusy by remember { mutableStateOf(false) }
     val aiConfig by engine.aiConfig.collectAsState()
     val unresolved by engine.manualResolution.unresolved.collectAsState()
+    val addons by engine.addons.installed.collectAsState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     fun go() {
@@ -125,6 +126,7 @@ fun DiscoverScreen(app: AppController) {
                 unresolved.take(30).forEach { t -> UnresolvedRow(app, t) }
             }
         }
+        addonShelves(app, addons)
     }
 }
 

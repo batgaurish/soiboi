@@ -143,6 +143,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     val lyrics = LyricsProvider(lrclib, { settings.value.lrclibEnabled }, { song -> servers[song.origin]?.lyrics(song) })
 
     // connectors and debrid
+    val addons = app.soiboi.engine.addons.AddonRegistry(db)
     private val serverMap = HashMap<SongOrigin, MusicServer>()
     val servers: Map<SongOrigin, MusicServer> get() = serverMap
     private val _serverStatus = MutableStateFlow<Map<SongOrigin, SourceStatus>>(emptyMap())
@@ -157,7 +158,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     val player: Player = Player(
         scope, platform.audio, library, songStore, db, { serverMap },
         cacheDir = java.io.File(paths.cacheDir, "remote"),
-        resolveOverride = { song -> if (song.origin == SongOrigin.Local) null else resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() } },
+        resolveOverride = { song -> if (song.origin == SongOrigin.Addon) addons.streamFor(song) else if (song.origin == SongOrigin.Local) null else resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() } },
         onPlayed = { song, _ -> serverMap[song.origin]?.scrobble(song.id); if (song.origin != SongOrigin.Local && song.playCount > 1) player.cache(song) },
         onSongChanged = { song -> lyrics.parsedFor(song) },
         metaFor = { s -> app.soiboi.engine.player.TrackMeta(s.displayTitle, s.displayArtist, s.displayAlbum, runCatching { artwork.coverFor(s)?.path }.getOrNull(), s.durationMs) },
@@ -173,6 +174,13 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
         return summary
     }
 
+    /** Keeps an addon song in the library so it can sit in a playlist or among favorites. Addon songs are otherwise only in the queue. */
+    suspend fun keepAddonSong(song: app.soiboi.engine.library.Song) {
+        if (song.origin != SongOrigin.Addon || library.song(song.id) != null) return
+        songStore.upsert(listOf(song))
+        library.set(library.songs.value + song)
+    }
+
     suspend fun exportBackup(target: java.io.File) = backup.export(target)
     suspend fun importBackup(source: java.io.File): Boolean = backup.import(source).also { if (it) { playlists.load(); loadSmart() } }
 
@@ -180,7 +188,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     suspend fun start() {
         EngineLog.sink = { println("[soiboi] $it"); System.err.println("[soiboi] $it") }
         cookies.refresh()
-        playlists.load(); manualResolution.load(); linked.load(); tags.load()
+        playlists.load(); manualResolution.load(); linked.load(); tags.load(); addons.load()
         loadSmart(); loadAiConfig(); loadServers()
         library.set(songStore.all())
         wrapper.refresh()
@@ -274,7 +282,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
                 val tokens = secret?.split('\n')?.takeIf { it.size == 3 }?.let { DriveTokens(it[0], it[1].ifEmpty { null }, it[2].toLongOrNull() ?: 0) } ?: return null
                 GoogleDriveServer(tokens, GoogleDriveAuth(client[0], client[1]), c.extra.ifEmpty { null }) { t -> platform.secrets.put("server.GoogleDrive", "${t.accessToken}\n${t.refreshToken.orEmpty()}\n${t.expiresAtEpochMs}") }
             }
-            SongOrigin.Local -> null
+            SongOrigin.Local, SongOrigin.Addon -> null
         }
     }
 

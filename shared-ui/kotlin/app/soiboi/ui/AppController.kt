@@ -29,6 +29,8 @@ sealed interface Route {
     data object Sources : Route
     data object Settings : Route
     data class Import(val link: String = "") : Route
+    /** An album, artist or playlist an installed addon serves. [kind] is album, artist or playlist. */
+    data class AddonItem(val addonId: String, val kind: String, val id: String, val title: String, val cover: String? = null) : Route
 }
 
 enum class LibraryTab(val label: String) { Songs("Songs"), Albums("Albums"), Artists("Artists"), Playlists("Playlists") }
@@ -39,7 +41,7 @@ enum class Place(val label: String) { Today("Today"), Library("Library"), Discov
 fun Route.place(): Place = when (this) {
     Route.Today -> Place.Today
     is Route.Library, is Route.Album, is Route.Artist, is Route.Playlist, is Route.Smart, is Route.Mood, Route.Search -> Place.Library
-    Route.Discover, is Route.Import -> Place.Discover
+    Route.Discover, is Route.Import, is Route.AddonItem -> Place.Discover
     Route.Downloads -> Place.Downloads
     Route.Sources -> Place.Sources
     Route.Settings -> Place.Settings
@@ -106,15 +108,15 @@ class AppController(val engine: Engine, val scope: CoroutineScope, val platform:
 
     fun playNext(song: Song) { if (engine.player.insertNext(song)) toast("Plays next: ${song.displayTitle}") else toast("Already playing") }
     fun addToQueue(song: Song) { if (engine.player.addLast(song)) toast("Added to queue") else toast("Already in the queue") }
-    fun toggleFavorite(song: Song) { scope.launch { engine.playlists.toggleFavorite(song.id) } }
+    fun toggleFavorite(song: Song) { scope.launch { engine.keepAddonSong(song); engine.playlists.toggleFavorite(song.id) } }
 
-    fun addToPlaylist(song: Song, playlist: String) { scope.launch { engine.playlists.add(playlist, listOf(song.id)); toast("Added to $playlist") } }
+    fun addToPlaylist(song: Song, playlist: String) { scope.launch { engine.keepAddonSong(song); engine.playlists.add(playlist, listOf(song.id)); toast("Added to $playlist") } }
 
     fun newPlaylistWith(song: Song?, name: String) {
         scope.launch {
             val ok = engine.playlists.create(name.trim())
             if (!ok) { toast("A playlist called $name already exists"); return@launch }
-            if (song != null) engine.playlists.add(name.trim(), listOf(song.id))
+            if (song != null) { engine.keepAddonSong(song); engine.playlists.add(name.trim(), listOf(song.id)) }
             toast("Created $name")
         }
     }

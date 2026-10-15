@@ -143,6 +143,9 @@ private object DevCommands {
                 "apk" -> app.soiboi.ui.web.WebSessions.wrapperApk(ui)
                 else -> app.soiboi.ui.web.WebSessions.aiKey(app.soiboi.engine.ai.AiProvider.Gemini) { System.err.println("dev: key found") }
             }
+            "addon" -> kotlinx.coroutines.runBlocking { e.addons.install(arg) }
+            "addonitem" -> arg.split(' ', limit = 3).let { ui.go(app.soiboi.ui.Route.AddonItem("org.test.fake", it[0], it[1], it.getOrElse(2) { "" })) }
+            "addonplay" -> e.addons.instance("org.test.fake")!!.let { a -> ui.play(listOf(e.addons.songFor(a, app.soiboi.engine.addons.AddonTrack("t1", "Addon Song 1", "Fake Artist", "Fake Album", 201000, null, null, null, null)))) }
             "webclose" -> ui.web = null
             "go" -> ui.goPlace(app.soiboi.ui.Place.entries.first { it.name.equals(arg, true) })
             "library" -> ui.go(app.soiboi.ui.Route.Library(app.soiboi.ui.LibraryTab.entries.first { it.name.equals(arg, true) }))
