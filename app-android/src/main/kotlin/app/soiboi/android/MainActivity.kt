@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
         )
         val ui = object : PlatformUi {
             override val isAndroid = true
+            override val web = AndroidWeb
             override fun decodeImage(bytes: ByteArray): ImageBitmap? = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
             private suspend fun ask(launch: () -> Unit): String? { val d = CompletableDeferred<String?>(); pending = d; launch(); return d.await() }
             override suspend fun pickFolder() = ask { pickTree.launch(null) }

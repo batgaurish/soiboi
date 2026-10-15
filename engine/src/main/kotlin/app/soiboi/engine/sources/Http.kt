@@ -6,6 +6,10 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.prepareGet
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.contentLength
+import io.ktor.utils.io.readAvailable
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.withTimeout
@@ -76,3 +80,39 @@ suspend fun reachable(url: String): Boolean = try {
 } catch (_: Exception) {
     false
 }
+
+/**
+ * Streams [url] into [dest], sending [headers] (a browser download often needs its cookies and
+ * User-Agent). Reports bytes so far and the total when the server says. Returns an error message, or
+ * null on success. A partial file is removed.
+ */
+suspend fun downloadFile(
+    url: String,
+    dest: java.io.File,
+    headers: Map<String, String> = emptyMap(),
+    onProgress: (done: Long, total: Long) -> Unit = { _, _ -> },
+): String? = try {
+    dest.parentFile?.mkdirs()
+    val client = HttpClient(CIO) { expectSuccess = false; followRedirects = true }
+    try {
+        client.prepareGet(url) { headers.forEach { (k, v) -> header(k, v) } }.execute { response ->
+            if (response.status != HttpStatusCode.OK) return@execute "The server answered ${response.status.value}."
+            val total = response.contentLength() ?: -1L
+            val channel = response.bodyAsChannel()
+            val buffer = ByteArray(64 * 1024)
+            var done = 0L
+            dest.outputStream().use { out ->
+                while (true) {
+                    val n = channel.readAvailable(buffer, 0, buffer.size)
+                    if (n < 0) break
+                    if (n == 0) continue
+                    out.write(buffer, 0, n); done += n; onProgress(done, total)
+                }
+            }
+            null
+        }
+    } finally { client.close() }
+} catch (e: Exception) {
+    EngineLog.output("download $url: $e")
+    e.message ?: "The download stopped."
+}.also { if (it != null) dest.delete() }

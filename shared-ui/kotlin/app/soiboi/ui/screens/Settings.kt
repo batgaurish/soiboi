@@ -31,6 +31,7 @@ import app.soiboi.engine.download.WrapperStage
 import app.soiboi.engine.download.APPLE_MUSIC_APK_LABEL
 import app.soiboi.engine.download.APPLE_MUSIC_APK_URL
 import app.soiboi.ui.AppController
+import app.soiboi.ui.web.WebSessions
 import app.soiboi.ui.components.Banner
 import app.soiboi.ui.components.Chip
 import app.soiboi.ui.components.ConfirmDialog
@@ -109,9 +110,10 @@ fun SettingsScreen(app: AppController) {
                     else -> "Downloading needs an Apple Music subscription and a sign-in."
                 }, if (wrapperIn || signed) Glyph.Check else Glyph.Key, tint = if (wrapperIn || signed) c.ok else c.soft)
                 Txt("Browser session", style = Soiboi.type.label, color = c.soft)
-                Txt("Sign in to music.apple.com in a browser, export cookies.txt with an extension, and import it here. Soiboi keeps only the Apple cookies.", style = Soiboi.type.caption, color = c.soft)
+                Txt("Sign in on Apple's own page inside Soiboi. Apple takes the password and any 2FA; Soiboi keeps only the Apple session.", style = Soiboi.type.caption, color = c.soft)
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-                    SButton("Import cookies.txt", { scope.launch { app.platform.pickFile(listOf("txt"))?.let { p -> app.toast(if (engine.cookieStore.importFile(File(p))) "Signed in" else "That file has no Apple Music session") } } }, compact = true, glyph = Glyph.Download)
+                    if (app.platform.web.available) SButton(if (signed) "Sign in again" else "Sign in to Apple Music", { app.web = WebSessions.appleSignIn(app) }, tone = Tone.Primary, compact = true, glyph = Glyph.Key)
+                    SButton("Import cookies.txt", { scope.launch { app.platform.pickFile(listOf("txt"))?.let { p -> app.toast(if (engine.cookieStore.importFile(File(p))) "Signed in" else "That file has no Apple Music session") } } }, compact = true, tone = if (app.platform.web.available) Tone.Ghost else Tone.Secondary, glyph = Glyph.Download)
                     if (signed) SButton("Sign out", { engine.cookieStore.signOut() }, tone = Tone.Ghost, compact = true)
                 }
                 Hairline()
@@ -189,13 +191,16 @@ private fun AiSetupDialog(app: AppController, current: AiConfig?, onDismiss: () 
     var busy by remember { mutableStateOf(false) }
     val info = AiProviders.getValue(provider)
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    SDialog("Set up AI", onDismiss, width = 520.dp, actions = {
+    if (app.web == null) SDialog("Set up AI", onDismiss, width = 520.dp, actions = {
         SButton("Cancel", onDismiss, tone = Tone.Ghost)
         SButton("Save", { app.engine.saveAiConfig(AiConfig(provider, key.trim(), model.trim(), baseUrl.trim())); app.toast("AI is on"); onDismiss() }, tone = Tone.Primary, enabled = AiConfig(provider, key, model, baseUrl).isUsable)
     }) {
         Listbox("Provider", AiProviders.entries.map { it.key to it.value.label }, provider, { provider = it; models = emptyList(); model = "" })
         Txt(info.blurb, style = Soiboi.type.caption, color = c.soft)
-        info.keyPage?.let { page -> SButton("Get a key", { app.platform.openUrl(page) }, tone = Tone.Ghost, compact = true, glyph = Glyph.Link) }
+        info.keyPage?.let { page ->
+            if (app.platform.web.available && WebSessions.keyPattern(provider) != null) SButton("Get a key for me", { app.web = WebSessions.aiKey(provider) { key = it } }, tone = Tone.Secondary, compact = true, glyph = Glyph.Link)
+            else SButton("Get a key", { app.platform.openUrl(page) }, tone = Tone.Ghost, compact = true, glyph = Glyph.Link)
+        }
         if (info.needsKey) SField(key, { key = it }, "API key", secret = true)
         if (provider == AiProvider.Ollama || provider == AiProvider.Custom) SField(baseUrl, { baseUrl = it }, "Address", hint = info.baseUrl.ifEmpty { "https://host/v1" })
         SField(model, { model = it }, "Model", hint = info.defaultModel ?: "Load the list below, or type a name")
@@ -216,14 +221,20 @@ private fun WrapperDialog(app: AppController, onDismiss: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    SDialog("Set up lossless", onDismiss, width = 520.dp) {
+    if (app.web == null) SDialog("Set up lossless", onDismiss, width = 520.dp) {
         Txt("Lossless downloads decrypt with Apple Music's own Android libraries. Soiboi ships none of them, so you supply the one app file it is pinned to.", style = Soiboi.type.caption, color = c.soft)
         when (state.stage) {
             WrapperStage.NeedsLibraries -> {
-                Txt("Step 1. Download $APPLE_MUSIC_APK_LABEL.", style = Soiboi.type.bodyStrong)
-                SButton("Open the download page", { app.platform.openUrl(APPLE_MUSIC_APK_URL) }, compact = true, glyph = Glyph.Link)
-                Txt("Step 2. Choose the file you downloaded.", style = Soiboi.type.bodyStrong)
-                SButton("Choose the APK", { busy = true; scope.launch { app.platform.pickFile(listOf("apk", "xapk"))?.let { p -> message = engine.wrapper.installLibraries(File(p)) ?: "Installed" }; busy = false } }, tone = Tone.Primary, compact = true, loading = busy, glyph = Glyph.Folder)
+                if (app.platform.web.available) {
+                    Txt("Soiboi opens the download page, takes the file when the download starts, and installs it.", style = Soiboi.type.bodyStrong)
+                    SButton("Get it for me", { app.web = WebSessions.wrapperApk(app) }, tone = Tone.Primary, compact = true, glyph = Glyph.Download)
+                    Txt("Or do it by hand: download $APPLE_MUSIC_APK_LABEL yourself, then choose the file.", style = Soiboi.type.caption, color = c.soft)
+                } else {
+                    Txt("Step 1. Download $APPLE_MUSIC_APK_LABEL.", style = Soiboi.type.bodyStrong)
+                    SButton("Open the download page", { app.platform.openUrl(APPLE_MUSIC_APK_URL) }, compact = true, glyph = Glyph.Link)
+                    Txt("Step 2. Choose the file you downloaded.", style = Soiboi.type.bodyStrong)
+                }
+                SButton("Choose the APK", { busy = true; scope.launch { app.platform.pickFile(listOf("apk", "xapk"))?.let { p -> message = engine.wrapper.installLibraries(File(p)) ?: "Installed" }; busy = false } }, tone = if (app.platform.web.available) Tone.Secondary else Tone.Primary, compact = true, loading = busy, glyph = Glyph.Folder)
             }
             WrapperStage.NeedsCode -> {
                 Txt("Apple sent a code to your devices.", style = Soiboi.type.bodyStrong)

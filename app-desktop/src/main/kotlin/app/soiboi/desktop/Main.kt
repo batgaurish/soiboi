@@ -58,6 +58,7 @@ private fun fonts() = AppFonts(
 
 private object DesktopUi : PlatformUi {
     override val isAndroid = false
+    override val web = DesktopWeb(File(desktopPaths().supportDir, "browser"))
     override fun decodeImage(bytes: ByteArray): ImageBitmap? = runCatching { Image.makeFromEncoded(bytes).toComposeImageBitmap() }.getOrNull()
 
     private suspend fun <T> onSwing(block: () -> T): T = withContext(Dispatchers.IO) {
@@ -137,6 +138,12 @@ private object DevCommands {
         val (cmd, arg) = line.split(' ', limit = 2).let { it[0] to it.getOrElse(1) { "" } }
         val e = ui.engine
         when (cmd) {
+            "web" -> ui.web = when (arg) {
+                "apple" -> app.soiboi.ui.web.WebSessions.appleSignIn(ui)
+                "apk" -> app.soiboi.ui.web.WebSessions.wrapperApk(ui)
+                else -> app.soiboi.ui.web.WebSessions.aiKey(app.soiboi.engine.ai.AiProvider.Gemini) { System.err.println("dev: key found") }
+            }
+            "webclose" -> ui.web = null
             "go" -> ui.goPlace(app.soiboi.ui.Place.entries.first { it.name.equals(arg, true) })
             "library" -> ui.go(app.soiboi.ui.Route.Library(app.soiboi.ui.LibraryTab.entries.first { it.name.equals(arg, true) }))
             "album" -> ui.go(app.soiboi.ui.Route.Album(arg))

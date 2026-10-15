@@ -56,6 +56,8 @@ class AppController(val engine: Engine, val scope: CoroutineScope, val platform:
     var nowPlayingOpen by mutableStateOf(false)
     var queueOpen by mutableStateOf(false)
     var songMenu by mutableStateOf<SongMenu?>(null)
+    /** The guided in-app browser, drawn over everything while set. */
+    var web by mutableStateOf<app.soiboi.ui.web.WebSession?>(null)
     var askAiOpen by mutableStateOf(false)
     var smartEditor by mutableStateOf<SmartPlaylist?>(null)
     var smartEditorOriginal by mutableStateOf<String?>(null)
