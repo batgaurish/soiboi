@@ -18,6 +18,11 @@ undone on purpose; nothing below is half-built.
 
 ## Known gaps
 
+- Addons: the `/resolve` and `/resolve-isrc` endpoints are read by the client but nothing
+  calls them yet; playlist import could use them to match tracks on an addon.
+  Addon video streams and chapters are ignored. Tried only against a local fake
+  addon, not a live Eclipse addon.
+
 - WebDAV and Google Drive songs take artist, album and title from the folder
   layout and file name; neither carries audio tags.
 - The Android app reads folders by path, so it asks for All files access.

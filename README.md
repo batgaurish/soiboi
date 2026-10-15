@@ -35,6 +35,11 @@ Spotify, Apple Music or anyone else.
   key.
 - **Other libraries next to your files:** Navidrome, OpenSubsonic, Jellyfin,
   Emby, Plex, WebDAV and Google Drive, all in one searchable library.
+- **Addons:** paste the address of an addon server in Sources and its search
+  results, streams, album and artist pages and shelves appear in Soiboi. The
+  protocol is the one Eclipse uses (`/manifest.json`, `/search`, `/stream/{id}`,
+  `/album/{id}`, `/artist/{id}`, `/playlist/{id}`, `/catalog/{id}`), so Eclipse
+  addons work. Addon songs play from the queue and can be saved to playlists.
 - **Debrid sources:** TorBox and Real-Debrid accounts are searched for a song
   that is not on the device, and the match streams. TorBox AirLock can be
   switched per download, for files already in the account.

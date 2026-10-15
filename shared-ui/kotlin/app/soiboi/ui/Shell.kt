@@ -49,6 +49,7 @@ import app.soiboi.ui.components.ProgressBar
 import app.soiboi.ui.components.Space
 import app.soiboi.ui.components.Txt
 import app.soiboi.ui.components.press
+import app.soiboi.ui.screens.AddonItemScreen
 import app.soiboi.ui.screens.DiscoverScreen
 import app.soiboi.ui.screens.LibraryRail
 import app.soiboi.ui.screens.NewPlaylistDialog
@@ -175,6 +176,7 @@ private fun Content(app: AppController) {
         Route.Search -> SearchScreen(app)
         Route.Discover -> DiscoverScreen(app)
         is Route.Import -> ImportScreen(app, r.link)
+        is Route.AddonItem -> AddonItemScreen(app, r)
         Route.Downloads -> DownloadsScreen(app)
         Route.Sources -> SourcesScreen(app)
         Route.Settings -> SettingsScreen(app)

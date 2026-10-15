@@ -29,6 +29,7 @@ import app.soiboi.ui.Route
 import app.soiboi.ui.components.AlbumTile
 import app.soiboi.ui.components.ArtistTile
 import app.soiboi.ui.components.EmptyState
+import app.soiboi.ui.components.Loading
 import app.soiboi.ui.components.SField
 import app.soiboi.ui.components.SIconButton
 import app.soiboi.ui.components.SongRow
@@ -57,6 +58,16 @@ fun SearchScreen(app: AppController) {
         globalSearch(query, songs, albums, artists, playlists, smart, autoMoodPlaylists(songs, engine.tags::of), engine.smartContext)
     }
     val favs = remember(playlists) { engine.playlists.favoriteIds }
+    val addonList by engine.addons.installed.collectAsState()
+    var addonHits by remember { mutableStateOf<List<app.soiboi.engine.addons.AddonHit>>(emptyList()) }
+    var addonBusy by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(query, addonList) {
+        addonHits = emptyList()
+        if (query.trim().length < 2 || addonList.none { it.enabled && it.manifest.canSearch }) return@LaunchedEffect
+        addonBusy = true
+        try { kotlinx.coroutines.delay(450); addonHits = engine.addons.search(query.trim()) } finally { addonBusy = false }
+    }
+    val addonFound = addonHits.any { it.result?.isEmpty == false }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(Space.l), verticalArrangement = Arrangement.spacedBy(Space.m)) {
         item {
@@ -66,7 +77,7 @@ fun SearchScreen(app: AppController) {
             }
         }
         if (query.isBlank()) item { EmptyState("Search everything at once", "Type a name. Songs, albums, artists and playlists all answer. Press Control and K anywhere to come back here.", glyph = Glyph.Search) }
-        else if (results.isEmpty) item { EmptyState("Nothing for \"${results.query}\"", "Check the spelling, or paste a streaming link in Discover to bring new music in.", glyph = Glyph.Search) }
+        else if (results.isEmpty && !addonFound && !addonBusy) item { EmptyState("Nothing for \"${results.query}\"", "Check the spelling, or paste a streaming link in Discover to bring new music in.", glyph = Glyph.Search) }
         if (results.songs.isNotEmpty()) {
             item { Txt("Songs", style = Soiboi.type.headline) }
             items(results.songs.size) { i -> val s = results.songs[i]; SongRow(s, null, queue.current?.id == s.id, s.id in favs, { app.play(results.songs, i) }, { app.songMenu = SongMenu(s) }) }
@@ -89,6 +100,8 @@ fun SearchScreen(app: AppController) {
                 }
             }
         }
+        if (addonBusy) item { Loading("Asking your addons") }
+        addonResults(app, addonHits, favs, queue.current?.id)
     }
 }
 
