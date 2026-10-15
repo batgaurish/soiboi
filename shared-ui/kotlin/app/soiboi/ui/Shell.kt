@@ -50,6 +50,9 @@ import app.soiboi.ui.components.Space
 import app.soiboi.ui.components.Txt
 import app.soiboi.ui.components.press
 import app.soiboi.ui.screens.DiscoverScreen
+import app.soiboi.ui.screens.LibraryRail
+import app.soiboi.ui.screens.NewPlaylistDialog
+import app.soiboi.ui.screens.NowPlayingPanel
 import app.soiboi.ui.screens.DownloadsScreen
 import app.soiboi.ui.screens.ImportScreen
 import app.soiboi.ui.screens.LibraryScreen
@@ -98,7 +101,7 @@ fun SoiboiShell(app: AppController) {
     ) {
         BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
             val wide = maxWidth >= WIDE
-            if (wide) WideLayout(app) else NarrowLayout(app)
+            if (wide) WideLayout(app, maxWidth) else NarrowLayout(app)
         }
         AnimatedVisibility(app.nowPlayingOpen, enter = slideInVertically(tween(if (Soiboi.reduceMotion) 0 else 260)) { it } + fadeIn(), exit = slideOutVertically(tween(if (Soiboi.reduceMotion) 0 else 200)) { it } + fadeOut()) {
             Box(Modifier.fillMaxSize().background(c.paper).windowInsetsPadding(WindowInsets.systemBars)) { NowPlayingScreen(app) }
@@ -107,6 +110,7 @@ fun SoiboiShell(app: AppController) {
         app.songMenu?.let { SongMenuDialog(app, it) }
         if (app.askAiOpen) AskAiDialog(app)
         app.smartEditor?.let { SmartEditorDialog(app, it) }
+        if (app.newPlaylistOpen) NewPlaylistDialog(app)
     }
 }
 
@@ -121,16 +125,20 @@ private fun ToastHost(text: String?, modifier: Modifier) {
 }
 
 @Composable
-private fun WideLayout(app: AppController) {
+private fun WideLayout(app: AppController, width: androidx.compose.ui.unit.Dp) {
     val c = Soiboi.colors
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.weight(1f).fillMaxWidth()) {
-            Rail(app, Modifier.width(224.dp).fillMaxHeight())
+            Rail(app, Modifier.width(if (width >= 1180.dp) 300.dp else 264.dp).fillMaxHeight())
             Box(Modifier.width(1.dp).fillMaxHeight().background(c.rule))
             Box(Modifier.weight(1f).fillMaxHeight()) { Content(app) }
-            if (app.queueOpen) {
+            // The third column needs room: below this the content would be squeezed to a sliver.
+            app.rightPanel?.takeIf { width >= 1100.dp }?.let { panel ->
                 Box(Modifier.width(1.dp).fillMaxHeight().background(c.rule))
-                QueuePanel(app, Modifier.width(320.dp).fillMaxHeight())
+                when (panel) {
+                    RightPanel.Now -> NowPlayingPanel(app, Modifier.width(340.dp).fillMaxHeight())
+                    RightPanel.Queue -> QueuePanel(app, Modifier.width(340.dp).fillMaxHeight())
+                }
             }
         }
         Hairline()
@@ -193,7 +201,7 @@ private fun Rail(app: AppController, modifier: Modifier) {
             GlyphIcon(Glyph.Search, size = 18.dp, tint = c.soft); Txt("Search", Modifier.weight(1f), style = Soiboi.type.body, color = c.soft); Txt("Ctrl K", style = Soiboi.type.micro, color = c.muted)
         }
         Spacer(Modifier.height(Space.s))
-        Place.entries.forEach { place ->
+        Place.entries.filter { it != Place.Library }.forEach { place ->
             val selected = place == active
             Row(
                 Modifier.fillMaxWidth().press({ app.goPlace(place) }, place.label, Role.Tab, shape = Soiboi.look.shape(10)).background(if (selected) c.sunk else Color.Transparent, Soiboi.look.shape(10)).padding(horizontal = 12.dp, vertical = 11.dp),
@@ -203,7 +211,7 @@ private fun Rail(app: AppController, modifier: Modifier) {
                 Txt(place.label, Modifier.weight(1f), style = if (selected) Soiboi.type.bodyStrong else Soiboi.type.body, color = if (selected) c.ink else c.soft)
             }
         }
-        Spacer(Modifier.weight(1f))
+        LibraryRail(app, Modifier.weight(1f).fillMaxWidth())
         job?.let { j ->
             Column(Modifier.fillMaxWidth().press({ app.go(Route.Downloads) }, "Downloading ${j.label}, ${j.progress} percent", shape = Soiboi.look.shape(12)).background(c.raised, Soiboi.look.shape(12)).border(1.5.dp, c.rule, Soiboi.look.shape(12)).padding(Space.m), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Txt("Downloading", style = Soiboi.type.micro, color = c.muted)
