@@ -1,6 +1,11 @@
 package app.soiboi.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import app.soiboi.ui.web.WebScreen
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,6 +24,16 @@ fun SoiboiApp(engine: Engine, platform: PlatformUi, fonts: AppFonts, scope: Coro
     LaunchedEffect(Unit) { engine.start() }
     LaunchedEffect(app) { onReady(app) }
     CompositionLocalProvider(LocalEngine provides engine, LocalPlatform provides platform) {
-        SoiboiTheme(settings.flavour, settings.theme, settings.reduceMotion, fonts) { SoiboiShell(app) }
+        SoiboiTheme(settings.flavour, settings.theme, settings.reduceMotion, fonts) {
+            Box {
+                SoiboiShell(app)
+                app.web?.let { session ->
+                    // Swallows pointer events that reach the page behind; the browser and its own buttons sit above this.
+                    Box(Modifier.fillMaxSize().pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } }) {
+                        WebScreen(app, session)
+                    }
+                }
+            }
+        }
     }
 }

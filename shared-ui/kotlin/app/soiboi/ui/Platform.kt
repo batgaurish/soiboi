@@ -14,6 +14,8 @@ interface PlatformUi {
     fun openUrl(url: String)
     fun copyToClipboard(text: String)
     /** Tells Android to keep the process alive while downloads run; a no-op on desktop. */
+    /** The in-app browser used for sign-ins and guided downloads. */
+    val web: app.soiboi.ui.web.WebPaneFactory
     fun setDownloading(active: Boolean) {}
 }
 
