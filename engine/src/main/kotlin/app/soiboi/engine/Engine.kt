@@ -139,7 +139,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     val smartPlaylists: StateFlow<List<SmartPlaylist>> = _smart.asStateFlow()
 
     // lyrics
-    val lrclib = Lrclib()
+    val lrclib = Lrclib(java.io.File(paths.cacheDir, "lyrics"))
     val lyrics = LyricsProvider(lrclib, { settings.value.lrclibEnabled }, { song -> servers[song.origin]?.lyrics(song) })
 
     // connectors and debrid
@@ -160,6 +160,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
         resolveOverride = { song -> if (song.origin == SongOrigin.Local) null else resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() } },
         onPlayed = { song, _ -> serverMap[song.origin]?.scrobble(song.id); if (song.origin != SongOrigin.Local && song.playCount > 1) player.cache(song) },
         onSongChanged = { song -> lyrics.parsedFor(song) },
+        metaFor = { s -> app.soiboi.engine.player.TrackMeta(s.displayTitle, s.displayArtist, s.displayAlbum, runCatching { artwork.coverFor(s)?.path }.getOrNull(), s.durationMs) },
     )
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }

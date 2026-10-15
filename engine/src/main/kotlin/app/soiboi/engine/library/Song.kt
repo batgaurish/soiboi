@@ -78,7 +78,7 @@ data class QualityInfo(val tier: QualityTier, val label: String, val detail: Str
 
         fun classify(format: String?, bitrate: Int?, sampleRate: Int? = null): QualityInfo {
             val trimmed = format?.trim()
-            if (trimmed.isNullOrEmpty()) return QualityInfo(QualityTier.Unknown, "—")
+            if (trimmed.isNullOrEmpty()) return QualityInfo(QualityTier.Unknown, "Unknown")
             val f = trimmed.lowercase()
             val detail = if (sampleRate == null || sampleRate <= 0) null else "%.1f kHz".format(sampleRate / 1000.0)
             // Bitrate arrives in bit/s from some sources and kbit/s from others.
@@ -137,7 +137,7 @@ fun filterOptions(songs: List<Song>): Pair<Map<String, Int>, Map<String, Int>> {
     val codecs = HashMap<String, Int>(); val genres = HashMap<String, Int>()
     for (song in songs) {
         val codec = QualityInfo.of(song).codec()
-        if (codec != "—") codecs.merge(codec, 1, Int::plus)
+        if (codec != "Unknown") codecs.merge(codec, 1, Int::plus)
         genres.merge(genreOf(song.genre), 1, Int::plus)
     }
     fun ranked(m: Map<String, Int>) = m.entries.sortedByDescending { it.value }.associate { it.key to it.value }

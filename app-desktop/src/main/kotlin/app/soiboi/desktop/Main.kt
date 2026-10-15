@@ -106,8 +106,9 @@ fun main() {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val engine = Engine(platform, scope)
     val fonts = fonts()
+    val mpris = Mpris(engine, scope).also { it.start() }
     application {
-        Window(onCloseRequest = { engine.shutdown(); exitApplication() }, title = "Soiboi", state = rememberWindowState(size = DpSize(1280.dp, 820.dp))) {
+        Window(onCloseRequest = { mpris.stop(); engine.shutdown(); exitApplication() }, title = "Soiboi", state = rememberWindowState(size = DpSize(1280.dp, 820.dp))) {
             SoiboiApp(engine, DesktopUi, fonts, rememberCoroutineScope()) { app -> DevCommands.attach(app) }
         }
     }

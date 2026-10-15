@@ -34,7 +34,7 @@ class LrclibResult(val synced: String?, val plain: String?) {
  * A hit is written back beside the audio so a track costs one round trip and keeps working offline.
  * Every failure is non-fatal: missing lyrics must never break playback.
  */
-class Lrclib {
+class Lrclib(private val fallbackDir: java.io.File? = null) {
     /** Looks up [title] by [artist]; null when nothing matches, the network is down, or the request times out. */
     suspend fun fetch(title: String?, artist: String?, album: String? = null, durationMs: Long? = null): LrclibResult? {
         if (title.isNullOrBlank() || artist.isNullOrBlank()) return null
@@ -65,16 +65,22 @@ class Lrclib {
         EngineLog.output("lrclib: $e"); null
     }
 
-    /** Writes [lyrics] to a `.lrc` beside [audioPath] so the next play is offline. Failure is silent: a read-only mount should still show what we fetched. */
+    /**
+     * Writes [lyrics] to a `.lrc` beside [audioPath] so the next play is offline. When that folder is read-only (a mounted share,
+     * files owned by another user) they go to the app's own cache instead, so a song is never fetched twice.
+     */
     fun cacheSidecar(audioPath: String, lyrics: String) {
         try {
             val dot = audioPath.lastIndexOf('.'); if (dot <= 0) return
             val file = File(audioPath.substring(0, dot) + ".lrc")
             if (!file.exists()) file.writeText(lyrics)
-        } catch (e: Exception) {
-            EngineLog.output("lrclib cache: $e")
+        } catch (_: Exception) {
+            try { fallbackFile(audioPath)?.let { it.parentFile?.mkdirs(); it.writeText(lyrics) } } catch (e: Exception) { EngineLog.output("lrclib cache: $e") }
         }
     }
+
+    /** Where lyrics for [audioPath] live when they could not be written beside it. */
+    fun fallbackFile(audioPath: String): File? = fallbackDir?.let { File(it, java.security.MessageDigest.getInstance("MD5").digest(audioPath.toByteArray()).joinToString("") { b -> "%02x".format(b) } + ".lrc") }
 }
 
 /** Finds the best lyrics for a song: a sidecar `.lrc` or the tags, upgraded to synced lyrics from LRCLIB when only untimed ones exist. */
@@ -98,7 +104,12 @@ class LyricsProvider(
             val sidecar = File(path.substringBeforeLast('.') + ".lrc")
             // A sidecar .lrc wins over tags: Apple downloads embed line-timed lyrics and the pipeline writes the word-timed
             // version beside the file; reading the sidecar only when the tags were empty meant it was never used.
-            lines = if (sidecar.exists()) readLines(sidecar) else song.lyrics.orEmpty().split('\n').takeIf { !song.lyrics.isNullOrEmpty() }.orEmpty()
+            val cached = lrclib.fallbackFile(path)?.takeIf { it.exists() }
+            lines = when {
+                sidecar.exists() -> readLines(sidecar)
+                cached != null -> readLines(cached)
+                else -> song.lyrics.orEmpty().split('\n').takeIf { !song.lyrics.isNullOrEmpty() }.orEmpty()
+            }
         }
 
         // Ask LRCLIB when we have nothing, or when what we have is untimed: gamdl embeds Apple's plain lyrics, so a downloaded
