@@ -17,6 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import app.soiboi.ui.AppController
 import app.soiboi.ui.theme.Glyph
 import app.soiboi.ui.components.SButton
@@ -95,7 +98,7 @@ fun WebScreen(app: AppController, session: WebSession) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(c.paper)) {
+    Column(Modifier.fillMaxSize().background(c.paper).windowInsetsPadding(WindowInsets.systemBars)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = Space.m, vertical = Space.s), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
             SButton("Close", { app.web = null }, tone = Tone.Secondary, compact = true, glyph = Glyph.Close)
             Txt(session.title, Modifier.weight(1f), style = Soiboi.type.bodyStrong, maxLines = 1)
