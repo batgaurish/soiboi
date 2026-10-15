@@ -5,136 +5,126 @@ and the app downloads, decrypts, tags and files the tracks on the device you
 are holding. It runs on Linux and Android with no server, no Docker and no
 sync service.
 
-Soiboi plays local files. It will not stream from Spotify, Apple Music or
-anyone else.
+Soiboi plays files you own and your own servers. It will not stream from
+Spotify, Apple Music or anyone else.
 
-## Features
+## What it does
 
-- **Local playback** on Linux and Android, with synced lyrics from `.lrc`
-  files or [LRCLIB](https://lrclib.net).
-- **Archiving from a link.** Hand Soiboi an Apple Music track, album or
-  playlist. It queues the download, resumes at the last finished track after
-  an interruption, and drops tagged files with artwork into your library.
-- **Playlist import from other services.** Paste a Spotify, Deezer, YouTube
-  Music, Tidal, SoundCloud or Qobuz playlist link, or pick a playlist from your Apple Music account.
-  Soiboi matches each track to Apple's catalog by ISRC first, then by artist
-  and title, and archives the matches. None of these sources ask you to log
-  in.
-- **Weekly discoveries** from your public ListenBrainz exploration and jams
-  playlists, on the home screen.
-- **Smart playlists** built on BPM, energy, danceability, play count, date
+- **Plays your music** from folders on the device, with synced lyrics from
+  `.lrc` files or [LRCLIB](https://lrclib.net), a ten-band equalizer, a sleep
+  timer and a queue that survives a restart.
+- **Archives from a link.** Hand it an Apple Music track, album or playlist and
+  it queues the download, resumes after an interruption, and files tagged songs
+  with artwork into your library. ALAC lossless works through a bundled
+  [wrapper-v2](https://github.com/glomatico/wrapper-v2); Soiboi ships none of
+  Apple's code and asks for the one Apple Music app file the wrapper is pinned
+  to.
+- **Imports playlists from nine platforms:** Spotify, Deezer, YouTube Music,
+  Tidal, SoundCloud, JioSaavn, Qobuz, Gaana and Bandcamp, plus a pasted
+  tracklist. None of them need an account. Each song is matched to Apple's
+  catalog by ISRC first, then by artist and title; the ones that miss wait for
+  your pick instead of failing mid-download.
+- **Finds new music.** Weekly playlists from your public ListenBrainz profile,
+  and your own Apple Music playlists once you are signed in.
+- **Smart playlists** built on tempo, energy, danceability, play count, date
   added and more. [bliss-audio](https://github.com/Polochon-street/bliss-rs)
-  computes the audio features on the device.
-- **Lossless ALAC** through a bundled
-  [wrapper-v2](https://github.com/glomatico/wrapper-v2). Soiboi ships no
-  Apple code: setup asks for an Apple Music APK you supply and checks the
-  libraries it extracts from it.
+  measures the audio on the device.
 - **Optional AI** with your own key (Gemini, OpenRouter, Groq, Anthropic,
-  OpenAI, Ollama or any OpenAI-compatible endpoint): make playlists from a
-  prompt and get album picks on Home. Off until you add a key.
-- **Codec and bitrate on every track**, so you can see ALAC versus AAC at a
-  glance.
-- **Self-hosted servers**: browse Navidrome, Emby and WebDAV libraries next to
-  your local files.
-- **Backup and restore** for playlists, history and settings, plus an in-app
-  updater that installs new releases from this repo.
-- **Theming**: three UI flavours, light and dark, Material You on Android,
-  matugen on Linux, and six prebuilt palettes.
+  OpenAI, Ollama or any OpenAI-compatible endpoint): playlists from a sentence,
+  mood tags written once and read offline, and album ideas. Off until you add a
+  key.
+- **Other libraries next to your files:** Navidrome, OpenSubsonic, Jellyfin,
+  Emby, Plex, WebDAV and Google Drive, all in one searchable library.
+- **Debrid sources:** TorBox and Real-Debrid accounts are searched for a song
+  that is not on the device, and the match streams. TorBox AirLock can be
+  switched per download, for files already in the account.
+- **Codec and bitrate on every song**, so lossless and lossy never look alike.
+- **Two looks:** Zine (chunky type, round corners, tilted codec stickers) and
+  Liner Notes (a record sleeve: serif headings, small corners, printed labels),
+  each in paper and ink.
 
 Soiboi does not scrobble. Pair it with
-[Pano Scrobbler](https://github.com/kawaiiDango/pScrobbler) or any other
-media-session scrobbler.
+[Pano Scrobbler](https://github.com/kawaiiDango/pScrobbler) or any media-session
+scrobbler.
 
-## How it works
-
-The app carries its own Python pipeline, built on
-[gamdl](https://github.com/glomatico/gamdl). On desktop Soiboi runs it as a
-subprocess; on Android it runs in-process through
-[Chaquopy](https://chaquo.com/chaquopy/). Both platforms run the same code.
-The device that downloads a track keeps the only copy, and nothing moves files
-between devices.
+## How it is built
 
 ```
-┌──────────────────────────────────────────┐
-│  Soiboi (Linux · Android)                │
-│  ┌────────────────────────────────────┐  │
-│  │ embedded pipeline                  │  │
-│  │ download → decrypt → mux → tag     │  │
-│  │ → audio analysis → local library   │  │
-│  └────────────────────────────────────┘  │
-└──────────────────────────────────────────┘
+engine/        pure Kotlin: download queue, pipeline runner, sources, Apple
+               catalog, discovery, AI, smart playlists, lyrics, SQLite library,
+               server connectors, debrid, player controller. No UI.
+shared-ui/     one Compose UI source folder, compiled into both apps
+app-desktop/   Linux app. Audio through an mpv process.
+app-android/   Android app. Audio through Media3; Python runs in-process
+               through Chaquopy.
+pipeline/      the Python pipeline (gamdl, tag and cover reading, analysis),
+               the same code on both platforms
 ```
+
+The engine never touches the screen or the operating system directly. Each app
+hands it a `Platform` (paths, a pipeline runner, an audio backend, a secret
+store), so a fix in the engine is a fix on both platforms.
 
 ## Install
 
-Grab the Android APK or the Linux x64 tarball from
-[Releases](https://github.com/batgaurish/soiboi/releases). Android will ask
-you to allow installs from your browser or file manager. Updates install from
-inside the app.
+Build it from source for now; there are no tagged releases of the Kotlin
+version yet.
 
 ## Build from source
 
-You need the [Flutter SDK](https://docs.flutter.dev/install/manual).
+You need JDK 21, Python 3.12+ with `venv`, and [mpv](https://mpv.io) on Linux.
 
-### Linux (Arch / CachyOS)
-
-```shell
-sudo pacman -S clang lld cmake ninja pkgconf gtk3 xz libsecret mpv wpewebkit
-git clone https://github.com/batgaurish/soiboi.git
-cd soiboi
-tools/build_pipeline.sh
-tools/apply_patches.sh
-flutter run --release
-```
-
-### Linux (Ubuntu / Debian)
+### Linux
 
 ```shell
-sudo apt install clang lld cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libmpv-dev
 git clone https://github.com/batgaurish/soiboi.git
 cd soiboi
-tools/build_pipeline.sh
-tools/apply_patches.sh
-flutter run --release
+tools/build_pipeline.sh          # the Python environment, once
+./gradlew :app-desktop:run       # run from the checkout
+tools/install_linux.sh           # or install for your user
 ```
 
-`tools/apply_patches.sh` patches media_kit so libmpv skips its Lua scripts,
-which crash the Linux build. `flutter pub get` reverts the patch, so run the
-script again after every `pub get`. `tools/install_linux.sh` adds Soiboi to
-your app launcher.
+On Arch or CachyOS: `sudo pacman -S jdk21-openjdk python mpv`.
+
+The lossless wrapper is optional and built by `tools/build_wrapper.sh`.
 
 ### Android
 
+You need the Android SDK (platform 37) and Python 3.12 for Chaquopy.
+
 ```shell
-flutter doctor --android-licenses
-ANDROID_NDK=<path to your NDK> tools/build_android_pipeline.sh
-flutter build apk --release
+echo "sdk.dir=$HOME/Android/Sdk" > local.properties
+tools/build_android_pipeline.sh   # cross-compiles gamdl's muxer, bliss and the wheel repo
+./gradlew :app-android:assembleDebug
 ```
 
-Set `SOIBOI_ABIS=arm64-v8a` to leave out the x86_64 emulator libraries and
-cut the APK by about 95 MB.
+Without `pip-repo/` the app still builds and runs: scans and covers need only
+mutagen, and downloads report that the downloader is missing. Set
+`SOIBOI_ABIS=arm64-v8a` to leave out the x86_64 emulator libraries.
 
-The tree still holds the Windows, macOS and iOS targets from upstream. Nobody
-tests them here.
+### Tests
+
+```shell
+./gradlew :engine:test           # Kotlin
+.pipeline-venv/bin/python -m pytest   # Python
+```
 
 ## Credits
 
-Soiboi forks **[Sylvakru](https://github.com/AfalpHy/sylvakru)** by
-[AfalpHy](https://github.com/AfalpHy), a cross-platform music player under
-Apache 2.0. AfalpHy wrote the player foundation: audio engine, library model,
-server clients and platform integration. This fork adds the archiving
-pipeline on top. If you want a general music player without the archiving,
-use Sylvakru. It also supports Windows, macOS and iOS.
+Soiboi began as a fork of **[Sylvakru](https://github.com/AfalpHy/sylvakru)**
+by [AfalpHy](https://github.com/AfalpHy), a cross-platform music player under
+Apache 2.0, and has since been rewritten in Kotlin with its own interface. Some
+of the library, queue and lyric-parsing logic follows Sylvakru's design;
+[NOTICE](NOTICE) says exactly what. If you want a general player without the
+archiving, use Sylvakru.
 
-Soiboi plays audio through [media_kit](https://github.com/media-kit/media-kit)
-(mpv and FFmpeg), reads tags with
-[audio_tags_lofty](https://github.com/AfalpHy/audio_tags_lofty), downloads
-with [gamdl](https://github.com/glomatico/gamdl) and analyses audio with
-[bliss-audio](https://github.com/Polochon-street/bliss-rs).
+Audio plays through [mpv](https://mpv.io) on Linux and
+[Media3](https://developer.android.com/media/media3) on Android. Downloads use
+[gamdl](https://github.com/glomatico/gamdl); tags and artwork use
+[mutagen](https://mutagen.readthedocs.io); the audio analysis is
+[bliss-audio](https://github.com/Polochon-street/bliss-rs). Type is Bricolage
+Grotesque, Fraunces and IBM Plex Sans, all under the SIL Open Font License.
 
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
-
-Upstream Sylvakru is Copyright 2025-2026 AfalpHy. [NOTICE](NOTICE) lists the
-changes in this fork, and git keeps the full history.

@@ -1,32 +1,31 @@
 Soiboi
 Copyright 2026 batgaurish
 
-This product includes software developed as part of the Sylvakru project.
+This product includes ideas and logic from the Sylvakru project.
 
   Sylvakru
   Copyright 2025-2026 AfalpHy
   https://github.com/AfalpHy/sylvakru
   Licensed under the Apache License, Version 2.0
 
-Soiboi is a derivative work of Sylvakru, retaining its Apache License 2.0
-terms. The original copyright notice is preserved in LICENSE.
+Soiboi began as a fork of Sylvakru, retaining its Apache License 2.0 terms.
+The original copyright notice is preserved in LICENSE.
 
-Significant changes made in Soiboi relative to upstream Sylvakru:
+The Flutter application and interface inherited from Sylvakru have been
+removed. Soiboi is now written in Kotlin with its own interface. The parts
+below were re-implemented in Kotlin from Sylvakru's Dart code and remain
+derived from it:
 
-  - Rebranded application identity (package name, application id, display
-    name, packaging metadata, platform method-channel identifiers).
-  - Added an integration with a self-hosted download pipeline service
-    (download_bridge), providing an in-app flow for archiving Apple Music
-    playlists to the local library.
-  - Added a discovery view surfacing weekly generated playlists from that
-    service.
-  - Added synced-lyrics retrieval from LRCLIB, complementing the existing
-    local .lrc and server-provided lyrics sources.
-  - Reworked the colour system into a multi-flavour theme token model,
-    replacing the fixed light/dark/vivid colour modes.
-  - Surfaced per-track codec and quality information (e.g. ALAC, AAC 320)
-    throughout the library and player interfaces.
-  - Copy-editing pass over the English UI strings.
+  - The play queue's reordering rules (insert next, add last, shuffle around
+    the current song, wrap-around navigation).
+  - The library model: grouping songs into albums and artists, the splitting of
+    credited artists, and the song sort orders.
+  - The LRC lyric parser, including word-timed lines and translation lines.
+  - The Navidrome/OpenSubsonic and Emby/Jellyfin client behaviour.
+  - The audio quality classification from tag format and bitrate.
 
-The full modification history is preserved in this repository's git history,
-which retains all upstream Sylvakru commits.
+Everything else was added in Soiboi: the archiving pipeline and download
+queue, playlist import from nine platforms, Apple catalog matching, ListenBrainz
+discovery, AI playlists and mood tags, smart playlists, synced lyrics from
+LRCLIB, the Plex, WebDAV and Google Drive connectors, TorBox and Real-Debrid
+playback sources, the Compose interface, and the Linux and Android apps.

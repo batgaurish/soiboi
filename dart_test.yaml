@@ -1,4 +1,0 @@
-tags:
-  # Exercises the real bundled Python runtime rather than a mock. Skips itself
-  # when the pipeline venv has not been built.
-  integration:
