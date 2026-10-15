@@ -20,6 +20,8 @@ dependencies {
     implementation(compose.material3)
     implementation(compose.foundation)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.dbus.core)
+    implementation(libs.dbus.transport)
 }
 
 compose.desktop {

@@ -94,7 +94,7 @@ class MpvBackend(private val mpvPath: String = "mpv") : AudioBackend {
         } catch (_: Exception) { /* socket closed on release */ }
     }
 
-    override suspend fun open(source: String, headers: Map<String, String>, startMs: Long, play: Boolean) {
+    override suspend fun open(source: String, headers: Map<String, String>, startMs: Long, play: Boolean, meta: TrackMeta?) {
         ensureStarted()
         loading = true; positionMs = 0; durationMs = 0
         val options = buildList {

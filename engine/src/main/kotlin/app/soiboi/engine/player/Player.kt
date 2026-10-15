@@ -54,6 +54,8 @@ class Player(
     private val resolveOverride: suspend (Song) -> Pair<String, Map<String, String>>? = { null },
     private val onPlayed: suspend (Song, Int) -> Unit = { _, _ -> },
     private val onSongChanged: suspend (Song) -> Unit = {},
+    /** Title, artist and cover for the system's media controls. */
+    private val metaFor: suspend (Song) -> TrackMeta = { TrackMeta(it.displayTitle, it.displayArtist, it.displayAlbum, null, it.durationMs) },
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -81,7 +83,14 @@ class Player(
     private var saveJob: Job? = null
     private var wantPlaying = false
 
+    /** Commands from outside the app (notification buttons, media keys) go through the same paths as the on-screen controls. */
+    val remote = RemoteControls(
+        onNext = { scope.launch { next() } }, onPrevious = { scope.launch { previous() } }, onPlay = { play() }, onPause = { pause() },
+        onToggle = { togglePlay() }, onStop = { scope.launch { stop() } }, onSeekTo = { ms -> scope.launch { seek(ms) } },
+    )
+
     init {
+        backend.attachRemote(remote)
         scope.launch {
             backend.events.collect { e ->
                 when (e) {
@@ -282,7 +291,7 @@ class Player(
         _state.value = PlaybackState(playing = wantPlaying, loading = true)
         try {
             val (source, headers) = sourceFor(song)
-            backend.open(source, headers, startMs, wantPlaying)
+            backend.open(source, headers, startMs, wantPlaying, metaFor(song))
             if (wantPlaying) lastSyncAt = Instant.now()
             _state.update { it.copy(loading = false, playing = wantPlaying) }
             onSongChanged(song)
