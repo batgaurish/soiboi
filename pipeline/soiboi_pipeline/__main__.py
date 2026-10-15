@@ -14,7 +14,7 @@ import logging
 import sys
 from collections.abc import Callable
 
-from . import __version__, acoustic, apple_library, downloader, playlist, runtime
+from . import __version__, acoustic, apple_library, downloader, playlist, runtime, tags, art
 from . import wrapper_libs
 from .protocol import Emit, Event, Payload, done, error, ignore
 
@@ -36,6 +36,8 @@ _HANDLERS: dict[str, Handler] = {
     "download": downloader.handle_download,
     "cancel": downloader.handle_cancel,
     "wrapper_install": wrapper_libs.handle_install,
+    "read_tags": tags.handle_read_tags,
+    "cover": art.handle_cover,
 }
 
 
