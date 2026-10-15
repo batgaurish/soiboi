@@ -196,3 +196,16 @@ fun SmartEditorDialog(app: AppController, start: SmartPlaylist) {
         }
     }
 }
+
+
+/** A name and a button: the plus in the library rail. */
+@Composable
+fun NewPlaylistDialog(app: AppController) {
+    var name by remember { mutableStateOf("") }
+    fun close() { app.newPlaylistOpen = false }
+    fun create() { if (name.isNotBlank()) { app.newPlaylistWith(null, name); close() } }
+    SDialog("New playlist", { close() }, actions = {
+        SButton("Cancel", { close() }, tone = Tone.Ghost)
+        SButton("Create playlist", { create() }, tone = Tone.Primary, enabled = name.isNotBlank())
+    }) { SField(name, { name = it }, "Name", hint = "Late night drive", requestFocus = true, onSubmit = { create() }) }
+}

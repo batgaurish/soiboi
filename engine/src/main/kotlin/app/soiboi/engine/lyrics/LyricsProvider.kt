@@ -61,6 +61,10 @@ class Lrclib(private val fallbackDir: java.io.File? = null) {
             val response = Http.client.get(urlWith("$LRCLIB$path", query)) { header("User-Agent", USER_AGENT) }
             if (response.status == HttpStatusCode.OK) Http.json.parseToJsonElement(response.bodyAsText()) else null
         }
+    } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+        EngineLog.output("lrclib: timed out"); null
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         EngineLog.output("lrclib: $e"); null
     }

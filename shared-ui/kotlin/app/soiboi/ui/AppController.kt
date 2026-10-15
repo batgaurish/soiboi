@@ -45,6 +45,8 @@ fun Route.place(): Place = when (this) {
     Route.Settings -> Place.Settings
 }
 
+enum class RightPanel { Now, Queue }
+
 /** What a song's "more" menu is about, so one sheet serves every list. */
 class SongMenu(val song: Song, val inPlaylist: String? = null)
 
@@ -54,7 +56,12 @@ class AppController(val engine: Engine, val scope: CoroutineScope, val platform:
     val route: Route get() = stack.last()
 
     var nowPlayingOpen by mutableStateOf(false)
-    var queueOpen by mutableStateOf(false)
+    /** What the right-hand column shows on wide screens: the now-playing panel, the queue, or nothing. */
+    var rightPanel by mutableStateOf<RightPanel?>(RightPanel.Now)
+    var queueOpen: Boolean
+        get() = rightPanel == RightPanel.Queue
+        set(open) { rightPanel = if (open) RightPanel.Queue else if (rightPanel == RightPanel.Queue) null else rightPanel }
+    var newPlaylistOpen by mutableStateOf(false)
     var songMenu by mutableStateOf<SongMenu?>(null)
     /** The guided in-app browser, drawn over everything while set. */
     var web by mutableStateOf<app.soiboi.ui.web.WebSession?>(null)

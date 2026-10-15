@@ -40,6 +40,7 @@ import app.soiboi.engine.library.Song
 import app.soiboi.engine.player.EqFrequencies
 import app.soiboi.engine.player.PlayMode
 import app.soiboi.ui.AppController
+import app.soiboi.ui.RightPanel
 import app.soiboi.ui.LocalEngine
 import app.soiboi.ui.Route
 import app.soiboi.ui.components.Chip
@@ -126,8 +127,9 @@ fun PlayerBar(app: AppController, wide: Boolean) {
             }
         }
         Row(Modifier.width(250.dp), horizontalArrangement = Arrangement.spacedBy(Space.s), verticalAlignment = Alignment.CenterVertically) {
-            SIconButton(Glyph.Lyrics, "Lyrics", { app.nowPlayingOpen = true }, size = 40.dp, iconSize = 20.dp)
-            SIconButton(Glyph.Queue, "Queue", { app.queueOpen = !app.queueOpen }, tint = if (app.queueOpen) c.accent else c.ink, size = 40.dp, iconSize = 20.dp)
+            SIconButton(Glyph.Disc, "Now playing panel", { app.rightPanel = if (app.rightPanel == RightPanel.Now) null else RightPanel.Now }, tint = if (app.rightPanel == RightPanel.Now) c.accent else c.ink, size = 40.dp, iconSize = 20.dp)
+            SIconButton(Glyph.Lyrics, "Open lyrics full screen", { app.nowPlayingOpen = true }, size = 40.dp, iconSize = 20.dp)
+            SIconButton(Glyph.Queue, "Queue", { app.rightPanel = if (app.rightPanel == RightPanel.Queue) null else RightPanel.Queue }, tint = if (app.queueOpen) c.accent else c.ink, size = 40.dp, iconSize = 20.dp)
             GlyphIcon(if (volume == 0.0) Glyph.VolumeMute else Glyph.Volume, size = 20.dp, tint = c.soft)
             SSlider(volume.toFloat(), { player.setVolume(it.toDouble()) }, Modifier.weight(1f), label = "Volume", valueText = "${(volume * 100).toInt()} percent")
         }
