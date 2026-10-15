@@ -1,0 +1,248 @@
+package app.soiboi.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import app.soiboi.engine.ai.AiConfig
+import app.soiboi.engine.ai.AiProvider
+import app.soiboi.engine.ai.AiProviders
+import app.soiboi.engine.ai.aiListModels
+import app.soiboi.engine.ai.pickDefaultModel
+import app.soiboi.engine.core.DownloadCodecLabels
+import app.soiboi.engine.core.Flavour
+import app.soiboi.engine.core.ThemeMode
+import app.soiboi.engine.download.WrapperStage
+import app.soiboi.engine.download.APPLE_MUSIC_APK_LABEL
+import app.soiboi.engine.download.APPLE_MUSIC_APK_URL
+import app.soiboi.ui.AppController
+import app.soiboi.ui.components.Banner
+import app.soiboi.ui.components.Chip
+import app.soiboi.ui.components.ConfirmDialog
+import app.soiboi.ui.components.Listbox
+import app.soiboi.ui.components.SButton
+import app.soiboi.ui.components.SDialog
+import app.soiboi.ui.components.SField
+import app.soiboi.ui.components.SectionTitle
+import app.soiboi.ui.components.Segmented
+import app.soiboi.ui.components.Space
+import app.soiboi.ui.components.SwitchRow
+import app.soiboi.ui.components.Tone
+import app.soiboi.ui.components.Txt
+import app.soiboi.ui.components.Hairline
+import app.soiboi.ui.theme.Glyph
+import app.soiboi.ui.theme.Soiboi
+import kotlinx.coroutines.launch
+import java.io.File
+
+@Composable
+private fun Group(title: String, content: @Composable () -> Unit) {
+    val c = Soiboi.colors; val shape = Soiboi.look.shape(16)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.s)) {
+        SectionTitle(title)
+        Column(Modifier.fillMaxWidth().background(c.raised, shape).border(1.5.dp, c.rule, shape).padding(Space.m), verticalArrangement = Arrangement.spacedBy(Space.s)) { content() }
+    }
+}
+
+/** Looks, downloads, Apple Music sign-in, lossless wrapper, lyrics, ListenBrainz, AI and backup, in the order people reach for them. */
+@Composable
+fun SettingsScreen(app: AppController) {
+    val c = Soiboi.colors
+    val engine = app.engine
+    val s by engine.settings.state.collectAsState()
+    val signed by engine.cookieStore.signedIn.collectAsState()
+    val expiry by engine.cookieStore.sessionExpiry.collectAsState()
+    val wrapper by engine.wrapper.state.collectAsState()
+    val wrapperIn by engine.wrapper.signedIn.collectAsState()
+    val ai by engine.aiConfig.collectAsState()
+    var aiOpen by remember { mutableStateOf(false) }
+    var wrapperOpen by remember { mutableStateOf(false) }
+    var lbCheck by remember { mutableStateOf<String?>(null) }
+    var lbName by remember(s.listenBrainzUser) { mutableStateOf(s.listenBrainzUser) }
+    var confirmClearTags by remember { mutableStateOf(false) }
+    val tagProgress by engine.tags.progress.collectAsState()
+    var analysing by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(Space.l), verticalArrangement = Arrangement.spacedBy(Space.l)) {
+        item { Txt("Settings", Modifier.padding(top = Space.l), style = Soiboi.type.display) }
+        item {
+            Group("Look") {
+                Txt("Flavour", style = Soiboi.type.label, color = c.soft)
+                Segmented(listOf(Flavour.Zine to "Zine", Flavour.LinerNotes to "Liner Notes"), s.flavour, { f -> engine.settings.update { copy(flavour = f) } })
+                Txt(if (s.flavour == Flavour.Zine) "Chunky type, round corners and tilted codec stickers." else "Serif headings, small corners and a record sleeve's printed labels.", style = Soiboi.type.caption, color = c.soft)
+                Txt("Theme", style = Soiboi.type.label, color = c.soft)
+                Segmented(listOf(ThemeMode.System to "Follow the system", ThemeMode.Light to "Paper", ThemeMode.Dark to "Ink"), s.theme, { m -> engine.settings.update { copy(theme = m) } })
+                SwitchRow("Reduce motion", s.reduceMotion, { v -> engine.settings.update { copy(reduceMotion = v) } }, detail = "Presses, fades and slides become instant.")
+            }
+        }
+        item {
+            Group("Downloads") {
+                Listbox("Quality", DownloadCodecLabels.entries.map { it.key to it.value }, s.downloadCodec, { v -> engine.settings.update { copy(downloadCodec = v) } })
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    Column(Modifier.weight(1f)) { Txt("Download folder", style = Soiboi.type.bodyStrong); Txt(s.downloadFolder.ifEmpty { "The app's own folder, ${engine.paths.defaultDownloadDir.path}" }, style = Soiboi.type.caption, color = c.soft, maxLines = 2) }
+                    SButton("Choose", { scope.launch { app.platform.pickFolder()?.let { f -> engine.settings.update { copy(downloadFolder = f) } } } }, compact = true, glyph = Glyph.Folder)
+                }
+                if (s.downloadFolder.isNotEmpty()) SButton("Use the app's own folder", { engine.settings.update { copy(downloadFolder = "") } }, tone = Tone.Ghost, compact = true)
+            }
+        }
+        item {
+            Group("Apple Music") {
+                Banner(if (wrapperIn) "Signed in for lossless" else if (signed) "Signed in with a browser session" else "Not signed in", when {
+                    wrapperIn -> "Signed in as ${wrapper.account ?: "your Apple ID"}. ALAC downloads work."
+                    signed -> expiry?.let { "The session ends ${it.toString().take(10)}." } ?: "AAC downloads work. Lossless needs the wrapper below."
+                    else -> "Downloading needs an Apple Music subscription and a sign-in."
+                }, if (wrapperIn || signed) Glyph.Check else Glyph.Key, tint = if (wrapperIn || signed) c.ok else c.soft)
+                Txt("Browser session", style = Soiboi.type.label, color = c.soft)
+                Txt("Sign in to music.apple.com in a browser, export cookies.txt with an extension, and import it here. Soiboi keeps only the Apple cookies.", style = Soiboi.type.caption, color = c.soft)
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    SButton("Import cookies.txt", { scope.launch { app.platform.pickFile(listOf("txt"))?.let { p -> app.toast(if (engine.cookieStore.importFile(File(p))) "Signed in" else "That file has no Apple Music session") } } }, compact = true, glyph = Glyph.Download)
+                    if (signed) SButton("Sign out", { engine.cookieStore.signOut() }, tone = Tone.Ghost, compact = true)
+                }
+                Hairline()
+                Txt("Lossless wrapper", style = Soiboi.type.label, color = c.soft)
+                Txt(when (wrapper.stage) { WrapperStage.Unsupported -> "Not part of this build. AAC downloads work without it."; WrapperStage.NeedsLibraries -> "Needs the Apple Music app file once."; WrapperStage.Ready -> "Running and signed in."; WrapperStage.NeedsCode -> "Apple sent a two-factor code."; WrapperStage.Failed -> wrapper.message ?: "It did not start."; else -> if (wrapperIn) "Signed in. It starts when a download needs it." else "Set up to download ALAC." }, style = Soiboi.type.caption, color = c.soft)
+                if (wrapper.stage != WrapperStage.Unsupported) SButton("Set up lossless", { wrapperOpen = true }, compact = true, glyph = Glyph.Key)
+            }
+        }
+        item {
+            Group("Mood and tempo") {
+                Txt("Smart playlists and mood shelves read energy, tempo and danceability. Soiboi measures them on your device from the audio.", style = Soiboi.type.caption, color = c.soft)
+                SButton(if (analysing) "Analysing" else "Analyse my library", { analysing = true; scope.launch { engine.analyse { }; analysing = false; app.toast("Analysis finished") } }, compact = true, glyph = Glyph.Wave, loading = analysing)
+            }
+        }
+        item {
+            Group("Lyrics") {
+                SwitchRow("Fetch synced lyrics from LRCLIB", s.lrclibEnabled, { v -> engine.settings.update { copy(lrclibEnabled = v) } }, detail = "Used when a song has none, or only plain words. Found lyrics are saved beside the file.")
+            }
+        }
+        item {
+            Group("ListenBrainz") {
+                Txt("Your public username shows weekly discoveries and real top artists on Today. No account link or token is needed.", style = Soiboi.type.caption, color = c.soft)
+                SField(lbName, { lbName = it; lbCheck = null }, "Username", hint = "Your ListenBrainz name")
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.s), verticalAlignment = Alignment.CenterVertically) {
+                    SButton("Check and save", { scope.launch { if (lbName.isBlank() || engine.listenBrainz.verifyUser(lbName.trim())) { engine.settings.update { copy(listenBrainzUser = lbName.trim()) }; lbCheck = "Saved" } else lbCheck = "ListenBrainz does not know that name." } }, compact = true)
+                    lbCheck?.let { Txt(it, style = Soiboi.type.caption, color = if (it == "Saved") c.ok else c.danger) }
+                }
+            }
+        }
+        item {
+            Group("AI") {
+                Txt(if (ai == null) "Off. Add your own key to make playlists from a sentence and get album ideas." else "On with ${ai!!.info.label}, model ${ai!!.effectiveModel.ifEmpty { "not chosen" }}.", style = Soiboi.type.caption, color = c.soft)
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    SButton(if (ai == null) "Add a key" else "Change the setup", { aiOpen = true }, compact = true, glyph = Glyph.Key)
+                    if (ai != null) SButton("Remove the key", { engine.saveAiConfig(null) }, tone = Tone.Ghost, compact = true)
+                }
+                if (ai != null) {
+                    Hairline()
+                    Txt("Tag songs by mood", style = Soiboi.type.label, color = c.soft)
+                    Txt("The model tags each song once with moods, positivity, energy and language. Smart playlists and the Today shelf then read those tags offline. ${engine.tags.count} songs are tagged.", style = Soiboi.type.caption, color = c.soft)
+                    Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                        SButton(tagProgress?.let { "Tagging ${it.done} of ${it.total}" } ?: "Tag my library", { scope.launch { try { val n = engine.tags.tagLibrary(ai, engine.library.songs.value); app.toast("Tagged $n songs") } catch (e: Exception) { app.toast(e.message ?: "Tagging stopped") } } }, compact = true, loading = tagProgress != null)
+                        if (tagProgress != null) SButton("Stop", { engine.tags.cancel() }, tone = Tone.Ghost, compact = true)
+                        else SButton("Forget tags", { confirmClearTags = true }, tone = Tone.Ghost, compact = true)
+                    }
+                }
+            }
+        }
+        item {
+            Group("Backup") {
+                Txt("Playlists, smart playlists, matches you chose and settings, as one file. Audio is never included.", style = Soiboi.type.caption, color = c.soft)
+                Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    SButton("Save a backup", { scope.launch { app.platform.pickSavePath("soiboi-backup-${java.time.LocalDate.now()}.json")?.let { p -> engine.exportBackup(File(p)); app.toast("Backup saved") } } }, compact = true, glyph = Glyph.Download)
+                    SButton("Restore a backup", { scope.launch { app.platform.pickFile(listOf("json"))?.let { p -> app.toast(if (engine.importBackup(File(p))) "Backup restored" else "That is not a Soiboi backup") } } }, compact = true, tone = Tone.Secondary)
+                }
+            }
+        }
+        item {
+            Group("About") { Txt("Soiboi ${engine.platform.appVersion}. Plays what you own. Downloads through Apple Music; it never streams from anyone.", style = Soiboi.type.caption, color = c.soft) }
+        }
+    }
+    if (aiOpen) AiSetupDialog(app, ai) { aiOpen = false }
+    if (wrapperOpen) WrapperDialog(app) { wrapperOpen = false }
+    if (confirmClearTags) ConfirmDialog("Forget all mood tags?", "Smart playlists on moods will match nothing until songs are tagged again.", "Forget mood tags", { scope.launch { engine.tags.clear() } }, { confirmClearTags = false })
+}
+
+@Composable
+private fun AiSetupDialog(app: AppController, current: AiConfig?, onDismiss: () -> Unit) {
+    val c = Soiboi.colors
+    var provider by remember { mutableStateOf(current?.provider ?: AiProvider.Gemini) }
+    var key by remember { mutableStateOf(current?.key ?: "") }
+    var model by remember { mutableStateOf(current?.model ?: "") }
+    var baseUrl by remember { mutableStateOf(current?.baseUrl ?: "") }
+    var models by remember { mutableStateOf<List<String>>(emptyList()) }
+    var busy by remember { mutableStateOf(false) }
+    val info = AiProviders.getValue(provider)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    SDialog("Set up AI", onDismiss, width = 520.dp, actions = {
+        SButton("Cancel", onDismiss, tone = Tone.Ghost)
+        SButton("Save", { app.engine.saveAiConfig(AiConfig(provider, key.trim(), model.trim(), baseUrl.trim())); app.toast("AI is on"); onDismiss() }, tone = Tone.Primary, enabled = AiConfig(provider, key, model, baseUrl).isUsable)
+    }) {
+        Listbox("Provider", AiProviders.entries.map { it.key to it.value.label }, provider, { provider = it; models = emptyList(); model = "" })
+        Txt(info.blurb, style = Soiboi.type.caption, color = c.soft)
+        info.keyPage?.let { page -> SButton("Get a key", { app.platform.openUrl(page) }, tone = Tone.Ghost, compact = true, glyph = Glyph.Link) }
+        if (info.needsKey) SField(key, { key = it }, "API key", secret = true)
+        if (provider == AiProvider.Ollama || provider == AiProvider.Custom) SField(baseUrl, { baseUrl = it }, "Address", hint = info.baseUrl.ifEmpty { "https://host/v1" })
+        SField(model, { model = it }, "Model", hint = info.defaultModel ?: "Load the list below, or type a name")
+        SButton("List this provider's models", { busy = true; scope.launch { models = aiListModels(AiConfig(provider, key.trim(), "", baseUrl.trim())); if (model.isBlank()) pickDefaultModel(provider, models)?.let { model = it }; busy = false } }, compact = true, loading = busy)
+        if (models.isNotEmpty()) Listbox("Pick a model", models.take(200).map { it to it }, model.takeIf { it in models }, { model = it })
+        Txt("Your key stays in this device's encrypted store and goes only to the provider you chose.", style = Soiboi.type.caption, color = c.muted)
+    }
+}
+
+@Composable
+private fun WrapperDialog(app: AppController, onDismiss: () -> Unit) {
+    val c = Soiboi.colors
+    val engine = app.engine
+    val state by engine.wrapper.state.collectAsState()
+    var appleId by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    SDialog("Set up lossless", onDismiss, width = 520.dp) {
+        Txt("Lossless downloads decrypt with Apple Music's own Android libraries. Soiboi ships none of them, so you supply the one app file it is pinned to.", style = Soiboi.type.caption, color = c.soft)
+        when (state.stage) {
+            WrapperStage.NeedsLibraries -> {
+                Txt("Step 1. Download $APPLE_MUSIC_APK_LABEL.", style = Soiboi.type.bodyStrong)
+                SButton("Open the download page", { app.platform.openUrl(APPLE_MUSIC_APK_URL) }, compact = true, glyph = Glyph.Link)
+                Txt("Step 2. Choose the file you downloaded.", style = Soiboi.type.bodyStrong)
+                SButton("Choose the APK", { busy = true; scope.launch { app.platform.pickFile(listOf("apk", "xapk"))?.let { p -> message = engine.wrapper.installLibraries(File(p)) ?: "Installed" }; busy = false } }, tone = Tone.Primary, compact = true, loading = busy, glyph = Glyph.Folder)
+            }
+            WrapperStage.NeedsCode -> {
+                Txt("Apple sent a code to your devices.", style = Soiboi.type.bodyStrong)
+                SField(code, { code = it }, "Six-digit code", requestFocus = true)
+                SButton("Submit the code", { busy = true; scope.launch { engine.wrapper.submitCode(code); busy = false } }, tone = Tone.Primary, loading = busy, compact = true)
+            }
+            WrapperStage.Unsupported -> Banner("Not part of this build", "The wrapper binaries are missing, so lossless is unavailable here. AAC downloads work.", Glyph.Info)
+            else -> {
+                if (wrapperSigned(engine)) { Banner("Signed in", state.account ?: "Your Apple ID", Glyph.Check, tint = c.ok); SButton("Sign out of the wrapper", { scope.launch { engine.wrapper.signOut() } }, tone = Tone.Ghost, compact = true) }
+                else {
+                    SField(appleId, { appleId = it }, "Apple ID", hint = "name@example.com"); SField(password, { password = it }, "Password", secret = true)
+                    Txt("The password goes only to the wrapper on this device, which hands it to Apple. Soiboi never stores it.", style = Soiboi.type.caption, color = c.muted)
+                    SButton("Sign in", { busy = true; scope.launch { engine.wrapper.start(); engine.wrapper.signIn(appleId.trim(), password); password = ""; busy = false } }, tone = Tone.Primary, loading = busy, enabled = appleId.isNotBlank() && password.isNotBlank(), compact = true)
+                }
+            }
+        }
+        state.message?.let { Banner("Wrapper", it, Glyph.Info) }
+        message?.let { Txt(it, style = Soiboi.type.caption, color = c.soft) }
+    }
+}
+
+private fun wrapperSigned(engine: app.soiboi.engine.Engine) = engine.wrapper.signedIn.value
