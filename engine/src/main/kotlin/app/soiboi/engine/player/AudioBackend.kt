@@ -41,5 +41,7 @@ sealed interface BackendEvent {
     data class Playing(val playing: Boolean) : BackendEvent
     /** Playback reached the end of the source. */
     data object Completed : BackendEvent
+    /** What an internet radio stream says is on air right now, or null when it says nothing. */
+    data class StreamTitle(val title: String?) : BackendEvent
     data class Error(val message: String) : BackendEvent
 }

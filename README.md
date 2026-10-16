@@ -5,8 +5,9 @@ and the app downloads, decrypts, tags and files the tracks on the device you
 are holding. It runs on Linux and Android with no server, no Docker and no
 sync service.
 
-Soiboi plays files you own and your own servers. It will not stream from
-Spotify, Apple Music or anyone else.
+Soiboi plays files you own, your own servers, and public streaming sources you
+switch on. It does not decrypt anyone's protected streams; Apple Music is
+only ever downloaded through your own subscription.
 
 ## What it does
 
@@ -35,6 +36,19 @@ Spotify, Apple Music or anyone else.
   key.
 - **Other libraries next to your files:** Navidrome, OpenSubsonic, Jellyfin,
   Emby, Plex, WebDAV and Google Drive, all in one searchable library.
+- **Streaming sources, built in:** YouTube Music (search, albums, artists,
+  playlists and a mix radio from any song), SoundCloud, and live internet radio
+  with the station's now-playing title. They appear in Search and Discover
+  beside your own music. Spotify works through a Spotify Connect device you own
+  (Premium and your own free Spotify app needed). Each can be switched off in
+  Sources.
+- **SMB shares and Nextcloud** as libraries, with no mounting.
+- **Lyrics** from LRCLIB first, then Paxsenix, then Musixmatch if you give it
+  your own token.
+- **From a terminal:** `soiboi --headless` runs without a window, and
+  `soiboi ctl status|play|pause|next|find|play-online ...` controls a running
+  Soiboi. On Linux there is also a tray and Discord presence, both off until you
+  turn them on in Settings.
 - **Addons:** paste the address of an addon server in Sources and its search
   results, streams, album and artist pages and shelves appear in Soiboi. The
   protocol is the one Eclipse uses (`/manifest.json`, `/search`, `/stream/{id}`,

@@ -46,6 +46,8 @@ data class Settings(
     val discordClientId: String = "",
     /** Desktop: closing the window hides it to the tray and keeps the music playing. */
     val minimizeToTray: Boolean = false,
+    /** The Spotify Connect device Soiboi plays Spotify tracks on; empty means whichever is active. */
+    val spotifyDeviceId: String = "",
     /** A version the person chose not to be asked about again. */
     val skippedVersion: String = "",
 ) {

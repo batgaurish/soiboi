@@ -62,7 +62,7 @@ class MpvBackend(private val mpvPath: String = "mpv") : AudioBackend {
         channel = ch
         writer = Channels.newWriter(ch, Charsets.UTF_8)
         scope.launch { readLoop(ch) }
-        observe("time-pos", 1); observe("duration", 2); observe("pause", 3)
+        observe("time-pos", 1); observe("duration", 2); observe("pause", 3); observe("metadata", 4)
     }
 
     private fun observe(property: String, id: Int) = send(buildJsonArray { add(JsonPrimitive("observe_property")); add(JsonPrimitive(id)); add(JsonPrimitive(property)) })
@@ -80,6 +80,11 @@ class MpvBackend(private val mpvPath: String = "mpv") : AudioBackend {
                 val o = runCatching { json.parseToJsonElement(line) as? JsonObject }.getOrNull() ?: return@forEachLine
                 when (o["event"]?.let { (it as? JsonPrimitive)?.contentOrNull }) {
                     "property-change" -> {
+                        if ((o["name"] as? JsonPrimitive)?.contentOrNull == "metadata") {
+                            val meta = o["data"] as? JsonObject
+                            val title = meta?.entries?.firstOrNull { it.key.equals("icy-title", true) || it.key.equals("StreamTitle", true) }?.value.let { (it as? JsonPrimitive)?.contentOrNull }?.trim()?.takeIf { it.isNotEmpty() }
+                            _events.tryEmit(BackendEvent.StreamTitle(title))
+                        }
                         val value = o["data"] as? JsonPrimitive
                         when (o["name"]?.let { (it as? JsonPrimitive)?.contentOrNull }) {
                             "time-pos" -> value?.doubleOrNull?.let { positionMs = (it * 1000).toLong(); _events.tryEmit(BackendEvent.Position(positionMs, durationMs)) }

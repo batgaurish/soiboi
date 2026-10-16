@@ -97,7 +97,7 @@ fun PlayerBar(app: AppController, wide: Boolean) {
         Column(Modifier.fillMaxWidth().background(c.raised)) {
             Row(Modifier.fillMaxWidth().press({ app.nowPlayingOpen = true }, "Open player, ${song.displayTitle}", shape = Soiboi.look.shape(0)).padding(horizontal = Space.m, vertical = Space.s), horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
                 Cover(song, 48.dp, shape = Soiboi.look.shape(8))
-                Column(Modifier.weight(1f)) { Txt(song.displayTitle, style = Soiboi.type.bodyStrong, maxLines = 1); Txt(song.displayArtist, style = Soiboi.type.caption, color = c.soft, maxLines = 1) }
+                Column(Modifier.weight(1f)) { Txt(song.displayTitle, style = Soiboi.type.bodyStrong, maxLines = 1); Txt(if (live) (state.streamTitle ?: song.displayArtist) else song.displayArtist, style = Soiboi.type.caption, color = c.soft, maxLines = 1) }
                 PlayButton(state.playing, { player.togglePlay() }, size = 44.dp)
             }
             Box(Modifier.fillMaxWidth().height(3.dp).background(c.rule)) { Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(3.dp).background(c.accent)) }
@@ -109,7 +109,7 @@ fun PlayerBar(app: AppController, wide: Boolean) {
         Row(Modifier.width(300.dp).press({ app.nowPlayingOpen = true }, "Open player, ${song.displayTitle}", shape = Soiboi.look.shape(12)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
             Cover(song, 56.dp, shape = Soiboi.look.shape(10))
             Column(Modifier.weight(1f)) {
-                Txt(song.displayTitle, style = Soiboi.type.bodyStrong, maxLines = 1); Txt(song.displayArtist, style = Soiboi.type.caption, color = c.soft, maxLines = 1)
+                Txt(song.displayTitle, style = Soiboi.type.bodyStrong, maxLines = 1); Txt(if (live) (state.streamTitle ?: song.displayArtist) else song.displayArtist, style = Soiboi.type.caption, color = c.soft, maxLines = 1)
                 Row(Modifier.padding(top = 2.dp)) { QualitySticker(QualityInfo.of(song)) }
             }
         }
@@ -199,7 +199,7 @@ fun NowPlayingScreen(app: AppController) {
                 Row(verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f)) {
                         Txt(song.displayTitle, style = if (wide) Soiboi.type.display else Soiboi.type.headline.copy(fontSize = 32.sp, lineHeight = 36.sp), maxLines = 2)
-                        Txt(song.displayArtist, Modifier.press({ app.go(Route.Artist(song.artists.first())) }, "Go to ${song.displayArtist}", shape = Soiboi.look.shape(6)), style = Soiboi.type.title, color = c.soft, maxLines = 1)
+                        Txt(if (live) (state.streamTitle ?: song.displayArtist) else song.displayArtist, Modifier.press({ if (!live) app.go(Route.Artist(song.artists.first())) }, "Go to ${song.displayArtist}", shape = Soiboi.look.shape(6)), style = Soiboi.type.title, color = c.soft, maxLines = 1)
                         Txt(song.displayAlbum, Modifier.press({ app.go(Route.Album(song.displayAlbum)) }, "Go to ${song.displayAlbum}", shape = Soiboi.look.shape(6)), style = Soiboi.type.body, color = c.muted, maxLines = 1)
                     }
                     SIconButton(if (isFav) Glyph.HeartFilled else Glyph.Heart, if (isFav) "Remove from favorites" else "Add to favorites", { app.toggleFavorite(song) }, tint = if (isFav) c.accent else c.ink)

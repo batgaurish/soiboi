@@ -26,7 +26,7 @@ data class QueueState(val songs: List<Song> = emptyList(), val currentIndex: Int
     val upNext: List<Song> get() = if (currentIndex < 0) emptyList() else songs.drop(currentIndex + 1)
 }
 
-data class PlaybackState(val playing: Boolean = false, val positionMs: Long = 0, val durationMs: Long = 0, val loading: Boolean = false, val error: String? = null)
+data class PlaybackState(val playing: Boolean = false, val positionMs: Long = 0, val durationMs: Long = 0, val loading: Boolean = false, val error: String? = null, val streamTitle: String? = null)
 
 @Serializable
 private data class Saved(
@@ -96,6 +96,7 @@ class Player(
                 when (e) {
                     is BackendEvent.Position -> _state.update { it.copy(positionMs = e.positionMs, durationMs = e.durationMs) }
                     is BackendEvent.Playing -> { markPlaying(e.playing); _state.update { it.copy(playing = e.playing) } }
+                    is BackendEvent.StreamTitle -> _state.update { it.copy(streamTitle = e.title) }
                     BackendEvent.Completed -> onCompleted()
                     is BackendEvent.Error -> { EngineLog.output("player error: ${e.message}"); _state.update { it.copy(error = e.message, loading = false) } }
                 }
