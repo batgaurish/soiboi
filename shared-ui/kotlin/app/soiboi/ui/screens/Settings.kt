@@ -135,6 +135,8 @@ fun SettingsScreen(app: AppController) {
         item {
             Group("Lyrics") {
                 SwitchRow("Fetch synced lyrics from LRCLIB", s.lrclibEnabled, { v -> engine.settings.update { copy(lrclibEnabled = v) } }, detail = "Used when a song has none, or only plain words. Found lyrics are saved beside the file.")
+                SwitchRow("Also try Paxsenix", s.paxsenixLyrics, { v -> engine.settings.update { copy(paxsenixLyrics = v) } }, detail = "Apple Music lyrics by song match, when LRCLIB has no synced ones. The service is often busy.")
+                SField(s.musixmatchToken, { v -> engine.settings.update { copy(musixmatchToken = v.trim()) } }, "Musixmatch user token (optional)", hint = "Paste your token to also search Musixmatch", secret = true)
             }
         }
         item {
