@@ -62,7 +62,7 @@ class ControlServer(private val engine: Engine, private val scope: CoroutineScop
         return when (cmd) {
             "status" -> {
                 val st = p.state.value; val song = p.queue.value.current
-                ok { put("playing", st.playing); put("positionMs", st.positionMs); put("durationMs", st.durationMs); put("volume", (p.volume.value * 100).toInt()); put("mode", p.mode.value.name); song?.let { put("song", songJson(it)) } }
+                ok { put("playing", st.playing); put("positionMs", st.positionMs); put("durationMs", st.durationMs); put("volume", (p.volume.value * 100).toInt()); put("mode", p.mode.value.name); st.streamTitle?.let { put("streamTitle", it) }; song?.let { put("song", songJson(it)) } }
             }
             "play" -> { p.play(); ok() }
             "pause" -> { p.pause(); ok() }

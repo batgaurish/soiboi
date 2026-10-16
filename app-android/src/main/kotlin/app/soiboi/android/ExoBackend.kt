@@ -42,6 +42,9 @@ class ExoBackend(private val context: Context) : AudioBackend {
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) { _events.tryEmit(BackendEvent.Playing(isPlaying)) }
         override fun onPlaybackStateChanged(state: Int) { if (state == Player.STATE_ENDED) _events.tryEmit(BackendEvent.Completed) }
+        override fun onMetadata(metadata: androidx.media3.common.Metadata) {
+            for (i in 0 until metadata.length()) (metadata[i] as? androidx.media3.extractor.metadata.icy.IcyInfo)?.title?.let { _events.tryEmit(BackendEvent.StreamTitle(it.trim().takeIf { t -> t.isNotEmpty() })) }
+        }
         override fun onPlayerError(error: PlaybackException) { _events.tryEmit(BackendEvent.Error(error.message ?: "playback error")) }
     }
 

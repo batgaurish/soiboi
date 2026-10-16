@@ -23,6 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.soiboi.engine.ai.AiConfig
+import app.soiboi.engine.spotify.SPOTIFY_REDIRECT
+import app.soiboi.engine.spotify.SpotifyDevice
+import app.soiboi.engine.spotify.SpotifyLogin
+import app.soiboi.engine.spotify.awaitSpotifyCode
 import app.soiboi.engine.ai.AiProvider
 import app.soiboi.engine.ai.AiProviders
 import app.soiboi.engine.ai.aiListModels
@@ -179,6 +183,7 @@ fun SettingsScreen(app: AppController) {
         }
         item {
             Group("Updates") { UpdateControls(app) }
+            Group("Spotify") { SpotifySettings(app) }
             if (!app.platform.isAndroid) Group("Desktop") {
                 SwitchRow("Keep playing in the tray", s.minimizeToTray, { v -> engine.settings.update { copy(minimizeToTray = v) } }, detail = "Closing the window hides Soiboi to the system tray instead of quitting. Needs a tray on your desktop.")
                 SwitchRow("Show what is playing on Discord", s.discordPresence, { v -> engine.settings.update { copy(discordPresence = v) } }, detail = "Needs the Discord app running, and a Discord application id from discord.com/developers.")
@@ -289,4 +294,46 @@ private fun LogDialog(app: AppController, onDismiss: () -> Unit) {
         Txt(if (text.isBlank()) "Nothing logged yet." else "Newest first. A line starting CRASH is where the app stopped.", style = Soiboi.type.caption, color = c.soft)
         LazyColumn(Modifier.fillMaxWidth().height(360.dp)) { items(lines) { Txt(it, style = Soiboi.type.caption, color = if (it.contains("CRASH") || it.contains("rror")) c.danger else c.ink) } }
     }
+}
+
+@Composable
+private fun SpotifySettings(app: AppController) {
+    val c = Soiboi.colors
+    val engine = app.engine
+    val api = engine.spotifyApi
+    val s by engine.settings.state.collectAsState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var clientId by remember { mutableStateOf(api.clientId.orEmpty()) }
+    var connected by remember { mutableStateOf(api.connected) }
+    var busy by remember { mutableStateOf(false) }
+    var devices by remember { mutableStateOf<List<SpotifyDevice>>(emptyList()) }
+    var problem by remember { mutableStateOf<String?>(null) }
+    Txt("Search Spotify and your library, and play through a Spotify Connect device you own (the Spotify app on a phone or computer, or a speaker). Soiboi controls the device; the sound comes from it. Needs Premium.", style = Soiboi.type.caption, color = c.soft)
+    if (!connected) {
+        Txt("Make a free app at developer.spotify.com, add $SPOTIFY_REDIRECT as its redirect address, then paste its Client ID here. No secret is needed.", style = Soiboi.type.caption, color = c.soft)
+        SField(clientId, { clientId = it }, "Client ID", hint = "From your Spotify app's settings")
+        SButton("Connect Spotify", {
+            busy = true; problem = null
+            scope.launch {
+                api.saveClientId(clientId)
+                val login = SpotifyLogin(clientId.trim())
+                val code = awaitSpotifyCode(login, { app.platform.openUrl(it) })
+                if (code == null) problem = "No sign-in came back. Check the redirect address in your Spotify app, and that nothing else is using port 8898."
+                else problem = api.finishLogin(login, code)
+                connected = api.connected
+                if (connected) { engine.addons.setEnabled("spotify", true); app.toast("Spotify connected") }
+                busy = false
+            }
+        }, tone = Tone.Primary, compact = true, loading = busy, enabled = clientId.isNotBlank(), glyph = Glyph.Link)
+    } else {
+        Banner("Spotify is connected", "Search and the shelves now include it.", Glyph.Check, tint = c.ok)
+        SwitchRow("Use Spotify", engine.addons.instance("spotify")?.enabled ?: false, { v -> scope.launch { engine.addons.setEnabled("spotify", v) } })
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            SButton("Find my devices", { busy = true; scope.launch { devices = runCatching { api.devices() }.getOrElse { problem = it.message; emptyList() }; busy = false } }, compact = true, loading = busy, glyph = Glyph.Refresh)
+            SButton("Disconnect", { api.signOut(); connected = false; scope.launch { engine.addons.setEnabled("spotify", false) } }, tone = Tone.Ghost, compact = true)
+        }
+        if (devices.isNotEmpty()) Listbox("Play on", listOf("" to "Whichever is active") + devices.map { it.id to "${it.name} (${it.type})" }, s.spotifyDeviceId, { id -> engine.settings.update { copy(spotifyDeviceId = id) } })
+        else if (s.spotifyDeviceId.isNotEmpty()) Txt("A device is chosen. Tap Find my devices to change it.", style = Soiboi.type.caption, color = c.muted)
+    }
+    problem?.let { Banner("Spotify", it, Glyph.Warning, tint = c.danger) }
 }

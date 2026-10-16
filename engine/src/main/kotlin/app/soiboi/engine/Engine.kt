@@ -74,7 +74,7 @@ class Platform(
     val isAndroid: Boolean = false,
     /** Android asks for All-files access when the chosen download folder needs it. */
     val ensureFolderWritable: suspend () -> Unit = {},
-    val appVersion: String = "2.3.0",
+    val appVersion: String = "2.4.0",
 )
 
 /** One saved connection. Passwords and tokens live in the [SecretStore], never here. */
@@ -91,6 +91,8 @@ data class SourceStatus(val kind: SongOrigin, val connected: Boolean, val songs:
 class Engine(val platform: Platform, val scope: CoroutineScope) {
     val paths = platform.paths.also { it.ensure(); EngineLog.attach(java.io.File(it.supportDir, "logs/soiboi.log")) }
     val settings = SettingsStore(paths.settingsFile)
+    val spotifyApi = app.soiboi.engine.spotify.SpotifyApi(platform.secrets)
+    private val spotifyBackendRouter = app.soiboi.engine.spotify.RoutingBackend(platform.audio, app.soiboi.engine.spotify.SpotifyBackend(spotifyApi, scope) { settings.value.spotifyDeviceId.ifBlank { null } })
     val db = Database(paths.databaseFile)
 
     // library
@@ -150,7 +152,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
 
     // connectors and debrid
     val addons = app.soiboi.engine.addons.AddonRegistry(db, listOf(
-        app.soiboi.engine.providers.youTubeMusicProvider { id -> youtubeStream(id) }, app.soiboi.engine.providers.SoundCloudProvider, app.soiboi.engine.providers.RadioProvider,
+        app.soiboi.engine.providers.youTubeMusicProvider { id -> youtubeStream(id) }, app.soiboi.engine.providers.SoundCloudProvider, app.soiboi.engine.providers.RadioProvider, app.soiboi.engine.spotify.spotifyProvider(spotifyApi),
     ))
     val updater = app.soiboi.engine.update.Updater("batgaurish/soiboi", platform.appVersion, platform.isAndroid, paths.cacheDir)
     private val serverMap = HashMap<SongOrigin, MusicServer>()
@@ -165,7 +167,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
 
     // playback
     val player: Player = Player(
-        scope, platform.audio, library, songStore, db, { serverMap },
+        scope, spotifyBackendRouter, library, songStore, db, { serverMap },
         cacheDir = java.io.File(paths.cacheDir, "remote"),
         resolveOverride = { song -> if (song.origin == SongOrigin.Addon) addons.streamFor(song) else if (song.origin == SongOrigin.Local) null else resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() } },
         onPlayed = { song, _ -> serverMap[song.origin]?.scrobble(song.id); if (song.origin != SongOrigin.Local && song.playCount > 1) player.cache(song) },
