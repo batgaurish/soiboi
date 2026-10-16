@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import app.soiboi.engine.Engine
 import app.soiboi.ui.theme.AppFonts
+import app.soiboi.ui.theme.Soiboi
 import app.soiboi.ui.theme.SoiboiTheme
 import kotlinx.coroutines.CoroutineScope
 
@@ -31,6 +32,8 @@ fun SoiboiApp(engine: Engine, platform: PlatformUi, fonts: AppFonts, scope: Coro
     }
     CompositionLocalProvider(LocalEngine provides engine, LocalPlatform provides platform) {
         SoiboiTheme(settings.flavour, settings.theme, settings.reduceMotion, fonts) {
+            val dark = Soiboi.colors.isDark
+            LaunchedEffect(dark) { app.themeIsDark = dark; platform.setSystemBarIcons(lightIcons = dark) }
             Box {
                 SoiboiShell(app)
                 app.web?.let { session ->

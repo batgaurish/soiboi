@@ -68,6 +68,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT; window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= 29) { window.isNavigationBarContrastEnforced = false; window.isStatusBarContrastEnforced = false }
         if (Build.VERSION.SDK_INT >= 33) permissions.launch(arrayOf(Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS))
         else permissions.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
 
@@ -96,6 +98,7 @@ class MainActivity : ComponentActivity() {
             override fun openUrl(url: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             override fun copyToClipboard(text: String) { (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("Soiboi", text)) }
             override fun setDownloading(active: Boolean) = KeepAliveService.set(applicationContext, active)
+            override fun setSystemBarIcons(lightIcons: Boolean) { runOnUiThread { WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = !lightIcons; isAppearanceLightNavigationBars = !lightIcons } } }
             override fun installApk(file: File): Boolean {
                 if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
                     startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))

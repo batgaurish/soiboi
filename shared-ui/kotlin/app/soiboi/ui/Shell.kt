@@ -106,7 +106,7 @@ fun SoiboiShell(app: AppController) {
             if (wide) WideLayout(app, maxWidth) else NarrowLayout(app)
         }
         AnimatedVisibility(app.nowPlayingOpen, enter = slideInVertically(tween(if (Soiboi.reduceMotion) 0 else 260)) { it } + fadeIn(), exit = slideOutVertically(tween(if (Soiboi.reduceMotion) 0 else 200)) { it } + fadeOut()) {
-            Box(Modifier.fillMaxSize().background(c.paper).windowInsetsPadding(WindowInsets.systemBars)) { NowPlayingScreen(app) }
+            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) { NowPlayingScreen(app) }
         }
         ToastHost(toast, Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 110.dp))
         app.songMenu?.let { SongMenuDialog(app, it) }

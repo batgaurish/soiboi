@@ -65,6 +65,8 @@ class AppController(val engine: Engine, val scope: CoroutineScope, val platform:
         set(open) { rightPanel = if (open) RightPanel.Queue else if (rightPanel == RightPanel.Queue) null else rightPanel }
     var newPlaylistOpen by mutableStateOf(false)
     var updateOpen by mutableStateOf(false)
+    /** Whether the app's own theme is dark right now, so the system bar icons can match it when a dark screen closes. */
+    var themeIsDark by mutableStateOf(false)
     var songMenu by mutableStateOf<SongMenu?>(null)
     /** The guided in-app browser, drawn over everything while set. */
     var web by mutableStateOf<app.soiboi.ui.web.WebSession?>(null)

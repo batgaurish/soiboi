@@ -55,6 +55,20 @@ private object CoverCache {
     @Synchronized fun put(k: String, v: ImageBitmap?) { map[k] = v }
 }
 
+/** The song's cover as an image, loaded once and shared with [Cover]'s cache. Null while loading or when the song has none. */
+@Composable
+fun rememberCoverBitmap(song: Song?): ImageBitmap? {
+    val engine = LocalEngine.current; val platform = LocalPlatform.current
+    val key = song?.let { "${it.origin}:${it.albumId ?: it.path ?: it.id}" }
+    var bitmap by remember(key) { mutableStateOf(key?.let { CoverCache.get(it) }) }
+    LaunchedEffect(key) {
+        if (song == null || key == null || CoverCache.has(key)) { if (key != null) bitmap = CoverCache.get(key); return@LaunchedEffect }
+        val image = withContext(Dispatchers.IO) { engine.artwork.coverFor(song)?.let { f -> runCatching { platform.decodeImage(f.readBytes()) }.getOrNull() } }
+        CoverCache.put(key, image); bitmap = image
+    }
+    return bitmap
+}
+
 /** The song's cover. With none, an honest placeholder: a sunk square with a disc mark, never an invented image. */
 @Composable
 fun Cover(song: Song?, size: Dp, modifier: Modifier = Modifier, shape: Shape = Soiboi.look.shape(10), contentDescription: String? = null) {
