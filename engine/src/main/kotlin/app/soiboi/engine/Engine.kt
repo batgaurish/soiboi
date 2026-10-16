@@ -73,7 +73,7 @@ class Platform(
     val isAndroid: Boolean = false,
     /** Android asks for All-files access when the chosen download folder needs it. */
     val ensureFolderWritable: suspend () -> Unit = {},
-    val appVersion: String = "2.2.0",
+    val appVersion: String = "2.2.1",
 )
 
 /** One saved connection. Passwords and tokens live in the [SecretStore], never here. */
@@ -88,7 +88,7 @@ data class SourceStatus(val kind: SongOrigin, val connected: Boolean, val songs:
  * its state flows; it never constructs a service itself. Everything platform-specific arrives in [Platform].
  */
 class Engine(val platform: Platform, val scope: CoroutineScope) {
-    val paths = platform.paths.also { it.ensure() }
+    val paths = platform.paths.also { it.ensure(); EngineLog.attach(java.io.File(it.supportDir, "logs/soiboi.log")) }
     val settings = SettingsStore(paths.settingsFile)
     val db = Database(paths.databaseFile)
 

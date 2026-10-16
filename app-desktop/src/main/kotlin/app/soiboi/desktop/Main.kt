@@ -104,7 +104,7 @@ fun main() {
         secrets = FileSecretStore(paths.supportDir),
         wrapper = WrapperPlatform(isAndroid = false, abi = "x86_64", bundleCandidates = listOfNotNull(repo?.let { File(it, "build/wrapper/x86_64") }, File(home, "build/wrapper/x86_64"))),
     )
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + kotlinx.coroutines.CoroutineExceptionHandler { _, e -> app.soiboi.engine.core.EngineLog.output("uncaught in a background task: " + e.stackTraceToString()) })
     val engine = Engine(platform, scope)
     val fonts = fonts()
     val mpris = Mpris(engine, scope).also { it.start() }

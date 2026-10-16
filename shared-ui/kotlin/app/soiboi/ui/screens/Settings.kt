@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.height
+import app.soiboi.engine.core.EngineLog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,6 +76,7 @@ fun SettingsScreen(app: AppController) {
     val ai by engine.aiConfig.collectAsState()
     var aiOpen by remember { mutableStateOf(false) }
     var wrapperOpen by remember { mutableStateOf(false) }
+    var logOpen by remember { mutableStateOf(false) }
     var lbCheck by remember { mutableStateOf<String?>(null) }
     var lbName by remember(s.listenBrainzUser) { mutableStateOf(s.listenBrainzUser) }
     var confirmClearTags by remember { mutableStateOf(false) }
@@ -85,8 +89,8 @@ fun SettingsScreen(app: AppController) {
         item {
             Group("Look") {
                 Txt("Flavour", style = Soiboi.type.label, color = c.soft)
-                Segmented(listOf(Flavour.Zine to "Zine", Flavour.LinerNotes to "Liner Notes"), s.flavour, { f -> engine.settings.update { copy(flavour = f) } })
-                Txt(if (s.flavour == Flavour.Zine) "Chunky type, round corners and tilted codec stickers." else "Serif headings, small corners and a record sleeve's printed labels.", style = Soiboi.type.caption, color = c.soft)
+                Segmented(listOf(Flavour.Zine to "Zine", Flavour.LinerNotes to "Liner Notes", Flavour.Spotify to "Spotify"), s.flavour, { f -> engine.settings.update { copy(flavour = f) } })
+                Txt(when (s.flavour) { Flavour.Zine -> "Chunky type, round corners and tilted codec stickers."; Flavour.Spotify -> "Near-black, green accent, flat tiles. Familiar if you came from Spotify."; Flavour.LinerNotes -> "Serif headings, small corners and a record sleeve's printed labels." }, style = Soiboi.type.caption, color = c.soft)
                 Txt("Theme", style = Soiboi.type.label, color = c.soft)
                 Segmented(listOf(ThemeMode.System to "Follow the system", ThemeMode.Light to "Paper", ThemeMode.Dark to "Ink"), s.theme, { m -> engine.settings.update { copy(theme = m) } })
                 SwitchRow("Reduce motion", s.reduceMotion, { v -> engine.settings.update { copy(reduceMotion = v) } }, detail = "Presses, fades and slides become instant.")
@@ -172,9 +176,14 @@ fun SettingsScreen(app: AppController) {
             }
         }
         item {
+            Group("Troubleshooting") {
+                Txt("Everything Soiboi did and every error, kept on this device, including what happened just before a crash. Copy it when you report a problem.", style = Soiboi.type.caption, color = c.soft)
+                SButton("Show the app log", { logOpen = true }, compact = true, tone = Tone.Secondary, glyph = Glyph.Info)
+            }
             Group("About") { Txt("Soiboi ${engine.platform.appVersion}. Plays what you own. Downloads through Apple Music; it never streams from anyone.", style = Soiboi.type.caption, color = c.soft) }
         }
     }
+    if (logOpen) LogDialog(app) { logOpen = false }
     if (aiOpen) AiSetupDialog(app, ai) { aiOpen = false }
     if (wrapperOpen) WrapperDialog(app) { wrapperOpen = false }
     if (confirmClearTags) ConfirmDialog("Forget all mood tags?", "Smart playlists on moods will match nothing until songs are tagged again.", "Forget mood tags", { scope.launch { engine.tags.clear() } }, { confirmClearTags = false })
@@ -201,7 +210,7 @@ private fun AiSetupDialog(app: AppController, current: AiConfig?, onDismiss: () 
             if (app.platform.web.available && WebSessions.keyPattern(provider) != null) SButton("Get a key for me", { app.web = WebSessions.aiKey(provider) { key = it } }, tone = Tone.Secondary, compact = true, glyph = Glyph.Link)
             else SButton("Get a key", { app.platform.openUrl(page) }, tone = Tone.Ghost, compact = true, glyph = Glyph.Link)
         }
-        if (info.needsKey) SField(key, { key = it }, "API key", secret = true)
+        SField(key, { key = it }, if (info.needsKey) "API key" else "API key (optional)", secret = true)
         if (provider == AiProvider.Ollama || provider == AiProvider.Custom) SField(baseUrl, { baseUrl = it }, "Address", hint = info.baseUrl.ifEmpty { "https://host/v1" })
         SField(model, { model = it }, "Model", hint = info.defaultModel ?: "Load the list below, or type a name")
         SButton("List this provider's models", { busy = true; scope.launch { models = aiListModels(AiConfig(provider, key.trim(), "", baseUrl.trim())); if (model.isBlank()) pickDefaultModel(provider, models)?.let { model = it }; busy = false } }, compact = true, loading = busy)
@@ -257,3 +266,19 @@ private fun WrapperDialog(app: AppController, onDismiss: () -> Unit) {
 }
 
 private fun wrapperSigned(engine: app.soiboi.engine.Engine) = engine.wrapper.signedIn.value
+
+@Composable
+private fun LogDialog(app: AppController, onDismiss: () -> Unit) {
+    val c = Soiboi.colors
+    var text by remember { mutableStateOf(EngineLog.text()) }
+    val lines = remember(text) { text.lines().takeLast(400).reversed() }
+    SDialog("App log", onDismiss, width = 640.dp, actions = {
+        SButton("Close", onDismiss, tone = Tone.Ghost)
+        SButton("Clear", { EngineLog.clear(); text = "" }, tone = Tone.Ghost)
+        SButton("Refresh", { text = EngineLog.text() }, tone = Tone.Secondary)
+        SButton("Copy all", { app.platform.copyToClipboard(text); app.toast("Log copied") }, tone = Tone.Primary)
+    }) {
+        Txt(if (text.isBlank()) "Nothing logged yet." else "Newest first. A line starting CRASH is where the app stopped.", style = Soiboi.type.caption, color = c.soft)
+        LazyColumn(Modifier.fillMaxWidth().height(360.dp)) { items(lines) { Txt(it, style = Soiboi.type.caption, color = if (it.contains("CRASH") || it.contains("rror")) c.danger else c.ink) } }
+    }
+}

@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 /** Which design flavour the UI wears. */
-enum class Flavour { Zine, LinerNotes }
+enum class Flavour { Zine, LinerNotes, Spotify }
 
 enum class ThemeMode { System, Light, Dark }
 

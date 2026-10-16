@@ -87,6 +87,8 @@ private fun HttpRequestBuilder.applyHeaders(c: AiConfig) {
 private fun body(c: AiConfig, system: String, prompt: String, stream: Boolean): String = buildJsonObject {
     put("model", c.effectiveModel)
     if (stream) put("stream", true)
+    // Gemini's thinking tokens eat the answer budget on long replies; tagging and playlists need none.
+    if (c.provider == AiProvider.Gemini) put("reasoning_effort", "none")
     if (c.provider == AiProvider.Anthropic) {
         put("max_tokens", 16000); put("fallbacks", "default"); put("system", system)
         put("messages", buildJsonArray { add(buildJsonObject { put("role", "user"); put("content", prompt) }) })
@@ -184,8 +186,11 @@ private fun openAiText(body: JsonObject): String {
 }
 
 private fun decode(status: HttpStatusCode, text: String): JsonObject {
-    val body = try { Http.json.parseToJsonElement(text) as? JsonObject } catch (_: Exception) { null }
+    val parsed = try { Http.json.parseToJsonElement(text) } catch (_: Exception) { null }
+    // Gemini wraps some errors in a one-item array.
+    val body = parsed as? JsonObject ?: (parsed as? kotlinx.serialization.json.JsonArray)?.firstOrNull() as? JsonObject
     if (status.value in 200..299 && body != null) return body
+    app.soiboi.engine.core.EngineLog.output("ai: HTTP ${status.value}: ${text.take(500)}")
     throw AiException(explain(status.value, body))
 }
 
