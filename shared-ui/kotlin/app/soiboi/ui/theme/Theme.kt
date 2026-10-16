@@ -46,7 +46,7 @@ private val LightPaper = SoiboiColors(
     scrim = Color(0x991C1A16), isDark = false,
 )
 
-private val DarkInk = SoiboiColors(
+internal val DarkInk = SoiboiColors(
     paper = Color(0xFF161411), raised = Color(0xFF211E19), sunk = Color(0xFF0F0D0B),
     ink = Color(0xFFF1ECE1), soft = Color(0xFFCBC5B8), muted = Color(0xFFA29C8E), rule = Color(0xFF3A352D),
     accent = Color(0xFFFF7457), onAccent = Color(0xFF1A0A06),
@@ -55,7 +55,7 @@ private val DarkInk = SoiboiColors(
     scrim = Color(0xB3000000), isDark = true,
 )
 
-private val SpotifyDark = SoiboiColors(
+internal val SpotifyDark = SoiboiColors(
     paper = Color(0xFF121212), raised = Color(0xFF1F1F1F), sunk = Color(0xFF000000),
     ink = Color(0xFFFFFFFF), soft = Color(0xFFB3B3B3), muted = Color(0xFF8A8A8A), rule = Color(0xFF2E2E2E),
     accent = Color(0xFF1ED760), onAccent = Color(0xFF000000),
@@ -162,3 +162,8 @@ fun SoiboiTheme(flavour: Flavour, mode: ThemeMode, reduceMotion: Boolean, fonts:
         MaterialTheme(colorScheme = scheme) { content() }
     }
 }
+
+/** The colours for surfaces that are always dark, such as the full-screen player, whatever the app theme. */
+@Composable
+@ReadOnlyComposable
+fun playerColors(): SoiboiColors = if (Soiboi.look.flavour == Flavour.Spotify) SpotifyDark else DarkInk

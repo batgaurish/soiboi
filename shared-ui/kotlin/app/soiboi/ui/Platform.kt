@@ -18,6 +18,8 @@ interface PlatformUi {
     val web: app.soiboi.ui.web.WebPaneFactory
     fun setDownloading(active: Boolean) {}
     /** Android: opens the system installer for a downloaded APK. Returns false when the person must first allow installs from Soiboi. */
+    /** Android: draws the status and navigation bar icons light (for dark surfaces) or dark. */
+    fun setSystemBarIcons(lightIcons: Boolean) {}
     fun installApk(file: java.io.File): Boolean = false
 }
 

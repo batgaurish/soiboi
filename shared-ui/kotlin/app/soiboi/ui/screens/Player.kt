@@ -144,7 +144,7 @@ private fun rememberCoroutineScope() = androidx.compose.runtime.rememberCoroutin
 
 /** The queue as a column: what is playing, then what comes next, with a remove button on each upcoming row. */
 @Composable
-fun QueuePanel(app: AppController, modifier: Modifier = Modifier) {
+fun QueuePanel(app: AppController, modifier: Modifier = Modifier, embedded: Boolean = false) {
     val c = Soiboi.colors
     val player = app.engine.player
     val queue by player.queue.collectAsState()
@@ -154,13 +154,15 @@ fun QueuePanel(app: AppController, modifier: Modifier = Modifier) {
     val favs = app.engine.playlists.favoriteIds
     val listState = rememberLazyListState()
     LaunchedEffect(queue.currentIndex) { if (queue.currentIndex >= 0) listState.animateScrollToItem(queue.currentIndex.coerceAtLeast(0)) }
-    Column(modifier.background(c.paper)) {
+    Column(if (embedded) modifier else modifier.background(c.paper)) {
+        if (!embedded) {
         Row(Modifier.fillMaxWidth().padding(Space.l), verticalAlignment = Alignment.CenterVertically) {
             Txt("Queue", Modifier.weight(1f), style = Soiboi.type.headline)
             SIconButton(Glyph.Trash, "Clear the queue", { scope.launch { player.clear() } }, size = 40.dp, iconSize = 18.dp)
             SIconButton(Glyph.Close, "Close the queue", { app.queueOpen = false }, size = 40.dp, iconSize = 18.dp)
         }
         Hairline()
+        }
         if (queue.songs.isEmpty()) EmptyState("The queue is empty", "Play an album or a playlist, or choose Add to queue on any song.", glyph = Glyph.Queue)
         else LazyColumn(Modifier.weight(1f), state = listState) {
             itemsIndexed(queue.songs, key = { i, s -> "$i:${s.id}" }) { i, s ->
@@ -171,125 +173,8 @@ fun QueuePanel(app: AppController, modifier: Modifier = Modifier) {
 }
 
 
-/** The full player: the cover as the lead with a hard shadow, the controls beneath, and lyrics or the queue beside it. */
 @Composable
-fun NowPlayingScreen(app: AppController) {
-    val c = Soiboi.colors
-    val engine = app.engine; val player = engine.player
-    val queue by player.queue.collectAsState()
-    val state by player.state.collectAsState()
-    val mode by player.mode.collectAsState()
-    val song = queue.current
-    val live = song != null && song.origin == SongOrigin.Addon && song.album == "Live radio"
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    var tab by remember { mutableStateOf(0) }
-    var seekDrag by remember { mutableStateOf<Float?>(null) }
-    var eqOpen by remember { mutableStateOf(false) }
-    var sleepOpen by remember { mutableStateOf(false) }
-    val sleepLeft by player.sleepRemaining.collectAsState()
-    val fraction = if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f
-    val isFav = song != null && song.id in engine.playlists.favoriteIds
-
-    if (song == null) { Column(Modifier.fillMaxSize().padding(Space.l)) { SIconButton(Glyph.ChevronDown, "Close the player", { app.nowPlayingOpen = false }); EmptyState("Nothing is playing", "Choose a song from your library and it opens here.") }; return }
-
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val wide = maxWidth >= 860.dp
-        val controls: @Composable () -> Unit = {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.m)) {
-                Row(verticalAlignment = Alignment.Top) {
-                    Column(Modifier.weight(1f)) {
-                        Txt(song.displayTitle, style = if (wide) Soiboi.type.display else Soiboi.type.headline.copy(fontSize = 32.sp, lineHeight = 36.sp), maxLines = 2)
-                        Txt(if (live) (state.streamTitle ?: song.displayArtist) else song.displayArtist, Modifier.press({ if (!live) app.go(Route.Artist(song.artists.first())) }, "Go to ${song.displayArtist}", shape = Soiboi.look.shape(6)), style = Soiboi.type.title, color = c.soft, maxLines = 1)
-                        Txt(song.displayAlbum, Modifier.press({ app.go(Route.Album(song.displayAlbum)) }, "Go to ${song.displayAlbum}", shape = Soiboi.look.shape(6)), style = Soiboi.type.body, color = c.muted, maxLines = 1)
-                    }
-                    SIconButton(if (isFav) Glyph.HeartFilled else Glyph.Heart, if (isFav) "Remove from favorites" else "Add to favorites", { app.toggleFavorite(song) }, tint = if (isFav) c.accent else c.ink)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(Space.s), verticalAlignment = Alignment.CenterVertically) {
-                    QualitySticker(QualityInfo.of(song), large = true)
-                    QualityInfo.of(song).detail?.let { Txt(it, style = Soiboi.type.caption, color = c.soft) }
-                    song.bpm?.let { Txt("${it.toInt()} BPM", style = Soiboi.type.caption, color = c.soft) }
-                }
-                Column {
-                    SSlider(seekDrag ?: fraction, { seekDrag = it }, Modifier.fillMaxWidth(), onChangeFinished = { seekDrag?.let { f -> if (!live) scope.launch { player.seek((f * state.durationMs).toLong()) } }; seekDrag = null }, label = "Seek", step = 0.02f, valueText = if (live) "Live radio" else "${formatTime(state.positionMs)} of ${formatTime(state.durationMs)}")
-                    Row(Modifier.fillMaxWidth()) { Txt(formatTime(state.positionMs), Modifier.weight(1f), style = Soiboi.type.caption, color = c.soft); Txt(if (live) "LIVE" else formatTime(state.durationMs), style = Soiboi.type.caption, color = c.soft) }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    SIconButton(Glyph.Shuffle, "Shuffle", { scope.launch { player.setMode(if (mode == PlayMode.Shuffle) PlayMode.Order else PlayMode.Shuffle) } }, tint = if (mode == PlayMode.Shuffle) c.accent else c.ink)
-                    SIconButton(Glyph.Previous, "Previous", { scope.launch { player.previous() } }, size = 52.dp, iconSize = 26.dp)
-                    PlayButton(state.playing, { player.togglePlay() }, size = 68.dp)
-                    SIconButton(Glyph.Next, "Next", { scope.launch { player.next() } }, size = 52.dp, iconSize = 26.dp)
-                    SIconButton(if (mode == PlayMode.Repeat) Glyph.RepeatOne else Glyph.Repeat, "Repeat this song", { player.toggleRepeat() }, tint = if (mode == PlayMode.Repeat) c.accent else c.ink)
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-                    Chip("Equalizer", false, { eqOpen = true }, glyph = Glyph.Sliders)
-                    Chip(if (sleepLeft != null) "Sleep ${formatTime(sleepLeft!! * 1000L)}" else "Sleep timer", sleepLeft != null, { sleepOpen = true }, glyph = Glyph.Moon)
-                }
-            }
-        }
-        val side: @Composable () -> Unit = {
-            Column(Modifier.fillMaxSize()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Space.s), modifier = Modifier.padding(bottom = Space.m)) {
-                    Chip("Lyrics", tab == 0, { tab = 0 }, glyph = Glyph.Lyrics); Chip("Up next", tab == 1, { tab = 1 }, glyph = Glyph.Queue)
-                }
-                Box(Modifier.weight(1f).fillMaxWidth()) { if (tab == 0) LyricsPane(app, song, state.positionMs) else QueuePanel(app, Modifier.fillMaxSize()) }
-            }
-        }
-        Column(Modifier.fillMaxSize().padding(Space.l)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                SIconButton(Glyph.ChevronDown, "Close the player", { app.nowPlayingOpen = false })
-                Spacer(Modifier.weight(1f)); Txt("Playing from ${queue.songs.size} songs", style = Soiboi.type.caption, color = c.muted)
-            }
-            Spacer(Modifier.height(Space.s))
-            if (wide) Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.xxl)) {
-                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(Space.xl)) {
-                    Box(Modifier.leadShadow(Soiboi.look.shape(24))) { Cover(song, 360.dp, shape = Soiboi.look.shape(24), contentDescription = "Cover of ${song.displayAlbum}") }
-                    controls()
-                }
-                Box(Modifier.weight(1f).fillMaxHeight()) { side() }
-            } else Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.l)) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Box(Modifier.leadShadow(Soiboi.look.shape(24))) { Cover(song, 240.dp, shape = Soiboi.look.shape(24), contentDescription = "Cover of ${song.displayAlbum}") } }
-                controls()
-                Box(Modifier.weight(1f).fillMaxWidth()) { side() }
-            }
-        }
-    }
-    if (eqOpen) EqualizerDialog(app) { eqOpen = false }
-    if (sleepOpen) SDialog("Sleep timer", { sleepOpen = false }) {
-        Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
-            listOf(15, 30, 45, 60, 90).forEach { m -> SButton("Stop after $m minutes", { player.sleepTimer(m); sleepOpen = false }, Modifier.fillMaxWidth()) }
-            SButton("Stop after this song", { player.setPauseAfterTrack(true); sleepOpen = false }, Modifier.fillMaxWidth())
-            if (sleepLeft != null) SButton("Turn the timer off", { player.sleepTimer(null); sleepOpen = false }, Modifier.fillMaxWidth(), tone = Tone.Ghost)
-        }
-    }
-}
-
-@Composable
-private fun LyricsPane(app: AppController, song: Song, positionMs: Long) {
-    val c = Soiboi.colors
-    val lyrics by produceState<app.soiboi.engine.lyrics.ParsedLyrics?>(null, song.id) { value = null; value = app.engine.lyrics.parsedFor(song) }
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val parsed = lyrics
-    if (parsed == null) { Loading("Looking for lyrics"); return }
-    val current = parsed.lineAt(positionMs)
-    val listState = rememberLazyListState()
-    LaunchedEffect(current) { if (parsed.isSynced && current >= 0) listState.animateScrollToItem((current - 2).coerceAtLeast(0)) }
-    if (parsed.lines.size == 1 && parsed.lines[0].tokens.isEmpty() && parsed.lines[0].startMs == 0L && !parsed.isSynced && parsed.lines[0].text.startsWith("No lyrics")) {
-        EmptyState("No lyrics for this song", "Soiboi checks the file, a .lrc beside it, then LRCLIB. Turn LRCLIB on in Settings to fetch synced lyrics.", glyph = Glyph.Lyrics)
-        return
-    }
-    LazyColumn(Modifier.fillMaxSize(), state = listState, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        itemsIndexed(parsed.lines) { i, line ->
-            val active = parsed.isSynced && i == current
-            Column(Modifier.fillMaxWidth().then(if (parsed.isSynced) Modifier.press({ scope.launch { app.engine.player.seek(line.startMs) } }, "Jump to this line", shape = Soiboi.look.shape(8)) else Modifier).padding(vertical = 2.dp)) {
-                Txt(line.text, style = if (active) Soiboi.type.headline else Soiboi.type.title.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.W600), color = if (active) c.ink else c.muted)
-                line.translates.forEach { Txt(it, style = Soiboi.type.caption, color = c.soft) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EqualizerDialog(app: AppController, onDismiss: () -> Unit) {
+internal fun EqualizerDialog(app: AppController, onDismiss: () -> Unit) {
     val c = Soiboi.colors
     val player = app.engine.player
     val gains by player.equalizer.collectAsState()
