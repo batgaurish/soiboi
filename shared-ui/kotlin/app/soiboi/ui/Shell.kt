@@ -53,6 +53,7 @@ import app.soiboi.ui.screens.AddonItemScreen
 import app.soiboi.ui.screens.DiscoverScreen
 import app.soiboi.ui.screens.LibraryRail
 import app.soiboi.ui.screens.NewPlaylistDialog
+import app.soiboi.ui.screens.UpdateDialog
 import app.soiboi.ui.screens.NowPlayingPanel
 import app.soiboi.ui.screens.DownloadsScreen
 import app.soiboi.ui.screens.ImportScreen
@@ -112,6 +113,7 @@ fun SoiboiShell(app: AppController) {
         if (app.askAiOpen) AskAiDialog(app)
         app.smartEditor?.let { SmartEditorDialog(app, it) }
         if (app.newPlaylistOpen) NewPlaylistDialog(app)
+        if (app.updateOpen) UpdateDialog(app)
     }
 }
 

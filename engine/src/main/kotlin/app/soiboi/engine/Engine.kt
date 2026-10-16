@@ -73,7 +73,7 @@ class Platform(
     val isAndroid: Boolean = false,
     /** Android asks for All-files access when the chosen download folder needs it. */
     val ensureFolderWritable: suspend () -> Unit = {},
-    val appVersion: String = "2.2.1",
+    val appVersion: String = "2.3.0",
 )
 
 /** One saved connection. Passwords and tokens live in the [SecretStore], never here. */
@@ -144,6 +144,7 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
 
     // connectors and debrid
     val addons = app.soiboi.engine.addons.AddonRegistry(db)
+    val updater = app.soiboi.engine.update.Updater("batgaurish/soiboi", platform.appVersion, platform.isAndroid, paths.cacheDir)
     private val serverMap = HashMap<SongOrigin, MusicServer>()
     val servers: Map<SongOrigin, MusicServer> get() = serverMap
     private val _serverStatus = MutableStateFlow<Map<SongOrigin, SourceStatus>>(emptyMap())

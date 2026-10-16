@@ -64,6 +64,7 @@ class AppController(val engine: Engine, val scope: CoroutineScope, val platform:
         get() = rightPanel == RightPanel.Queue
         set(open) { rightPanel = if (open) RightPanel.Queue else if (rightPanel == RightPanel.Queue) null else rightPanel }
     var newPlaylistOpen by mutableStateOf(false)
+    var updateOpen by mutableStateOf(false)
     var songMenu by mutableStateOf<SongMenu?>(null)
     /** The guided in-app browser, drawn over everything while set. */
     var web by mutableStateOf<app.soiboi.ui.web.WebSession?>(null)

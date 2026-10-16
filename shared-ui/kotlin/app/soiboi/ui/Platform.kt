@@ -17,6 +17,8 @@ interface PlatformUi {
     /** The in-app browser used for sign-ins and guided downloads. */
     val web: app.soiboi.ui.web.WebPaneFactory
     fun setDownloading(active: Boolean) {}
+    /** Android: opens the system installer for a downloaded APK. Returns false when the person must first allow installs from Soiboi. */
+    fun installApk(file: java.io.File): Boolean = false
 }
 
 val LocalPlatform = compositionLocalOf<PlatformUi> { error("PlatformUi missing") }
