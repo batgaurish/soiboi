@@ -55,8 +55,26 @@ private val DarkInk = SoiboiColors(
     scrim = Color(0xB3000000), isDark = true,
 )
 
+private val SpotifyDark = SoiboiColors(
+    paper = Color(0xFF121212), raised = Color(0xFF1F1F1F), sunk = Color(0xFF000000),
+    ink = Color(0xFFFFFFFF), soft = Color(0xFFB3B3B3), muted = Color(0xFF8A8A8A), rule = Color(0xFF2E2E2E),
+    accent = Color(0xFF1ED760), onAccent = Color(0xFF000000),
+    lossless = Color(0xFFF2B705), onLossless = Color(0xFF1C1A16),
+    danger = Color(0xFFFF6B5E), onDanger = Color(0xFF2A0A06), ok = Color(0xFF1ED760),
+    scrim = Color(0xB3000000), isDark = true,
+)
+
+private val SpotifyLight = SoiboiColors(
+    paper = Color(0xFFFFFFFF), raised = Color(0xFFF2F2F2), sunk = Color(0xFFE6E6E6),
+    ink = Color(0xFF121212), soft = Color(0xFF4D4D4D), muted = Color(0xFF6A6A6A), rule = Color(0xFFD9D9D9),
+    accent = Color(0xFF15A84A), onAccent = Color(0xFFFFFFFF),
+    lossless = Color(0xFFF2B705), onLossless = Color(0xFF1C1A16),
+    danger = Color(0xFFB3261E), onDanger = Color(0xFFFFFFFF), ok = Color(0xFF15A84A),
+    scrim = Color(0x99000000), isDark = false,
+)
+
 /**
- * The two flavours differ in shape, voice and badge, never in colour: switching flavour always visibly changes
+ * The flavours differ in shape, voice and badge, never in colour: switching flavour always visibly changes
  * the app, and switching light or dark never resets the corners. Zine is chunky and sticker-flavoured; Liner
  * Notes is a record sleeve with a serif voice and small corners.
  */
@@ -102,11 +120,12 @@ object Soiboi {
  */
 private fun typeFor(flavour: Flavour, f: AppFonts): SoiboiType {
     val zine = flavour == Flavour.Zine
-    val head = if (zine) f.zine else f.linerDisplay
-    val body = if (zine) f.zine else f.linerBody
-    val hw = if (zine) FontWeight.W800 else FontWeight.W700
+    val spotify = flavour == Flavour.Spotify
+    val head = if (zine || spotify) f.zine else f.linerDisplay
+    val body = if (zine || spotify) f.zine else f.linerBody
+    val hw = if (zine) FontWeight.W800 else if (spotify) FontWeight.W800 else FontWeight.W700
     return SoiboiType(
-        display = TextStyle(fontFamily = head, fontWeight = hw, fontSize = 44.sp, lineHeight = 46.sp, letterSpacing = if (zine) (-1).sp else (-0.5).sp),
+        display = TextStyle(fontFamily = head, fontWeight = hw, fontSize = 44.sp, lineHeight = 46.sp, letterSpacing = if (zine || spotify) (-1).sp else (-0.5).sp),
         headline = TextStyle(fontFamily = head, fontWeight = hw, fontSize = 28.sp, lineHeight = 32.sp, letterSpacing = if (zine) (-0.5).sp else 0.sp),
         title = TextStyle(fontFamily = head, fontWeight = if (zine) FontWeight.W800 else FontWeight.W600, fontSize = 18.sp, lineHeight = 22.sp),
         body = TextStyle(fontFamily = body, fontWeight = FontWeight.W400, fontSize = 15.sp, lineHeight = 22.sp),
@@ -120,10 +139,13 @@ private fun typeFor(flavour: Flavour, f: AppFonts): SoiboiType {
 @Composable
 fun SoiboiTheme(flavour: Flavour, mode: ThemeMode, reduceMotion: Boolean, fonts: AppFonts, content: @Composable () -> Unit) {
     val dark = when (mode) { ThemeMode.Dark -> true; ThemeMode.Light -> false; ThemeMode.System -> isSystemInDarkTheme() }
-    val c = if (dark) DarkInk else LightPaper
+    val c = when (flavour) { Flavour.Spotify -> if (dark) SpotifyDark else SpotifyLight; else -> if (dark) DarkInk else LightPaper }
     val look = remember(flavour) {
-        if (flavour == Flavour.Zine) Look(flavour, 1.6f, hardShadow = true, tiltedStickers = true, density = 1.0f)
-        else Look(flavour, 0.5f, hardShadow = false, tiltedStickers = false, density = 0.92f)
+        when (flavour) {
+            Flavour.Zine -> Look(flavour, 1.6f, hardShadow = true, tiltedStickers = true, density = 1.0f)
+            Flavour.Spotify -> Look(flavour, 0.7f, hardShadow = false, tiltedStickers = false, density = 1.0f)
+            Flavour.LinerNotes -> Look(flavour, 0.5f, hardShadow = false, tiltedStickers = false, density = 0.92f)
+        }
     }
     val type = remember(flavour, fonts) { typeFor(flavour, fonts) }
     val scheme = if (dark) darkColorScheme(

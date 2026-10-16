@@ -18,7 +18,7 @@ import kotlinx.serialization.json.intOrNull
 data class TagProgress(val done: Int, val total: Int)
 
 /** Tracks per request: large enough that a library takes tens of requests, small enough to stay inside a free tier's limits. */
-private const val BATCH_SIZE = 100
+private const val BATCH_SIZE = 40
 
 val TagSystemPrompt = "You tag songs by how they feel. For each numbered song, use what you know about the actual recording; judge from the title and " +
     "artist, not from guesses about the genre. Reply with JSON only, no prose, in exactly this shape: {\"songs\": [{\"n\": 0, \"m\": [\"calm\", \"warm\"], " +
@@ -85,7 +85,7 @@ class SongTags(private val db: Database) {
         try {
             for ((start, batch) in todo.chunked(BATCH_SIZE).withIndex().map { it.index * BATCH_SIZE to it.value }) {
                 if (cancelled) break
-                try { tagged += tagBatch(config, batch) } catch (e: AiException) { if (tagged == 0 && start == 0) throw e else break }
+                try { tagged += tagBatch(config, batch) } catch (e: AiException) { EngineLog.output("ai tags: batch at $start failed: ${e.message}"); if (tagged == 0 && start == 0) throw e else break }
                 _count.value++
                 _progress.value = TagProgress(minOf(start + batch.size, todo.size), todo.size)
             }
@@ -101,6 +101,11 @@ class SongTags(private val db: Database) {
         val answer = aiComplete(config, TagSystemPrompt, "Songs (number | title | artist | album | genre):\n$lines")
         val ids = batch.map { it.id }
         val saved = applyTagAnswer(answer, ids)
+        EngineLog.output("ai tags: ${config.provider} ${config.effectiveModel} tagged $saved of ${ids.size}")
+        if (saved == 0) {
+            EngineLog.output("ai tags: unreadable answer: ${answer.take(600)}")
+            throw AiException("The model answered, but not in a form Soiboi could read. It said: ${answer.trim().take(160)}")
+        }
         save(ids)
         return saved
     }

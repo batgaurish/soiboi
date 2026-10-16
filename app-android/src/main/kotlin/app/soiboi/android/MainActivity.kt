@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
             wrapper = WrapperPlatform(isAndroid = true, abi = Build.SUPPORTED_ABIS[0], nativeLibraryDir = File(applicationInfo.nativeLibraryDir)), isAndroid = true,
             ensureFolderWritable = { ensureAllFiles() },
         )
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + kotlinx.coroutines.CoroutineExceptionHandler { _, e -> app.soiboi.engine.core.EngineLog.output("uncaught in a background task: " + e.stackTraceToString()) })
         val engine = Engine(platform, scope)
         val fonts = AppFonts(
             zine = FontFamily(font("BricolageGrotesque-400", FontWeight.W400), font("BricolageGrotesque-600", FontWeight.W600), font("BricolageGrotesque-800", FontWeight.W800)),
