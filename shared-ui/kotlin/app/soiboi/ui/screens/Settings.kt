@@ -179,6 +179,11 @@ fun SettingsScreen(app: AppController) {
         }
         item {
             Group("Updates") { UpdateControls(app) }
+            if (!app.platform.isAndroid) Group("Desktop") {
+                SwitchRow("Keep playing in the tray", s.minimizeToTray, { v -> engine.settings.update { copy(minimizeToTray = v) } }, detail = "Closing the window hides Soiboi to the system tray instead of quitting. Needs a tray on your desktop.")
+                SwitchRow("Show what is playing on Discord", s.discordPresence, { v -> engine.settings.update { copy(discordPresence = v) } }, detail = "Needs the Discord app running, and a Discord application id from discord.com/developers.")
+                if (s.discordPresence) SField(s.discordClientId, { v -> engine.settings.update { copy(discordClientId = v.trim()) } }, "Discord application id", hint = "A long number from your Discord application")
+            }
             Group("Troubleshooting") {
                 Txt("Everything Soiboi did and every error, kept on this device, including what happened just before a crash. Copy it when you report a problem.", style = Soiboi.type.caption, color = c.soft)
                 SButton("Show the app log", { logOpen = true }, compact = true, tone = Tone.Secondary, glyph = Glyph.Info)
