@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.jcef)
     implementation(libs.dbus.core)
     implementation(libs.dbus.transport)
+    testImplementation(kotlin("test"))
 }
 
 compose.desktop {
@@ -42,3 +43,5 @@ compose.desktop {
         }
     }
 }
+
+tasks.withType<Test> { useJUnitPlatform() }

@@ -1,6 +1,10 @@
 package app.soiboi.desktop
 
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.window.Tray
+import androidx.compose.ui.window.isTraySupported
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.Font
@@ -93,8 +97,10 @@ private object DesktopUi : PlatformUi {
     override fun copyToClipboard(text: String) { Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null) }
 }
 
-fun main() {
+fun main(args: Array<String>) {
     val paths = desktopPaths()
+    if (args.firstOrNull() == "ctl") kotlin.system.exitProcess(ControlClient.run(args.drop(1), paths.supportDir))
+    val headless = "--headless" in args
     val home = System.getProperty("user.dir")
     val repo = generateSequence(File(home)) { it.parentFile }.take(5).firstOrNull { File(it, "pipeline/soiboi_pipeline").isDirectory }
     val platform = Platform(
@@ -108,8 +114,32 @@ fun main() {
     val engine = Engine(platform, scope)
     val fonts = fonts()
     val mpris = Mpris(engine, scope).also { it.start() }
+    val quit = { mpris.stop(); engine.shutdown(); kotlin.system.exitProcess(0) }
+    DiscordPresence(engine, scope).start()
+    val control = ControlServer(engine, scope, paths.supportDir, quit).also { it.start() }
+    Runtime.getRuntime().addShutdownHook(Thread { control.stop() })
+    if (headless) {
+        // No window: the engine still plays, scans and serves media keys and `soiboi ctl`, which is how a music server box runs it.
+        kotlinx.coroutines.runBlocking { engine.start() }
+        println("Soiboi is running without a window. Control it with: soiboi ctl status")
+        Thread.currentThread().join()
+        return
+    }
     application {
-        Window(onCloseRequest = { mpris.stop(); engine.shutdown(); exitApplication() }, title = "Soiboi", state = rememberWindowState(size = DpSize(1280.dp, 820.dp))) {
+        val settings by engine.settings.state.collectAsState()
+        var windowOpen by remember { mutableStateOf(true) }
+        val playing by engine.player.state.collectAsState()
+        val trayIcon = remember { runCatching { BitmapPainter(object {}.javaClass.getResourceAsStream("/tray.png")!!.use { it.readBytes() }.let { org.jetbrains.skia.Image.makeFromEncoded(it).toComposeImageBitmap() }) }.getOrNull() }
+        val useTray = settings.minimizeToTray && isTraySupported && trayIcon != null
+        val quitApp = { control.stop(); mpris.stop(); engine.shutdown(); exitApplication() }
+        if (useTray) Tray(icon = trayIcon!!, tooltip = "Soiboi", onAction = { windowOpen = true }) {
+            Item(if (windowOpen) "Hide Soiboi" else "Show Soiboi", onClick = { windowOpen = !windowOpen })
+            Item(if (playing.playing) "Pause" else "Play", onClick = { engine.player.togglePlay() })
+            Item("Next", onClick = { scope.launch { engine.player.next() } })
+            Separator()
+            Item("Quit", onClick = quitApp)
+        }
+        Window(onCloseRequest = { if (useTray) windowOpen = false else quitApp() }, visible = windowOpen, title = "Soiboi", state = rememberWindowState(size = DpSize(1280.dp, 820.dp))) {
             SoiboiApp(engine, DesktopUi, fonts, rememberCoroutineScope()) { app -> DevCommands.attach(app) }
         }
     }

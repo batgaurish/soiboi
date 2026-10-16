@@ -41,6 +41,11 @@ data class Settings(
     /** The person's own Musixmatch user token; synced lyrics are asked of Musixmatch only when it is set. */
     val musixmatchToken: String = "",
     val paxsenixLyrics: Boolean = true,
+    /** Desktop: show what is playing on Discord. Needs the person's own Discord application id. */
+    val discordPresence: Boolean = false,
+    val discordClientId: String = "",
+    /** Desktop: closing the window hides it to the tray and keeps the music playing. */
+    val minimizeToTray: Boolean = false,
     /** A version the person chose not to be asked about again. */
     val skippedVersion: String = "",
 ) {
