@@ -83,6 +83,16 @@ fun SongMenuDialog(app: AppController, menu: SongMenu) {
         Hairline()
         if (!picking && !details) {
             Action(Glyph.Play, "Play now") { app.play(listOf(song)); close() }
+            if (song.id.startsWith("addon:ytmusic:")) Action(Glyph.Wave, "Start radio") {
+                close()
+                scope.launch {
+                    val addon = engine.addons.instance("ytmusic") ?: return@launch
+                    try {
+                        val mix = addon.client.playlist("RDAMVM" + song.id.removePrefix("addon:ytmusic:"))
+                        if (mix.tracks.isEmpty()) app.toast("YouTube Music had no radio for that song") else app.play(mix.tracks.map { engine.addons.songFor(addon, it) })
+                    } catch (e: Exception) { app.toast(e.message ?: "Could not start the radio") }
+                }
+            }
             Action(Glyph.Next, "Play next") { app.playNext(song); close() }
             Action(Glyph.Queue, "Add to queue") { app.addToQueue(song); close() }
             Action(if (isFav) Glyph.HeartFilled else Glyph.Heart, if (isFav) "Remove from favorites" else "Add to favorites", if (isFav) c.accent else c.ink) { app.toggleFavorite(song); close() }

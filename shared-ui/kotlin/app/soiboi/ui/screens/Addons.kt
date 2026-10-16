@@ -112,15 +112,15 @@ fun AddonsSection(app: AppController) {
                 UrlCover(a.manifest.icon, 44.dp, shape = Soiboi.look.shape(10))
                 Column(Modifier.weight(1f)) {
                     Txt(a.manifest.name, style = Soiboi.type.title, maxLines = 1)
-                    Txt("Version ${a.manifest.version}", style = Soiboi.type.caption, color = c.muted)
+                    Txt(if (a.builtin != null) "Built in" else "Version ${a.manifest.version}", style = Soiboi.type.caption, color = c.muted)
                 }
             }
             if (a.manifest.description.isNotBlank()) Txt(a.manifest.description, style = Soiboi.type.caption, color = c.soft, maxLines = 3)
             Txt("Offers: ${abilities(a.manifest)}", style = Soiboi.type.caption, color = c.soft)
-            SwitchRow("Use this addon", a.enabled, { v -> scope.launch { engine.addons.setEnabled(a.id, v) } }, detail = a.url)
+            SwitchRow(if (a.builtin != null) "Use this source" else "Use this addon", a.enabled, { v -> scope.launch { engine.addons.setEnabled(a.id, v) } }, detail = if (a.builtin != null) null else a.url)
             Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                 if (a.manifest.settings.isNotEmpty()) SButton("Settings", { configuring = a.id }, compact = true, glyph = Glyph.Sliders)
-                SButton("Remove", { removing = a }, tone = Tone.Ghost, compact = true)
+                if (a.builtin == null) SButton("Remove", { removing = a }, tone = Tone.Ghost, compact = true)
             }
         }
     }

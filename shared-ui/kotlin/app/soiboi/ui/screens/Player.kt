@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.soiboi.engine.library.QualityInfo
+import app.soiboi.engine.library.SongOrigin
 import app.soiboi.engine.library.Song
 import app.soiboi.engine.player.EqFrequencies
 import app.soiboi.engine.player.PlayMode
@@ -79,6 +80,7 @@ fun PlayerBar(app: AppController, wide: Boolean) {
     val volume by player.volume.collectAsState()
     val favorites by app.engine.playlists.playlists.collectAsState()
     val song = queue.current
+    val live = song != null && song.origin == SongOrigin.Addon && song.album == "Live radio"
     val scope = rememberCoroutineScope()
     val isFav = song != null && song.id in app.engine.playlists.favoriteIds
     val fraction = if (state.durationMs > 0) state.positionMs.toFloat() / state.durationMs else 0f
@@ -122,8 +124,8 @@ fun PlayerBar(app: AppController, wide: Boolean) {
             }
             Row(Modifier.fillMaxWidth().widthIn(max = 560.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                 Txt(formatTime(state.positionMs), Modifier.width(44.dp), style = Soiboi.type.caption, color = c.soft, maxLines = 1)
-                SSlider(seekDrag ?: fraction, { seekDrag = it }, Modifier.weight(1f), onChangeFinished = { seekDrag?.let { f -> scope.launch { player.seek((f * state.durationMs).toLong()) } }; seekDrag = null }, label = "Seek", step = 0.02f, valueText = "${formatTime(state.positionMs)} of ${formatTime(state.durationMs)}")
-                Txt(formatTime(state.durationMs), Modifier.width(44.dp), style = Soiboi.type.caption, color = c.soft, maxLines = 1)
+                SSlider(seekDrag ?: fraction, { seekDrag = it }, Modifier.weight(1f), onChangeFinished = { seekDrag?.let { f -> if (!live) scope.launch { player.seek((f * state.durationMs).toLong()) } }; seekDrag = null }, label = "Seek", step = 0.02f, valueText = if (live) "Live radio" else "${formatTime(state.positionMs)} of ${formatTime(state.durationMs)}")
+                Txt(if (live) "LIVE" else formatTime(state.durationMs), Modifier.width(44.dp), style = Soiboi.type.caption, color = c.soft, maxLines = 1)
             }
         }
         Row(Modifier.width(250.dp), horizontalArrangement = Arrangement.spacedBy(Space.s), verticalAlignment = Alignment.CenterVertically) {
@@ -178,6 +180,7 @@ fun NowPlayingScreen(app: AppController) {
     val state by player.state.collectAsState()
     val mode by player.mode.collectAsState()
     val song = queue.current
+    val live = song != null && song.origin == SongOrigin.Addon && song.album == "Live radio"
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var tab by remember { mutableStateOf(0) }
     var seekDrag by remember { mutableStateOf<Float?>(null) }
@@ -207,8 +210,8 @@ fun NowPlayingScreen(app: AppController) {
                     song.bpm?.let { Txt("${it.toInt()} BPM", style = Soiboi.type.caption, color = c.soft) }
                 }
                 Column {
-                    SSlider(seekDrag ?: fraction, { seekDrag = it }, Modifier.fillMaxWidth(), onChangeFinished = { seekDrag?.let { f -> scope.launch { player.seek((f * state.durationMs).toLong()) } }; seekDrag = null }, label = "Seek", step = 0.02f, valueText = "${formatTime(state.positionMs)} of ${formatTime(state.durationMs)}")
-                    Row(Modifier.fillMaxWidth()) { Txt(formatTime(state.positionMs), Modifier.weight(1f), style = Soiboi.type.caption, color = c.soft); Txt(formatTime(state.durationMs), style = Soiboi.type.caption, color = c.soft) }
+                    SSlider(seekDrag ?: fraction, { seekDrag = it }, Modifier.fillMaxWidth(), onChangeFinished = { seekDrag?.let { f -> if (!live) scope.launch { player.seek((f * state.durationMs).toLong()) } }; seekDrag = null }, label = "Seek", step = 0.02f, valueText = if (live) "Live radio" else "${formatTime(state.positionMs)} of ${formatTime(state.durationMs)}")
+                    Row(Modifier.fillMaxWidth()) { Txt(formatTime(state.positionMs), Modifier.weight(1f), style = Soiboi.type.caption, color = c.soft); Txt(if (live) "LIVE" else formatTime(state.durationMs), style = Soiboi.type.caption, color = c.soft) }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     SIconButton(Glyph.Shuffle, "Shuffle", { scope.launch { player.setMode(if (mode == PlayMode.Shuffle) PlayMode.Order else PlayMode.Shuffle) } }, tint = if (mode == PlayMode.Shuffle) c.accent else c.ink)

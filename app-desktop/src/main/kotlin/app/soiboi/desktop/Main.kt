@@ -145,6 +145,7 @@ private object DevCommands {
             }
             "addon" -> kotlinx.coroutines.runBlocking { e.addons.install(arg) }
             "addonitem" -> arg.split(' ', limit = 3).let { ui.go(app.soiboi.ui.Route.AddonItem("org.test.fake", it[0], it[1], it.getOrElse(2) { "" })) }
+            "bplay" -> arg.split(' ', limit = 2).let { p -> kotlinx.coroutines.runBlocking { e.addons.instance(p[0])!!.let { a -> ui.play(a.client.search(p[1]).tracks.take(1).map { t -> e.addons.songFor(a, t) }) } } }
             "addonplay" -> e.addons.instance("org.test.fake")!!.let { a -> ui.play(listOf(e.addons.songFor(a, app.soiboi.engine.addons.AddonTrack("t1", "Addon Song 1", "Fake Artist", "Fake Album", 201000, null, null, null, null)))) }
             "webclose" -> ui.web = null
             "go" -> ui.goPlace(app.soiboi.ui.Place.entries.first { it.name.equals(arg, true) })

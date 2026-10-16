@@ -20,28 +20,38 @@ import kotlinx.serialization.json.JsonObject
 private data class SavedAddon(val url: String, val manifest: String, val enabled: Boolean = true, val settings: Map<String, String> = emptyMap())
 
 /** One installed addon: where it lives, what it said it could do, and the person's settings for it. */
-class AddonInstance(val url: String, val manifest: AddonManifest, val enabled: Boolean, val settings: Map<String, String>) {
-    val client: AddonClient by lazy { AddonClient(url, settings) }
+class AddonInstance(val url: String, val manifest: AddonManifest, val enabled: Boolean, val settings: Map<String, String>, val builtin: BuiltinProvider? = null) {
+    val client: CatalogClient by lazy { builtin?.create(settings) ?: AddonClient(url, settings) }
+    fun with(enabled: Boolean = this.enabled, settings: Map<String, String> = this.settings) = AddonInstance(url, manifest, enabled, settings, builtin)
     val id get() = manifest.id
 
     /** The setting's value as the person set it, or the addon's own default. */
     fun setting(def: AddonSettingDef) = settings[def.key] ?: def.default
 }
 
+/** A source that ships inside Soiboi but is listed, switched and searched like an installed addon. */
+class BuiltinProvider(val manifest: AddonManifest, val create: (settings: Map<String, String>) -> CatalogClient, val enabledByDefault: Boolean = true)
+
 /** What one addon answered to a search: its results, or why it could not. */
 class AddonHit(val addon: AddonInstance, val result: AddonSearchResult?, val error: String?)
 
 private const val KEY = "addons.installed"
+private const val BUILTIN_KEY = "addons.builtin"
+
+@Serializable
+private data class SavedBuiltin(val id: String, val enabled: Boolean, val settings: Map<String, String> = emptyMap())
 
 /** The addons a person has installed, kept in the library database, and the plumbing that turns their answers into songs. */
-class AddonRegistry(private val db: Database, private val clientFor: (String) -> AddonClient = { AddonClient(it) }) {
+class AddonRegistry(private val db: Database, private val builtins: List<BuiltinProvider> = emptyList(), private val clientFor: (String) -> AddonClient = { AddonClient(it) }) {
     private val json = Json { ignoreUnknownKeys = true }
     private val _installed = MutableStateFlow<List<AddonInstance>>(emptyList())
     val installed: StateFlow<List<AddonInstance>> = _installed.asStateFlow()
 
     suspend fun load() {
         val saved = db.getKv(KEY)?.let { runCatching { json.decodeFromString(ListSerializer(SavedAddon.serializer()), it) }.getOrNull() }.orEmpty()
-        _installed.value = saved.mapNotNull { s ->
+        val builtinState = db.getKv(BUILTIN_KEY)?.let { runCatching { json.decodeFromString(ListSerializer(SavedBuiltin.serializer()), it) }.getOrNull() }.orEmpty().associateBy { it.id }
+        val builtInstances = builtins.map { b -> val st = builtinState[b.manifest.id]; AddonInstance("builtin:${b.manifest.id}", b.manifest, st?.enabled ?: b.enabledByDefault, st?.settings.orEmpty(), b) }
+        _installed.value = builtInstances + saved.mapNotNull { s ->
             val manifest = runCatching { parseManifest(json.parseToJsonElement(s.manifest) as JsonObject) }.getOrNull() ?: return@mapNotNull null
             raws[manifest.id] = s.manifest
             AddonInstance(s.url, manifest, s.enabled, s.settings)
@@ -51,8 +61,10 @@ class AddonRegistry(private val db: Database, private val clientFor: (String) ->
     private val raws = HashMap<String, String>()
 
     private suspend fun persist() {
-        val list = _installed.value.map { SavedAddon(it.url, raws[it.id] ?: rawFor(it), it.enabled, it.settings) }
+        val list = _installed.value.filter { it.builtin == null }.map { SavedAddon(it.url, raws[it.id] ?: rawFor(it), it.enabled, it.settings) }
         db.putKv(KEY, json.encodeToString(ListSerializer(SavedAddon.serializer()), list))
+        val built = _installed.value.filter { it.builtin != null }.map { SavedBuiltin(it.id, it.enabled, it.settings) }
+        db.putKv(BUILTIN_KEY, json.encodeToString(ListSerializer(SavedBuiltin.serializer()), built))
     }
 
     /** A manifest read back from storage has no raw copy in memory; rebuild the fields the rest of the app reads. */
@@ -75,11 +87,11 @@ class AddonRegistry(private val db: Database, private val clientFor: (String) ->
         return instance
     }
 
-    suspend fun remove(id: String) { _installed.update { l -> l.filter { it.id != id } }; raws.remove(id); persist() }
+    suspend fun remove(id: String) { if (instance(id)?.builtin != null) return; _installed.update { l -> l.filter { it.id != id } }; raws.remove(id); persist() }
 
-    suspend fun setEnabled(id: String, enabled: Boolean) { replace(id) { AddonInstance(it.url, it.manifest, enabled, it.settings) }; persist() }
+    suspend fun setEnabled(id: String, enabled: Boolean) { replace(id) { it.with(enabled = enabled) }; persist() }
 
-    suspend fun setSetting(id: String, key: String, value: String) { replace(id) { AddonInstance(it.url, it.manifest, it.enabled, it.settings + (key to value)) }; persist() }
+    suspend fun setSetting(id: String, key: String, value: String) { replace(id) { it.with(settings = it.settings + (key to value)) }; persist() }
 
     private fun replace(id: String, change: (AddonInstance) -> AddonInstance) = _installed.update { l -> l.map { if (it.id == id) change(it) else it } }
 
