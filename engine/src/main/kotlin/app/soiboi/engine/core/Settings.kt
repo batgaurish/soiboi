@@ -37,6 +37,9 @@ data class Settings(
     val listenBrainzUser: String = "",
     val lyricsFontSizeOffset: Double = 0.0,
     val reduceMotion: Boolean = false,
+    val checkForUpdates: Boolean = true,
+    /** A version the person chose not to be asked about again. */
+    val skippedVersion: String = "",
 ) {
     val storefront: String get() = appleStorefront.ifEmpty { "us" }
 }

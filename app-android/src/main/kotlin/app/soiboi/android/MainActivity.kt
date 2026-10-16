@@ -96,6 +96,15 @@ class MainActivity : ComponentActivity() {
             override fun openUrl(url: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             override fun copyToClipboard(text: String) { (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("Soiboi", text)) }
             override fun setDownloading(active: Boolean) = KeepAliveService.set(applicationContext, active)
+            override fun installApk(file: File): Boolean {
+                if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+                    startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+                    return false
+                }
+                val uri = androidx.core.content.FileProvider.getUriForFile(applicationContext, "$packageName.updates", file)
+                startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+                return true
+            }
         }
         setContent { SoiboiApp(engine, ui, fonts, rememberCoroutineScope()) }
     }

@@ -23,6 +23,12 @@ fun SoiboiApp(engine: Engine, platform: PlatformUi, fonts: AppFonts, scope: Coro
     val app = remember { AppController(engine, scope, platform) }
     LaunchedEffect(Unit) { engine.start() }
     LaunchedEffect(app) { onReady(app) }
+    LaunchedEffect(Unit) {
+        // Wait for the saved settings, then look once per launch.
+        kotlinx.coroutines.delay(4000)
+        val s = engine.settings.value
+        if (s.checkForUpdates) engine.updater.check(quiet = true)?.let { if (it.version != s.skippedVersion) app.updateOpen = true }
+    }
     CompositionLocalProvider(LocalEngine provides engine, LocalPlatform provides platform) {
         SoiboiTheme(settings.flavour, settings.theme, settings.reduceMotion, fonts) {
             Box {

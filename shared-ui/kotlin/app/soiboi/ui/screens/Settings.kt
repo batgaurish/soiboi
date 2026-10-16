@@ -176,6 +176,7 @@ fun SettingsScreen(app: AppController) {
             }
         }
         item {
+            Group("Updates") { UpdateControls(app) }
             Group("Troubleshooting") {
                 Txt("Everything Soiboi did and every error, kept on this device, including what happened just before a crash. Copy it when you report a problem.", style = Soiboi.type.caption, color = c.soft)
                 SButton("Show the app log", { logOpen = true }, compact = true, tone = Tone.Secondary, glyph = Glyph.Info)
