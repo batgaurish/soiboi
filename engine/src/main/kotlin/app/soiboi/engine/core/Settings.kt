@@ -38,6 +38,9 @@ data class Settings(
     val lyricsFontSizeOffset: Double = 0.0,
     val reduceMotion: Boolean = false,
     val checkForUpdates: Boolean = true,
+    /** The person's own Musixmatch user token; synced lyrics are asked of Musixmatch only when it is set. */
+    val musixmatchToken: String = "",
+    val paxsenixLyrics: Boolean = true,
     /** A version the person chose not to be asked about again. */
     val skippedVersion: String = "",
 ) {

@@ -93,6 +93,8 @@ class LyricsProvider(
     private val lrclibEnabled: () -> Boolean,
     /** Lyrics for a connector song (Navidrome and friends). */
     private val remoteLyrics: suspend (Song) -> String? = { null },
+    /** Tried in order when LRCLIB has no synced lyrics. */
+    private val extraSources: () -> List<LyricsSource> = { emptyList() },
     private val noLyrics: String = "No lyrics",
     private val parseFailed: String = "Couldn't read these lyrics",
 ) {
@@ -124,9 +126,13 @@ class LyricsProvider(
             if (synced != null) {
                 lines = synced.split('\n')
                 path?.let { lrclib.cacheSidecar(it, synced) }
-            } else if (isBlank(lines)) {
-                // Nothing local at all, so even unsynced words are an improvement.
-                fetched?.best?.let { best -> lines = best.split('\n'); path?.let { lrclib.cacheSidecar(it, best) } }
+            } else {
+                val other = extraSources().firstNotNullOfOrNull { it.fetch(song)?.takeIf { l -> l.isNotBlank() } }
+                if (other != null) { lines = other.split('\n'); path?.let { lrclib.cacheSidecar(it, other) } }
+                else if (isBlank(lines)) {
+                    // Nothing local at all, so even unsynced words are an improvement.
+                    fetched?.best?.let { best -> lines = best.split('\n'); path?.let { lrclib.cacheSidecar(it, best) } }
+                }
             }
         }
         return parseLrc(lines, noLyrics, parseFailed, song.durationMs).also { cache[song.id] = it }

@@ -140,7 +140,12 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
 
     // lyrics
     val lrclib = Lrclib(java.io.File(paths.cacheDir, "lyrics"))
-    val lyrics = LyricsProvider(lrclib, { settings.value.lrclibEnabled }, { song -> servers[song.origin]?.lyrics(song) })
+    val lyrics = LyricsProvider(lrclib, { settings.value.lrclibEnabled }, { song -> servers[song.origin]?.lyrics(song) }, {
+        buildList {
+            if (settings.value.musixmatchToken.isNotBlank()) add(app.soiboi.engine.lyrics.MusixmatchSource { settings.value.musixmatchToken })
+            if (settings.value.paxsenixLyrics) add(app.soiboi.engine.lyrics.PaxsenixSource())
+        }
+    })
 
     // connectors and debrid
     val addons = app.soiboi.engine.addons.AddonRegistry(db, listOf(
