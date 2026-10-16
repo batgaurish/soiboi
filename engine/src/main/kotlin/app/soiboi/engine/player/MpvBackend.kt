@@ -49,6 +49,23 @@ class MpvBackend(private val mpvPath: String = "mpv") : AudioBackend {
     @Volatile private var playing = false
     @Volatile private var loading = false
 
+    init {
+        // A player left running after its app is gone plays on with no window and no way to stop it, so it dies with us...
+        Runtime.getRuntime().addShutdownHook(Thread { runCatching { process?.destroyForcibly() } })
+        // ...and one orphaned by a kill the hook could not see is cleared the next time Soiboi starts.
+        reapOrphans()
+    }
+
+    private fun reapOrphans() {
+        val tmp = File(System.getProperty("java.io.tmpdir"))
+        tmp.listFiles { f -> f.name.startsWith("soiboi-mpv-") && f.name.endsWith(".sock") }?.forEach { sock ->
+            val owner = sock.name.removePrefix("soiboi-mpv-").removeSuffix(".sock").toLongOrNull() ?: return@forEach
+            if (owner == ProcessHandle.current().pid() || ProcessHandle.of(owner).map { it.isAlive }.orElse(false)) return@forEach
+            ProcessHandle.allProcesses().filter { h -> h.info().commandLine().map { it.contains(sock.path) }.orElse(false) }.forEach { runCatching { it.destroyForcibly() } }
+            sock.delete()
+        }
+    }
+
     private fun ensureStarted() {
         if (process?.isAlive == true && channel?.isOpen == true) return
         socketPath.delete()
