@@ -31,9 +31,10 @@ class WebDavEntry(val path: String, val name: String, val isDirectory: Boolean, 
  * audio tags, so the artist, album and title come from the `Artist/Album/NN Title.ext` folder layout (what the
  * downloader writes) and the file name, and the duration is learned the first time a track plays.
  */
-class WebDavServer(private val baseUrl: String, private val username: String, private val password: String, private val recursive: Boolean = true) : MusicServer {
-    override val origin = SongOrigin.WebDav
-    override val label = "WebDAV"
+class WebDavServer(
+    private val baseUrl: String, private val username: String, private val password: String, private val recursive: Boolean = true,
+    override val origin: SongOrigin = SongOrigin.WebDav, override val label: String = "WebDAV",
+) : MusicServer {
 
     private val uri = java.net.URI(baseUrl.trimEnd('/'))
     private val hostRoot = "${uri.scheme}://${uri.authority}"

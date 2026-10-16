@@ -46,3 +46,22 @@ class LiveProviderTests {
         val na = c.catalog("new_albums"); println("YT new albums=${na.albums.size}")
     } }
 }
+
+class SmbLiveTests {
+    @Test fun smbShare() { if (System.getenv("SOIBOI_SMB") != "1") return; kotlinx.coroutines.runBlocking {
+        val s = app.soiboi.engine.servers.SmbServer("smb://127.0.0.1/music", "tester", "pw")
+        assertTrue(s.ping())
+        val songs = s.allSongs()
+        println("SMB songs=${songs.map { it.artist + "/" + it.album + "/" + it.track + ":" + it.title }}")
+        assertTrue(songs.size == 2)
+        val url = s.streamUrl(songs.first { it.format == "mp3" })
+        val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+        conn.setRequestProperty("Range", "bytes=100-199")
+        val body = conn.inputStream.readBytes()
+        println("SMB range status=${conn.responseCode} len=${body.size} cr=${conn.getHeaderField("Content-Range")}")
+        assertTrue(conn.responseCode == 206 && body.size == 100)
+        val full = java.net.URL(url).openStream().readBytes(); println("SMB full=${full.size}")
+        assertTrue(full.size == java.io.File("/tmp/smbtest/Daft Punk/Homework/01 Test Song 1.mp3").length().toInt())
+        assertTrue(java.nio.ByteBuffer.wrap(body) == java.nio.ByteBuffer.wrap(java.io.File("/tmp/smbtest/Daft Punk/Homework/01 Test Song 1.mp3").readBytes().copyOfRange(100, 200)))
+    } }
+}

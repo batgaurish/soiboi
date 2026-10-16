@@ -49,6 +49,7 @@ import app.soiboi.engine.servers.MusicServer
 import app.soiboi.engine.servers.PlexServer
 import app.soiboi.engine.servers.SubsonicServer
 import app.soiboi.engine.servers.WebDavServer
+import app.soiboi.engine.servers.SmbServer
 import app.soiboi.engine.smart.SmartContext
 import app.soiboi.engine.smart.SmartPlaylist
 import app.soiboi.engine.sources.PlaylistSources
@@ -296,6 +297,12 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
             SongOrigin.Jellyfin, SongOrigin.Emby -> JellyfinServer(c.url, c.username, secret.orEmpty(), c.kind, platform.appVersion)
             SongOrigin.Plex -> PlexServer(c.url, secret.orEmpty())
             SongOrigin.WebDav -> WebDavServer(c.url, c.username, secret.orEmpty(), recursive = true)
+            SongOrigin.Nextcloud -> {
+                val folder = c.extra.trim('/').split('/').filter { it.isNotEmpty() }.joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
+                val user = java.net.URLEncoder.encode(c.username, "UTF-8").replace("+", "%20")
+                WebDavServer(c.url.trim().trimEnd('/') + "/remote.php/dav/files/$user" + if (folder.isEmpty()) "" else "/$folder", c.username, secret.orEmpty(), recursive = true, origin = SongOrigin.Nextcloud, label = "Nextcloud")
+            }
+            SongOrigin.Smb -> SmbServer(c.url, c.username, secret.orEmpty())
             SongOrigin.GoogleDrive -> {
                 val client = platform.secrets.get("drive.client")?.split('\n')?.takeIf { it.size == 2 } ?: return null
                 val tokens = secret?.split('\n')?.takeIf { it.size == 3 }?.let { DriveTokens(it[0], it[1].ifEmpty { null }, it[2].toLongOrNull() ?: 0) } ?: return null

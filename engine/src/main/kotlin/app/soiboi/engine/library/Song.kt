@@ -3,7 +3,7 @@ package app.soiboi.engine.library
 import java.time.Instant
 
 /** What kind of place a song lives. Local files carry a [Song.path]; connector songs are fetched by id. */
-enum class SongOrigin { Local, Navidrome, OpenSubsonic, Jellyfin, Emby, Plex, WebDav, GoogleDrive, Addon }
+enum class SongOrigin { Local, Navidrome, OpenSubsonic, Jellyfin, Emby, Plex, WebDav, GoogleDrive, Nextcloud, Smb, Addon }
 
 /** A track in the library, whether a local file or a connector's remote item. */
 data class Song(
