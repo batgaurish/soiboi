@@ -56,6 +56,8 @@ private val serverKinds = listOf(
     ServerKind(SongOrigin.Emby, "Emby", "The music library on your Emby server.", "https://emby.example.org"),
     ServerKind(SongOrigin.Plex, "Plex", "A music library on your Plex Media Server.", "http://192.168.1.10:32400"),
     ServerKind(SongOrigin.WebDav, "WebDAV", "A shared folder on Nextcloud, ownCloud or a NAS. Tags come from the folder layout.", "https://cloud.example.org/remote.php/dav/files/me/Music"),
+    ServerKind(SongOrigin.Nextcloud, "Nextcloud", "Your Nextcloud files. Use an app password from Settings, Security. Tags come from the folder layout.", "https://cloud.example.org"),
+    ServerKind(SongOrigin.Smb, "SMB share", "A Windows, NAS or Samba share read over the network, with no mounting. Leave the user empty for a guest share.", "smb://nas.local/music/Albums"),
     ServerKind(SongOrigin.GoogleDrive, "Google Drive", "Audio files in your Drive or one folder of it. Needs your own Google Cloud client, set up once.", ""),
 )
 
@@ -166,7 +168,7 @@ private fun ConnectDialog(app: AppController, kind: ServerKind, onDismiss: () ->
 
     SDialog("Connect ${kind.name}", onDismiss, actions = {
         SButton("Cancel", onDismiss, tone = Tone.Ghost)
-        if (!isDrive) SButton("Connect and load songs", ::connect, tone = Tone.Primary, loading = busy, enabled = url.isNotBlank() && secret.isNotBlank() && (usesToken || user.isNotBlank()))
+        if (!isDrive) SButton("Connect and load songs", ::connect, tone = Tone.Primary, loading = busy, enabled = url.isNotBlank() && (kind.origin == SongOrigin.Smb || (secret.isNotBlank() && (usesToken || user.isNotBlank()))))
     }) {
         if (isDrive) {
             Txt("Create an OAuth client of type TVs and Limited Input devices in Google Cloud, with the Drive API turned on, then paste its two values.", style = Soiboi.type.caption, color = c.soft)
@@ -191,9 +193,10 @@ private fun ConnectDialog(app: AppController, kind: ServerKind, onDismiss: () ->
                 }
             }, tone = Tone.Primary, loading = busy, enabled = clientId.isNotBlank() && clientSecret.isNotBlank())
         } else {
-            SField(url, { url = it }, "Server address", hint = kind.urlHint)
-            if (!usesToken) SField(user, { user = it }, "Username")
-            SField(secret, { secret = it }, if (usesToken) "Plex token" else "Password", secret = true)
+            SField(url, { url = it }, if (kind.origin == SongOrigin.Smb) "Share address" else "Server address", hint = kind.urlHint)
+            if (!usesToken) SField(user, { user = it }, if (kind.origin == SongOrigin.Smb) "Username (optional)" else "Username")
+            SField(secret, { secret = it }, if (usesToken) "Plex token" else if (kind.origin == SongOrigin.Nextcloud) "App password" else "Password", secret = true)
+            if (kind.origin == SongOrigin.Nextcloud) SField(extra, { extra = it }, "Music folder (optional)", hint = "Music/Albums")
             if (usesToken) {
                 Txt("Or sign in through plex.tv without typing a token.", style = Soiboi.type.caption, color = c.soft)
                 SButton(if (pinCode == null) "Sign in with Plex" else "Waiting for approval in your browser", {

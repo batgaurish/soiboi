@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.cio)
     api(libs.sqlite.bundled)
+    implementation(libs.smbj)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
