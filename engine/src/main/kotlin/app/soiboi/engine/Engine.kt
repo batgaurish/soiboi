@@ -143,7 +143,9 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     val lyrics = LyricsProvider(lrclib, { settings.value.lrclibEnabled }, { song -> servers[song.origin]?.lyrics(song) })
 
     // connectors and debrid
-    val addons = app.soiboi.engine.addons.AddonRegistry(db)
+    val addons = app.soiboi.engine.addons.AddonRegistry(db, listOf(
+        app.soiboi.engine.providers.youTubeMusicProvider { id -> youtubeStream(id) }, app.soiboi.engine.providers.SoundCloudProvider, app.soiboi.engine.providers.RadioProvider,
+    ))
     val updater = app.soiboi.engine.update.Updater("batgaurish/soiboi", platform.appVersion, platform.isAndroid, paths.cacheDir)
     private val serverMap = HashMap<SongOrigin, MusicServer>()
     val servers: Map<SongOrigin, MusicServer> get() = serverMap
@@ -184,6 +186,17 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
 
     suspend fun exportBackup(target: java.io.File) = backup.export(target)
     suspend fun importBackup(source: java.io.File): Boolean = backup.import(source).also { if (it) { playlists.load(); loadSmart() } }
+
+    /** A direct audio URL for a YouTube video, read by yt-dlp in the pipeline. */
+    private suspend fun youtubeStream(id: String): app.soiboi.engine.addons.AddonStream {
+        var result: app.soiboi.engine.download.PipelineEvent? = null
+        platform.pipeline.run("youtube_stream", kotlinx.serialization.json.buildJsonObject { put("id", kotlinx.serialization.json.JsonPrimitive(id)) }).collect { if (it.isDone || it.isError) result = it }
+        val r = result ?: throw app.soiboi.engine.addons.AddonException("The downloader did not answer.")
+        if (r.isError) throw app.soiboi.engine.addons.AddonException(if (r.code == "no_runtime" || r.code == "android_bridge") "YouTube Music needs the downloader, which is not available on this device yet." else r.message)
+        val url = (r.raw["url"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: throw app.soiboi.engine.addons.AddonException("YouTube gave no stream for this track.")
+        val headers = (r.raw["headers"] as? kotlinx.serialization.json.JsonObject)?.mapNotNull { (k, v) -> (v as? kotlinx.serialization.json.JsonPrimitive)?.content?.let { k to it } }?.toMap().orEmpty()
+        return app.soiboi.engine.addons.AddonStream(url, (r.raw["ext"] as? kotlinx.serialization.json.JsonPrimitive)?.content, null, headers)
+    }
 
     /** Loads everything persisted and brings the library up. Call once at startup. */
     suspend fun start() {

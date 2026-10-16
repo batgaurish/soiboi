@@ -65,6 +65,17 @@ data class AddonCatalogPage(val tracks: List<AddonTrack>, val albums: List<Addon
 
 class AddonException(message: String) : Exception(message)
 
+/** What the app asks of anything that offers songs to search and play: an installed addon, or a provider built into Soiboi. */
+interface CatalogClient {
+    suspend fun search(q: String): AddonSearchResult
+    suspend fun stream(id: String): AddonStream
+    suspend fun album(id: String): AddonDetail
+    suspend fun artist(id: String): AddonDetail
+    suspend fun playlist(id: String): AddonDetail
+    suspend fun catalog(id: String, skip: Int = 0): AddonCatalogPage
+    suspend fun resolveIsrc(isrc: String): String? = null
+}
+
 private fun JsonElement?.obj(): JsonObject? = this as? JsonObject
 private fun JsonElement?.arr(): List<JsonElement> = (this as? JsonArray)?.toList().orEmpty()
 private fun JsonElement?.str(): String? = (this as? JsonPrimitive)?.takeIf { it !is JsonNull }?.contentOrNull?.trim()?.ifEmpty { null }
@@ -126,7 +137,7 @@ internal fun parsePlaylist(o: JsonObject): AddonPlaylist? =
 private fun <T> JsonElement?.items(parse: (JsonObject) -> T?): List<T> = arr().mapNotNull { it.obj()?.let(parse) }
 
 /** A client for one addon. [settings] are appended to every request as query parameters, as the protocol asks. */
-class AddonClient(baseUrl: String, private val settings: Map<String, String> = emptyMap(), private val http: HttpClient = Http.client) {
+class AddonClient(baseUrl: String, private val settings: Map<String, String> = emptyMap(), private val http: HttpClient = Http.client) : CatalogClient {
     val base: String = normalise(baseUrl)
 
     private suspend fun get(path: String, query: Map<String, String> = emptyMap()): JsonElement? {
@@ -161,7 +172,7 @@ class AddonClient(baseUrl: String, private val settings: Map<String, String> = e
 
     suspend fun manifest(): AddonManifest = manifestWithRaw().first
 
-    suspend fun search(q: String): AddonSearchResult {
+    override suspend fun search(q: String): AddonSearchResult {
         val root = get("/search", mapOf("q" to q)).obj()
         return AddonSearchResult(
             root?.get("tracks").items(::parseTrack), root?.get("albums").items(::parseAlbum),
@@ -169,7 +180,7 @@ class AddonClient(baseUrl: String, private val settings: Map<String, String> = e
         )
     }
 
-    suspend fun stream(id: String): AddonStream {
+    override suspend fun stream(id: String): AddonStream {
         val root = get("/stream/${encode(id)}").obj() ?: throw AddonException("The addon has no stream for that track.")
         val url = root.string("url", "streamURL", "streamUrl") ?: throw AddonException("The addon answered without a stream URL.")
         val headers = root["headers"].obj()?.mapNotNull { (k, v) -> v.str()?.let { k to it } }?.toMap().orEmpty()
@@ -182,11 +193,11 @@ class AddonClient(baseUrl: String, private val settings: Map<String, String> = e
         return AddonDetail(root.string("title", "name"), root.string("artworkURL", "artworkUrl", "cover", "image"), tracks, root["albums"].items(::parseAlbum))
     }
 
-    suspend fun album(id: String) = detail("/album/${encode(id)}")
-    suspend fun artist(id: String) = detail("/artist/${encode(id)}")
-    suspend fun playlist(id: String) = detail("/playlist/${encode(id)}")
+    override suspend fun album(id: String) = detail("/album/${encode(id)}")
+    override suspend fun artist(id: String) = detail("/artist/${encode(id)}")
+    override suspend fun playlist(id: String) = detail("/playlist/${encode(id)}")
 
-    suspend fun catalog(id: String, skip: Int = 0): AddonCatalogPage {
+    override suspend fun catalog(id: String, skip: Int): AddonCatalogPage {
         val items = get("/catalog/${encode(id)}", mapOf("skip" to skip.toString())).obj()?.get("items").arr().mapNotNull { it.obj() }
         // A row carries one kind of item, but nothing says which, so each is read as what it looks like.
         val tracks = ArrayList<AddonTrack>(); val albums = ArrayList<AddonAlbum>(); val playlists = ArrayList<AddonPlaylist>(); val artists = ArrayList<AddonArtist>()
@@ -201,7 +212,7 @@ class AddonClient(baseUrl: String, private val settings: Map<String, String> = e
     }
 
     /** The addon's track id for an exact recording, or null. Never a guess. */
-    suspend fun resolveIsrc(isrc: String): String? = get("/resolve-isrc", mapOf("isrc" to isrc)).obj()?.string("trackId")
+    override suspend fun resolveIsrc(isrc: String): String? = get("/resolve-isrc", mapOf("isrc" to isrc)).obj()?.string("trackId")
 
     private fun encode(id: String) = java.net.URLEncoder.encode(id, "UTF-8").replace("+", "%20")
 

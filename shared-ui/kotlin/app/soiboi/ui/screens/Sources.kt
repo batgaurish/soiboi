@@ -96,7 +96,7 @@ fun SourcesScreen(app: AppController) {
                 SButton(if (scanning) "Scanning, $progress files" else "Scan now", { scope.launch { engine.rescan() } }, glyph = Glyph.Refresh, loading = scanning)
             }
         }
-        item { SectionTitle("Addons") }
+        item { SectionTitle("Streaming sources and addons") }
         item { AddonsSection(app) }
         item { SectionTitle("Servers and cloud") }
         items2(serverKinds) { k ->
