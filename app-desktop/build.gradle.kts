@@ -39,7 +39,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.AppImage)
             packageName = "soiboi"
-            packageVersion = "2.4.1"
+            packageVersion = "2.5.0"
         }
     }
 }

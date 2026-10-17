@@ -302,26 +302,33 @@ private fun AccountSourcesGroup(app: AppController) {
     var syncing by remember { mutableStateOf(false) }
 
     Group("Account sync") {
-        Txt("When enabled, Soiboi checks your streaming playlists and downloads new tracks to your library.", style = Soiboi.type.caption, color = c.soft)
+        Txt("Sign into streaming services to auto-download new playlist tracks.", style = Soiboi.type.caption, color = c.soft)
 
         SwitchRow("Auto-sync playlists", syncEnabled, { v -> engine.accountSync.setEnabled(v) }, detail = if (syncEnabled) "Checks every 30 minutes." else "Off.")
 
-        if (sessions.isNotEmpty()) {
-            Hairline()
-            Txt("Connected accounts", style = Soiboi.type.label, color = c.soft)
-            for (session in sessions) {
-                val state by session.state.collectAsState()
-                val signedIn = state is app.soiboi.engine.accounts.SessionState.SignedIn
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Hairline()
+        Txt("Streaming accounts", style = Soiboi.type.label, color = c.soft)
+        
+        for (session in sessions) {
+            val state by session.state.collectAsState()
+            val signedIn = state is app.soiboi.engine.accounts.SessionState.SignedIn
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Space.s), verticalAlignment = Alignment.CenterVertically) {
                         Txt(session.label, style = Soiboi.type.bodyStrong, color = if (signedIn) c.ink else c.muted)
-                        when (state) {
-                            is app.soiboi.engine.accounts.SessionState.SignedIn -> Txt((state as app.soiboi.engine.accounts.SessionState.SignedIn).account, style = Soiboi.type.caption, color = c.soft)
-                            is app.soiboi.engine.accounts.SessionState.SignedOut -> Txt("Not signed in", style = Soiboi.type.caption, color = c.muted)
-                            is app.soiboi.engine.accounts.SessionState.Error -> Txt((state as app.soiboi.engine.accounts.SessionState.Error).message, style = Soiboi.type.caption, color = c.danger)
-                        }
+                        if (session.canStream) Txt("Stream", style = Soiboi.type.micro, color = c.ok)
                     }
-                    if (session.canStream) Txt("Stream", style = Soiboi.type.caption, color = c.ok)
+                    when (state) {
+                        is app.soiboi.engine.accounts.SessionState.SignedIn -> Txt((state as app.soiboi.engine.accounts.SessionState.SignedIn).account, style = Soiboi.type.caption, color = c.soft)
+                        is app.soiboi.engine.accounts.SessionState.SignedOut -> Txt("Not signed in", style = Soiboi.type.caption, color = c.muted)
+                        is app.soiboi.engine.accounts.SessionState.Error -> Txt((state as app.soiboi.engine.accounts.SessionState.Error).message, style = Soiboi.type.caption, color = c.danger)
+                    }
+                }
+                if (app.platform.web.available && !signedIn) {
+                    when (session.id) {
+                        "ytmusic" -> SButton("Sign in", { app.web = WebSessions.ytMusicSignIn(app) }, compact = true, tone = Tone.Secondary, glyph = Glyph.Key)
+                        "soundcloud" -> SButton("Sign in", { app.web = WebSessions.soundCloudSignIn(app) }, compact = true, tone = Tone.Secondary, glyph = Glyph.Key)
+                    }
                 }
             }
         }
@@ -336,6 +343,13 @@ private fun AccountSourcesGroup(app: AppController) {
                     app.toast("Sync complete")
                 }
             }, compact = true, loading = syncing, glyph = Glyph.Refresh, enabled = !syncing)
+            SButton("Scan library", {
+                scope.launch {
+                    app.toast("Scanning library...")
+                    engine.rescan()
+                    app.toast("Library updated")
+                }
+            }, compact = true, tone = Tone.Ghost, glyph = Glyph.Folder)
         }
     }
 }

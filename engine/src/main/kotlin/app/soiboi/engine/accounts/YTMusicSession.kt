@@ -17,6 +17,7 @@ import java.io.File
 class YTMusicSession(
     private val pipeline: PipelineRunner,
     private val cookiesPath: () -> String?,
+    private val saveCookies: (String) -> Unit,
 ) : MusicSession {
 
     override val id = "ytmusic"
@@ -25,6 +26,15 @@ class YTMusicSession(
 
     private val _state = MutableStateFlow<SessionState>(SessionState.SignedOut)
     override val state: StateFlow<SessionState> = _state.asStateFlow()
+
+    /** Set cookies from browser sign-in and save to file. */
+    fun setCredential(cookies: String) {
+        saveCookies(cookies)
+        _state.value = SessionState.SignedIn(
+            account = "YouTube Music",
+            market = "US",
+        )
+    }
 
     /** Check if cookies exist and update state. */
     suspend fun refresh() {
