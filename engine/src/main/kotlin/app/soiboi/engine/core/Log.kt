@@ -22,6 +22,15 @@ object EngineLog {
         sink(line)
     }
 
+    /** Structured diagnostics for tracing cross-layer state changes without leaking URLs or credentials. */
+    fun event(component: String, name: String, details: String = "") {
+        output("[$component] $name${details.takeIf { it.isNotBlank() }?.let { " | $it" } ?: ""}")
+    }
+
+    fun failure(component: String, name: String, error: Throwable, details: String = "") {
+        output("[$component] $name${details.takeIf { it.isNotBlank() }?.let { " | $it" } ?: ""} | ${error.stackTraceToString()}")
+    }
+
     /** Keeps the log in [target], starting a fresh file when the old one grows large. Safe to call twice. */
     @Synchronized fun attach(target: File) {
         if (file == target) return
