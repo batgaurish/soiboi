@@ -147,7 +147,15 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
         wrapperUrl = { null }, // Wrapper URL is obtained dynamically by the pipeline when needed
     )
     val spotifySession = SpotifySession(spotifyApi)
-    val ytMusicSession = YTMusicSession(platform.pipeline) { platform.secrets.get("ytmusic.cookies") }
+    val ytMusicSession = YTMusicSession(
+        platform.pipeline,
+        cookiesPath = { platform.secrets.get("ytmusic.cookies")?.let { java.io.File(paths.supportDir, "ytmusic_cookies.txt").also { f -> if (!f.exists() && it.isNotBlank()) f.writeText(it) }.path } },
+        saveCookies = { cookies ->
+            val file = java.io.File(paths.supportDir, "ytmusic_cookies.txt")
+            file.writeText(cookies)
+            platform.secrets.put("ytmusic.cookies", file.path)
+        }
+    )
     val soundCloudSession = SoundCloudSession(platform.pipeline)
     val accountSync = AccountSync(
         sessionRegistry,

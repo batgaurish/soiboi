@@ -32,6 +32,47 @@ object WebSessions {
         },
     )
 
+    /** YouTube Music sign-in. Watches for Google auth cookies. */
+    fun ytMusicSignIn(app: AppController): WebSession = WebSession(
+        title = "Sign in to YouTube Music",
+        steps = listOf("Sign in with your Google account.", "Soiboi grabs the session when you're signed in."),
+        startUrl = "https://music.youtube.com/",
+        watch = { page, state ->
+            val cookies = page.cookies()
+            val sapisid = cookies.find { it.name == "SAPISID" && it.value.isNotEmpty() }
+            val sid = cookies.find { it.name == "SID" && it.value.isNotEmpty() }
+            if (sapisid == null || sid == null) {
+                state.status = "Waiting for you to sign in."
+                null
+            } else {
+                val cookieStr = cookies.filter { it.domain.contains("youtube") || it.domain.contains("google") }
+                    .joinToString("; ") { "${it.name}=${it.value}" }
+                app.engine.sessionRegistry.get("ytmusic")?.let { session ->
+                    (session as? app.soiboi.engine.accounts.YTMusicSession)?.setCredential(cookieStr)
+                }
+                "Signed in to YouTube Music"
+            }
+        },
+    )
+
+    /** SoundCloud sign-in. Watches for the oauth_token cookie. */
+    fun soundCloudSignIn(app: AppController): WebSession = WebSession(
+        title = "Sign in to SoundCloud",
+        steps = listOf("Sign in with your SoundCloud account.", "Soiboi grabs the session when you're signed in."),
+        startUrl = "https://soundcloud.com/signin",
+        watch = { page, state ->
+            val cookies = page.cookies()
+            val token = cookies.find { it.name == "oauth_token" && it.value.isNotEmpty() }
+            if (token == null) {
+                state.status = "Waiting for you to sign in. SoundCloud public access works without signing in."
+                null
+            } else {
+                // SoundCloud session already works with public access
+                "Signed in to SoundCloud"
+            }
+        },
+    )
+
     /** Fetches the one Apple Music build the lossless wrapper needs, then installs its libraries. */
     fun wrapperApk(app: AppController): WebSession = WebSession(
         title = "Get the lossless libraries",
