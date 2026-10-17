@@ -106,11 +106,21 @@ class MpvBackend(private val mpvPath: String = "mpv") : AudioBackend {
                         when (o["name"]?.let { (it as? JsonPrimitive)?.contentOrNull }) {
                             "time-pos" -> value?.doubleOrNull?.let { positionMs = (it * 1000).toLong(); _events.tryEmit(BackendEvent.Position(positionMs, durationMs)) }
                             "duration" -> value?.doubleOrNull?.let { durationMs = (it * 1000).toLong() }
-                            "pause" -> value?.booleanOrNull?.let { paused -> playing = !paused; if (!loading) _events.tryEmit(BackendEvent.Playing(playing)) }
+                            "pause" -> value?.booleanOrNull?.let { paused ->
+                                playing = !paused
+                                if (!loading) {
+                                    EngineLog.event("MPV", "pause_property", "paused=$paused positionMs=$positionMs durationMs=$durationMs")
+                                    _events.tryEmit(BackendEvent.Playing(playing))
+                                }
+                            }
                         }
                     }
-                    "end-file" -> if ((o["reason"] as? JsonPrimitive)?.contentOrNull == "eof") _events.tryEmit(BackendEvent.Completed)
-                    else if ((o["reason"] as? JsonPrimitive)?.contentOrNull == "error") _events.tryEmit(BackendEvent.Error((o["file_error"] as? JsonPrimitive)?.contentOrNull ?: "playback error"))
+                    "end-file" -> {
+                        val reason = (o["reason"] as? JsonPrimitive)?.contentOrNull ?: "unknown"
+                        EngineLog.event("MPV", "end_file", "reason=$reason positionMs=$positionMs durationMs=$durationMs")
+                        if (reason == "eof") _events.tryEmit(BackendEvent.Completed)
+                        else if (reason == "error") _events.tryEmit(BackendEvent.Error((o["file_error"] as? JsonPrimitive)?.contentOrNull ?: "playback error"))
+                    }
                 }
             }
         } catch (_: Exception) { /* socket closed on release */ }
@@ -118,6 +128,7 @@ class MpvBackend(private val mpvPath: String = "mpv") : AudioBackend {
 
     override suspend fun open(source: String, headers: Map<String, String>, startMs: Long, play: Boolean, meta: TrackMeta?) {
         ensureStarted()
+        EngineLog.event("MPV", "open_begin", "source=${if (source.startsWith("http")) "http" else "local"} startMs=$startMs play=$play headers=${headers.keys.sorted().joinToString(",")}")
         loading = true; positionMs = 0; durationMs = 0
         val options = buildList {
             if (startMs > 0) add("start=${startMs / 1000.0}")

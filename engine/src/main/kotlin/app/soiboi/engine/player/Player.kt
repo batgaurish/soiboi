@@ -95,10 +95,13 @@ class Player(
             backend.events.collect { e ->
                 when (e) {
                     is BackendEvent.Position -> _state.update { it.copy(positionMs = e.positionMs, durationMs = e.durationMs) }
-                    is BackendEvent.Playing -> { markPlaying(e.playing); _state.update { it.copy(playing = e.playing) } }
+                    is BackendEvent.Playing -> {
+                        EngineLog.event("PLAYER", "backend_playing", "playing=${e.playing} song=${_queue.value.current?.id ?: "none"} position=${_state.value.positionMs}")
+                        markPlaying(e.playing); _state.update { it.copy(playing = e.playing) }
+                    }
                     is BackendEvent.StreamTitle -> _state.update { it.copy(streamTitle = e.title) }
-                    BackendEvent.Completed -> onCompleted()
-                    is BackendEvent.Error -> { EngineLog.output("player error: ${e.message}"); _state.update { it.copy(error = e.message, loading = false) } }
+                    BackendEvent.Completed -> { EngineLog.event("PLAYER", "backend_completed", "song=${_queue.value.current?.id ?: "none"}"); onCompleted() }
+                    is BackendEvent.Error -> { EngineLog.output("player error: ${e.message}"); EngineLog.event("PLAYER", "backend_error", "song=${_queue.value.current?.id ?: "none"} message=${e.message}"); _state.update { it.copy(error = e.message, loading = false) } }
                 }
             }
         }
@@ -235,11 +238,11 @@ class Player(
         _queue.value = q.copy(currentIndex = PlayQueueLogic.previousIndex(q.currentIndex, q.songs.size)); load(); scheduleSave()
     }
 
-    fun play() { if (_queue.value.songs.isEmpty()) return; wantPlaying = true; backend.play() }
-    fun pause() { wantPlaying = false; backend.pause() }
+    fun play() { if (_queue.value.songs.isEmpty()) return; EngineLog.event("PLAYER", "command_play", "song=${_queue.value.current?.id ?: "none"}"); wantPlaying = true; backend.play() }
+    fun pause() { EngineLog.event("PLAYER", "command_pause", "song=${_queue.value.current?.id ?: "none"} position=${_state.value.positionMs}"); wantPlaying = false; backend.pause() }
     fun togglePlay() { if (_state.value.playing) pause() else play() }
-    suspend fun stop() { wantPlaying = false; backend.stop(); _state.value = PlaybackState() }
-    suspend fun seek(positionMs: Long) { backend.seek(positionMs); _state.update { it.copy(positionMs = positionMs) } }
+    suspend fun stop() { EngineLog.event("PLAYER", "command_stop", "song=${_queue.value.current?.id ?: "none"}"); wantPlaying = false; backend.stop(); _state.value = PlaybackState() }
+    suspend fun seek(positionMs: Long) { EngineLog.event("PLAYER", "command_seek", "song=${_queue.value.current?.id ?: "none"} positionMs=$positionMs"); backend.seek(positionMs); _state.update { it.copy(positionMs = positionMs) } }
 
     fun setVolume(v: Double) { _volume.value = v.coerceIn(0.0, 1.0); backend.setVolume(_volume.value); scheduleSave() }
     fun setEqualizer(gains: List<Double>) { if (gains.size == EqFrequencies.size) { _eq.value = gains; backend.setEqualizer(gains); scheduleSave() } }
@@ -289,16 +292,26 @@ class Player(
         settleHistory()
         val song = _queue.value.current ?: return
         _lastLoaded = library.song(song.id) ?: song
+        EngineLog.event("PLAYER", "load_begin", "song=${song.id} origin=${song.origin} startMs=$startMs wantPlaying=$wantPlaying")
         _state.value = PlaybackState(playing = wantPlaying, loading = true)
         try {
             val (source, headers) = sourceFor(song)
+            EngineLog.event("PLAYER", "source_resolved", "song=${song.id} kind=${sourceKind(source)} headers=${headers.keys.sorted().joinToString(",")}")
             backend.open(source, headers, startMs, wantPlaying, metaFor(song))
+            EngineLog.event("PLAYER", "backend_open_returned", "song=${song.id} backend=${backend::class.simpleName} wantPlaying=$wantPlaying")
             if (wantPlaying) lastSyncAt = Instant.now()
             _state.update { it.copy(loading = false, playing = wantPlaying) }
             onSongChanged(song)
         } catch (e: Exception) {
-            EngineLog.output("[${song.displayTitle}] $e"); _state.value = PlaybackState(error = e.message)
+            EngineLog.failure("PLAYER", "load_failed", e, "song=${song.id} origin=${song.origin}")
+            _state.value = PlaybackState(error = e.message)
         }
+    }
+
+    private fun sourceKind(source: String): String = when {
+        source.startsWith("file://") || source.startsWith("/") -> "file"
+        source.startsWith("http://") || source.startsWith("https://") -> "http"
+        else -> "other"
     }
 
     /** What to hand the engine for [song]: a cached copy, a debrid link, the origin server's stream, or the local file. */

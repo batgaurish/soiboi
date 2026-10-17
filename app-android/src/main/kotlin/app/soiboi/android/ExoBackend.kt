@@ -13,6 +13,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import app.soiboi.engine.player.AudioBackend
+import app.soiboi.engine.core.EngineLog
 import app.soiboi.engine.player.BackendEvent
 import app.soiboi.engine.player.RemoteControls
 import app.soiboi.engine.player.TrackMeta
@@ -41,12 +42,32 @@ class ExoBackend(private val context: Context) : AudioBackend {
     private var pendingEq: List<Double>? = null
 
     private val listener = object : Player.Listener {
-        override fun onIsPlayingChanged(isPlaying: Boolean) { _events.tryEmit(BackendEvent.Playing(isPlaying)) }
-        override fun onPlaybackStateChanged(state: Int) { if (state == Player.STATE_ENDED) _events.tryEmit(BackendEvent.Completed) }
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            EngineLog.event("EXO", "is_playing_changed", "playing=$isPlaying position=${PlaybackHolder.player?.currentPosition ?: -1} state=${PlaybackHolder.player?.playbackState ?: -1}")
+            _events.tryEmit(BackendEvent.Playing(isPlaying))
+        }
+        override fun onPlaybackStateChanged(state: Int) {
+            EngineLog.event("EXO", "playback_state", "state=${stateName(state)} playWhenReady=${PlaybackHolder.player?.playWhenReady} position=${PlaybackHolder.player?.currentPosition ?: -1}")
+            if (state == Player.STATE_ENDED) _events.tryEmit(BackendEvent.Completed)
+        }
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            EngineLog.event("EXO", "play_when_ready", "value=$playWhenReady reason=$reason")
+        }
         override fun onMetadata(metadata: androidx.media3.common.Metadata) {
             for (i in 0 until metadata.length()) (metadata[i] as? androidx.media3.extractor.metadata.icy.IcyInfo)?.title?.let { _events.tryEmit(BackendEvent.StreamTitle(it.trim().takeIf { t -> t.isNotEmpty() })) }
         }
-        override fun onPlayerError(error: PlaybackException) { _events.tryEmit(BackendEvent.Error(error.message ?: "playback error")) }
+        override fun onPlayerError(error: PlaybackException) {
+            EngineLog.failure("EXO", "player_error", error, "code=${error.errorCodeName} cause=${error.cause?.javaClass?.name}")
+            _events.tryEmit(BackendEvent.Error(error.message ?: "playback error"))
+        }
+    }
+
+    private fun stateName(state: Int) = when (state) {
+        Player.STATE_IDLE -> "IDLE"
+        Player.STATE_BUFFERING -> "BUFFERING"
+        Player.STATE_READY -> "READY"
+        Player.STATE_ENDED -> "ENDED"
+        else -> "UNKNOWN($state)"
     }
 
     private val ticker = object : Runnable {
@@ -61,8 +82,10 @@ class ExoBackend(private val context: Context) : AudioBackend {
     /** Waits for the service to have built its player (it starts moments after launch). */
     private suspend fun player(): ExoPlayer? {
         PlaybackHolder.player?.let { return it }
+        EngineLog.event("EXO", "start_playback_service")
         ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
         repeat(50) { PlaybackHolder.player?.let { return it }; delay(100) }
+        EngineLog.event("EXO", "playback_service_timeout")
         return null
     }
 
@@ -79,6 +102,7 @@ class ExoBackend(private val context: Context) : AudioBackend {
     override suspend fun open(source: String, headers: Map<String, String>, startMs: Long, play: Boolean, meta: TrackMeta?) {
         val p = player() ?: return
         PlaybackHolder.headers = headers
+        EngineLog.event("EXO", "open_begin", "source=${if (source.startsWith("http")) "http" else "local"} startMs=$startMs play=$play headers=${headers.keys.sorted().joinToString(",")}")
         onMain {
             attach(p)
             val uri = if (source.startsWith("/")) Uri.fromFile(File(source)) else Uri.parse(source)

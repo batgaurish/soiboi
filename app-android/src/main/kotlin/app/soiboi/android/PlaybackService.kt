@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import app.soiboi.engine.core.EngineLog
 import app.soiboi.engine.player.RemoteControls
 
 /** The pieces the app and the service share: the player the service owns, and where outside commands go. */
@@ -31,6 +32,7 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        EngineLog.event("SERVICE", "created")
         // The default factory reads files and content URIs as well as http; the resolver adds the per-song auth headers.
         val upstream = DefaultDataSource.Factory(this, DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true))
         val http = ResolvingDataSource.Factory(upstream) { spec -> spec.withAdditionalHeaders(PlaybackHolder.headers) }
@@ -56,12 +58,14 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // Keep playing when the app is swiped away, as a music player should; stop only when nothing is playing.
         val p = PlaybackHolder.player
+        EngineLog.event("SERVICE", "task_removed", "playWhenReady=${p?.playWhenReady} isPlaying=${p?.isPlaying} items=${p?.mediaItemCount} state=${p?.playbackState}")
+        // Keep playing when the app is swiped away, as a music player should; stop only when nothing is playing.
         if (p == null || !p.playWhenReady || p.mediaItemCount == 0) stopSelf()
     }
 
     override fun onDestroy() {
+        EngineLog.event("SERVICE", "destroyed", "playing=${PlaybackHolder.player?.isPlaying} position=${PlaybackHolder.player?.currentPosition ?: -1}")
         session?.run { player.release(); release() }
         session = null; PlaybackHolder.player = null
         super.onDestroy()
