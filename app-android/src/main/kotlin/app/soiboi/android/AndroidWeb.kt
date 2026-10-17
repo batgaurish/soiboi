@@ -38,7 +38,13 @@ object AndroidWeb : WebPaneFactory {
                 web.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 web.settings.javaScriptEnabled = true
                 web.settings.domStorageEnabled = true
-                // Sites serve a "not supported" page to a WebView that says so; present as the phone's browser.
+                web.settings.setSupportZoom(false)
+                web.settings.builtInZoomControls = false
+                web.settings.displayZoomControls = false
+                web.isVerticalScrollBarEnabled = true
+                web.isHorizontalScrollBarEnabled = false
+                web.isNestedScrollingEnabled = true
+                web.overScrollMode = ViewGroup.OVER_SCROLL_IF_CONTENT_SCROLLS
                 web.settings.userAgentString = web.settings.userAgentString.replace("; wv", "")
                 CookieManager.getInstance().setAcceptCookie(true)
                 CookieManager.getInstance().setAcceptThirdPartyCookies(web, true)

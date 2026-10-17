@@ -27,8 +27,15 @@ object WebSessions {
             if (cookies.none { it.name == "media-user-token" && it.value.isNotEmpty() }) {
                 state.status = "Waiting for you to sign in."
                 null
-            } else if (app.engine.cookieStore.save(cookies.mapNotNull(::toCookie))) "Signed in to Apple Music"
-            else { state.status = "Signed in, but Apple has not given a music session yet. Open any album."; null }
+            } else if (app.engine.cookieStore.save(cookies.mapNotNull(::toCookie))) {
+                app.engine.sessionRegistry.get("apple")?.let { session ->
+                    (session as? app.soiboi.engine.accounts.AppleSession)?.refresh()
+                }
+                "Signed in to Apple Music"
+            } else {
+                state.status = "Signed in, but Apple has not given a music session yet. Open any album."
+                null
+            }
         },
     )
 
