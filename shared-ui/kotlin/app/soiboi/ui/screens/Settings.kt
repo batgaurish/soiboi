@@ -133,6 +133,18 @@ fun SettingsScreen(app: AppController) {
         }
         item { AccountSourcesGroup(app) }
         item {
+            Group("Home") {
+                val providers by engine.addons.installed.collectAsState()
+                Txt("Home always has Offline library and Streaming home tabs. Choose which provider fills Streaming home.", style = Soiboi.type.caption, color = c.soft)
+                Listbox(
+                    "Streaming home provider",
+                    listOf("offline" to "No provider") + providers.filter { it.enabled }.map { it.id to it.manifest.name },
+                    s.homepageProvider,
+                    { id -> engine.settings.update { copy(homepageProvider = id) } },
+                )
+            }
+        }
+        item {
             Group("Player") {
                 Txt("How the album art appears on the Now Playing screen.", style = Soiboi.type.caption, color = c.soft)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.s)) {

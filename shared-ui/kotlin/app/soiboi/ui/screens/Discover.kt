@@ -70,6 +70,11 @@ fun DiscoverScreen(app: AppController) {
     var appleError by remember { mutableStateOf<String?>(null) }
     var appleBusy by remember { mutableStateOf(false) }
     val aiConfig by engine.aiConfig.collectAsState()
+    var aiPlaylists by remember { mutableStateOf<List<app.soiboi.engine.ai.AiPlaylist>>(emptyList()) }
+    var aiPlaylistsBusy by remember { mutableStateOf(false) }
+    val listenBrainzPlaylists by androidx.compose.runtime.produceState<List<app.soiboi.engine.discovery.LbPlaylist>?>(null, settings.listenBrainzUser) {
+        value = if (settings.listenBrainzUser.isBlank()) emptyList() else runCatching { engine.listenBrainz.discoveryPlaylists() }.getOrDefault(emptyList())
+    }
     val unresolved by engine.manualResolution.unresolved.collectAsState()
     val addons by engine.addons.installed.collectAsState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -114,6 +119,48 @@ fun DiscoverScreen(app: AppController) {
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                SectionTitle("ListenBrainz discoveries")
+                if (settings.listenBrainzUser.isBlank()) {
+                    Banner("Add your ListenBrainz username", "Your public ListenBrainz playlists appear here when a username is saved in Settings.", Glyph.Compass, action = { SButton("Open settings", { app.go(Route.Settings) }, compact = true) })
+                } else if (listenBrainzPlaylists.isNullOrEmpty()) {
+                    Txt("No ListenBrainz discovery playlists are available yet.", style = Soiboi.type.body, color = c.soft)
+                } else {
+                    listenBrainzPlaylists!!.forEach { playlist ->
+                        Row(Modifier.fillMaxWidth().press({ app.go(Route.Import("lb:${playlist.mbid}")) }, playlist.title, shape = Soiboi.look.shape(14)).background(c.raised, Soiboi.look.shape(14)).border(1.5.dp, c.rule, Soiboi.look.shape(14)).padding(Space.m), horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
+                            GlyphIcon(Glyph.Compass, size = 24.dp, tint = c.soft)
+                            Column(Modifier.weight(1f)) { Txt(playlist.title, style = Soiboi.type.bodyStrong, maxLines = 1); playlist.lastModified?.let { Txt(it.take(10), style = Soiboi.type.caption, color = c.muted) } }
+                            GlyphIcon(Glyph.ChevronRight, size = 18.dp, tint = c.muted)
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                SectionTitle("AI recommended playlists")
+                if (aiConfig == null) Banner("Add an AI provider", "Soiboi can build recommendation playlists from your local library and listening history.", Glyph.Wave, action = { SButton("Open settings", { app.go(Route.Settings) }, compact = true) })
+                else {
+                    Txt("Generate a few playlists from your own library. Nothing is sent until you ask for it.", style = Soiboi.type.caption, color = c.soft)
+                    SButton(if (aiPlaylistsBusy) "Generating" else "Generate recommendations", {
+                        if (!aiPlaylistsBusy) {
+                            aiPlaylistsBusy = true
+                            scope.launch {
+                                aiPlaylists = listOf("A fresh set from my library", "Deep focus from my library", "High energy from my library").mapNotNull { request -> runCatching { engine.ai.makePlaylist(request) }.getOrNull() }
+                                aiPlaylistsBusy = false
+                            }
+                        }
+                    }, tone = Tone.Secondary, compact = true, loading = aiPlaylistsBusy, glyph = Glyph.Wave)
+                    aiPlaylists.forEach { playlist ->
+                        Row(Modifier.fillMaxWidth().press({ app.go(Route.Playlist(playlist.name)) }, playlist.name, shape = Soiboi.look.shape(14)).background(c.raised, Soiboi.look.shape(14)).border(1.5.dp, c.rule, Soiboi.look.shape(14)).padding(Space.m), horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) { Txt(playlist.name, style = Soiboi.type.bodyStrong); Txt(plural(playlist.songs.size, "song"), style = Soiboi.type.caption, color = c.soft) }
+                            GlyphIcon(Glyph.ChevronRight, size = 18.dp, tint = c.muted)
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
                 SectionTitle("Ask an AI")
                 if (aiConfig == null) Banner("Optional, and off until you add a key", "Make a playlist from a sentence, and get album ideas on Today. Your key stays on this device and goes only to the provider you pick.", Glyph.Key, action = { SButton("Add a key", { app.go(Route.Settings) }, compact = true) })
                 else SButton("Make a playlist from a sentence", { app.askAiOpen = true }, glyph = Glyph.Wave, tone = Tone.Secondary)
@@ -126,7 +173,7 @@ fun DiscoverScreen(app: AppController) {
                 unresolved.take(30).forEach { t -> UnresolvedRow(app, t) }
             }
         }
-        addonShelves(app, addons)
+        addonShelves(app, addons.filter { it.enabled && it.id != settings.homepageProvider })
     }
 }
 

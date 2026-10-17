@@ -6,6 +6,7 @@ import android.media.audiofx.Equalizer
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -60,7 +61,7 @@ class ExoBackend(private val context: Context) : AudioBackend {
     /** Waits for the service to have built its player (it starts moments after launch). */
     private suspend fun player(): ExoPlayer? {
         PlaybackHolder.player?.let { return it }
-        context.startService(Intent(context, PlaybackService::class.java))
+        ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
         repeat(50) { PlaybackHolder.player?.let { return it }; delay(100) }
         return null
     }
