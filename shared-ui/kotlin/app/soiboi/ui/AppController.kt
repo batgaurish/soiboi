@@ -82,8 +82,8 @@ class AppController(val engine: Engine, val scope: CoroutineScope, val platform:
     fun clearToast() { _message.value = null }
 
     fun go(r: Route) {
-        // Top-level places replace the stack so back does not wander through tabs.
-        if (r.isTopLevel()) { stack.clear(); stack.add(r) } else if (stack.lastOrNull() != r) stack.add(r)
+        // Keep top-level destinations in the same history as detail routes so Back returns to the previous tab.
+        if (stack.lastOrNull() != r) stack.add(r)
         nowPlayingOpen = false
     }
 

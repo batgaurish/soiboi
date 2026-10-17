@@ -67,13 +67,46 @@ import kotlinx.coroutines.launch
 
 private fun greeting(): String = when (LocalTime.now().hour) { in 5..11 -> "Good morning"; in 12..17 -> "Good afternoon"; in 18..22 -> "Good evening"; else -> "Still up" }
 
-/**
- * The first screen. One thing leads: what you were listening to, as a large cover with a hard shadow and a play button.
- * Below it the shelves change shape (a row of two mood cards, a strip of albums, round artists, a column of picks) so the
- * page has rhythm, and every shelf appears only when there is something real to put in it.
- */
+enum class HomeTab { Offline, Streaming }
+
 @Composable
 fun TodayScreen(app: AppController) {
+    val settings by app.engine.settings.state.collectAsState()
+    var tab by remember { mutableStateOf(HomeTab.Offline) }
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = Space.l, vertical = Space.s),
+            horizontalArrangement = Arrangement.spacedBy(Space.s),
+        ) {
+            SButton("Offline library", { tab = HomeTab.Offline }, compact = true, tone = if (tab == HomeTab.Offline) Tone.Primary else Tone.Ghost, glyph = Glyph.Library)
+            SButton("Streaming home", { tab = HomeTab.Streaming }, compact = true, tone = if (tab == HomeTab.Streaming) Tone.Primary else Tone.Ghost, glyph = Glyph.Wave)
+        }
+        if (tab == HomeTab.Offline) OfflineHomeScreen(app) else StreamingHomeScreen(app, settings.homepageProvider)
+    }
+}
+
+@Composable
+private fun StreamingHomeScreen(app: AppController, providerId: String) {
+    val c = Soiboi.colors
+    val addons by app.engine.addons.installed.collectAsState()
+    val selected = addons.firstOrNull { it.id == providerId && it.enabled }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Space.l, vertical = Space.l), verticalArrangement = Arrangement.spacedBy(Space.xl)) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+                Txt("Streaming home", style = Soiboi.type.display, maxLines = 2)
+                if (selected == null || providerId == "offline") {
+                    Banner("Choose a streaming provider", "Pick YouTube Music, Spotify, SoundCloud, or another enabled provider in Settings.", Glyph.Wave, action = { SButton("Open settings", { app.go(Route.Settings) }, compact = true) })
+                } else {
+                    Txt("Home from ${selected.manifest.name}", style = Soiboi.type.body, color = c.soft)
+                }
+            }
+        }
+        if (selected != null) addonShelves(app, listOf(selected))
+    }
+}
+
+@Composable
+private fun OfflineHomeScreen(app: AppController) {
     val c = Soiboi.colors
     val engine = app.engine
     val songs by engine.library.songs.collectAsState()

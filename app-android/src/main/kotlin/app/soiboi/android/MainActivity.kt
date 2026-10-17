@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.rememberCoroutineScope
@@ -24,6 +25,7 @@ import app.soiboi.engine.core.FileSecretStore
 import app.soiboi.engine.download.WrapperPlatform
 import app.soiboi.ui.PlatformUi
 import app.soiboi.ui.SoiboiApp
+import app.soiboi.ui.AppController
 import app.soiboi.ui.theme.AppFonts
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +84,12 @@ class MainActivity : ComponentActivity() {
         )
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + kotlinx.coroutines.CoroutineExceptionHandler { _, e -> app.soiboi.engine.core.EngineLog.output("uncaught in a background task: " + e.stackTraceToString()) })
         val engine = Engine(platform, scope)
+        var controller: AppController? = null
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (controller?.back() != true) finish()
+            }
+        })
         val fonts = AppFonts(
             zine = FontFamily(font("BricolageGrotesque-400", FontWeight.W400), font("BricolageGrotesque-600", FontWeight.W600), font("BricolageGrotesque-800", FontWeight.W800)),
             linerDisplay = FontFamily(font("Fraunces-400", FontWeight.W400), font("Fraunces-600", FontWeight.W600), font("Fraunces-700", FontWeight.W700)),
@@ -109,6 +117,6 @@ class MainActivity : ComponentActivity() {
                 return true
             }
         }
-        setContent { SoiboiApp(engine, ui, fonts, rememberCoroutineScope()) }
+        setContent { SoiboiApp(engine, ui, fonts, rememberCoroutineScope(), onReady = { controller = it }) }
     }
 }

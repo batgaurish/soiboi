@@ -58,6 +58,8 @@ class ListenBrainz(private val user: () -> String, private val library: Library)
             val r = Http.client.get(url)
             r.status to if (r.status == HttpStatusCode.OK) Http.json.parseToJsonElement(r.bodyAsText()) else null
         }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
     } catch (e: Exception) {
         EngineLog.output("listenbrainz: $e"); null
     }

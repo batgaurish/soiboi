@@ -49,6 +49,8 @@ data class Settings(
     val discordClientId: String = "",
     /** How album art displays in the player: spinning vinyl or fitted image. */
     val artworkStyle: ArtworkStyle = ArtworkStyle.Fit,
+    /** Provider used by the Streaming home tab. "offline" leaves the tab available but unconfigured. */
+    val homepageProvider: String = "offline",
     /** Desktop: closing the window hides it to the tray and keeps the music playing. */
     val minimizeToTray: Boolean = false,
     /** The Spotify Connect device Soiboi plays Spotify tracks on; empty means whichever is active. */

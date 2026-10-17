@@ -114,8 +114,8 @@ private fun VinylDisc(cover: ImageBitmap?, playing: Boolean, modifier: Modifier 
     val displayAngle = if (playing) rotation else lastAngle
     LaunchedEffect(playing, rotation) { if (playing) lastAngle = rotation }
 
-    BoxWithConstraints(modifier.padding(horizontal = Space.l), contentAlignment = Alignment.Center) {
-        val discSize = min(maxWidth.value, maxHeight.value).dp
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val discSize = minOf(maxWidth, maxHeight)
         val artSize = discSize * 0.55f
         val vinylColor = Color(0xFF1A1A1A)
         val grooveColor = Color(0xFF2A2A2A)
@@ -190,18 +190,22 @@ private fun NarrowPlayer(app: AppController, song: Song, cover: ImageBitmap?, wa
                 ArtworkStyle.Vinyl -> {
                     PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.statusBarsPadding())
                     Spacer(Modifier.height(Space.m))
-                    VinylDisc(cover, state.playing, Modifier.fillMaxWidth().weight(1f))
+                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                        VinylDisc(cover, state.playing, Modifier.fillMaxSize().padding(horizontal = Space.l))
+                    }
                     Spacer(Modifier.height(Space.m))
                 }
                 ArtworkStyle.Fit -> {
-                    val artHeight = min(width.value * 1.15f, height.value * 0.58f).dp
-                    Box(Modifier.fillMaxWidth().height(artHeight)) {
-                        if (cover != null) Image(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, alignment = Alignment.Center)
-                        else Box(Modifier.fillMaxSize().background(Color(0x22FFFFFF)), contentAlignment = Alignment.Center) { GlyphIcon(Glyph.Disc, size = 96.dp, tint = Color(0x66FFFFFF)) }
-                        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color(0x66000000), 0.28f to Color.Transparent, 0.7f to Color.Transparent, 1f to wash)))
-                        PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.statusBarsPadding())
+                    PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.statusBarsPadding())
+                    Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                        BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            val side = minOf(maxWidth, maxHeight)
+                            Box(Modifier.size(side), contentAlignment = Alignment.Center) {
+                                if (cover != null) Image(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, alignment = Alignment.Center)
+                                else Box(Modifier.fillMaxSize().background(Color(0x22FFFFFF)), contentAlignment = Alignment.Center) { GlyphIcon(Glyph.Disc, size = 96.dp, tint = Color(0x66FFFFFF)) }
+                            }
+                        }
                     }
-                    Spacer(Modifier.height(Space.m))
                 }
             }
             TitleBlock(app, song, live = isLive(song), streamTitle = state.streamTitle, modifier = Modifier.padding(horizontal = Space.l))
@@ -219,7 +223,6 @@ private fun NarrowPlayer(app: AppController, song: Song, cover: ImageBitmap?, wa
                 if (view == PlayerView.Lyrics) LyricsView(app, song, state.positionMs) else QueuePanel(app, Modifier.fillMaxSize(), embedded = true)
             }
         }
-        if (view == PlayerView.Art) Spacer(Modifier.weight(1f))
         Transport(app, song, Modifier.padding(horizontal = Space.l))
         Spacer(Modifier.height(Space.m))
         if (view == PlayerView.Art) {
@@ -234,6 +237,7 @@ private fun NarrowPlayer(app: AppController, song: Song, cover: ImageBitmap?, wa
 private fun WidePlayer(app: AppController, song: Song, cover: ImageBitmap?, view: PlayerView, setView: (PlayerView) -> Unit, openMenu: () -> Unit) {
     val state by app.engine.player.state.collectAsState()
     val queue by app.engine.player.queue.collectAsState()
+    val settings by app.engine.settings.state.collectAsState()
     Column(Modifier.fillMaxSize().padding(horizontal = Space.xl)) {
         PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.padding(top = Space.m))
         Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.xxl)) {
@@ -241,7 +245,10 @@ private fun WidePlayer(app: AppController, song: Song, cover: ImageBitmap?, view
                 BoxWithConstraints(Modifier.weight(1f, fill = true).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     val side = min(maxWidth.value, maxHeight.value).dp
                     Box(Modifier.size(side).clip(RoundedCornerShape(14.dp)).background(Color(0x22FFFFFF)), contentAlignment = Alignment.Center) {
-                        if (cover != null) Image(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) else GlyphIcon(Glyph.Disc, size = 96.dp, tint = Color(0x66FFFFFF))
+                        if (cover != null) {
+                            if (settings.artworkStyle == ArtworkStyle.Vinyl) VinylDisc(cover, state.playing, Modifier.fillMaxSize())
+                            else Image(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, alignment = Alignment.Center)
+                        } else GlyphIcon(Glyph.Disc, size = 96.dp, tint = Color(0x66FFFFFF))
                     }
                 }
                 Spacer(Modifier.height(Space.m))
