@@ -324,10 +324,11 @@ private fun AccountSourcesGroup(app: AppController) {
                         is app.soiboi.engine.accounts.SessionState.Error -> Txt((state as app.soiboi.engine.accounts.SessionState.Error).message, style = Soiboi.type.caption, color = c.danger)
                     }
                 }
-                if (app.platform.web.available && !signedIn) {
+                if (!signedIn) {
                     when (session.id) {
-                        "ytmusic" -> SButton("Sign in", { app.web = WebSessions.ytMusicSignIn(app) }, compact = true, tone = Tone.Secondary, glyph = Glyph.Key)
-                        "soundcloud" -> SButton("Sign in", { app.web = WebSessions.soundCloudSignIn(app) }, compact = true, tone = Tone.Secondary, glyph = Glyph.Key)
+                        "apple" -> if (app.platform.web.available) SButton("Sign in", { app.web = WebSessions.appleSignIn(app) }, compact = true, tone = Tone.Secondary, glyph = Glyph.Key)
+                        "ytmusic" -> if (app.platform.web.available) SButton("Sign in", { app.web = WebSessions.ytMusicSignIn(app) }, compact = true, tone = Tone.Secondary, glyph = Glyph.Key)
+                        "soundcloud" -> if (app.platform.web.available) SButton("Sign in", { app.web = WebSessions.soundCloudSignIn(app) }, compact = true, tone = Tone.Secondary, glyph = Glyph.Key)
                     }
                 }
             }
