@@ -13,6 +13,9 @@ enum class Flavour { Zine, LinerNotes, Spotify }
 
 enum class ThemeMode { System, Light, Dark }
 
+/** How the album art appears on the Now Playing screen. */
+enum class ArtworkStyle { Vinyl, Fit }
+
 @Serializable
 data class Settings(
     val flavour: Flavour = Flavour.Zine,
@@ -44,6 +47,8 @@ data class Settings(
     /** Desktop: show what is playing on Discord. Needs the person's own Discord application id. */
     val discordPresence: Boolean = false,
     val discordClientId: String = "",
+    /** How album art displays in the player: spinning vinyl or fitted image. */
+    val artworkStyle: ArtworkStyle = ArtworkStyle.Fit,
     /** Desktop: closing the window hides it to the tray and keeps the music playing. */
     val minimizeToTray: Boolean = false,
     /** The Spotify Connect device Soiboi plays Spotify tracks on; empty means whichever is active. */

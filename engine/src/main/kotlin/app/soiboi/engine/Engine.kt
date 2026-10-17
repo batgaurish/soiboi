@@ -54,6 +54,12 @@ import app.soiboi.engine.smart.SmartContext
 import app.soiboi.engine.smart.SmartPlaylist
 import app.soiboi.engine.sources.PlaylistSources
 import app.soiboi.engine.sources.YouTubePlaylistSource
+import app.soiboi.engine.accounts.AccountSync
+import app.soiboi.engine.accounts.AppleSession
+import app.soiboi.engine.accounts.SessionRegistry
+import app.soiboi.engine.accounts.SpotifySession
+import app.soiboi.engine.accounts.YTMusicSession
+import app.soiboi.engine.accounts.SoundCloudSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -130,6 +136,26 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     val youtube = YouTubePlaylistSource(platform.pipeline)
     val playlistSources = PlaylistSources.standard(youtube).also { it.register(ListenBrainzPlaylistSource(listenBrainz)) }
     val discovery = Discovery(playlistSources, apple, manualResolution) { appleLibrary.accountStorefront() }
+
+    // account sessions
+    val sessionRegistry = SessionRegistry()
+    val appleSession = AppleSession(
+        appleLibrary,
+        platform.pipeline,
+        java.io.File(paths.cacheDir, "streams"),
+        cookiesPath = { cookies.path.takeIf { java.io.File(it).exists() } },
+        wrapperUrl = { null }, // Wrapper URL is obtained dynamically by the pipeline when needed
+    )
+    val spotifySession = SpotifySession(spotifyApi)
+    val ytMusicSession = YTMusicSession(platform.pipeline) { platform.secrets.get("ytmusic.cookies") }
+    val soundCloudSession = SoundCloudSession(platform.pipeline)
+    val accountSync = AccountSync(
+        sessionRegistry,
+        downloads,
+        java.io.File(paths.supportDir, "sync_cursors"),
+        ownedKeys = { library.songs.value.filter { !it.title.isNullOrEmpty() }.map { app.soiboi.engine.core.ownedSongKey(it.artist ?: "", it.title!!) }.toSet() },
+        scope = scope,
+    )
 
     val backup = Backup(db, library, playlists, settings) { _smart.value }
 
@@ -219,6 +245,27 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
         scope.launch { runCatching { wrapper.probeSignIn() } }
         // Pick up anything added or changed while the app was closed.
         if (scanner.folders().isNotEmpty()) scope.launch { runCatching { rescan() } }
+        // Initialize account sessions
+        scope.launch { initSessions() }
+    }
+
+    /** Initialize and register account sessions. */
+    private suspend fun initSessions() {
+        sessionRegistry.register(appleSession)
+        sessionRegistry.register(spotifySession)
+        sessionRegistry.register(ytMusicSession)
+        sessionRegistry.register(soundCloudSession)
+        // Refresh session states
+        runCatching { appleSession.refresh() }
+        runCatching { spotifySession.refresh() }
+        runCatching { ytMusicSession.refresh() }
+        runCatching { soundCloudSession.refresh() }
+        // Sync is disabled by default; user enables in settings via accountSync.setEnabled(true)
+    }
+
+    /** Trigger manual sync for all signed-in sessions. */
+    suspend fun syncAccounts() {
+        accountSync.syncAll()
     }
 
     private val _capabilities = MutableStateFlow<app.soiboi.engine.download.PipelineCapabilities?>(null)
@@ -366,5 +413,5 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     val hasTorbox: Boolean get() = !platform.secrets.get("torbox.key").isNullOrBlank()
     val hasRealDebrid: Boolean get() = !platform.secrets.get("realdebrid.token").isNullOrBlank()
 
-    fun shutdown() { player.release(); db.close() }
+    fun shutdown() { accountSync.stopSync(); player.release(); db.close() }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.height
+import app.soiboi.engine.core.ArtworkStyle
 import app.soiboi.engine.core.EngineLog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -128,6 +129,17 @@ fun SettingsScreen(app: AppController) {
                 Txt("Lossless wrapper", style = Soiboi.type.label, color = c.soft)
                 Txt(when (wrapper.stage) { WrapperStage.Unsupported -> "Not part of this build. AAC downloads work without it."; WrapperStage.NeedsLibraries -> "Needs the Apple Music app file once."; WrapperStage.Ready -> "Running and signed in."; WrapperStage.NeedsCode -> "Apple sent a two-factor code."; WrapperStage.Failed -> wrapper.message ?: "It did not start."; else -> if (wrapperIn) "Signed in. It starts when a download needs it." else "Set up to download ALAC." }, style = Soiboi.type.caption, color = c.soft)
                 if (wrapper.stage != WrapperStage.Unsupported) SButton("Set up lossless", { wrapperOpen = true }, compact = true, glyph = Glyph.Key)
+            }
+        }
+        item { AccountSourcesGroup(app) }
+        item {
+            Group("Player") {
+                Txt("How the album art appears on the Now Playing screen.", style = Soiboi.type.caption, color = c.soft)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    val vinyl = s.artworkStyle == ArtworkStyle.Vinyl
+                    SButton("Vinyl", { engine.settings.update { copy(artworkStyle = ArtworkStyle.Vinyl) } }, compact = true, tone = if (vinyl) Tone.Primary else Tone.Ghost, glyph = Glyph.Disc)
+                    SButton("Fit", { engine.settings.update { copy(artworkStyle = ArtworkStyle.Fit) } }, compact = true, tone = if (!vinyl) Tone.Primary else Tone.Ghost)
+                }
             }
         }
         item {
@@ -279,6 +291,54 @@ private fun WrapperDialog(app: AppController, onDismiss: () -> Unit) {
 }
 
 private fun wrapperSigned(engine: app.soiboi.engine.Engine) = engine.wrapper.signedIn.value
+
+@Composable
+private fun AccountSourcesGroup(app: AppController) {
+    val c = Soiboi.colors
+    val engine = app.engine
+    val syncEnabled by engine.accountSync.enabled.collectAsState()
+    val sessions = engine.sessionRegistry.all()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var syncing by remember { mutableStateOf(false) }
+
+    Group("Account sync") {
+        Txt("When enabled, Soiboi checks your streaming playlists and downloads new tracks to your library.", style = Soiboi.type.caption, color = c.soft)
+
+        SwitchRow("Auto-sync playlists", syncEnabled, { v -> engine.accountSync.setEnabled(v) }, detail = if (syncEnabled) "Checks every 30 minutes." else "Off.")
+
+        if (sessions.isNotEmpty()) {
+            Hairline()
+            Txt("Connected accounts", style = Soiboi.type.label, color = c.soft)
+            for (session in sessions) {
+                val state by session.state.collectAsState()
+                val signedIn = state is app.soiboi.engine.accounts.SessionState.SignedIn
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Space.s), verticalAlignment = Alignment.CenterVertically) {
+                        Txt(session.label, style = Soiboi.type.bodyStrong, color = if (signedIn) c.ink else c.muted)
+                        when (state) {
+                            is app.soiboi.engine.accounts.SessionState.SignedIn -> Txt((state as app.soiboi.engine.accounts.SessionState.SignedIn).account, style = Soiboi.type.caption, color = c.soft)
+                            is app.soiboi.engine.accounts.SessionState.SignedOut -> Txt("Not signed in", style = Soiboi.type.caption, color = c.muted)
+                            is app.soiboi.engine.accounts.SessionState.Error -> Txt((state as app.soiboi.engine.accounts.SessionState.Error).message, style = Soiboi.type.caption, color = c.danger)
+                        }
+                    }
+                    if (session.canStream) Txt("Stream", style = Soiboi.type.caption, color = c.ok)
+                }
+            }
+        }
+
+        Hairline()
+        Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            SButton(if (syncing) "Syncing" else "Sync now", {
+                syncing = true
+                scope.launch {
+                    runCatching { engine.syncAccounts() }
+                    syncing = false
+                    app.toast("Sync complete")
+                }
+            }, compact = true, loading = syncing, glyph = Glyph.Refresh, enabled = !syncing)
+        }
+    }
+}
 
 @Composable
 private fun LogDialog(app: AppController, onDismiss: () -> Unit) {

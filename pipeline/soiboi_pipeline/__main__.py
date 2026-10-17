@@ -15,7 +15,7 @@ import sys
 from collections.abc import Callable
 
 from . import __version__, acoustic, apple_library, downloader, playlist, runtime, tags, art
-from . import wrapper_libs, stream
+from . import wrapper_libs, stream, apple_stream, session_download
 from .protocol import Emit, Event, Payload, done, error, ignore
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,8 @@ _HANDLERS: dict[str, Handler] = {
     "read_tags": tags.handle_read_tags,
     "cover": art.handle_cover,
     "youtube_stream": stream.handle_youtube_stream,
+    "apple_stream": apple_stream.handle_apple_stream,
+    "session_download": session_download.handle_session_download,
 }
 
 

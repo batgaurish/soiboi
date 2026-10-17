@@ -3,6 +3,20 @@
 What is left after the Kotlin rewrite. Everything listed here was left
 undone on purpose; nothing below is half-built.
 
+## Account Sources (v2.5 - new)
+
+The account sources system (Apple Music streaming, Spotify/YT Music/SoundCloud
+sync) is implemented but needs testing:
+
+- **Apple Music streaming**: Widevine decryption via pywidevine with bundled
+  L3 CDM device. Test by signing in and playing a track without downloading.
+- **Apple Music sync**: Auto-downloads new tracks added to your playlists.
+  Disabled by default; enable in settings. Runs every 30 minutes when on.
+- **Spotify/YT/SoundCloud downloads**: Resolves tracks via ISRC to Apple Music,
+  falls back to yt-dlp. Test by syncing a friend's Spotify playlist.
+
+See `docs/ACCOUNT-SOURCES-PLAN.md` and `docs/ACCOUNT-SOURCES-HANDOVER.md`.
+
 ## Needs a person
 
 - Sign in to Apple Music and run a real download end to end. The pipeline and

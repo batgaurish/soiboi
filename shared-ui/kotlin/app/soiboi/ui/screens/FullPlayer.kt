@@ -1,7 +1,13 @@
 package app.soiboi.ui.screens
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -20,6 +26,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -30,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.soiboi.engine.core.ArtworkStyle
 import app.soiboi.engine.library.QualityInfo
 import app.soiboi.engine.library.Song
 import app.soiboi.engine.library.SongOrigin
@@ -88,6 +97,52 @@ private fun coverTint(img: ImageBitmap): Color {
 
 private fun Color.darker(by: Float) = Color(red * (1 - by), green * (1 - by), blue * (1 - by), alpha)
 
+/** A spinning vinyl record with album art in the center. Spins when playing, stops when paused. */
+@Composable
+private fun VinylDisc(cover: ImageBitmap?, playing: Boolean, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "vinyl")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 8000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "vinyl-spin"
+    )
+    var lastAngle by remember { mutableStateOf(0f) }
+    val displayAngle = if (playing) rotation else lastAngle
+    LaunchedEffect(playing, rotation) { if (playing) lastAngle = rotation }
+
+    BoxWithConstraints(modifier.padding(horizontal = Space.l), contentAlignment = Alignment.Center) {
+        val discSize = min(maxWidth.value, maxHeight.value).dp
+        val artSize = discSize * 0.55f
+        val vinylColor = Color(0xFF1A1A1A)
+        val grooveColor = Color(0xFF2A2A2A)
+
+        Box(Modifier.size(discSize).graphicsLayer { rotationZ = displayAngle }, contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val center = size.width / 2
+                val radius = size.width / 2
+                drawCircle(vinylColor, radius)
+                for (i in 1..12) {
+                    val grooveRadius = radius * (0.32f + i * 0.05f)
+                    drawCircle(grooveColor, grooveRadius, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f))
+                }
+                drawCircle(Color(0xFF333333), radius * 0.28f)
+                drawCircle(Color(0xFF444444), radius * 0.08f)
+            }
+            if (cover != null) {
+                Image(cover, null, Modifier.size(artSize).clip(CircleShape), contentScale = ContentScale.Crop)
+            } else {
+                Box(Modifier.size(artSize).background(Color(0x44FFFFFF), CircleShape), contentAlignment = Alignment.Center) {
+                    GlyphIcon(Glyph.Disc, size = artSize * 0.5f, tint = Color(0x66FFFFFF))
+                }
+            }
+        }
+    }
+}
+
 /** The full-screen player: the cover bleeds off the top, a wash of its colour runs down behind the controls, and lyrics or the queue take the cover's place when asked. */
 @Composable
 fun NowPlayingScreen(app: AppController) {
@@ -128,16 +183,27 @@ fun NowPlayingScreen(app: AppController) {
 private fun NarrowPlayer(app: AppController, song: Song, cover: ImageBitmap?, wash: Color, width: Dp, height: Dp, view: PlayerView, setView: (PlayerView) -> Unit, openMenu: () -> Unit) {
     val state by app.engine.player.state.collectAsState()
     val queue by app.engine.player.queue.collectAsState()
+    val settings by app.engine.settings.state.collectAsState()
     Column(Modifier.fillMaxSize()) {
         if (view == PlayerView.Art) {
-            val artHeight = min(width.value * 1.15f, height.value * 0.58f).dp
-            Box(Modifier.fillMaxWidth().height(artHeight)) {
-                if (cover != null) Image(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                else Box(Modifier.fillMaxSize().background(Color(0x22FFFFFF)), contentAlignment = Alignment.Center) { GlyphIcon(Glyph.Disc, size = 96.dp, tint = Color(0x66FFFFFF)) }
-                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color(0x66000000), 0.28f to Color.Transparent, 0.7f to Color.Transparent, 1f to wash)))
-                PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.statusBarsPadding())
+            when (settings.artworkStyle) {
+                ArtworkStyle.Vinyl -> {
+                    PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.statusBarsPadding())
+                    Spacer(Modifier.height(Space.m))
+                    VinylDisc(cover, state.playing, Modifier.fillMaxWidth().weight(1f))
+                    Spacer(Modifier.height(Space.m))
+                }
+                ArtworkStyle.Fit -> {
+                    val artHeight = min(width.value * 1.15f, height.value * 0.58f).dp
+                    Box(Modifier.fillMaxWidth().height(artHeight)) {
+                        if (cover != null) Image(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, alignment = Alignment.Center)
+                        else Box(Modifier.fillMaxSize().background(Color(0x22FFFFFF)), contentAlignment = Alignment.Center) { GlyphIcon(Glyph.Disc, size = 96.dp, tint = Color(0x66FFFFFF)) }
+                        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0f to Color(0x66000000), 0.28f to Color.Transparent, 0.7f to Color.Transparent, 1f to wash)))
+                        PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.statusBarsPadding())
+                    }
+                    Spacer(Modifier.height(Space.m))
+                }
             }
-            Spacer(Modifier.height(Space.m))
             TitleBlock(app, song, live = isLive(song), streamTitle = state.streamTitle, modifier = Modifier.padding(horizontal = Space.l))
         } else {
             PlayerTopBar(app, queue.songs.size, song.displayAlbum, openMenu, Modifier.statusBarsPadding())
