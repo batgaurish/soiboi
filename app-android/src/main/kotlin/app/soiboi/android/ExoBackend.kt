@@ -80,12 +80,13 @@ class ExoBackend(private val context: Context) : AudioBackend {
     private fun onMain(block: () -> Unit) { if (Looper.myLooper() == Looper.getMainLooper()) block() else main.post(block) }
 
     /** Waits for the service to have built its player (it starts moments after launch). */
-    private suspend fun player(): ExoPlayer? {
+    private suspend fun player(shouldPlay: Boolean): ExoPlayer? {
         PlaybackHolder.player?.let { return it }
-        EngineLog.event("EXO", "start_playback_service")
-        ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
+        EngineLog.event("EXO", "start_playback_service", "foreground=$shouldPlay")
+        if (shouldPlay) ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
+        else context.startService(Intent(context, PlaybackService::class.java))
         repeat(50) { PlaybackHolder.player?.let { return it }; delay(100) }
-        EngineLog.event("EXO", "playback_service_timeout")
+        EngineLog.event("EXO", "playback_service_timeout", "foreground=$shouldPlay")
         return null
     }
 
@@ -100,7 +101,7 @@ class ExoBackend(private val context: Context) : AudioBackend {
     }
 
     override suspend fun open(source: String, headers: Map<String, String>, startMs: Long, play: Boolean, meta: TrackMeta?) {
-        val p = player() ?: return
+        val p = player(play) ?: return
         PlaybackHolder.headers = headers
         EngineLog.event("EXO", "open_begin", "source=${if (source.startsWith("http")) "http" else "local"} startMs=$startMs play=$play headers=${headers.keys.sorted().joinToString(",")}")
         onMain {
