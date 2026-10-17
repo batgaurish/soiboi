@@ -138,7 +138,7 @@ fun SettingsScreen(app: AppController) {
                 Txt("Home always has Offline library and Streaming home tabs. Choose which provider fills Streaming home.", style = Soiboi.type.caption, color = c.soft)
                 Listbox(
                     "Streaming home provider",
-                    listOf("offline" to "No provider") + providers.filter { it.enabled }.map { it.id to it.manifest.name },
+                    listOf("offline" to "No provider", "apple" to "Apple Music") + providers.filter { it.enabled && it.id != "apple" }.map { it.id to it.manifest.name },
                     s.homepageProvider,
                     { id -> engine.settings.update { copy(homepageProvider = id) } },
                 )
