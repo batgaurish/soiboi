@@ -302,7 +302,16 @@ private fun AccountSourcesGroup(app: AppController) {
     var syncing by remember { mutableStateOf(false) }
 
     Group("Account sync") {
-        Txt("Sign into streaming services to auto-download new playlist tracks.", style = Soiboi.type.caption, color = c.soft)
+        Txt(
+            if (sessions.isEmpty()) "Loading streaming accounts…"
+            else {
+                val connected = sessions.count { it.state.value is app.soiboi.engine.accounts.SessionState.SignedIn }
+                if (connected == 0) "No streaming accounts connected yet. Sign in below to enable playlist sync."
+                else "$connected streaming account${if (connected == 1) "" else "s"} connected. Turn on auto-sync to download new playlist tracks."
+            },
+            style = Soiboi.type.caption,
+            color = c.soft,
+        )
 
         SwitchRow("Auto-sync playlists", syncEnabled, { v -> engine.accountSync.setEnabled(v) }, detail = if (syncEnabled) "Checks every 30 minutes." else "Off.")
 
