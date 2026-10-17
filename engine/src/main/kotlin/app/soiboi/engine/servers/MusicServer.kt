@@ -67,6 +67,8 @@ suspend fun downloadTo(url: String, headers: Map<String, String>, target: File):
     val tmp = File(target.path + ".part")
     val response: HttpResponse = Http.client.get(url) { headers.forEach { (k, v) -> header(k, v) } }
     if (!response.status.isSuccess()) false else { tmp.writeBytes(response.bodyAsBytes()); tmp.renameTo(target) }
+} catch (e: kotlinx.coroutines.CancellationException) {
+    throw e
 } catch (e: Exception) {
     EngineLog.output("download $url: $e"); false
 }

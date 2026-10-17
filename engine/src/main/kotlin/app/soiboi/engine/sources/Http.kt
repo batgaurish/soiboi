@@ -46,6 +46,8 @@ suspend fun fetchText(url: String, headers: Map<String, String> = emptyMap()): S
         headers.forEach { (k, v) -> header(k, v) }
     }
     if (response.status == HttpStatusCode.OK) response.bodyAsText() else null
+} catch (e: kotlinx.coroutines.CancellationException) {
+    throw e // Don't swallow cancellation — let it propagate
 } catch (e: Exception) {
     EngineLog.output("fetch $url: $e")
     null
@@ -112,6 +114,8 @@ suspend fun downloadFile(
             null
         }
     } finally { client.close() }
+} catch (e: kotlinx.coroutines.CancellationException) {
+    throw e // Don't swallow cancellation
 } catch (e: Exception) {
     EngineLog.output("download $url: $e")
     e.message ?: "The download stopped."
