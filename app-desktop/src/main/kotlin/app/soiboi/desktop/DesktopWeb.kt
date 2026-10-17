@@ -132,6 +132,7 @@ class DesktopWeb(private val installDir: File) : WebPaneFactory {
             state.page = object : WebPage {
                 override val url: String get() = browser.url.orEmpty()
                 override suspend fun cookies(): List<WebCookie> = allCookies()
+                    .filter { cookie -> state.cookieDomains.isEmpty() || state.cookieDomains.any { domain -> cookie.domain.trimStart('.').endsWith(domain.trimStart('.')) } }
                 override suspend fun text(): String {
                     val id = "q${ids.incrementAndGet()}"
                     val answer = CompletableDeferred<String>()

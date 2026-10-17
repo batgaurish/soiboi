@@ -50,6 +50,8 @@ interface WebPage {
 /** What a pane tells the screen about itself. */
 class WebState {
     var page by mutableStateOf<WebPage?>(null)
+    /** Domains whose cookies belong to the current guided sign-in flow. */
+    var cookieDomains: Set<String> = emptySet()
     /** Set while the browser itself is being prepared, so the screen can say why it is blank. */
     var preparing by mutableStateOf<String?>(null)
     var failure by mutableStateOf<String?>(null)
@@ -61,6 +63,8 @@ class WebSession(
     val title: String,
     val steps: List<String>,
     val startUrl: String,
+    /** Restrict cookie reads to this service; browser cookie stores are shared across sign-in flows. */
+    val cookieDomains: Set<String> = emptySet(),
     /** Polled about every second once a page exists. A non-null answer finishes the session with that message. */
     val watch: suspend (WebPage, WebState) -> String? = { _, _ -> null },
     /** Offered each file the page tries to download. A non-null answer finishes the session. */
@@ -77,7 +81,7 @@ interface WebPaneFactory {
 @Composable
 fun WebScreen(app: AppController, session: WebSession) {
     val c = Soiboi.colors
-    val state = remember(session) { WebState() }
+    val state = remember(session) { WebState().also { it.cookieDomains = session.cookieDomains } }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var done by remember(session) { mutableStateOf(false) }
 
