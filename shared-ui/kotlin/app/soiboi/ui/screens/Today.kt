@@ -87,6 +87,10 @@ fun TodayScreen(app: AppController) {
 
 @Composable
 private fun StreamingHomeScreen(app: AppController, providerId: String) {
+    if (providerId == "apple") {
+        AppleStreamingHome(app)
+        return
+    }
     val c = Soiboi.colors
     val addons by app.engine.addons.installed.collectAsState()
     val selected = addons.firstOrNull { it.id == providerId && it.enabled }
@@ -102,6 +106,37 @@ private fun StreamingHomeScreen(app: AppController, providerId: String) {
             }
         }
         if (selected != null) addonShelves(app, listOf(selected))
+    }
+}
+
+@Composable
+private fun AppleStreamingHome(app: AppController) {
+    val c = Soiboi.colors
+    val signed by app.engine.cookieStore.signedIn.collectAsState()
+    val playlists by produceState<List<app.soiboi.engine.discovery.ApplePlaylist>?>(null, signed) {
+        value = if (!signed) emptyList() else runCatching { app.engine.appleLibrary.fetchPlaylists().playlists }.getOrDefault(emptyList())
+    }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Space.l, vertical = Space.l), verticalArrangement = Arrangement.spacedBy(Space.xl)) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+                Txt("Apple Music", style = Soiboi.type.display, maxLines = 2)
+                if (!signed) Banner("Sign in to Apple Music", "The Apple Music source is selected, but there is no active Apple Music session.", Glyph.Key, action = { SButton("Open settings", { app.go(Route.Settings) }, compact = true) })
+                else Txt("Your Apple Music home", style = Soiboi.type.body, color = c.soft)
+            }
+        }
+        if (signed && playlists != null) item {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                SectionTitle("Your playlists")
+                if (playlists!!.isEmpty()) Txt("No Apple Music playlists were found.", style = Soiboi.type.body, color = c.soft)
+                playlists!!.forEach { playlist ->
+                    Row(Modifier.fillMaxWidth().background(c.raised, Soiboi.look.shape(14)).border(1.5.dp, c.rule, Soiboi.look.shape(14)).padding(Space.m), horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
+                        GlyphIcon(Glyph.Playlist, size = 24.dp, tint = c.soft)
+                        Column(Modifier.weight(1f)) { Txt(playlist.name, style = Soiboi.type.bodyStrong, maxLines = 1); playlist.trackCount?.let { Txt(plural(it, "song"), style = Soiboi.type.caption, color = c.soft) } }
+                        SButton("Open Discover", { app.go(Route.Discover) }, compact = true, tone = Tone.Ghost)
+                    }
+                }
+            }
+        }
     }
 }
 
