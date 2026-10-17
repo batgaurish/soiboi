@@ -12,14 +12,33 @@ of Sylvakru; the `upstream` remote points there and must never be pushed to.
 
 Standing decisions, not up for re-litigation:
 
-- Strictly offline for playback of Apple Music content. Soiboi never streams it.
-- Apple album IDs are canonical, not MusicBrainz.
 - Standalone on both platforms. No Docker, no server, no sync service.
-- No accounts, no OAuth and no client secrets for playlist sources.
-  (Google Drive is the one exception: it needs the user's own OAuth client.)
+- Apple album IDs are canonical, not MusicBrainz.
+- Google Drive is the one OAuth flow exception: it needs the user's own OAuth client.
 - Scrobbling is out of scope.
 - Codec and bitrate badges stay obvious in every look.
 - Private distribution (the user and friends); not F-Droid, not Play Store.
+
+## Account Sources (v2.5)
+
+Streaming and sync from user-owned accounts. Files in `engine/accounts/`:
+
+- `MusicSession.kt`: common interface for all services
+- `SessionRegistry.kt`: central registry of active sessions
+- `AppleSession.kt`: Apple Music (streaming via Widevine, playlist sync)
+- `SpotifySession.kt`: Spotify (discovery + ISRC only; no streaming)
+- `YTMusicSession.kt`: YouTube Music (yt-dlp streaming)
+- `SoundCloudSession.kt`: SoundCloud (yt-dlp, public access)
+- `AccountSync.kt`: monitors playlists, auto-downloads new tracks (disabled by default)
+
+Pipeline additions in `pipeline/soiboi_pipeline/`:
+
+- `apple_stream.py`: Widevine CENC decryption with bundled L3 CDM
+- `session_download.py`: ISRC → Apple Music resolution, yt-dlp fallback
+
+Toggle sync: `engine.accountSync.setEnabled(true)` in settings.
+
+See `docs/ACCOUNT-SOURCES-PLAN.md` and `docs/ACCOUNT-SOURCES-HANDOVER.md`.
 
 ## Layout
 

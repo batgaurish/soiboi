@@ -18,8 +18,8 @@ android {
         applicationId = "com.batgaurish.soiboi"
         minSdk = 26
         targetSdk = 36
-        versionCode = 141
-        versionName = "2.4.1"
+        versionCode = 150
+        versionName = "2.5.0"
         ndk { abiFilters += (System.getenv("SOIBOI_ABIS") ?: "arm64-v8a,x86_64").split(",").map { it.trim() } }
     }
     buildTypes { debug { applicationIdSuffix = ".dev" } }
