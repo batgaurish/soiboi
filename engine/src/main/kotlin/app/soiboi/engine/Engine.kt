@@ -156,7 +156,10 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
             platform.secrets.put("ytmusic.cookies", file.path)
         }
     )
-    val soundCloudSession = SoundCloudSession(platform.pipeline)
+    val soundCloudSession = SoundCloudSession(
+        platform.pipeline,
+        saveCredential = { cookies -> platform.secrets.put("soundcloud.cookies", cookies) },
+    )
     val accountSync = AccountSync(
         sessionRegistry,
         downloads,

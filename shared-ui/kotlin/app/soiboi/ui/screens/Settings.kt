@@ -297,7 +297,7 @@ private fun AccountSourcesGroup(app: AppController) {
     val c = Soiboi.colors
     val engine = app.engine
     val syncEnabled by engine.accountSync.enabled.collectAsState()
-    val sessions = engine.sessionRegistry.all()
+    val sessions by engine.sessionRegistry.sessionsFlow.collectAsState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var syncing by remember { mutableStateOf(false) }
 

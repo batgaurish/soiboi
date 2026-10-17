@@ -16,6 +16,7 @@ import kotlinx.serialization.json.put
  */
 class SoundCloudSession(
     private val pipeline: PipelineRunner,
+    private val saveCredential: (String) -> Unit = {},
 ) : MusicSession {
 
     override val id = "soundcloud"
@@ -31,6 +32,11 @@ class SoundCloudSession(
             account = "SoundCloud (Public)",
             market = "US",
         )
+    }
+
+    fun setCredential(cookies: String) {
+        saveCredential(cookies)
+        _state.value = SessionState.SignedIn(account = "SoundCloud", market = "US")
     }
 
     suspend fun refresh() {

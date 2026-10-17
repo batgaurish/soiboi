@@ -1,6 +1,8 @@
 package app.soiboi.engine.accounts
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 
@@ -10,9 +12,12 @@ import kotlinx.coroutines.flow.flowOf
  */
 class SessionRegistry {
     private val sessions = mutableMapOf<String, MusicSession>()
+    private val _sessions = MutableStateFlow<List<MusicSession>>(emptyList())
+    val sessionsFlow = _sessions.asStateFlow()
 
     fun register(session: MusicSession) {
         sessions[session.id] = session
+        _sessions.value = sessions.values.toList()
     }
 
     fun get(id: String): MusicSession? = sessions[id]

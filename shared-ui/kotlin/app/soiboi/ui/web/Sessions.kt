@@ -45,7 +45,7 @@ object WebSessions {
                 state.status = "Waiting for you to sign in."
                 null
             } else {
-                val cookieStr = cookies.filter { it.domain.contains("youtube") || it.domain.contains("google") }
+                val cookieStr = cookies.filter { it.domain.contains("youtube") || it.domain.contains("google") || it.domain.isEmpty() }
                     .joinToString("; ") { "${it.name}=${it.value}" }
                 app.engine.sessionRegistry.get("ytmusic")?.let { session ->
                     (session as? app.soiboi.engine.accounts.YTMusicSession)?.setCredential(cookieStr)
@@ -64,10 +64,15 @@ object WebSessions {
             val cookies = page.cookies()
             val token = cookies.find { it.name == "oauth_token" && it.value.isNotEmpty() }
             if (token == null) {
-                state.status = "Waiting for you to sign in. SoundCloud public access works without signing in."
+                state.status = "Waiting for you to sign in."
                 null
             } else {
-                // SoundCloud session already works with public access
+                app.engine.sessionRegistry.get("soundcloud")?.let { session ->
+                    (session as? app.soiboi.engine.accounts.SoundCloudSession)?.setCredential(
+                        cookies.filter { it.domain.contains("soundcloud") || it.domain.isEmpty() }
+                            .joinToString("; ") { "${it.name}=${it.value}" }
+                    )
+                }
                 "Signed in to SoundCloud"
             }
         },
