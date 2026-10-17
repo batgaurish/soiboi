@@ -80,7 +80,7 @@ class Platform(
     val isAndroid: Boolean = false,
     /** Android asks for All-files access when the chosen download folder needs it. */
     val ensureFolderWritable: suspend () -> Unit = {},
-    val appVersion: String = "2.5.1",
+    val appVersion: String = "2.5.2",
 )
 
 /** One saved connection. Passwords and tokens live in the [SecretStore], never here. */

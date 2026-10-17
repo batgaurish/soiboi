@@ -22,6 +22,7 @@ object WebSessions {
         title = "Sign in to Apple Music",
         steps = listOf("Choose Sign In on the page and use your Apple ID.", "Soiboi keeps only the Apple session and closes this window when it has it."),
         startUrl = "https://music.apple.com/us/browse",
+        cookieDomains = setOf("apple.com"),
         watch = { page, state ->
             val cookies = page.cookies()
             if (cookies.none { it.name == "media-user-token" && it.value.isNotEmpty() }) {
@@ -39,51 +40,68 @@ object WebSessions {
         },
     )
 
-    /** YouTube Music sign-in. Watches for Google auth cookies. */
-    fun ytMusicSignIn(app: AppController): WebSession = WebSession(
-        title = "Sign in to YouTube Music",
-        steps = listOf("Sign in with your Google account.", "Soiboi grabs the session when you're signed in."),
-        startUrl = "https://music.youtube.com/",
-        watch = { page, state ->
-            val cookies = page.cookies()
-            val sapisid = cookies.find { it.name == "SAPISID" && it.value.isNotEmpty() }
-            val sid = cookies.find { it.name == "SID" && it.value.isNotEmpty() }
-            if (sapisid == null || sid == null) {
-                state.status = "Waiting for you to sign in."
-                null
-            } else {
-                val cookieStr = cookies.filter { it.domain.contains("youtube") || it.domain.contains("google") || it.domain.isEmpty() }
-                    .joinToString("; ") { "${it.name}=${it.value}" }
-                app.engine.sessionRegistry.get("ytmusic")?.let { session ->
-                    (session as? app.soiboi.engine.accounts.YTMusicSession)?.setCredential(cookieStr)
+    fun ytMusicSignIn(app: AppController): WebSession {
+        var baseline: Set<String>? = null
+        return WebSession(
+            title = "Sign in to YouTube Music",
+            steps = listOf("Sign in with your Google account.", "Soiboi grabs the session when you're signed in."),
+            startUrl = "https://music.youtube.com/",
+            cookieDomains = setOf("google.com", "youtube.com"),
+            watch = { page, state ->
+                val cookies = page.cookies()
+                val relevant = cookies.filter { it.name in setOf("SAPISID", "SID", "HSID", "SSID", "APISID") && it.value.isNotEmpty() }
+                    .map { "${it.name}=${it.value}" }.toSet()
+                if (baseline == null) {
+                    baseline = relevant
+                    state.status = "Waiting for you to sign in."
+                    null
+                } else if (relevant == baseline) {
+                    state.status = "Waiting for you to sign in."
+                    null
+                } else if (!relevant.any { it.startsWith("SAPISID=") } || !relevant.any { it.startsWith("SID=") }) {
+                    state.status = "Waiting for Google sign-in to finish."
+                    null
+                } else {
+                    val cookieStr = cookies.filter { it.domain.contains("youtube") || it.domain.contains("google") || it.domain.isEmpty() }
+                        .joinToString("; ") { "${it.name}=${it.value}" }
+                    app.engine.sessionRegistry.get("ytmusic")?.let { session ->
+                        (session as? app.soiboi.engine.accounts.YTMusicSession)?.setCredential(cookieStr)
+                    }
+                    "Signed in to YouTube Music"
                 }
-                "Signed in to YouTube Music"
-            }
-        },
-    )
+            },
+        )
+    }
 
-    /** SoundCloud sign-in. Watches for the oauth_token cookie. */
-    fun soundCloudSignIn(app: AppController): WebSession = WebSession(
-        title = "Sign in to SoundCloud",
-        steps = listOf("Sign in with your SoundCloud account.", "Soiboi grabs the session when you're signed in."),
-        startUrl = "https://soundcloud.com/signin",
-        watch = { page, state ->
-            val cookies = page.cookies()
-            val token = cookies.find { it.name == "oauth_token" && it.value.isNotEmpty() }
-            if (token == null) {
-                state.status = "Waiting for you to sign in."
-                null
-            } else {
-                app.engine.sessionRegistry.get("soundcloud")?.let { session ->
-                    (session as? app.soiboi.engine.accounts.SoundCloudSession)?.setCredential(
-                        cookies.filter { it.domain.contains("soundcloud") || it.domain.isEmpty() }
-                            .joinToString("; ") { "${it.name}=${it.value}" }
-                    )
+    fun soundCloudSignIn(app: AppController): WebSession {
+        var baseline: String? = null
+        return WebSession(
+            title = "Sign in to SoundCloud",
+            steps = listOf("Sign in with your SoundCloud account.", "Soiboi grabs the session when you're signed in."),
+            startUrl = "https://soundcloud.com/signin",
+            cookieDomains = setOf("soundcloud.com"),
+            watch = { page, state ->
+                val cookies = page.cookies()
+                val token = cookies.find { it.name == "oauth_token" && it.value.isNotEmpty() }?.value
+                if (baseline == null) {
+                    baseline = token
+                    state.status = "Waiting for you to sign in."
+                    null
+                } else if (token == null || token == baseline) {
+                    state.status = "Waiting for you to sign in."
+                    null
+                } else {
+                    app.engine.sessionRegistry.get("soundcloud")?.let { session ->
+                        (session as? app.soiboi.engine.accounts.SoundCloudSession)?.setCredential(
+                            cookies.filter { it.domain.contains("soundcloud") || it.domain.isEmpty() }
+                                .joinToString("; ") { "${it.name}=${it.value}" }
+                        )
+                    }
+                    "Signed in to SoundCloud"
                 }
-                "Signed in to SoundCloud"
-            }
-        },
-    )
+            },
+        )
+    }
 
     /** Fetches the one Apple Music build the lossless wrapper needs, then installs its libraries. */
     fun wrapperApk(app: AppController): WebSession = WebSession(

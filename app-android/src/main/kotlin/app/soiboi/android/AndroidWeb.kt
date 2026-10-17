@@ -64,7 +64,9 @@ object AndroidWeb : WebPaneFactory {
                             "https://accounts.spotify.com", "https://open.spotify.com", "https://spotify.com",
                             "https://music.youtube.com", "https://youtube.com", "https://accounts.google.com", "https://google.com",
                             "https://soundcloud.com", "https://api.soundcloud.com",
-                        ).flatMap { host -> manager.getCookie(host).orEmpty().split(';').mapNotNull { part ->
+                        ).filter { host ->
+                            state.cookieDomains.isEmpty() || state.cookieDomains.any { domain -> host.removePrefix("https://").endsWith(domain.trimStart('.')) }
+                        }.flatMap { host -> manager.getCookie(host).orEmpty().split(';').mapNotNull { part ->
                             val i = part.indexOf('='); if (i <= 0) null else WebCookie(host, part.substring(0, i).trim(), part.substring(i + 1).trim())
                         } }.distinctBy { "${it.domain}|${it.name}" }
                     }
