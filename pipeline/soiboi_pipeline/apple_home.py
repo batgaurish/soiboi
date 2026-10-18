@@ -65,7 +65,7 @@ def _shelves(response: dict, fallback_title: str) -> list[dict]:
 
 async def _request(api, path: str, params: dict | None = None) -> dict | None:
     try:
-        return await api._amp_request(path, params or {})
+        return await asyncio.wait_for(api._amp_request(path, params or {}), timeout=5.0)
     except Exception:
         return None
 
