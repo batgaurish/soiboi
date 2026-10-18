@@ -17,7 +17,11 @@ import app.soiboi.engine.core.EngineLog
 import app.soiboi.engine.player.BackendEvent
 import app.soiboi.engine.player.RemoteControls
 import app.soiboi.engine.player.TrackMeta
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -40,6 +44,9 @@ class ExoBackend(private val context: Context) : AudioBackend {
     private var attachedTo: ExoPlayer? = null
     private var pendingVolume = 0.3
     private var pendingEq: List<Double>? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    /** The last song opened, so a play after the system destroyed the service can rebuild the player and resume it. */
+    private var lastOpen: Triple<String, Map<String, String>, TrackMeta?>? = null
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -101,6 +108,7 @@ class ExoBackend(private val context: Context) : AudioBackend {
     }
 
     override suspend fun open(source: String, headers: Map<String, String>, startMs: Long, play: Boolean, meta: TrackMeta?) {
+        lastOpen = Triple(source, headers, meta)
         val p = player(play) ?: return
         PlaybackHolder.headers = headers
         EngineLog.event("EXO", "open_begin", "source=${if (source.startsWith("http")) "http" else "local"} startMs=$startMs play=$play headers=${headers.keys.sorted().joinToString(",")}")
@@ -117,7 +125,13 @@ class ExoBackend(private val context: Context) : AudioBackend {
         }
     }
 
-    override fun play() = onMain { PlaybackHolder.player?.play() }
+    override fun play() = onMain {
+        val p = PlaybackHolder.player
+        if (p != null) { p.play(); return@onMain }
+        val (source, headers, meta) = lastOpen ?: return@onMain
+        EngineLog.event("EXO", "reopen_after_service_loss", "positionMs=$positionMs")
+        scope.launch { open(source, headers, positionMs, true, meta) }
+    }
     override fun pause() = onMain { PlaybackHolder.player?.pause() }
     override fun stop() = onMain { PlaybackHolder.player?.let { it.stop(); positionMs = 0 } }
     override suspend fun seek(positionMs: Long) { onMain { PlaybackHolder.player?.seekTo(positionMs) }; this.positionMs = positionMs }

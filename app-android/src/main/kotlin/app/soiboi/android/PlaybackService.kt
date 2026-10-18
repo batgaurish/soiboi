@@ -52,7 +52,9 @@ class PlaybackService : MediaSessionService() {
             override fun seekToPrevious() { PlaybackHolder.controls?.onPrevious?.invoke() }
             override fun seekToPreviousMediaItem() { PlaybackHolder.controls?.onPrevious?.invoke() }
         }
-        session = MediaSession.Builder(this, forwarding).build()
+        // Register the session now rather than waiting for a controller to connect: only sessions the service tracks get
+        // the media notification, and without it the service never calls startForeground and is killed in the background.
+        session = MediaSession.Builder(this, forwarding).build().also { addSession(it) }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
