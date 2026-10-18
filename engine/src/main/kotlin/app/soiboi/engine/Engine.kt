@@ -206,7 +206,14 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
     val player: Player = Player(
         scope, spotifyBackendRouter, library, songStore, db, { serverMap },
         cacheDir = java.io.File(paths.cacheDir, "remote"),
-        resolveOverride = { song -> if (song.origin == SongOrigin.Addon) addons.streamFor(song) else if (song.origin == SongOrigin.Local) null else resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() } },
+        resolveOverride = { song ->
+            if (song.origin == SongOrigin.Addon && song.id.startsWith("addon:apple:")) {
+                val stream = appleSession.streamUrl(song.id.removePrefix("addon:apple:"))
+                stream?.let { it.url to it.headers }
+            } else if (song.origin == SongOrigin.Addon) addons.streamFor(song)
+            else if (song.origin == SongOrigin.Local) null
+            else resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() }
+        },
         onPlayed = { song, _ -> serverMap[song.origin]?.scrobble(song.id); if (song.origin != SongOrigin.Local && song.playCount > 1) player.cache(song) },
         onSongChanged = { song -> lyrics.parsedFor(song) },
         metaFor = { s -> app.soiboi.engine.player.TrackMeta(s.displayTitle, s.displayArtist, s.displayAlbum, runCatching { artwork.coverFor(s)?.path }.getOrNull(), s.durationMs) },
