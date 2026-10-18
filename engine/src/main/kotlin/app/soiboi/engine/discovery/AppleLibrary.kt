@@ -98,7 +98,7 @@ class AppleLibrary(
     /** Fetches personalized and catalog Apple Music shelves for the streaming home. */
     suspend fun fetchHome(): List<AppleHomeShelf> {
         var result: List<AppleHomeShelf> = emptyList()
-        runner.run("apple_home", payload()).collect { e ->
+        runner.run("apple_home", payload("storefront" to settings.value.storefront)).collect { e ->
             if (e.isError) throw AppleLibraryException(e.message)
             if (e.isDone) {
                 result = (e.raw["shelves"] as? JsonArray).orEmpty().mapNotNull { shelf ->

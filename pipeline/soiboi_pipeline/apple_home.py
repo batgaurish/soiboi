@@ -70,9 +70,9 @@ async def _request(api, path: str, params: dict | None = None) -> dict | None:
         return None
 
 
-async def _collect(cookies_path: str, wrapper_url: str | None) -> tuple[str, list[dict]]:
+async def _collect(cookies_path: str, wrapper_url: str | None, storefront_override: str | None = None) -> tuple[str, list[dict]]:
     api = await open_api(cookies_path, wrapper_url)
-    storefront = getattr(api, "storefront", None) or "us"
+    storefront = storefront_override or getattr(api, "storefront", None) or "us"
     shelves: list[dict] = []
 
     # Personalized collections. These are undocumented AMP surfaces and vary
@@ -121,9 +121,11 @@ def home(payload: Payload, emit: Emit) -> Event:
         return error("no_cookies", "Sign in to Apple Music first.")
     wrapper_value = payload.get("wrapper_url")
     wrapper_url = wrapper_value if isinstance(wrapper_value, str) else None
+    storefront_value = payload.get("storefront")
+    storefront_override = storefront_value if isinstance(storefront_value, str) else None
     try:
         emit(progress(10, "Reading Apple Music recommendations"))
-        storefront, shelves = asyncio.run(_collect(cookies_path_value, wrapper_url))
+        storefront, shelves = asyncio.run(_collect(cookies_path_value, wrapper_url, storefront_override))
         emit(progress(100, "Apple Music home ready"))
         return done(storefront=storefront, shelves=shelves)
     except FileNotFoundError:

@@ -59,6 +59,19 @@ import app.soiboi.ui.theme.Soiboi
 import kotlinx.coroutines.launch
 import java.io.File
 
+private val AppleStorefronts = listOf(
+    "us" to "United States", "in" to "India", "gb" to "United Kingdom", "ca" to "Canada", "au" to "Australia",
+    "nz" to "New Zealand", "ie" to "Ireland", "de" to "Germany", "fr" to "France", "it" to "Italy",
+    "es" to "Spain", "pt" to "Portugal", "nl" to "Netherlands", "be" to "Belgium", "ch" to "Switzerland",
+    "at" to "Austria", "se" to "Sweden", "no" to "Norway", "dk" to "Denmark", "fi" to "Finland",
+    "is" to "Iceland", "pl" to "Poland", "cz" to "Czechia", "sk" to "Slovakia", "hu" to "Hungary",
+    "ro" to "Romania", "gr" to "Greece", "tr" to "Türkiye", "za" to "South Africa", "ae" to "United Arab Emirates",
+    "sa" to "Saudi Arabia", "il" to "Israel", "jp" to "Japan", "kr" to "South Korea", "cn" to "China",
+    "hk" to "Hong Kong", "tw" to "Taiwan", "sg" to "Singapore", "my" to "Malaysia", "th" to "Thailand",
+    "ph" to "Philippines", "id" to "Indonesia", "vn" to "Vietnam", "br" to "Brazil", "mx" to "Mexico",
+    "ar" to "Argentina", "cl" to "Chile", "co" to "Colombia", "pe" to "Peru", "ua" to "Ukraine",
+)
+
 @Composable
 private fun Group(title: String, content: @Composable () -> Unit) {
     val c = Soiboi.colors; val shape = Soiboi.look.shape(16)
@@ -118,6 +131,8 @@ fun SettingsScreen(app: AppController) {
                     signed -> expiry?.let { "The session ends ${it.toString().take(10)}." } ?: "AAC downloads work. Lossless needs the wrapper below."
                     else -> "Downloading needs an Apple Music subscription and a sign-in."
                 }, if (wrapperIn || signed) Glyph.Check else Glyph.Key, tint = if (wrapperIn || signed) c.ok else c.soft)
+                Listbox("Apple Music country", AppleStorefronts, s.storefront, { code -> engine.settings.update { copy(appleStorefront = code) } })
+                Txt("This region controls Apple Music search, recommendations, charts, and catalog links. Two-letter code: ${s.storefront.uppercase()}.", style = Soiboi.type.caption, color = c.soft)
                 Txt("Browser session", style = Soiboi.type.label, color = c.soft)
                 Txt("Sign in on Apple's own page inside Soiboi. Apple takes the password and any 2FA; Soiboi keeps only the Apple session.", style = Soiboi.type.caption, color = c.soft)
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
