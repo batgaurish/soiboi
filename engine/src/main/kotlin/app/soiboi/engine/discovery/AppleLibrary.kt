@@ -99,7 +99,10 @@ class AppleLibrary(
     suspend fun fetchHome(): List<AppleHomeShelf> {
         var result: List<AppleHomeShelf> = emptyList()
         runner.run("apple_home", payload("storefront" to settings.value.storefront)).collect { e ->
-            if (e.isError) throw AppleLibraryException(e.message)
+            if (e.isError) {
+                EngineLog.output("apple home pipeline error: code=${e.code} message=${e.message}")
+                throw AppleLibraryException(e.message)
+            }
             if (e.isDone) {
                 result = (e.raw["shelves"] as? JsonArray).orEmpty().mapNotNull { shelf ->
                     val o = shelf as? JsonObject ?: return@mapNotNull null
