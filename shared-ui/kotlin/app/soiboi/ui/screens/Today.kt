@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.soiboi.engine.ai.AiAlbumPick
 import app.soiboi.engine.library.Song
+import app.soiboi.engine.library.SongOrigin
 import app.soiboi.engine.library.recentlyAddedAlbums
 import app.soiboi.engine.library.recentlyPlayed
 import app.soiboi.engine.library.topArtists
@@ -112,27 +114,53 @@ private fun StreamingHomeScreen(app: AppController, providerId: String) {
 @Composable
 private fun AppleStreamingHome(app: AppController) {
     val c = Soiboi.colors
-    val signed by app.engine.cookieStore.signedIn.collectAsState()
+    val engine = app.engine
+    val signed by engine.cookieStore.signedIn.collectAsState()
+    val home by produceState<List<app.soiboi.engine.discovery.AppleHomeShelf>?>(null, signed) {
+        value = if (!signed) emptyList() else runCatching { engine.appleLibrary.fetchHome() }.getOrDefault(emptyList())
+    }
     val playlists by produceState<List<app.soiboi.engine.discovery.ApplePlaylist>?>(null, signed) {
-        value = if (!signed) emptyList() else runCatching { app.engine.appleLibrary.fetchPlaylists().playlists }.getOrDefault(emptyList())
+        value = if (!signed) emptyList() else runCatching { engine.appleLibrary.fetchPlaylists().playlists }.getOrDefault(emptyList())
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Space.l, vertical = Space.l), verticalArrangement = Arrangement.spacedBy(Space.xl)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
                 Txt("Apple Music", style = Soiboi.type.display, maxLines = 2)
                 if (!signed) Banner("Sign in to Apple Music", "The Apple Music source is selected, but there is no active Apple Music session.", Glyph.Key, action = { SButton("Open settings", { app.go(Route.Settings) }, compact = true) })
-                else Txt("Your Apple Music home", style = Soiboi.type.body, color = c.soft)
+                else Txt("Recommendations, mixes, new releases, and your library.", style = Soiboi.type.body, color = c.soft)
+            }
+        }
+        if (signed && home != null) {
+            home!!.filter { it.items.isNotEmpty() }.forEach { shelf ->
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                        SectionTitle(shelf.title)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                            items(shelf.items.size) { index ->
+                                val item = shelf.items[index]
+                                val song = Song("addon:apple:${item.id}", SongOrigin.Addon, title = item.title, artist = item.subtitle, album = shelf.title, coverId = item.artworkUrl)
+                                Column(Modifier.width(148.dp).press({ app.play(listOf(song)) }, item.title, shape = Soiboi.look.shape(12))) {
+                                    Cover(song, 148.dp, shape = Soiboi.look.shape(12), contentDescription = item.title)
+                                    Txt(item.title, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
+                                    Txt(item.subtitle, style = Soiboi.type.caption, color = c.soft, maxLines = 1)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         if (signed && playlists != null) item {
             Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
-                SectionTitle("Your playlists")
-                if (playlists!!.isEmpty()) Txt("No Apple Music playlists were found.", style = Soiboi.type.body, color = c.soft)
-                playlists!!.forEach { playlist ->
-                    Row(Modifier.fillMaxWidth().background(c.raised, Soiboi.look.shape(14)).border(1.5.dp, c.rule, Soiboi.look.shape(14)).padding(Space.m), horizontalArrangement = Arrangement.spacedBy(Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        GlyphIcon(Glyph.Playlist, size = 24.dp, tint = c.soft)
-                        Column(Modifier.weight(1f)) { Txt(playlist.name, style = Soiboi.type.bodyStrong, maxLines = 1); playlist.trackCount?.let { Txt(plural(it, "song"), style = Soiboi.type.caption, color = c.soft) } }
-                        SButton("Open Discover", { app.go(Route.Discover) }, compact = true, tone = Tone.Ghost)
+                SectionTitle("Your Playlists")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                    items(playlists!!.size) { index ->
+                        val playlist = playlists!![index]
+                        Column(Modifier.width(148.dp).press({ app.go(Route.Discover) }, playlist.name, shape = Soiboi.look.shape(12))) {
+                            Box(Modifier.size(148.dp).background(c.raised, Soiboi.look.shape(12)), contentAlignment = Alignment.Center) { GlyphIcon(Glyph.Playlist, size = 44.dp, tint = c.soft) }
+                            Txt(playlist.name, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
+                            playlist.trackCount?.let { Txt(plural(it, "song"), style = Soiboi.type.caption, color = c.soft) }
+                        }
                     }
                 }
             }

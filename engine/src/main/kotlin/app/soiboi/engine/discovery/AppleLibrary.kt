@@ -26,6 +26,9 @@ class ApplePlaylist(
     val hasCatalogUrl: Boolean get() = !catalogId.isNullOrEmpty()
 }
 
+class AppleHomeItem(val id: String, val type: String, val title: String, val subtitle: String, val artworkUrl: String?)
+class AppleHomeShelf(val title: String, val items: List<AppleHomeItem>)
+
 /** One track of a library-only playlist. */
 class AppleLibraryTrack(val title: String, val artist: String? = null, val album: String? = null, val catalogId: String? = null) {
     /** Null for a track the user uploaded themselves: there is no catalog entry to download. */
@@ -90,6 +93,33 @@ class AppleLibrary(
         result ?: ApplePlaylistsResult(error = error ?: "Could not read your Apple Music library", needsSignIn = needsSignIn)
     } catch (e: Exception) {
         ApplePlaylistsResult(error = e.toString())
+    }
+
+    /** Fetches personalized and catalog Apple Music shelves for the streaming home. */
+    suspend fun fetchHome(): List<AppleHomeShelf> {
+        var result: List<AppleHomeShelf> = emptyList()
+        runner.run("apple_home", payload()).collect { e ->
+            if (e.isError) throw AppleLibraryException(e.message)
+            if (e.isDone) {
+                result = (e.raw["shelves"] as? JsonArray).orEmpty().mapNotNull { shelf ->
+                    val o = shelf as? JsonObject ?: return@mapNotNull null
+                    val title = (o["title"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                    val items = (o["items"] as? JsonArray).orEmpty().mapNotNull { item ->
+                        val i = item as? JsonObject ?: return@mapNotNull null
+                        val id = (i["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+                        AppleHomeItem(
+                            id = id,
+                            type = (i["type"] as? JsonPrimitive)?.contentOrNull ?: "unknown",
+                            title = (i["title"] as? JsonPrimitive)?.contentOrNull ?: "Untitled",
+                            subtitle = (i["subtitle"] as? JsonPrimitive)?.contentOrNull ?: "Apple Music",
+                            artworkUrl = (i["artwork_url"] as? JsonPrimitive)?.contentOrNull,
+                        )
+                    }
+                    AppleHomeShelf(title, items)
+                }
+            }
+        }
+        return result
     }
 
     private fun playlistFrom(o: JsonObject): ApplePlaylist {
