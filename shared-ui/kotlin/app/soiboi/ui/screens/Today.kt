@@ -116,11 +116,12 @@ private fun AppleStreamingHome(app: AppController) {
     val c = Soiboi.colors
     val engine = app.engine
     val signed by engine.cookieStore.signedIn.collectAsState()
-    val home by produceState<List<app.soiboi.engine.discovery.AppleHomeShelf>?>(null, signed) {
-        value = if (!signed) emptyList() else runCatching { engine.appleLibrary.fetchHome() }.getOrDefault(emptyList())
+    val region = engine.settings.value.storefront
+    val home by produceState<Result<List<app.soiboi.engine.discovery.AppleHomeShelf>>?>(null, signed, region) {
+        value = if (!signed) Result.success(emptyList()) else runCatching { engine.appleLibrary.fetchHome() }
     }
-    val playlists by produceState<List<app.soiboi.engine.discovery.ApplePlaylist>?>(null, signed) {
-        value = if (!signed) emptyList() else runCatching { engine.appleLibrary.fetchPlaylists().playlists }.getOrDefault(emptyList())
+    val playlists by produceState<Result<List<app.soiboi.engine.discovery.ApplePlaylist>>?>(null, signed, region) {
+        value = if (!signed) Result.success(emptyList()) else runCatching { engine.appleLibrary.fetchPlaylists().playlists }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Space.l, vertical = Space.l), verticalArrangement = Arrangement.spacedBy(Space.xl)) {
         item {
@@ -131,7 +132,10 @@ private fun AppleStreamingHome(app: AppController) {
             }
         }
         if (signed && home != null) {
-            home!!.filter { it.items.isNotEmpty() }.forEach { shelf ->
+            home!!.exceptionOrNull()?.let { error ->
+                item { Banner("Apple Music home failed", error.message ?: error::class.simpleName ?: "Unknown error", Glyph.Warning, tint = c.danger, action = { SButton("Open logs", { app.go(Route.Settings) }, compact = true) }) }
+            }
+            home!!.getOrNull().orEmpty().filter { it.items.isNotEmpty() }.forEach { shelf ->
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
                         SectionTitle(shelf.title)
@@ -151,11 +155,15 @@ private fun AppleStreamingHome(app: AppController) {
             }
         }
         if (signed && playlists != null) item {
+            playlists!!.exceptionOrNull()?.let { error ->
+                Banner("Apple Music playlists failed", error.message ?: error::class.simpleName ?: "Unknown error", Glyph.Warning, tint = c.danger)
+            }
+            val playlistItems = playlists!!.getOrNull().orEmpty()
             Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
                 SectionTitle("Your Playlists")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-                    items(playlists!!.size) { index ->
-                        val playlist = playlists!![index]
+                    items(playlistItems.size) { index ->
+                        val playlist = playlistItems[index]
                         Column(Modifier.width(148.dp).press({ app.go(Route.Discover) }, playlist.name, shape = Soiboi.look.shape(12))) {
                             Box(Modifier.size(148.dp).background(c.raised, Soiboi.look.shape(12)), contentAlignment = Alignment.Center) { GlyphIcon(Glyph.Playlist, size = 44.dp, tint = c.soft) }
                             Txt(playlist.name, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
