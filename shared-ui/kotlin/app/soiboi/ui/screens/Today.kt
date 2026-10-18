@@ -140,7 +140,11 @@ private fun AppleStreamingHome(app: AppController) {
                 else Txt("Recommendations, mixes, new releases, and your library.", style = Soiboi.type.body, color = c.soft)
             }
         }
-        if (signed && catalogFallback != null) {
+        // The search shelves are the fallback, not the home: when the pipeline's
+        // personalized shelves arrive they take the page, and the searches only
+        // fill it when the home came back empty or failed.
+        val homeHasShelves = home != null && home!!.getOrNull().orEmpty().any { it.items.isNotEmpty() }
+        if (signed && catalogFallback != null && !homeHasShelves) {
             catalogFallback!!.filter { it.second.isNotEmpty() }.forEach { (title, songs) ->
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
