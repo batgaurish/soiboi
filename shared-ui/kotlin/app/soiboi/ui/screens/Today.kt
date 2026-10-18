@@ -123,12 +123,40 @@ private fun AppleStreamingHome(app: AppController) {
     val playlists by produceState<Result<List<app.soiboi.engine.discovery.ApplePlaylist>>?>(null, signed, region) {
         value = if (!signed) Result.success(emptyList()) else runCatching { engine.appleLibrary.fetchPlaylists().playlists }
     }
+    val catalogFallback by produceState<List<Pair<String, List<Song>>>?>(null, region) {
+        value = runCatching {
+            listOf("New Music" to "new music", "Mood Mixes" to "mood", "Discover: Bollywood" to "bollywood", "Discover: Punjabi" to "punjabi").map { (title, term) ->
+                title to engine.apple.searchSongs(term, region).orEmpty().mapNotNull { candidate ->
+                    candidate.trackId?.let { id -> Song("addon:apple:$id", SongOrigin.Addon, title = candidate.title, artist = candidate.artist, album = candidate.album, coverId = candidate.artwork) }
+                }.take(12)
+            }
+        }.getOrDefault(emptyList())
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Space.l, vertical = Space.l), verticalArrangement = Arrangement.spacedBy(Space.xl)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
                 Txt("Apple Music", style = Soiboi.type.display, maxLines = 2)
                 if (!signed) Banner("Sign in to Apple Music", "The Apple Music source is selected, but there is no active Apple Music session.", Glyph.Key, action = { SButton("Open settings", { app.go(Route.Settings) }, compact = true) })
                 else Txt("Recommendations, mixes, new releases, and your library.", style = Soiboi.type.body, color = c.soft)
+            }
+        }
+        if (signed && catalogFallback != null) {
+            catalogFallback!!.filter { it.second.isNotEmpty() }.forEach { (title, songs) ->
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                        SectionTitle(title)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+                            items(songs.size) { index ->
+                                val song = songs[index]
+                                Column(Modifier.width(148.dp).press({ app.play(listOf(song)) }, song.displayTitle, shape = Soiboi.look.shape(12))) {
+                                    Cover(song, 148.dp, shape = Soiboi.look.shape(12), contentDescription = song.displayTitle)
+                                    Txt(song.displayTitle, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
+                                    Txt(song.displayArtist, style = Soiboi.type.caption, color = c.soft, maxLines = 1)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         if (signed && home != null) {
