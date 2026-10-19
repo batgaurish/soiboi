@@ -11,11 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import app.soiboi.ui.AppController
+import app.soiboi.ui.HomeTab
 import app.soiboi.ui.Route
 import app.soiboi.ui.components.Banner
 import app.soiboi.ui.components.SButton
@@ -28,19 +26,17 @@ import java.time.LocalTime
 
 private fun greeting(): String = when (LocalTime.now().hour) { in 5..11 -> "Good morning"; in 12..17 -> "Good afternoon"; in 18..22 -> "Good evening"; else -> "Still up" }
 
-enum class HomeTab { Offline, Streaming }
-
 @Composable
 fun TodayScreen(app: AppController) {
     val settings by app.engine.settings.state.collectAsState()
-    var tab by remember { mutableStateOf(HomeTab.Offline) }
+    val tab = app.homeTab
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = Space.l, vertical = Space.s),
             horizontalArrangement = Arrangement.spacedBy(Space.s),
         ) {
-            SButton("Offline library", { tab = HomeTab.Offline }, compact = true, tone = if (tab == HomeTab.Offline) Tone.Primary else Tone.Ghost, glyph = Glyph.Library)
-            SButton("Streaming home", { tab = HomeTab.Streaming }, compact = true, tone = if (tab == HomeTab.Streaming) Tone.Primary else Tone.Ghost, glyph = Glyph.Wave)
+            SButton("Offline library", { app.homeTab = HomeTab.Offline }, compact = true, tone = if (tab == HomeTab.Offline) Tone.Primary else Tone.Ghost, glyph = Glyph.Library)
+            SButton("Streaming home", { app.homeTab = HomeTab.Streaming }, compact = true, tone = if (tab == HomeTab.Streaming) Tone.Primary else Tone.Ghost, glyph = Glyph.Wave)
         }
         if (tab == HomeTab.Offline) OfflineHomeScreen(app) else StreamingHomeScreen(app, settings.homepageProvider)
     }

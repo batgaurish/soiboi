@@ -68,6 +68,19 @@ class AppleLibrary(
 ) {
     val hasAuth: Boolean get() = cookies.signedIn.value || wrapper.signedIn.value
 
+    // Cache for home shelves with timestamp, so we don't re-fetch on every navigation
+    private var cachedHome: List<AppleHomeShelf>? = null
+    private var cachedHomeTimestamp: Long = 0
+    private var cachedPlaylists: List<ApplePlaylist>? = null
+    private var cachedPlaylistsTimestamp: Long = 0
+    private val cacheTtlMs = 5 * 60 * 1000L  // 5 minutes
+
+    /** Clears cached data, forcing the next fetch to hit the network. */
+    fun invalidateCache() {
+        cachedHome = null
+        cachedPlaylists = null
+    }
+
     /** The signed-in wrapper's address, which the pipeline prefers over the cookies file. Empty when it is not signed in. */
     private suspend fun wrapperAuth(): Map<String, String> {
         val url = wrapper.ensureReady()?.get("wrapper_url") as? String
@@ -80,24 +93,37 @@ class AppleLibrary(
         extra.forEach { (k, v) -> put(k, v) }
     }
 
-    /** Lists the account's playlists. Never throws: this runs off a tap on the Downloads screen. */
-    suspend fun fetchPlaylists(): ApplePlaylistsResult = try {
-        var error: String? = null; var needsSignIn = false; var result: ApplePlaylistsResult? = null
-        runner.run("apple_playlists", payload()).collect { e ->
-            if (e.isError) { error = e.message; needsSignIn = e.code == "no_cookies" || e.code == "auth" }
-            else if (e.isDone) {
-                val sf = (e.raw["storefront"] as? JsonPrimitive)?.contentOrNull
-                result = ApplePlaylistsResult((e.raw["playlists"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.let(::playlistFrom) }, sf ?: "us")
-                if (!sf.isNullOrEmpty()) rememberStorefront(sf)
-            }
+    /** Lists the account's playlists. Never throws: this runs off a tap on the Downloads screen. Uses cache for 5 minutes. */
+    suspend fun fetchPlaylists(): ApplePlaylistsResult {
+        val now = System.currentTimeMillis()
+        cachedPlaylists?.takeIf { now - cachedPlaylistsTimestamp < cacheTtlMs }?.let {
+            return ApplePlaylistsResult(it, settings.value.storefront)
         }
-        result ?: ApplePlaylistsResult(error = error ?: "Could not read your Apple Music library", needsSignIn = needsSignIn)
-    } catch (e: Exception) {
-        ApplePlaylistsResult(error = e.toString())
+        
+        return try {
+            var error: String? = null; var needsSignIn = false; var result: ApplePlaylistsResult? = null
+            runner.run("apple_playlists", payload()).collect { e ->
+                if (e.isError) { error = e.message; needsSignIn = e.code == "no_cookies" || e.code == "auth" }
+                else if (e.isDone) {
+                    val sf = (e.raw["storefront"] as? JsonPrimitive)?.contentOrNull
+                    val playlists = (e.raw["playlists"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.let(::playlistFrom) }
+                    result = ApplePlaylistsResult(playlists, sf ?: "us")
+                    cachedPlaylists = playlists
+                    cachedPlaylistsTimestamp = now
+                    if (!sf.isNullOrEmpty()) rememberStorefront(sf)
+                }
+            }
+            result ?: ApplePlaylistsResult(error = error ?: "Could not read your Apple Music library", needsSignIn = needsSignIn)
+        } catch (e: Exception) {
+            ApplePlaylistsResult(error = e.toString())
+        }
     }
 
-    /** Fetches personalized and catalog Apple Music shelves for the streaming home. */
+    /** Fetches personalized and catalog Apple Music shelves for the streaming home. Uses cache for 5 minutes. */
     suspend fun fetchHome(): List<AppleHomeShelf> {
+        val now = System.currentTimeMillis()
+        cachedHome?.takeIf { now - cachedHomeTimestamp < cacheTtlMs }?.let { return it }
+        
         var result: List<AppleHomeShelf> = emptyList()
         runner.run("apple_home", payload("storefront" to settings.value.storefront)).collect { e ->
             if (e.isError) {
@@ -123,6 +149,8 @@ class AppleLibrary(
                 }
             }
         }
+        cachedHome = result
+        cachedHomeTimestamp = now
         return result
     }
 

@@ -28,6 +28,7 @@ import app.soiboi.engine.library.SongOrigin
 import app.soiboi.ui.AppController
 import app.soiboi.ui.Route
 import app.soiboi.ui.SongMenu
+import app.soiboi.ui.components.EmptyState
 import app.soiboi.ui.components.SButton
 import app.soiboi.ui.components.Space
 import app.soiboi.ui.components.Tone
@@ -99,11 +100,15 @@ fun StreamingPlaylistScreen(app: AppController, r: Route.StreamingPlaylist) {
     val playlistData by produceState<Result<List<Song>>?>(null, r) {
         value = runCatching {
             if (r.service == "apple") {
+                val isCatalogPlaylist = r.id.startsWith("pl.") || r.id.startsWith("p.")
                 val libTracks = runCatching { engine.appleLibrary.fetchPlaylistTracks(r.id) }.getOrNull()
                 if (!libTracks.isNullOrEmpty()) {
                     libTracks.map { t -> Song("addon:apple:${t.catalogId ?: t.title}", SongOrigin.Addon, title = t.title, artist = t.artist ?: "Unknown Artist", album = t.album ?: r.title, coverId = r.cover) }
+                } else if (isCatalogPlaylist) {
+                    // Catalog playlists can't be fetched for display, only downloaded. Show empty with download option.
+                    emptyList()
                 } else {
-                    // Not in the user's library: fall back to songs matching the playlist's title.
+                    // Not in the user's library and not a catalog playlist: fall back to search.
                     engine.apple.searchSongs(r.title, region).orEmpty().take(20).toAppleSongs()
                 }
             } else {
@@ -113,6 +118,7 @@ fun StreamingPlaylistScreen(app: AppController, r: Route.StreamingPlaylist) {
         }
     }
     val songs = playlistData?.getOrNull().orEmpty()
+    val isCatalogPlaylist = r.service == "apple" && (r.id.startsWith("pl.") || r.id.startsWith("p."))
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = Space.xl)) {
         item {
@@ -123,17 +129,28 @@ fun StreamingPlaylistScreen(app: AppController, r: Route.StreamingPlaylist) {
                     if (songs.isNotEmpty()) Txt(plural(songs.size, "song"), style = Soiboi.type.caption, color = c.muted)
                 }
                 PlayShuffleDownload(app, songs, "Download Playlist") {
-                    val isCatalogPlaylist = r.id.startsWith("pl.") || r.id.startsWith("p.")
                     if (r.service == "apple" && isCatalogPlaylist) engine.downloads.enqueue(listOf(DownloadRequest(catalogPlaylistUrl(r.id, region), r.title, r.curator)))
                     else if (songs.isNotEmpty()) engine.downloads.enqueue(songs.map { streamingDownload(r.service, it, region, r.title) })
                     app.toast("Downloading playlist: ${r.title}")
                 }
             }
         }
-        streamingTracks(
-            app, playlistData, queue.current?.id,
-            TrackListText("Loading playlist tracks", "Could not load playlist", "Unknown error", "No tracks found", "This playlist has no tracks available.", Glyph.Playlist),
-        ) { streamingDownload(r.service, it, region, r.title) }
+        if (isCatalogPlaylist && songs.isEmpty() && playlistData?.isSuccess == true) {
+            item {
+                Box(Modifier.padding(horizontal = Space.l)) {
+                    EmptyState(
+                        "Apple Music Playlist",
+                        "Track listing isn't available for Apple Music catalog playlists. Tap Download Playlist to archive all tracks.",
+                        glyph = Glyph.Playlist
+                    )
+                }
+            }
+        } else {
+            streamingTracks(
+                app, playlistData, queue.current?.id,
+                TrackListText("Loading playlist tracks", "Could not load playlist", "Unknown error", "No tracks found", "This playlist has no tracks available.", Glyph.Playlist),
+            ) { streamingDownload(r.service, it, region, r.title) }
+        }
     }
 }
 
