@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
@@ -22,7 +24,26 @@ android {
         versionName = "2.7.2"
         ndk { abiFilters += (System.getenv("SOIBOI_ABIS") ?: "arm64-v8a,x86_64").split(",").map { it.trim() } }
     }
-    buildTypes { debug { applicationIdSuffix = ".dev" } }
+    val keyProps = file(System.getProperty("user.home") + "/.config/soiboi/key.properties")
+    signingConfigs {
+        if (keyProps.exists()) {
+            val props = Properties().apply { keyProps.reader().use { load(it) } }
+            create("release") {
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix = ".dev" }
+        release {
+            if (keyProps.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_21; targetCompatibility = JavaVersion.VERSION_21 }
 
     sourceSets.getByName("main") {
