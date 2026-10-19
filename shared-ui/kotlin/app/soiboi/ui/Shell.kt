@@ -28,10 +28,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -42,8 +40,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import app.soiboi.engine.download.DownloadJobState
-import app.soiboi.ui.components.Chip
 import app.soiboi.ui.components.Hairline
 import app.soiboi.ui.components.ProgressBar
 import app.soiboi.ui.components.Space
@@ -168,7 +164,9 @@ private fun NarrowLayout(app: AppController) {
 private fun Content(app: AppController) {
     val songs by app.engine.library.songs.collectAsState()
     val folders by produceFolders(app)
-    if (songs.isEmpty() && app.route is Route.Today && app.engine.settings.value.setupWizardDone.not() && !app.engine.scanning.collectAsState().value) {
+    val settings by app.engine.settings.state.collectAsState()
+    val scanning by app.engine.scanning.collectAsState()
+    if (songs.isEmpty() && app.route is Route.Today && !settings.setupWizardDone && !scanning) {
         FirstRun(app); return
     }
     when (val r = app.route) {
