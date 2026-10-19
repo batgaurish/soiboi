@@ -218,6 +218,21 @@ async def open_personalized_api(
     dev_token = scraped_dev_token()
     if not user_token or not dev_token:
         return None
+
+    # Get storefront from the wrapper or catalog API, not hardcoded
+    storefront = "us"
+    tokens = wrapper_tokens(wrapper_url)
+    if tokens is not None and wrapper_url:
+        # Try to get storefront from wrapper's /me endpoint
+        try:
+            with urllib.request.urlopen(
+                wrapper_url.rstrip("/") + "/me", timeout=10
+            ) as response:
+                me_data = json.load(response)
+                storefront = me_data.get("storefront") or storefront
+        except (OSError, ValueError):
+            pass
+
     import httpx
 
     client = httpx.AsyncClient(
@@ -230,7 +245,7 @@ async def open_personalized_api(
     return AppleMusicApi(
         client=client,
         token=dev_token,
-        storefront="us",
+        storefront=storefront,
         language="en-US",
         media_user_token=user_token,
     )
