@@ -73,6 +73,10 @@ import app.soiboi.ui.screens.detail.PlaylistScreen
 import app.soiboi.ui.screens.detail.SmartScreen
 import app.soiboi.ui.screens.AskAiDialog
 import app.soiboi.ui.screens.SmartEditorDialog
+import app.soiboi.ui.screens.StreamingAlbumScreen
+import app.soiboi.ui.screens.StreamingPlaylistScreen
+import app.soiboi.ui.screens.StreamingRadioScreen
+import app.soiboi.ui.screens.StreamingSongScreen
 import app.soiboi.ui.screens.FirstRun
 import app.soiboi.ui.theme.Glyph
 import app.soiboi.ui.theme.GlyphIcon
@@ -179,6 +183,10 @@ private fun Content(app: AppController) {
         Route.Discover -> DiscoverScreen(app)
         is Route.Import -> ImportScreen(app, r.link)
         is Route.AddonItem -> AddonItemScreen(app, r)
+        is Route.StreamingAlbum -> StreamingAlbumScreen(app, r)
+        is Route.StreamingPlaylist -> StreamingPlaylistScreen(app, r)
+        is Route.StreamingRadio -> StreamingRadioScreen(app, r)
+        is Route.StreamingSong -> StreamingSongScreen(app, r)
         Route.Downloads -> DownloadsScreen(app)
         Route.Sources -> SourcesScreen(app)
         Route.Settings -> SettingsScreen(app)

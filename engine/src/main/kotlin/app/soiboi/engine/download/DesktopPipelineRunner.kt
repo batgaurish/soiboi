@@ -57,9 +57,13 @@ class DesktopPipelineRunner(
     override suspend fun cancelDownload() = withContext(Dispatchers.IO) {
         val process = download.get() ?: return@withContext
         downloadKilled = true
+        runCatching { process.descendants().forEach { runCatching { it.destroy() } } }
         process.destroy()
         // gamdl does not trap SIGTERM, but a stuck native call could ignore it.
-        if (!process.waitFor(3, TimeUnit.SECONDS)) process.destroyForcibly()
+        if (!process.waitFor(3, TimeUnit.SECONDS)) {
+            runCatching { process.descendants().forEach { runCatching { it.destroyForcibly() } } }
+            process.destroyForcibly()
+        }
         Unit
     }
 
@@ -86,7 +90,7 @@ class DesktopPipelineRunner(
             send(PipelineEvent.error("spawn_failed", e.toString()))
             return@channelFlow
         }
-        val isDownload = command == "download"
+        val isDownload = command == "download" || command == "session_download"
         if (isDownload) {
             download.set(process)
             downloadKilled = false
@@ -111,6 +115,9 @@ class DesktopPipelineRunner(
             // A killed download has no chance to report it, so say so here.
             send(PipelineEvent.error("cancelled", "Download stopped"))
         }
-        if (!isActive) process.destroyForcibly()
+        if (!isActive) {
+            runCatching { process.descendants().forEach { runCatching { it.destroyForcibly() } } }
+            process.destroyForcibly()
+        }
     }
 }

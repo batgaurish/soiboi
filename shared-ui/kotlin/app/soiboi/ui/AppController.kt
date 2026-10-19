@@ -31,6 +31,11 @@ sealed interface Route {
     data class Import(val link: String = "") : Route
     /** An album, artist or playlist an installed addon serves. [kind] is album, artist or playlist. */
     data class AddonItem(val addonId: String, val kind: String, val id: String, val title: String, val cover: String? = null) : Route
+    /** Dedicated streaming entity routes for albums, playlists, radio stations and songs. */
+    data class StreamingAlbum(val service: String, val id: String, val title: String, val artist: String? = null, val cover: String? = null) : Route
+    data class StreamingPlaylist(val service: String, val id: String, val title: String, val curator: String? = null, val cover: String? = null) : Route
+    data class StreamingRadio(val service: String, val id: String, val title: String, val subtitle: String? = null, val cover: String? = null) : Route
+    data class StreamingSong(val service: String, val id: String, val title: String, val artist: String? = null, val album: String? = null, val cover: String? = null) : Route
 }
 
 enum class LibraryTab(val label: String) { Songs("Songs"), Albums("Albums"), Artists("Artists"), Playlists("Playlists") }
@@ -39,7 +44,7 @@ enum class LibraryTab(val label: String) { Songs("Songs"), Albums("Albums"), Art
 enum class Place(val label: String) { Today("Today"), Library("Library"), Discover("Discover"), Downloads("Downloads"), Sources("Sources"), Settings("Settings") }
 
 fun Route.place(): Place = when (this) {
-    Route.Today -> Place.Today
+    Route.Today, is Route.StreamingAlbum, is Route.StreamingPlaylist, is Route.StreamingRadio, is Route.StreamingSong -> Place.Today
     is Route.Library, is Route.Album, is Route.Artist, is Route.Playlist, is Route.Smart, is Route.Mood, Route.Search -> Place.Library
     Route.Discover, is Route.Import, is Route.AddonItem -> Place.Discover
     Route.Downloads -> Place.Downloads

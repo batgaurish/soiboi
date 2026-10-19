@@ -21,7 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import app.soiboi.engine.discovery.catalogSongUrl
+import app.soiboi.engine.download.DownloadRequest
 import app.soiboi.engine.library.QualityInfo
+import app.soiboi.engine.library.SongOrigin
+import java.net.URLEncoder
 import app.soiboi.engine.smart.SmartField
 import app.soiboi.engine.smart.SmartFieldKind
 import app.soiboi.engine.smart.SmartOperator
@@ -95,6 +99,40 @@ fun SongMenuDialog(app: AppController, menu: SongMenu) {
             }
             Action(Glyph.Next, "Play next") { app.playNext(song); close() }
             Action(Glyph.Queue, "Add to queue") { app.addToQueue(song); close() }
+            if (song.origin != SongOrigin.Local || song.path == null) {
+                Action(Glyph.Download, "Download song") {
+                    close()
+                    val region = engine.settings.value.storefront
+                    val req = if (song.id.startsWith("addon:apple:")) {
+                        val tid = song.id.removePrefix("addon:apple:")
+                        DownloadRequest(
+                            url = catalogSongUrl(tid, region),
+                            label = song.displayTitle,
+                            subtitle = song.displayArtist,
+                            group = song.album,
+                        )
+                    } else if (song.id.startsWith("addon:")) {
+                        val rest = song.id.removePrefix("addon:")
+                        val addonId = rest.substringBefore(":")
+                        val tid = rest.substringAfter(":")
+                        DownloadRequest(
+                            url = "session://$addonId/$tid?title=${URLEncoder.encode(song.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(song.displayArtist, "UTF-8")}",
+                            label = song.displayTitle,
+                            subtitle = song.displayArtist,
+                            group = song.album,
+                        )
+                    } else {
+                        DownloadRequest(
+                            url = "session://apple/${song.id}?title=${URLEncoder.encode(song.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(song.displayArtist, "UTF-8")}",
+                            label = song.displayTitle,
+                            subtitle = song.displayArtist,
+                            group = song.album,
+                        )
+                    }
+                    engine.downloads.enqueue(listOf(req))
+                    app.toast("Downloading ${song.displayTitle}")
+                }
+            }
             Action(if (isFav) Glyph.HeartFilled else Glyph.Heart, if (isFav) "Remove from favorites" else "Add to favorites", if (isFav) c.accent else c.ink) { app.toggleFavorite(song); close() }
             Action(Glyph.Playlist, "Add to playlist") { picking = true }
             Action(Glyph.Disc, "Go to album") { app.go(Route.Album(song.displayAlbum)); close() }

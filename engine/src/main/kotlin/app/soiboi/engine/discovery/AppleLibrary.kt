@@ -50,6 +50,7 @@ class AppleImportOutcome(val batch: DownloadBatch?, val queued: Int = 0, val ski
 
 fun catalogPlaylistUrl(id: String, storefront: String) = "https://music.apple.com/$storefront/playlist/playlist/$id"
 fun catalogSongUrl(id: String, storefront: String) = "https://music.apple.com/$storefront/song/song/$id"
+fun catalogAlbumUrl(id: String, storefront: String) = "https://music.apple.com/$storefront/album/album/$id"
 
 /**
  * The signed-in account's own Apple Music playlists. The cookies the downloader uses are exactly what Apple's

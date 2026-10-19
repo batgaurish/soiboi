@@ -81,6 +81,7 @@ class Player(
     private var played = java.time.Duration.ZERO
     private var sleepJob: Job? = null
     private var saveJob: Job? = null
+    private var eventsJob: Job? = null
     private var wantPlaying = false
 
     /** Commands from outside the app (notification buttons, media keys) go through the same paths as the on-screen controls. */
@@ -91,7 +92,7 @@ class Player(
 
     init {
         backend.attachRemote(remote)
-        scope.launch {
+        eventsJob = scope.launch {
             backend.events.collect { e ->
                 when (e) {
                     is BackendEvent.Position -> _state.update { it.copy(positionMs = e.positionMs, durationMs = e.durationMs) }
@@ -188,15 +189,17 @@ class Player(
         val q = _queue.value; if (index !in q.songs.indices || index == q.currentIndex) return
         val removed = q.songs[index]
         val list = q.songs.toMutableList().also { it.removeAt(index) }
-        unshuffled = unshuffled.filter { it != removed.id }
+        val idx = unshuffled.indexOf(removed.id)
+        if (idx != -1) unshuffled = unshuffled.toMutableList().also { it.removeAt(idx) }
         _queue.value = QueueState(list, if (index < q.currentIndex) q.currentIndex - 1 else q.currentIndex)
         scheduleSave()
     }
 
     fun reverse() {
-        val q = _queue.value; val cur = q.current ?: return
+        val q = _queue.value; if (q.current == null) return
         val list = q.songs.reversed()
-        _queue.value = QueueState(list, list.indexOf(cur)); scheduleSave()
+        val newIndex = (list.size - 1 - q.currentIndex).coerceIn(0, list.size - 1)
+        _queue.value = QueueState(list, newIndex); scheduleSave()
     }
 
     suspend fun clear() {
@@ -238,7 +241,15 @@ class Player(
         _queue.value = q.copy(currentIndex = PlayQueueLogic.previousIndex(q.currentIndex, q.songs.size)); load(); scheduleSave()
     }
 
-    fun play() { if (_queue.value.songs.isEmpty()) return; EngineLog.event("PLAYER", "command_play", "song=${_queue.value.current?.id ?: "none"}"); wantPlaying = true; backend.play() }
+    fun play() {
+        val q = _queue.value
+        if (q.songs.isEmpty()) return
+        if (q.currentIndex < 0) { scope.launch { jumpTo(0) }; return }
+        if (_lastLoaded == null) { wantPlaying = true; scope.launch { load() }; return }
+        EngineLog.event("PLAYER", "command_play", "song=${q.current?.id ?: "none"}")
+        wantPlaying = true
+        backend.play()
+    }
     fun pause() { EngineLog.event("PLAYER", "command_pause", "song=${_queue.value.current?.id ?: "none"} position=${_state.value.positionMs}"); wantPlaying = false; backend.pause() }
     fun togglePlay() { if (_state.value.playing) pause() else play() }
     suspend fun stop() { EngineLog.event("PLAYER", "command_stop", "song=${_queue.value.current?.id ?: "none"}"); wantPlaying = false; backend.stop(); _state.value = PlaybackState() }
@@ -322,6 +333,9 @@ class Player(
         song.path?.takeIf { song.origin == SongOrigin.Local }?.let { return it to emptyMap() }
         cacheDir?.let { dir -> File(dir, cacheName(song)).takeIf { it.exists() }?.let { return it.path to emptyMap() } }
         resolveOverride(song)?.let { return it }
+        if (song.origin == SongOrigin.Addon) {
+            error("Could not find a playable stream for '${song.displayTitle}'")
+        }
         val server = servers()[song.origin] ?: error("No connection to ${song.origin}")
         return server.streamUrl(song) to server.streamHeaders(song)
     }
@@ -346,5 +360,10 @@ class Player(
         unshuffled = PlayQueueLogic.remap(unshuffled, list.map { it.id }.toSet())
     }
 
-    fun release() { sleepJob?.cancel(); backend.release() }
+    fun release() {
+        eventsJob?.cancel()
+        saveJob?.cancel()
+        sleepJob?.cancel()
+        backend.release()
+    }
 }
