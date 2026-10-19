@@ -14,7 +14,7 @@ Two things shaped the design:
   * **Progress must stream.** A download takes minutes, so callers get
     newline-delimited JSON events rather than one result at the end.
 
-The Dart side speaks to this through a single `PipelineRunner` abstraction with
+The Kotlin side speaks to this through a single `PipelineRunner` abstraction with
 two transports: a subprocess on desktop, Chaquopy on Android. Both run this
 identical module.
 """

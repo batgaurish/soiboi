@@ -2,14 +2,12 @@ package app.soiboi.ui.screens.detail
 
 import app.soiboi.ui.SongMenu
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,17 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.soiboi.engine.library.Song
-import app.soiboi.engine.library.SongSort
 import app.soiboi.engine.smart.SmartContext
 import app.soiboi.engine.smart.autoMoodPlaylists
 import app.soiboi.ui.AppController
 import app.soiboi.ui.Route
 import app.soiboi.ui.components.AlbumTile
-import app.soiboi.ui.components.Chip
 import app.soiboi.ui.components.ConfirmDialog
 import app.soiboi.ui.components.Cover
 import app.soiboi.ui.components.EmptyState
-import app.soiboi.ui.components.Listbox
 import app.soiboi.ui.components.SButton
 import app.soiboi.ui.components.SDialog
 import app.soiboi.ui.components.SField

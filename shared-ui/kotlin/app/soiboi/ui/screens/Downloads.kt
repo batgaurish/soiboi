@@ -3,7 +3,6 @@ package app.soiboi.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -36,7 +35,6 @@ import app.soiboi.engine.download.TrackState
 import app.soiboi.engine.download.buildStatusChecks
 import app.soiboi.ui.AppController
 import app.soiboi.ui.Route
-import app.soiboi.ui.components.Banner
 import app.soiboi.ui.components.EmptyState
 import app.soiboi.ui.components.ProgressBar
 import app.soiboi.ui.components.SButton

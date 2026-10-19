@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -19,13 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.soiboi.engine.discovery.catalogSongUrl
 import app.soiboi.engine.download.DownloadRequest
 import app.soiboi.engine.library.QualityInfo
 import app.soiboi.engine.library.SongOrigin
-import java.net.URLEncoder
 import app.soiboi.engine.smart.SmartField
 import app.soiboi.engine.smart.SmartFieldKind
 import app.soiboi.engine.smart.SmartOperator
@@ -116,14 +113,14 @@ fun SongMenuDialog(app: AppController, menu: SongMenu) {
                         val addonId = rest.substringBefore(":")
                         val tid = rest.substringAfter(":")
                         DownloadRequest(
-                            url = "session://$addonId/$tid?title=${URLEncoder.encode(song.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(song.displayArtist, "UTF-8")}",
+                            url = sessionUrl(addonId, tid, song.displayTitle, song.displayArtist),
                             label = song.displayTitle,
                             subtitle = song.displayArtist,
                             group = song.album,
                         )
                     } else {
                         DownloadRequest(
-                            url = "session://apple/${song.id}?title=${URLEncoder.encode(song.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(song.displayArtist, "UTF-8")}",
+                            url = sessionUrl("apple", song.id, song.displayTitle, song.displayArtist),
                             label = song.displayTitle,
                             subtitle = song.displayArtist,
                             group = song.album,

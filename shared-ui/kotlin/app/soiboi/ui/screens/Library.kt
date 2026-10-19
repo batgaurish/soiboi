@@ -3,15 +3,12 @@ package app.soiboi.ui.screens
 import app.soiboi.ui.SongMenu
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,7 +32,6 @@ import app.soiboi.engine.library.SongFilter
 import app.soiboi.engine.library.SongSort
 import app.soiboi.engine.library.filterOptions
 import app.soiboi.engine.library.filterSongs
-import app.soiboi.engine.library.FAVORITE
 import app.soiboi.engine.smart.SmartPlaylist
 import app.soiboi.engine.smart.SmartPlaylistTemplates
 import app.soiboi.ui.AppController
@@ -44,7 +40,6 @@ import app.soiboi.ui.Route
 import app.soiboi.ui.components.AlbumTile
 import app.soiboi.ui.components.ArtistTile
 import app.soiboi.ui.components.Chip
-import app.soiboi.ui.components.ConfirmDialog
 import app.soiboi.ui.components.Cover
 import app.soiboi.ui.components.EmptyState
 import app.soiboi.ui.components.Listbox
@@ -61,7 +56,6 @@ import app.soiboi.ui.components.press
 import app.soiboi.ui.theme.Glyph
 import app.soiboi.ui.theme.GlyphIcon
 import app.soiboi.ui.theme.Soiboi
-import kotlinx.coroutines.launch
 
 /** Songs, albums, artists and playlists, with the search, sort and quality filters that belong to each. */
 @Composable

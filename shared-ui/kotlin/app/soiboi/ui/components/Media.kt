@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,7 +44,6 @@ import app.soiboi.ui.theme.GlyphIcon
 import app.soiboi.ui.theme.Soiboi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** Decoded covers kept in memory, least recently used out, so scrolling back is instant and memory stays bounded. */
 private object CoverCache {

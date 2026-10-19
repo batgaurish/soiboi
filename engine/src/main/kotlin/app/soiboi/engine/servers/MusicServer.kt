@@ -5,11 +5,8 @@ import app.soiboi.engine.library.Song
 import app.soiboi.engine.library.SongOrigin
 import app.soiboi.engine.sources.Http
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.request.request
 import io.ktor.client.statement.HttpResponse
@@ -19,7 +16,6 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import java.io.File
 
 class RemotePlaylist(val id: String, val name: String)

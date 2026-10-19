@@ -21,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import app.soiboi.engine.library.PlaylistKind
-import app.soiboi.engine.library.artistSubtitle
 import app.soiboi.engine.library.globalSearch
 import app.soiboi.engine.smart.autoMoodPlaylists
 import app.soiboi.ui.AppController
