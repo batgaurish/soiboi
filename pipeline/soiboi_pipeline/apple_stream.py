@@ -16,6 +16,7 @@ the cached path without re-downloading.
 import asyncio
 import hashlib
 import logging
+import struct
 from base64 import b64decode, b64encode
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -58,6 +59,12 @@ try:
     HAS_M3U8 = True
 except ImportError:
     HAS_M3U8 = False
+
+try:
+    from gamdl import _ammuxer
+    HAS_AMMUXER = True
+except ImportError:
+    HAS_AMMUXER = False
 
 # Shared CDM device to avoid loading on every call
 _cdm_device = None
@@ -160,6 +167,8 @@ async def _fetch_m3u8(api, url: str) -> str | None:
 async def _download_segments(api, m3u8_url: str, m3u8_content: str, output: Path) -> bool:
     """Download and concatenate all segments from an HLS playlist.
 
+    Fetches the initialization chunk (EXT-X-MAP) first, followed by all media
+    segments, ensuring the output container has a valid ftyp/moov header.
     Uses httpx directly instead of ffmpeg subprocess (works on Android/Chaquopy).
     """
     if not HAS_M3U8:
@@ -176,6 +185,24 @@ async def _download_segments(api, m3u8_url: str, m3u8_content: str, output: Path
     base_url = m3u8_url.rsplit("/", 1)[0] + "/"
 
     segments_data = []
+
+    # Fetch initialization segment (EXT-X-MAP) first, as required for fragmented MP4
+    init_uri = None
+    if getattr(playlist, "segment_map", None) and len(playlist.segment_map) > 0 and playlist.segment_map[0].uri:
+        init_uri = playlist.segment_map[0].uri
+    elif playlist.segments and getattr(playlist.segments[0], "init_section", None) and playlist.segments[0].init_section.uri:
+        init_uri = playlist.segments[0].init_section.uri
+
+    if init_uri:
+        init_url = init_uri if init_uri.startswith("http") else base_url + init_uri
+        try:
+            response = await api.client.get(init_url)
+            response.raise_for_status()
+            segments_data.append(response.content)
+        except Exception as e:
+            logger.warning("Failed to download init segment %s: %s", init_url, e)
+            return False
+
     for segment in playlist.segments:
         segment_url = segment.uri
         if not segment_url.startswith("http"):
@@ -230,29 +257,268 @@ def _find_asset(assets: list, flavor: str) -> dict | None:
     return None
 
 
-def _decrypt_cenc_pycrypto(encrypted_data: bytes, key: bytes, kid: bytes) -> bytes:
-    """Decrypt CENC content using pycryptodome.
+def _decrypt_sample_payload(
+    sample_data: bytes,
+    key: bytes,
+    iv: bytes,
+    crypt_byte_block: int = 1,
+    skip_byte_block: int = 9,
+    subsamples: list[tuple[int, int]] | None = None,
+) -> bytes:
+    """Decrypt an encrypted sample using AES-CTR with pattern mode.
 
-    CENC uses AES-CTR mode. For Apple Music fMP4, the IV is typically
-    8 bytes of KID + 8 bytes counter starting at 0.
+    The counter resets per sample using the sample's IV.
+    """
+    if len(iv) == 8:
+        counter_block = iv + b"\x00" * 8
+    elif len(iv) == 16:
+        counter_block = iv
+    else:
+        counter_block = (iv + b"\x00" * 16)[:16]
+
+    ctr = Counter.new(
+        64,
+        prefix=counter_block[:8],
+        initial_value=int.from_bytes(counter_block[8:], "big"),
+    )
+    cipher = AES.new(key, AES.MODE_CTR, counter=ctr)
+
+    def decrypt_protected(protected: bytes) -> bytes:
+        if crypt_byte_block == 0 and skip_byte_block == 0:
+            return cipher.decrypt(protected)
+        out = bytearray()
+        n_blocks = len(protected) // 16
+        pattern_len = crypt_byte_block + skip_byte_block
+        if pattern_len == 0:
+            pattern_len = 1
+        for b_idx in range(n_blocks):
+            block = protected[b_idx * 16 : (b_idx + 1) * 16]
+            if (b_idx % pattern_len) < crypt_byte_block:
+                out.extend(cipher.decrypt(block))
+            else:
+                out.extend(block)
+        trailing = protected[n_blocks * 16 :]
+        if trailing:
+            out.extend(trailing)
+        return bytes(out)
+
+    if not subsamples:
+        return decrypt_protected(sample_data)
+
+    out = bytearray()
+    curr = 0
+    for clear_bytes, protected_bytes in subsamples:
+        if clear_bytes > 0:
+            out.extend(sample_data[curr : curr + clear_bytes])
+            curr += clear_bytes
+        if protected_bytes > 0:
+            prot_data = sample_data[curr : curr + protected_bytes]
+            out.extend(decrypt_protected(prot_data))
+            curr += protected_bytes
+    if curr < len(sample_data):
+        out.extend(sample_data[curr:])
+    return bytes(out)
+
+
+def _iter_mp4_boxes(data: bytes | bytearray, start: int = 0, end: int | None = None):
+    if end is None:
+        end = len(data)
+    curr = start
+    while curr + 8 <= end:
+        size = struct.unpack(">I", data[curr : curr + 4])[0]
+        btype = bytes(data[curr + 4 : curr + 8])
+        if size == 1:
+            if curr + 16 > end:
+                break
+            size = struct.unpack(">Q", data[curr + 8 : curr + 16])[0]
+            hdr = 16
+        elif size == 0:
+            size = end - curr
+            hdr = 8
+        else:
+            hdr = 8
+        if size < hdr or curr + size > end:
+            break
+        yield btype, curr, size, hdr
+        curr += size
+
+
+def _decrypt_cenc_pycrypto(encrypted_data: bytes, key: bytes, kid: bytes) -> bytes:
+    """Decrypt CENC / CTRP content using pycryptodome.
+
+    Parses ISO BMFF box structure, identifies encrypted samples via moof/traf
+    (senc, trun, tfhd), and decrypts sample bytes using AES-CTR pattern mode
+    with per-sample counter reset while preserving container structure.
     """
     if not HAS_CRYPTO:
         raise ValueError("pycryptodome not available for decryption")
 
-    # Standard CENC IV: first 8 bytes of KID, 8-byte counter
-    iv = kid[:8] + b'\x00' * 8
-    ctr = Counter.new(64, prefix=iv[:8], initial_value=0)
-    cipher = AES.new(key, AES.MODE_CTR, counter=ctr)
-    return cipher.decrypt(encrypted_data)
+    data = bytearray(encrypted_data)
+    top_boxes = list(_iter_mp4_boxes(data))
+    if not top_boxes:
+        # Fallback for non-container raw sample payloads
+        iv = (kid[:8] + b"\x00" * 8)[:16]
+        return _decrypt_sample_payload(data, key, iv, crypt_byte_block=1, skip_byte_block=9)
+
+    # 1. Parse tenc in moov if present to find crypt/skip pattern and IV size
+    crypt_byte_block = 1
+    skip_byte_block = 9
+    iv_size = 16
+
+    for btype, bstart, bsize, bhdr in top_boxes:
+        if btype == b"moov":
+            tenc_idx = data.find(b"tenc", bstart, bstart + bsize)
+            if tenc_idx != -1 and tenc_idx >= 4:
+                tb_start = tenc_idx - 4
+                if tb_start + 16 <= len(data):
+                    version = data[tb_start + 8]
+                    if version > 0:
+                        pattern = data[tb_start + 13]
+                        c = (pattern >> 4) & 0x0F
+                        s = pattern & 0x0F
+                        if c != 0 or s != 0:
+                            crypt_byte_block, skip_byte_block = c, s
+                    iv_size = data[tb_start + 15] or 16
+            break
+
+    # 2. Iterate moof/mdat pairs
+    for i, (btype, bstart, bsize, bhdr) in enumerate(top_boxes):
+        if btype != b"moof":
+            continue
+        moof_start = bstart
+        moof_end = bstart + bsize
+
+        for tr_type, tr_start, tr_size, tr_hdr in _iter_mp4_boxes(data, moof_start + bhdr, moof_end):
+            if tr_type != b"traf":
+                continue
+            base_data_offset = moof_start
+            default_sample_size = None
+            sample_sizes: list[int] = []
+            data_offset = None
+            sample_ivs: list[bytes] = []
+            sample_subsamples: list[list[tuple[int, int]]] = []
+
+            for sub_type, sub_start, sub_size, sub_hdr in _iter_mp4_boxes(
+                data, tr_start + tr_hdr, tr_start + tr_size
+            ):
+                if sub_type == b"tfhd" and sub_start + 16 <= len(data):
+                    flags = struct.unpack(">I", b"\x00" + data[sub_start + 9 : sub_start + 12])[0]
+                    pos = sub_start + 16
+                    if flags & 0x000001 and pos + 8 <= len(data):
+                        base_data_offset = struct.unpack(">Q", data[pos : pos + 8])[0]
+                        pos += 8
+                    if flags & 0x000002:
+                        pos += 4
+                    if flags & 0x000008:
+                        pos += 4
+                    if flags & 0x000010 and pos + 4 <= len(data):
+                        default_sample_size = struct.unpack(">I", data[pos : pos + 4])[0]
+                        pos += 4
+                elif sub_type == b"trun" and sub_start + 16 <= len(data):
+                    flags = struct.unpack(">I", b"\x00" + data[sub_start + 9 : sub_start + 12])[0]
+                    scount = struct.unpack(">I", data[sub_start + 12 : sub_start + 16])[0]
+                    pos = sub_start + 16
+                    if flags & 0x000001 and pos + 4 <= len(data):
+                        data_offset = struct.unpack(">i", data[pos : pos + 4])[0]
+                        pos += 4
+                    if flags & 0x000004:
+                        pos += 4
+                    for _ in range(scount):
+                        if pos > len(data):
+                            break
+                        if flags & 0x000100:
+                            pos += 4
+                        if flags & 0x000200 and pos + 4 <= len(data):
+                            sample_sizes.append(struct.unpack(">I", data[pos : pos + 4])[0])
+                            pos += 4
+                        else:
+                            sample_sizes.append(default_sample_size or 0)
+                        if flags & 0x000400:
+                            pos += 4
+                        if flags & 0x000800:
+                            pos += 4
+                elif sub_type == b"senc" and sub_start + 16 <= len(data):
+                    sflags = struct.unpack(">I", b"\x00" + data[sub_start + 9 : sub_start + 12])[0]
+                    scount = struct.unpack(">I", data[sub_start + 12 : sub_start + 16])[0]
+                    use_subs = bool(sflags & 0x000002)
+                    pos = sub_start + 16
+                    for _ in range(scount):
+                        if pos + iv_size > len(data):
+                            break
+                        siv = bytes(data[pos : pos + iv_size])
+                        pos += iv_size
+                        subs: list[tuple[int, int]] = []
+                        if use_subs and pos + 2 <= len(data):
+                            sub_cnt = struct.unpack(">H", data[pos : pos + 2])[0]
+                            pos += 2
+                            for _ in range(sub_cnt):
+                                if pos + 6 <= len(data):
+                                    c_bytes, p_bytes = struct.unpack(">HI", data[pos : pos + 6])
+                                    pos += 6
+                                    subs.append((c_bytes, p_bytes))
+                        sample_ivs.append(siv)
+                        sample_subsamples.append(subs)
+
+            if data_offset is not None:
+                sample_data_offset = base_data_offset + data_offset
+            else:
+                if i + 1 < len(top_boxes) and top_boxes[i + 1][0] == b"mdat":
+                    sample_data_offset = top_boxes[i + 1][1] + top_boxes[i + 1][3]
+                else:
+                    continue
+
+            for s_idx, s_size in enumerate(sample_sizes):
+                if sample_data_offset + s_size > len(data):
+                    break
+                s_iv = sample_ivs[s_idx] if s_idx < len(sample_ivs) else (kid[:8] + b"\x00" * 8)
+                s_subs = sample_subsamples[s_idx] if s_idx < len(sample_subsamples) else None
+                s_raw = bytes(data[sample_data_offset : sample_data_offset + s_size])
+                dec_sample = _decrypt_sample_payload(
+                    s_raw,
+                    key,
+                    s_iv,
+                    crypt_byte_block=crypt_byte_block,
+                    skip_byte_block=skip_byte_block,
+                    subsamples=s_subs,
+                )
+                data[sample_data_offset : sample_data_offset + s_size] = dec_sample
+                sample_data_offset += s_size
+
+    # 3. Unmark enca to mp4a in stsd so standard AAC decoders play the file
+    enca_idx = 0
+    while True:
+        enca_idx = data.find(b"enca", enca_idx)
+        if enca_idx == -1:
+            break
+        data[enca_idx : enca_idx + 4] = b"mp4a"
+        enca_idx += 4
+
+    return bytes(data)
 
 
 def _decrypt_cenc(encrypted_path: Path, decrypted_path: Path, key: bytes, kid: bytes) -> bool:
     """Decrypt a CENC-encrypted MP4 file.
 
-    Uses pycryptodome AES-CTR. This is a simplified implementation that
-    decrypts the entire file; for full CENC compliance we'd need to parse
-    moof/traf boxes and decrypt only encrypted samples.
+    Uses native Rust decryptor (_ammuxer) when available, falling back to
+    pycryptodome box-level decryption.
     """
+    if HAS_AMMUXER:
+        try:
+            _ammuxer.decrypt_and_mux_hex_native(
+                key.hex(),
+                str(encrypted_path),
+                str(decrypted_path),
+                None,
+                None,
+                True,
+                False,
+                False,
+            )
+            if decrypted_path.exists() and decrypted_path.stat().st_size > 0:
+                return True
+        except Exception as e:
+            logger.warning("Native decrypt failed (%s), falling back to Python: %s", type(e).__name__, e)
+
     if not HAS_CRYPTO:
         logger.error("pycryptodome not available - cannot decrypt CENC content")
         return False
@@ -293,7 +559,8 @@ async def resolve_stream(
 
     cached = _cache_path(cache_dir, track_id, quality)
     if cached.exists():
-        return {"path": str(cached), "format": "m4a", "bitrate": 256, "cached": True}
+        cached_bitrate = 64 if quality == "aac-he" else 256
+        return {"path": str(cached), "format": "m4a", "bitrate": cached_bitrate, "cached": True}
 
     # Open API
     api = await open_api(cookies_path, wrapper_url)
@@ -317,6 +584,9 @@ async def resolve_stream(
         if not asset:
             raise ValueError(f"No {quality} asset found for track {track_id}")
 
+        asset_flavor = asset.get("flavor") or ""
+        bitrate = 64 if ("64" in asset_flavor or quality == "aac-he") else 256
+
         url = asset.get("URL")
         if not url:
             raise ValueError("Asset has no URL")
@@ -335,7 +605,7 @@ async def resolve_stream(
             enc_path = cache_dir / f"{track_id}_enc.m4a"
             if await _download_segments(api, url, m3u8_content, enc_path):
                 enc_path.rename(cached)
-                return {"path": str(cached), "format": "m4a", "bitrate": 256}
+                return {"path": str(cached), "format": "m4a", "bitrate": bitrate}
             raise ValueError("Download failed and no PSSH for decryption")
 
         # Load CDM from bundled device (cached to avoid reload per track)
@@ -380,7 +650,7 @@ async def resolve_stream(
             # Clean up encrypted file
             enc_path.unlink(missing_ok=True)
 
-            return {"path": str(cached), "format": "m4a", "bitrate": 256}
+            return {"path": str(cached), "format": "m4a", "bitrate": bitrate}
 
         finally:
             cdm.close(session_id)
