@@ -127,25 +127,36 @@ async def _request(api, path: str, params: dict | None = None) -> dict | None:
 
 
 async def _personalized_shelves(api, storefront: str | None) -> list[dict]:
-    """The account's own shelves: recommendations expanded, then recently played."""
-    shelves: list[dict] = []
+    """The account's own shelves: recommendations, then the history shelves.
 
+    The history calls run together with the recommendation expansion: each
+    recommendation costs one more request per shelf, and run one after
+    another they turned the home into a minute-long load.
+    """
     response = await _request(api, "/v1/me/recommendations", {"limit": 12})
-    for resource in (response or {}).get("data") or []:
-        if not isinstance(resource, dict):
-            continue
+    resources = [r for r in (response or {}).get("data") or [] if isinstance(r, dict)]
+
+    async def expanded_shelf(resource: dict) -> dict | None:
         title = _recommendation_title(resource, "Made For You")
         items = await _expand_recommendation(api, resource)
         if items:
-            shelves.append({"title": title, "kind": "recommendation", "items": items[:20]})
+            return {"title": title, "kind": "recommendation", "items": items[:20]}
+        return None
 
-    for path, title in (
-        ("/v1/me/recent/played", "Recently Played"),
-        ("/v1/me/history/heavy-rotation", "Heavy Rotation"),
-    ):
+    async def history(path: str, title: str) -> list[dict]:
         response = await _request(api, path, {"limit": 20})
         if response:
-            shelves.extend(_shelves(response, title))
+            return _shelves(response, title)
+        return []
+
+    expansion, recent, rotation = await asyncio.gather(
+        asyncio.gather(*(expanded_shelf(r) for r in resources)),
+        history("/v1/me/recent/played", "Recently Played"),
+        history("/v1/me/history/heavy-rotation", "Heavy Rotation"),
+    )
+    shelves = [s for s in expansion if s]
+    shelves.extend(recent)
+    shelves.extend(rotation)
     return shelves
 
 
@@ -167,18 +178,18 @@ async def _collect(
             shelves = []
         await personalized.client.aclose()
 
-    # The catalog client (wrapper or cookies token) still answers charts, so
-    # the home is never empty; when personalization worked this is context,
-    # and when it did not this is the whole page.
-    catalog = await open_api(cookies_path, wrapper_url)
-    if storefront_override:
-        storefront = storefront_override
-    else:
-        storefront = getattr(catalog, "storefront", None) or storefront
-
-    charts = await _request(catalog, f"/v1/catalog/{storefront}/charts", {"types": "albums,playlists,artists", "limit": 20})
-    if charts:
-        shelves.extend(_shelves(charts, "Popular on Apple Music"))
+    # Charts fill the page when personalization is not available for the
+    # account or region. On the happy path they cost a request the home does
+    # not need, and the personalized shelves are already the whole page.
+    if not shelves:
+        catalog = await open_api(cookies_path, wrapper_url)
+        if storefront_override:
+            storefront = storefront_override
+        else:
+            storefront = getattr(catalog, "storefront", None) or storefront
+        charts = await _request(catalog, f"/v1/catalog/{storefront}/charts", {"types": "albums,playlists,artists", "limit": 20})
+        if charts:
+            shelves.extend(_shelves(charts, "Popular on Apple Music"))
 
     # Keep one shelf per title and cap the response so a broken endpoint cannot
     # flood the UI with duplicate cards.

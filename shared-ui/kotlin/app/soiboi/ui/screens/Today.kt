@@ -140,11 +140,17 @@ private fun AppleStreamingHome(app: AppController) {
                 else Txt("Recommendations, mixes, new releases, and your library.", style = Soiboi.type.body, color = c.soft)
             }
         }
-        // The search shelves are the fallback, not the home: when the pipeline's
-        // personalized shelves arrive they take the page, and the searches only
-        // fill it when the home came back empty or failed.
-        val homeHasShelves = home != null && home!!.getOrNull().orEmpty().any { it.items.isNotEmpty() }
-        if (signed && catalogFallback != null && !homeHasShelves) {
+        // The search shelves are the fallback, not the home. While the home is
+        // loading (null) nothing renders below the header but the loading note —
+        // a minute of search results before the real shelves was the old bug.
+        // When the home resolves empty or failed, the searches fill the page;
+        // when it has shelves they take it and the searches never render.
+        val homeShelves = home?.getOrNull().orEmpty()
+        val homeHasShelves = homeShelves.any { it.items.isNotEmpty() }
+        if (signed && home == null) {
+            item { SectionTitle("Loading your recommendations") }
+        }
+        if (signed && catalogFallback != null && home != null && !homeHasShelves) {
             catalogFallback!!.filter { it.second.isNotEmpty() }.forEach { (title, songs) ->
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
