@@ -28,7 +28,6 @@ import app.soiboi.ui.theme.AppFonts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Image
 import java.awt.Desktop

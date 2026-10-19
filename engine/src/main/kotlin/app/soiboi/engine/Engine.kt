@@ -1,6 +1,8 @@
 package app.soiboi.engine
 
 import app.soiboi.engine.ai.AiConfig
+import app.soiboi.engine.resolve.ResolverChain
+import app.soiboi.engine.resolve.TrackRef
 import app.soiboi.engine.ai.AiFeatures
 import app.soiboi.engine.ai.SongTags
 import app.soiboi.engine.apple.AppleCatalog

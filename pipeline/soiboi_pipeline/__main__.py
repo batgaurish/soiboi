@@ -5,7 +5,7 @@ Desktop spawns this as `python -m soiboi_pipeline <command>`; Android calls
 a fix on one platform is a fix on both.
 
 Protocol: one JSON object per line on stdout (see `protocol.py`). Every line is
-either a progress event or a terminal result, so the Dart side can parse
+either a progress event or a terminal result, so the Kotlin side can parse
 incrementally and never has to wait for the process to exit before showing
 something.
 """

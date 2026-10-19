@@ -34,8 +34,6 @@ import app.soiboi.engine.sources.ExternalPlaylist
 import app.soiboi.ui.AppController
 import app.soiboi.ui.Route
 import app.soiboi.ui.components.Banner
-import app.soiboi.ui.components.Cover
-import app.soiboi.ui.components.EmptyState
 import app.soiboi.ui.components.Loading
 import app.soiboi.ui.components.ProgressBar
 import app.soiboi.ui.components.SButton

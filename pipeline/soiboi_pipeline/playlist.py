@@ -3,7 +3,7 @@
 YouTube Music has no official API, but gamdl depends on yt-dlp, so it is
 already inside this app and already working on Android. A flat playlist
 extraction is one call, needs no key and no account, and returns in about a
-second. (Spotify and Deezer links are read on the Dart side, from their public
+second. (Spotify and Deezer links are read on the Kotlin side, from their public
 pages and API.)
 
 The extraction is flat (`extract_flat`) on purpose: resolving each entry fully
