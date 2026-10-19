@@ -6,7 +6,7 @@ links one at a time.
 
 gamdl already carries the client (`AppleMusicApi.create_from_netscape_cookies`
 plus `get_library_playlists`), so this is a thin adapter: fetch, flatten the
-JSON:API shape into something the Dart side can render, and say for each
+JSON:API shape into something the Kotlin side can render, and say for each
 playlist whether it is archivable as one URL.
 
 Two kinds of playlist come back, and the difference decides how each is

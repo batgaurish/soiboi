@@ -1,4 +1,19 @@
-package app.soiboi.engine
+package app.soiboi.engine.resolve
+
+import kotlinx.serialization.Serializable
+
+/** A track as any source describes it, before it is matched to something playable. */
+@Serializable
+data class TrackRef(
+    val title: String,
+    val artist: String,
+    val album: String? = null,
+    val durationSeconds: Int? = null,
+    val coverUrl: String? = null,
+    val isrc: String? = null,
+    val explicit: Boolean = false,
+    val sourceId: String? = null,
+)
 
 /** Something that can be played or downloaded for a track. */
 data class Playable(

@@ -40,7 +40,6 @@ import app.soiboi.engine.library.SongOrigin
 import app.soiboi.ui.AppController
 import app.soiboi.ui.Route
 import app.soiboi.ui.SongMenu
-import java.net.URLEncoder
 import app.soiboi.ui.components.Banner
 import app.soiboi.ui.components.ConfirmDialog
 import app.soiboi.ui.components.Cover
@@ -260,7 +259,7 @@ fun AddonItemScreen(app: AppController, r: Route.AddonItem) {
                             val reqs = list.map { s ->
                                 val tid = s.id.removePrefix("addon:${addon.id}:")
                                 DownloadRequest(
-                                    url = "session://${addon.id}/$tid?title=${URLEncoder.encode(s.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(s.displayArtist, "UTF-8")}",
+                                    url = sessionUrl(addon.id, tid, s.displayTitle, s.displayArtist),
                                     label = s.displayTitle,
                                     subtitle = s.displayArtist,
                                     group = r.title,
@@ -287,7 +286,7 @@ fun AddonItemScreen(app: AppController, r: Route.AddonItem) {
                             onClick = {
                                 val tid = s.id.removePrefix("addon:${addon.id}:")
                                 val req = DownloadRequest(
-                                    url = "session://${addon.id}/$tid?title=${URLEncoder.encode(s.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(s.displayArtist, "UTF-8")}",
+                                    url = sessionUrl(addon.id, tid, s.displayTitle, s.displayArtist),
                                     label = s.displayTitle,
                                     subtitle = s.displayArtist,
                                     group = r.title,
@@ -345,7 +344,7 @@ private fun AddonShelf(app: AppController, addon: AddonInstance, catalogId: Stri
                             onClick = { app.go(Route.StreamingSong(addon.id, trackId, s.displayTitle, s.displayArtist, s.album, s.coverId)) },
                             onDownload = {
                                 val req = DownloadRequest(
-                                    url = "session://${addon.id}/$trackId?title=${URLEncoder.encode(s.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(s.displayArtist, "UTF-8")}",
+                                    url = sessionUrl(addon.id, trackId, s.displayTitle, s.displayArtist),
                                     label = s.displayTitle,
                                     subtitle = s.displayArtist,
                                     group = s.album,
@@ -369,7 +368,7 @@ private fun AddonShelf(app: AppController, addon: AddonInstance, catalogId: Stri
                                     if (detail != null && detail.tracks.isNotEmpty()) {
                                         val reqs = detail.tracks.map { t ->
                                             DownloadRequest(
-                                                url = "session://${addon.id}/${t.id}?title=${URLEncoder.encode(t.title, "UTF-8")}&artist=${URLEncoder.encode(t.artist ?: a.artist ?: "", "UTF-8")}",
+                                                url = sessionUrl(addon.id, t.id, t.title, t.artist ?: a.artist ?: ""),
                                                 label = t.title,
                                                 subtitle = t.artist ?: a.artist,
                                                 group = a.title,
@@ -405,7 +404,7 @@ private fun AddonShelf(app: AppController, addon: AddonInstance, catalogId: Stri
                                     if (detail != null && detail.tracks.isNotEmpty()) {
                                         val reqs = detail.tracks.map { t ->
                                             DownloadRequest(
-                                                url = "session://${addon.id}/${t.id}?title=${URLEncoder.encode(t.title, "UTF-8")}&artist=${URLEncoder.encode(t.artist ?: "", "UTF-8")}",
+                                                url = sessionUrl(addon.id, t.id, t.title, t.artist ?: ""),
                                                 label = t.title,
                                                 subtitle = t.artist,
                                                 group = pl.title,

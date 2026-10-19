@@ -1,4 +1,4 @@
-package app.soiboi.engine
+package app.soiboi.engine.resolve
 
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

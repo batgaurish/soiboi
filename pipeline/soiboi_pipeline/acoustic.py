@@ -4,7 +4,7 @@ Ported from the reference ``acoustic_analyzer.py`` in the Apple Music archival
 frontend, with changes for the on-device pipeline:
 
   * **Per-file sidecars** instead of a per-directory index. The pipeline
-    downloads one file at a time and writes a sidecar next to it, so the Dart
+    downloads one file at a time and writes a sidecar next to it, so the Kotlin
     side can read it during a metadata scan without parsing a shared JSON file
     that may be mid-write from another download.
 

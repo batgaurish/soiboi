@@ -1,9 +1,8 @@
 package app.soiboi.engine.debrid
 
-import app.soiboi.engine.Playable
-import app.soiboi.engine.Resolver
-import app.soiboi.engine.TrackRef
-import app.soiboi.engine.core.EngineLog
+import app.soiboi.engine.resolve.Playable
+import app.soiboi.engine.resolve.Resolver
+import app.soiboi.engine.resolve.TrackRef
 import app.soiboi.engine.core.normaliseForMatch
 import app.soiboi.engine.core.bareSongTitle
 import app.soiboi.engine.servers.requestJson

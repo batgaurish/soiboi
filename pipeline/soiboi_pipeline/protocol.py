@@ -1,7 +1,7 @@
 """The JSON events the pipeline answers with.
 
 Every command streams zero or more `progress` events and ends with one `done`
-or `error`. The Dart side parses exactly these field names (`event`, `code`,
+or `error`. The Kotlin side parses exactly these field names (`event`, `code`,
 `message`, `progress`, `status`), so every module builds its events here
 rather than writing the dict literals out by hand.
 """
