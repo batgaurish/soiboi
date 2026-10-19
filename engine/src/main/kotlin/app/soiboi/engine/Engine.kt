@@ -208,11 +208,43 @@ class Engine(val platform: Platform, val scope: CoroutineScope) {
         cacheDir = java.io.File(paths.cacheDir, "remote"),
         resolveOverride = { song ->
             if (song.origin == SongOrigin.Addon && song.id.startsWith("addon:apple:")) {
-                val stream = appleSession.streamUrl(song.id.removePrefix("addon:apple:"))
-                stream?.let { it.url to it.headers }
-            } else if (song.origin == SongOrigin.Addon) addons.streamFor(song)
-            else if (song.origin == SongOrigin.Local) null
-            else resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() }
+                val trackId = song.id.removePrefix("addon:apple:")
+                val appleStream = runCatching { appleSession.streamUrl(trackId) }.getOrNull()
+                if (appleStream != null) {
+                    appleStream.url to appleStream.headers
+                } else {
+                    val fromResolver = resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap<String, String>() }
+                    if (fromResolver != null) {
+                        fromResolver
+                    } else {
+                        val query = listOfNotNull(song.displayArtist.takeIf { it.isNotBlank() }, song.displayTitle.takeIf { it.isNotBlank() }).joinToString(" - ")
+                        if (query.isNotBlank()) {
+                            val yt = runCatching { youtubeStream("ytsearch1:$query") }.getOrNull()
+                            yt?.let { it.url to it.headers }
+                        } else null
+                    }
+                }
+            } else if (song.origin == SongOrigin.Addon) {
+                val stream = runCatching { addons.streamFor(song) }.getOrNull()
+                if (stream != null) {
+                    stream
+                } else {
+                    val fromResolver = resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap<String, String>() }
+                    if (fromResolver != null) {
+                        fromResolver
+                    } else {
+                        val query = listOfNotNull(song.displayArtist.takeIf { it.isNotBlank() }, song.displayTitle.takeIf { it.isNotBlank() }).joinToString(" - ")
+                        if (query.isNotBlank()) {
+                            val yt = runCatching { youtubeStream("ytsearch1:$query") }.getOrNull()
+                            yt?.let { it.url to it.headers }
+                        } else null
+                    }
+                }
+            } else if (song.origin == SongOrigin.Local) {
+                null
+            } else {
+                resolvers.resolve(TrackRef(song.displayTitle, song.displayArtist, song.album))?.let { it.url to emptyMap() }
+            }
         },
         onPlayed = { song, _ -> serverMap[song.origin]?.scrobble(song.id); if (song.origin != SongOrigin.Local && song.playCount > 1) player.cache(song) },
         onSongChanged = { song -> lyrics.parsedFor(song) },

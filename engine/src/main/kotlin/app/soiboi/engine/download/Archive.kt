@@ -124,11 +124,29 @@ suspend fun ArchiveEnvironment.archiveUrl(
             log("Signed in with cookies")
         }
     }
+    val isSession = url.startsWith("session://")
+    val command = if (isSession) "session_download" else "download"
+    if (isSession) {
+        val uri = java.net.URI(url)
+        payload["session"] = uri.host ?: ""
+        payload["track_id"] = uri.path?.removePrefix("/") ?: ""
+        val query = uri.rawQuery?.split("&")?.mapNotNull { param ->
+            val parts = param.split("=", limit = 2)
+            if (parts.size == 2) parts[0] to java.net.URLDecoder.decode(parts[1], "UTF-8") else null
+        }?.toMap() ?: emptyMap()
+        query["isrc"]?.takeIf { it.isNotEmpty() }?.let { payload["isrc"] = it }
+        query["artist"]?.takeIf { it.isNotEmpty() }?.let { payload["artist"] = it }
+        query["title"]?.takeIf { it.isNotEmpty() }?.let { payload["title"] = it }
+        payload["apple_cookies_path"] = cookies.path
+        if (s.useWrapper && s.wrapperUrl.trim().isNotEmpty()) {
+            payload["apple_wrapper_url"] = s.wrapperUrl.trim()
+        }
+    }
     log("Handing over to the downloader")
 
     var error: DownloadFailure? = null
     var finished = false
-    runner.run("download", payload.toJson()).collect { event ->
+    runner.run(command, payload.toJson()).collect { event ->
         when {
             event.isProgress -> onProgress?.invoke(event.progress, event.status)
             event.isError -> {

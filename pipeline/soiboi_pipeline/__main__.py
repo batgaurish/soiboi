@@ -86,7 +86,10 @@ def main(argv: list[str] | None = None) -> int:
         _emit_line(error("bad_json", str(exc)))
         return 2
 
-    result = handle(command, payload, emit=_emit_line)
+    try:
+        result = handle(command, payload, emit=_emit_line)
+    except Exception as exc:
+        result = error("pipeline", str(exc))
     _emit_line(result)
     return 1 if result.get("event") == "error" else 0
 

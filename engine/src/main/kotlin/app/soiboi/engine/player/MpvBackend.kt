@@ -162,7 +162,7 @@ class MpvBackend(private val mpvPath: String = "mpv") : AudioBackend {
         if (gainsDb.all { kotlin.math.abs(it) < 0.01 }) { setProperty("af", ""); return }
         val g = gainsDb
         val bands = listOf(g[0], 0.0, g[1], g[2], 0.0, g[3], g[4], 0.0, g[5], g[6], 0.0, g[7], 0.0, g[8], 0.0, g[9], g[9], g[9])
-        val params = bands.withIndex().joinToString(":") { (i, db) -> "${i + 1}b=${"%.3f".format(10.0.pow(db / 20))}" }
+        val params = bands.withIndex().joinToString(":") { (i, db) -> "${i + 1}b=${"%.3f".format(java.util.Locale.ROOT, 10.0.pow(db / 20))}" }
         setProperty("af", "superequalizer=$params")
     }
 

@@ -65,7 +65,14 @@ class Database(file: File) {
     /** Several statements as one transaction: all or nothing. */
     suspend fun <T> transaction(block: Tx.() -> T): T = run {
         connection.execSQL("BEGIN")
-        try { block().also { connection.execSQL("COMMIT") } } catch (e: Throwable) { connection.execSQL("ROLLBACK"); throw e }
+        try {
+            block().also { connection.execSQL("COMMIT") }
+        } catch (e: Throwable) {
+            runCatching { connection.execSQL("ROLLBACK") }.onFailure { rbEx ->
+                if (rbEx !== e) e.addSuppressed(rbEx)
+            }
+            throw e
+        }
     }
 
     suspend fun getKv(key: String): String? = run { queryOne("SELECT value FROM kv WHERE key=?", key) { it.text(0) } }

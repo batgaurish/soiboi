@@ -14,6 +14,7 @@ quality, or via YouTube if Apple isn't available.
 
 import asyncio
 import logging
+import os
 
 from .apple_auth import open_api, has_credentials
 from .downloader import handle_download
@@ -26,6 +27,11 @@ try:
     HAS_GAMDL = True
 except ImportError:
     HAS_GAMDL = False
+
+try:
+    from yt_dlp import YoutubeDL
+except ImportError:
+    YoutubeDL = None
 
 
 async def _resolve_by_isrc(
@@ -102,6 +108,47 @@ async def _resolve_by_search(
     except Exception as e:
         logger.warning("Apple search failed: %s", e)
     return None
+
+
+def _download_via_ytdlp(search_query: str, output_dir: str | None, emit: Emit) -> Event:
+    if not output_dir:
+        return error("missing_output_dir", "No output directory provided for download")
+    if YoutubeDL is None:
+        return error("no_ytdlp", "yt-dlp is not available")
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    def hook(d: dict) -> None:
+        status = d.get("status")
+        if status == "downloading":
+            total = d.get("total_bytes") or d.get("total_bytes_estimate") or 0
+            downloaded = d.get("downloaded_bytes") or 0
+            if total > 0:
+                pct = int((downloaded / total) * 80) + 15
+                emit(progress(min(pct, 95), "Downloading audio"))
+        elif status == "finished":
+            emit(progress(98, "Processing audio"))
+
+    options = {
+        "format": "bestaudio[ext=m4a]/bestaudio/best",
+        "outtmpl": os.path.join(output_dir, "%(title)s.%(ext)s"),
+        "progress_hooks": [hook],
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+        "socket_timeout": 30,
+    }
+
+    target = search_query if (search_query.startswith("http://") or search_query.startswith("https://") or search_query.startswith("ytsearch")) else f"ytsearch1:{search_query}"
+    try:
+        with YoutubeDL(options) as ydl:
+            ydl.download([target])
+    except Exception as exc:
+        logger.warning("yt-dlp download failed: %s", exc)
+        return error("ytdlp_failed", str(exc).splitlines()[-1][:300] if str(exc) else "Download failed")
+
+    emit(progress(100, "Done"))
+    return done(output_dir=output_dir)
 
 
 def handle_session_download(payload: Payload, emit: Emit) -> Event:
@@ -181,13 +228,20 @@ def handle_session_download(payload: Payload, emit: Emit) -> Event:
         logger.info("Resolved %s to Apple Music: %s", track_id, apple_url)
         download_payload = {
             "url": apple_url,
+            "cookies_path": apple_cookies or "",
             **({"output_dir": output_dir} if output_dir else {}),
-            **({"cookies_path": apple_cookies} if apple_cookies else {}),
             **({"wrapper_url": apple_wrapper} if apple_wrapper else {}),
+            **({"use_wrapper": True} if apple_wrapper else {}),
         }
         return handle_download(download_payload, emit)
 
     # Fall back to yt-dlp
+    if session == "ytmusic" and track_id and len(track_id) == 11 and not track_id.startswith("http"):
+        yt_target = f"https://www.youtube.com/watch?v={track_id}"
+        emit(progress(10, "Downloading from YouTube"))
+        logger.info("Direct YouTube download for %s: %s", track_id, yt_target)
+        return _download_via_ytdlp(yt_target, output_dir, emit)
+
     search_query = f"{artist or ''} {title or ''}".strip()
     if not search_query:
         search_query = track_id
@@ -195,9 +249,4 @@ def handle_session_download(payload: Payload, emit: Emit) -> Event:
     emit(progress(10, "Searching YouTube"))
     logger.info("Falling back to YouTube search: %s", search_query)
 
-    download_payload = {
-        "url": f"ytsearch1:{search_query}",
-        "source": session,
-        **({"output_dir": output_dir} if output_dir else {}),
-    }
-    return handle_download(download_payload, emit)
+    return _download_via_ytdlp(search_query, output_dir, emit)

@@ -2,6 +2,12 @@ package app.soiboi.ui.screens
 
 import app.soiboi.ui.SongMenu
 import app.soiboi.ui.LibraryTab
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.unit.Dp
+import app.soiboi.engine.discovery.catalogAlbumUrl
+import app.soiboi.engine.discovery.catalogPlaylistUrl
+import app.soiboi.engine.discovery.catalogSongUrl
+import app.soiboi.engine.download.DownloadRequest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -112,9 +118,49 @@ private fun StreamingHomeScreen(app: AppController, providerId: String) {
 }
 
 @Composable
+fun StreamingCard(
+    title: String,
+    subtitle: String?,
+    coverUrl: String?,
+    badge: String,
+    badgeGlyph: Glyph?,
+    onClick: () -> Unit,
+    onDownload: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 148.dp,
+) {
+    val c = Soiboi.colors
+    Column(
+        modifier
+            .width(size)
+            .press(onClick, listOfNotNull(title, subtitle).joinToString(", "), shape = Soiboi.look.shape(12))
+    ) {
+        Box(Modifier.size(size)) {
+            UrlCover(coverUrl, size, shape = Soiboi.look.shape(12), description = title)
+            EntityBadge(badge, badgeGlyph, Modifier.align(Alignment.TopStart).padding(6.dp))
+            SIconButton(
+                glyph = Glyph.Download,
+                label = "Download $title",
+                onClick = onDownload,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp),
+                tint = c.ink,
+                size = 34.dp,
+                iconSize = 18.dp,
+                background = c.paper.copy(alpha = 0.94f),
+            )
+        }
+        Txt(title, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
+        if (!subtitle.isNullOrBlank()) {
+            Txt(subtitle, style = Soiboi.type.caption, color = c.soft, maxLines = 1)
+        }
+    }
+}
+
+@Composable
 private fun AppleStreamingHome(app: AppController) {
     val c = Soiboi.colors
     val engine = app.engine
+    val scope = rememberCoroutineScope()
     val signed by engine.cookieStore.signedIn.collectAsState()
     val region = engine.settings.value.storefront
     val home by produceState<Result<List<app.soiboi.engine.discovery.AppleHomeShelf>>?>(null, signed, region) {
@@ -140,11 +186,6 @@ private fun AppleStreamingHome(app: AppController) {
                 else Txt("Recommendations, mixes, new releases, and your library.", style = Soiboi.type.body, color = c.soft)
             }
         }
-        // The search shelves are the fallback, not the home. While the home is
-        // loading (null) nothing renders below the header but the loading note —
-        // a minute of search results before the real shelves was the old bug.
-        // When the home resolves empty or failed, the searches fill the page;
-        // when it has shelves they take it and the searches never render.
         val homeShelves = home?.getOrNull().orEmpty()
         val homeHasShelves = homeShelves.any { it.items.isNotEmpty() }
         if (signed && home == null) {
@@ -158,11 +199,22 @@ private fun AppleStreamingHome(app: AppController) {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                             items(songs.size) { index ->
                                 val song = songs[index]
-                                Column(Modifier.width(148.dp).press({ app.play(listOf(song)) }, song.displayTitle, shape = Soiboi.look.shape(12))) {
-                                    Cover(song, 148.dp, shape = Soiboi.look.shape(12), contentDescription = song.displayTitle)
-                                    Txt(song.displayTitle, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
-                                    Txt(song.displayArtist, style = Soiboi.type.caption, color = c.soft, maxLines = 1)
-                                }
+                                val trackId = song.id.removePrefix("addon:apple:")
+                                StreamingCard(
+                                    title = song.displayTitle,
+                                    subtitle = song.displayArtist,
+                                    coverUrl = song.coverId,
+                                    badge = "Song",
+                                    badgeGlyph = Glyph.Play,
+                                    onClick = {
+                                        app.go(Route.StreamingSong("apple", trackId, song.displayTitle, song.displayArtist, song.album, song.coverId))
+                                    },
+                                    onDownload = {
+                                        val url = catalogSongUrl(trackId, region)
+                                        engine.downloads.enqueue(listOf(DownloadRequest(url, song.displayTitle, song.displayArtist, song.album)))
+                                        app.toast("Downloading ${song.displayTitle}")
+                                    },
+                                )
                             }
                         }
                     }
@@ -180,11 +232,73 @@ private fun AppleStreamingHome(app: AppController) {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                             items(shelf.items.size) { index ->
                                 val item = shelf.items[index]
-                                val song = Song("addon:apple:${item.id}", SongOrigin.Addon, title = item.title, artist = item.subtitle, album = shelf.title, coverId = item.artworkUrl)
-                                Column(Modifier.width(148.dp).press({ app.play(listOf(song)) }, item.title, shape = Soiboi.look.shape(12))) {
-                                    Cover(song, 148.dp, shape = Soiboi.look.shape(12), contentDescription = item.title)
-                                    Txt(item.title, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
-                                    Txt(item.subtitle, style = Soiboi.type.caption, color = c.soft, maxLines = 1)
+                                val kind = when {
+                                    item.type.contains("album", ignoreCase = true) -> "album"
+                                    item.type.contains("playlist", ignoreCase = true) || item.id.startsWith("pl.") || item.id.startsWith("p.") -> "playlist"
+                                    item.type.contains("station", ignoreCase = true) || item.type.contains("radio", ignoreCase = true) || item.id.startsWith("ra.") -> "station"
+                                    else -> "song"
+                                }
+                                when (kind) {
+                                    "album" -> StreamingCard(
+                                        title = item.title,
+                                        subtitle = item.subtitle,
+                                        coverUrl = item.artworkUrl,
+                                        badge = "Album",
+                                        badgeGlyph = Glyph.Disc,
+                                        onClick = { app.go(Route.StreamingAlbum("apple", item.id, item.title, item.subtitle, item.artworkUrl)) },
+                                        onDownload = {
+                                            val url = catalogAlbumUrl(item.id, region)
+                                            engine.downloads.enqueue(listOf(DownloadRequest(url, item.title, item.subtitle)))
+                                            app.toast("Downloading album: ${item.title}")
+                                        },
+                                    )
+                                    "playlist" -> StreamingCard(
+                                        title = item.title,
+                                        subtitle = item.subtitle,
+                                        coverUrl = item.artworkUrl,
+                                        badge = "Playlist",
+                                        badgeGlyph = Glyph.Playlist,
+                                        onClick = { app.go(Route.StreamingPlaylist("apple", item.id, item.title, item.subtitle, item.artworkUrl)) },
+                                        onDownload = {
+                                            val url = catalogPlaylistUrl(item.id, region)
+                                            engine.downloads.enqueue(listOf(DownloadRequest(url, item.title, item.subtitle)))
+                                            app.toast("Downloading playlist: ${item.title}")
+                                        },
+                                    )
+                                    "station" -> StreamingCard(
+                                        title = item.title,
+                                        subtitle = item.subtitle,
+                                        coverUrl = item.artworkUrl,
+                                        badge = "Radio",
+                                        badgeGlyph = Glyph.Wave,
+                                        onClick = { app.go(Route.StreamingRadio("apple", item.id, item.title, item.subtitle, item.artworkUrl)) },
+                                        onDownload = {
+                                            scope.launch {
+                                                val term = item.title.replace("Station", "").replace("Radio", "").trim().ifBlank { "Radio" }
+                                                val candidates = engine.apple.searchSongs(term, region).orEmpty().take(15)
+                                                val reqs = candidates.mapNotNull { cand -> cand.trackId?.let { DownloadRequest(catalogSongUrl(it, region), cand.title, cand.artist, item.title) } }
+                                                if (reqs.isNotEmpty()) {
+                                                    engine.downloads.enqueue(reqs)
+                                                    app.toast("Downloading ${reqs.size} tracks from ${item.title}")
+                                                } else {
+                                                    app.toast("No downloadable tracks for this station")
+                                                }
+                                            }
+                                        },
+                                    )
+                                    else -> StreamingCard(
+                                        title = item.title,
+                                        subtitle = item.subtitle,
+                                        coverUrl = item.artworkUrl,
+                                        badge = "Song",
+                                        badgeGlyph = Glyph.Play,
+                                        onClick = { app.go(Route.StreamingSong("apple", item.id, item.title, item.subtitle, shelf.title, item.artworkUrl)) },
+                                        onDownload = {
+                                            val url = catalogSongUrl(item.id, region)
+                                            engine.downloads.enqueue(listOf(DownloadRequest(url, item.title, item.subtitle, shelf.title)))
+                                            app.toast("Downloading ${item.title}")
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -202,11 +316,20 @@ private fun AppleStreamingHome(app: AppController) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                     items(playlistItems.size) { index ->
                         val playlist = playlistItems[index]
-                        Column(Modifier.width(148.dp).press({ app.go(Route.Discover) }, playlist.name, shape = Soiboi.look.shape(12))) {
-                            Box(Modifier.size(148.dp).background(c.raised, Soiboi.look.shape(12)), contentAlignment = Alignment.Center) { GlyphIcon(Glyph.Playlist, size = 44.dp, tint = c.soft) }
-                            Txt(playlist.name, style = Soiboi.type.bodyStrong, maxLines = 2, modifier = Modifier.padding(top = Space.xs))
-                            playlist.trackCount?.let { Txt(plural(it, "song"), style = Soiboi.type.caption, color = c.soft) }
-                        }
+                        StreamingCard(
+                            title = playlist.name,
+                            subtitle = playlist.trackCount?.let { plural(it, "song") } ?: "Apple Music",
+                            coverUrl = playlist.artworkUrl,
+                            badge = "Playlist",
+                            badgeGlyph = Glyph.Playlist,
+                            onClick = { app.go(Route.StreamingPlaylist("apple", playlist.catalogId ?: playlist.libraryId, playlist.name, "Apple Music", playlist.artworkUrl)) },
+                            onDownload = {
+                                scope.launch {
+                                    engine.appleLibrary.archivePlaylist(playlist, region)
+                                    app.toast("Downloading playlist: ${playlist.name}")
+                                }
+                            },
+                        )
                     }
                 }
             }

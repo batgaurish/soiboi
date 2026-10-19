@@ -3,12 +3,14 @@ package app.soiboi.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,11 +34,13 @@ import app.soiboi.engine.addons.AddonHit
 import app.soiboi.engine.addons.AddonInstance
 import app.soiboi.engine.addons.AddonManifest
 import app.soiboi.engine.addons.AddonSettingDef
+import app.soiboi.engine.download.DownloadRequest
 import app.soiboi.engine.library.Song
 import app.soiboi.engine.library.SongOrigin
 import app.soiboi.ui.AppController
 import app.soiboi.ui.Route
 import app.soiboi.ui.SongMenu
+import java.net.URLEncoder
 import app.soiboi.ui.components.Banner
 import app.soiboi.ui.components.ConfirmDialog
 import app.soiboi.ui.components.Cover
@@ -67,9 +71,43 @@ internal fun UrlCover(url: String?, size: Dp, modifier: Modifier = Modifier, sha
 
 /** A square or round picture over a title and a line of detail: the tile every addon result uses, whatever its kind. */
 @Composable
-internal fun AddonTile(title: String, subtitle: String?, cover: String?, onClick: () -> Unit, round: Boolean = false, size: Dp = 140.dp) {
+internal fun AddonTile(
+    title: String,
+    subtitle: String?,
+    cover: String?,
+    onClick: () -> Unit,
+    round: Boolean = false,
+    size: Dp = 140.dp,
+    badge: String? = null,
+    onDownload: (() -> Unit)? = null,
+) {
+    val c = Soiboi.colors
     Column(Modifier.width(size).press(onClick, listOfNotNull(title, subtitle).joinToString(", "), shape = Soiboi.look.shape(14)).padding(4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        UrlCover(cover, size - 8.dp, shape = if (round) CircleShape else Soiboi.look.shape(12), description = "Picture for $title")
+        Box(Modifier.size(size - 8.dp)) {
+            UrlCover(cover, size - 8.dp, shape = if (round) CircleShape else Soiboi.look.shape(12), description = "Picture for $title")
+            if (badge != null && !round) {
+                val glyph = when (badge.lowercase()) {
+                    "album" -> Glyph.Disc
+                    "playlist" -> Glyph.Playlist
+                    "radio" -> Glyph.Wave
+                    "song", "track" -> Glyph.Play
+                    else -> null
+                }
+                EntityBadge(badge, glyph, Modifier.align(Alignment.TopStart).padding(6.dp))
+            }
+            if (onDownload != null && !round) {
+                SIconButton(
+                    glyph = Glyph.Download,
+                    label = "Download $title",
+                    onClick = onDownload,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp),
+                    tint = c.ink,
+                    size = 32.dp,
+                    iconSize = 16.dp,
+                    background = c.paper.copy(alpha = 0.94f),
+                )
+            }
+        }
         Column {
             Txt(title, style = Soiboi.type.bodyStrong, maxLines = 1)
             if (subtitle != null) Txt(subtitle, style = Soiboi.type.caption, color = Soiboi.colors.soft, maxLines = 1)
@@ -179,8 +217,8 @@ fun androidx.compose.foundation.lazy.LazyListScope.addonResults(app: AppControll
         val list = songs(app, addon, r.tracks.take(8))
         items(list.size) { i -> val s = list[i]; SongRow(s, null, playingId == s.id, s.id in favs, { app.play(list, i) }, { app.songMenu = SongMenu(s) }, showAlbum = true) }
         if (r.artists.isNotEmpty()) item { LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) { items(r.artists.take(12), key = { it.id }) { a -> AddonTile(a.name, "Artist", a.artworkUrl, { app.go(Route.AddonItem(addon.id, "artist", a.id, a.name, a.artworkUrl)) }, round = true, size = 120.dp) } } }
-        if (r.albums.isNotEmpty()) item { LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) { items(r.albums.take(12), key = { it.id }) { a -> AddonTile(a.title, a.artist, a.artworkUrl, { app.go(Route.AddonItem(addon.id, "album", a.id, a.title, a.artworkUrl)) }) } } }
-        if (r.playlists.isNotEmpty()) item { LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) { items(r.playlists.take(12), key = { it.id }) { p -> AddonTile(p.title, "Playlist", p.artworkUrl, { app.go(Route.AddonItem(addon.id, "playlist", p.id, p.title, p.artworkUrl)) }) } } }
+        if (r.albums.isNotEmpty()) item { LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) { items(r.albums.take(12), key = { it.id }) { a -> AddonTile(a.title, a.artist, a.artworkUrl, { app.go(Route.StreamingAlbum(addon.id, a.id, a.title, a.artist, a.artworkUrl)) }, badge = "Album") } } }
+        if (r.playlists.isNotEmpty()) item { LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) { items(r.playlists.take(12), key = { it.id }) { p -> AddonTile(p.title, "Playlist", p.artworkUrl, { app.go(Route.StreamingPlaylist(addon.id, p.id, p.title, "Playlist", p.artworkUrl)) }, badge = "Playlist") } } }
     }
 }
 
@@ -218,13 +256,54 @@ fun AddonItemScreen(app: AppController, r: Route.AddonItem) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
                         SButton("Play", { app.play(list) }, tone = Tone.Primary, glyph = Glyph.Play)
                         SButton("Shuffle", { app.play(list, shuffle = true) }, glyph = Glyph.Shuffle)
+                        SButton("Download ${r.kind.replaceFirstChar { it.uppercase() }}", {
+                            val reqs = list.map { s ->
+                                val tid = s.id.removePrefix("addon:${addon.id}:")
+                                DownloadRequest(
+                                    url = "session://${addon.id}/$tid?title=${URLEncoder.encode(s.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(s.displayArtist, "UTF-8")}",
+                                    label = s.displayTitle,
+                                    subtitle = s.displayArtist,
+                                    group = r.title,
+                                )
+                            }
+                            app.engine.downloads.enqueue(reqs)
+                            app.toast("Downloading ${r.kind}: ${r.title}")
+                        }, glyph = Glyph.Download)
                     }
                 }
                 if (list.isEmpty() && d.albums.isEmpty()) item { EmptyState("Nothing here", "The addon has no tracks for this ${r.kind}.", glyph = Glyph.Disc) }
-                items(list.size) { i -> val s = list[i]; SongRow(s, i + 1, queue.current?.id == s.id, s.id in favs, { app.play(list, i) }, { app.songMenu = SongMenu(s) }) }
+                items(list.size) { i ->
+                    val s = list[i]
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = Space.s),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(Modifier.weight(1f)) {
+                            SongRow(s, i + 1, queue.current?.id == s.id, s.id in favs, { app.play(list, i) }, { app.songMenu = SongMenu(s) })
+                        }
+                        SIconButton(
+                            glyph = Glyph.Download,
+                            label = "Download ${s.displayTitle}",
+                            onClick = {
+                                val tid = s.id.removePrefix("addon:${addon.id}:")
+                                val req = DownloadRequest(
+                                    url = "session://${addon.id}/$tid?title=${URLEncoder.encode(s.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(s.displayArtist, "UTF-8")}",
+                                    label = s.displayTitle,
+                                    subtitle = s.displayArtist,
+                                    group = r.title,
+                                )
+                                app.engine.downloads.enqueue(listOf(req))
+                                app.toast("Downloading ${s.displayTitle}")
+                            },
+                            size = 36.dp,
+                            iconSize = 16.dp,
+                            tint = c.soft,
+                        )
+                    }
+                }
                 if (d.albums.isNotEmpty()) {
                     item { Txt("Albums", style = Soiboi.type.headline) }
-                    item { LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) { items(d.albums, key = { it.id }) { a -> AddonTile(a.title, a.artist, a.artworkUrl, { app.go(Route.AddonItem(addon.id, "album", a.id, a.title, a.artworkUrl)) }) } } }
+                    item { LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) { items(d.albums, key = { it.id }) { a -> AddonTile(a.title, a.artist, a.artworkUrl, { app.go(Route.StreamingAlbum(addon.id, a.id, a.title, a.artist, a.artworkUrl)) }, badge = "Album") } } }
                 }
             }
         }
@@ -243,6 +322,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.addonShelves(app: AppControll
 @Composable
 private fun AddonShelf(app: AppController, addon: AddonInstance, catalogId: String, name: String) {
     val c = Soiboi.colors
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val page by produceState<Result<app.soiboi.engine.addons.AddonCatalogPage>?>(null, addon.id, catalogId, addon.settings) { value = runCatching { addon.client.catalog(catalogId) } }
     val result = page
     Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
@@ -254,10 +334,102 @@ private fun AddonShelf(app: AppController, addon: AddonInstance, catalogId: Stri
                 val p = result.getOrThrow()
                 val list = songs(app, addon, p.tracks)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
-                    items(list.size) { i -> val s = list[i]; AddonTile(s.displayTitle, s.displayArtist, s.coverId, { app.play(list, i) }) }
-                    items(p.albums.size) { i -> val a = p.albums[i]; AddonTile(a.title, a.artist, a.artworkUrl, { app.go(Route.AddonItem(addon.id, "album", a.id, a.title, a.artworkUrl)) }) }
-                    items(p.playlists.size) { i -> val pl = p.playlists[i]; AddonTile(pl.title, "Playlist", pl.artworkUrl, { app.go(Route.AddonItem(addon.id, "playlist", pl.id, pl.title, pl.artworkUrl)) }) }
-                    items(p.artists.size) { i -> val a = p.artists[i]; AddonTile(a.name, "Artist", a.artworkUrl, { app.go(Route.AddonItem(addon.id, "artist", a.id, a.name, a.artworkUrl)) }, round = true) }
+                    items(list.size) { i ->
+                        val s = list[i]
+                        val trackId = s.id.removePrefix("addon:${addon.id}:")
+                        AddonTile(
+                            title = s.displayTitle,
+                            subtitle = s.displayArtist,
+                            cover = s.coverId,
+                            badge = "Song",
+                            onClick = { app.go(Route.StreamingSong(addon.id, trackId, s.displayTitle, s.displayArtist, s.album, s.coverId)) },
+                            onDownload = {
+                                val req = DownloadRequest(
+                                    url = "session://${addon.id}/$trackId?title=${URLEncoder.encode(s.displayTitle, "UTF-8")}&artist=${URLEncoder.encode(s.displayArtist, "UTF-8")}",
+                                    label = s.displayTitle,
+                                    subtitle = s.displayArtist,
+                                    group = s.album,
+                                )
+                                app.engine.downloads.enqueue(listOf(req))
+                                app.toast("Downloading ${s.displayTitle}")
+                            },
+                        )
+                    }
+                    items(p.albums.size) { i ->
+                        val a = p.albums[i]
+                        AddonTile(
+                            title = a.title,
+                            subtitle = a.artist,
+                            cover = a.artworkUrl,
+                            badge = "Album",
+                            onClick = { app.go(Route.StreamingAlbum(addon.id, a.id, a.title, a.artist, a.artworkUrl)) },
+                            onDownload = {
+                                scope.launch {
+                                    val detail = runCatching { addon.client.album(a.id) }.getOrNull()
+                                    if (detail != null && detail.tracks.isNotEmpty()) {
+                                        val reqs = detail.tracks.map { t ->
+                                            DownloadRequest(
+                                                url = "session://${addon.id}/${t.id}?title=${URLEncoder.encode(t.title, "UTF-8")}&artist=${URLEncoder.encode(t.artist ?: a.artist ?: "", "UTF-8")}",
+                                                label = t.title,
+                                                subtitle = t.artist ?: a.artist,
+                                                group = a.title,
+                                            )
+                                        }
+                                        app.engine.downloads.enqueue(reqs)
+                                        app.toast("Downloading album: ${a.title}")
+                                    } else {
+                                        app.toast("Could not read album tracks")
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    items(p.playlists.size) { i ->
+                        val pl = p.playlists[i]
+                        val isRadio = pl.id.startsWith("RDAMVM") || pl.title.contains("Radio", ignoreCase = true) || pl.title.contains("Mix", ignoreCase = true)
+                        AddonTile(
+                            title = pl.title,
+                            subtitle = if (isRadio) "Radio mix" else "Playlist",
+                            cover = pl.artworkUrl,
+                            badge = if (isRadio) "Radio" else "Playlist",
+                            onClick = {
+                                if (isRadio) {
+                                    app.go(Route.StreamingRadio(addon.id, pl.id, pl.title, "Radio mix", pl.artworkUrl))
+                                } else {
+                                    app.go(Route.StreamingPlaylist(addon.id, pl.id, pl.title, "Playlist", pl.artworkUrl))
+                                }
+                            },
+                            onDownload = {
+                                scope.launch {
+                                    val detail = runCatching { addon.client.playlist(pl.id) }.getOrNull()
+                                    if (detail != null && detail.tracks.isNotEmpty()) {
+                                        val reqs = detail.tracks.map { t ->
+                                            DownloadRequest(
+                                                url = "session://${addon.id}/${t.id}?title=${URLEncoder.encode(t.title, "UTF-8")}&artist=${URLEncoder.encode(t.artist ?: "", "UTF-8")}",
+                                                label = t.title,
+                                                subtitle = t.artist,
+                                                group = pl.title,
+                                            )
+                                        }
+                                        app.engine.downloads.enqueue(reqs)
+                                        app.toast("Downloading playlist: ${pl.title}")
+                                    } else {
+                                        app.toast("Could not read playlist tracks")
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    items(p.artists.size) { i ->
+                        val a = p.artists[i]
+                        AddonTile(
+                            title = a.name,
+                            subtitle = "Artist",
+                            cover = a.artworkUrl,
+                            onClick = { app.go(Route.AddonItem(addon.id, "artist", a.id, a.name, a.artworkUrl)) },
+                            round = true,
+                        )
+                    }
                 }
                 if (list.isEmpty() && p.albums.isEmpty() && p.playlists.isEmpty() && p.artists.isEmpty()) Txt("Nothing on this shelf right now.", style = Soiboi.type.caption, color = c.muted)
             }

@@ -74,3 +74,13 @@ def test_progress_reaches_the_callback_as_json(monkeypatch):
     monkeypatch.setattr(entry, "_handler_for", lambda command: chatty)
     entry.handle_json("download", "{}", seen.append)
     assert [json.loads(text)["status"] for text in seen] == ["Starting"]
+
+
+def test_main_turns_exceptions_into_errors(monkeypatch, capsys):
+    def explode(payload, emit):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(entry, "_handler_for", lambda command: explode)
+    assert entry.main(["download", "{}"]) == 1
+    assert json.loads(capsys.readouterr().out)["code"] == "pipeline"
+

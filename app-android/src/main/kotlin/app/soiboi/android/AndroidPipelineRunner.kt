@@ -34,7 +34,7 @@ class AndroidPipelineRunner(private val context: Context) : PipelineRunner() {
     override suspend fun cancelDownload() { run("cancel").collect { } }
 
     override fun run(command: String, payload: JsonObject?): Flow<PipelineEvent> = callbackFlow {
-        val executor = when (command) { "download" -> downloads; "analyze" -> analysis; "cancel" -> control; else -> background }
+        val executor = when (command) { "download", "session_download" -> downloads; "analyze" -> analysis; "cancel" -> control; else -> background }
         executor.execute {
             val terminal: String = try {
                 start()

@@ -12,18 +12,26 @@ except ImportError:  # the bundled environment is incomplete
 
 
 def handle_youtube_stream(payload: Payload, emit: Emit) -> Event:
-    """Payload: {"id": video id}."""
+    """Payload: {"id": video id or search query or url}."""
     if (bad := missing_fields(payload, "id")) is not None:
         return bad
     if YoutubeDL is None:
         return error("no_ytdlp", "yt-dlp is missing from this build")
     options = {"quiet": True, "no_warnings": True, "noplaylist": True, "skip_download": True,
                "format": "bestaudio[ext=m4a]/bestaudio/best", "socket_timeout": 20}
+    target = str(payload["id"]).strip()
+    if target.startswith("http://") or target.startswith("https://") or target.startswith("ytsearch"):
+        target_url = target
+    else:
+        target_url = f"https://music.youtube.com/watch?v={target}"
     try:
         with YoutubeDL(options) as ydl:
-            info = ydl.extract_info(f"https://music.youtube.com/watch?v={payload['id']}", download=False)
+            info = ydl.extract_info(target_url, download=False)
     except Exception as exc:  # yt-dlp raises its own error types for every refusal
         return error("youtube", str(exc).splitlines()[-1][:300] if str(exc) else "YouTube refused")
+    if isinstance(info, dict) and "entries" in info:
+        entries = info.get("entries") or []
+        info = entries[0] if entries else None
     url = info.get("url") if isinstance(info, dict) else None
     if not url:
         return error("youtube", "YouTube gave no audio stream for this track")
