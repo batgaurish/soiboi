@@ -68,10 +68,12 @@ async def _expand_recommendation(api, resource: dict) -> list[dict]:
     """The playable resources behind one recommendation.
 
     Apple returns recommendations as shelf definitions with an `href` per
-    kind of content; following each with `?types=` resolves them into
+    kind of content; following each with `types=` resolves them into
     playlists, albums and stations the UI can open. Failures cost the shelf,
     not the home.
     """
+    from urllib.parse import urlparse, parse_qs, urlencode
+
     items: list[dict] = []
     relationships = resource.get("relationships") or {}
     for key in ("contents", "recommendations", "items"):
@@ -82,10 +84,19 @@ async def _expand_recommendation(api, resource: dict) -> list[dict]:
     href = resource.get("href") or (relationships.get("contents") or {}).get("href")
     if not href:
         return []
+
+    # Parse href properly to avoid double ? (href may already have query params)
+    parsed = urlparse(href)
+    existing_params = parse_qs(parsed.query)
+    # Remove limit from existing params (gamdl's approach)
+    existing_params.pop("limit", None)
+
     for types in ("albums,playlists,stations", "playlists,albums"):
         try:
+            # Merge types into existing params
+            merged_params = {**{k: v[0] for k, v in existing_params.items()}, "types": types}
             expanded = await asyncio.wait_for(
-                api._amp_request(f"{href}?types={types}"), timeout=8.0
+                api._amp_request(parsed.path, merged_params), timeout=8.0
             )
         except Exception:
             continue
@@ -161,12 +172,11 @@ async def _personalized_shelves(api, storefront: str | None) -> list[dict]:
 
 
 async def _collect(
-    cookies_path: str, wrapper_url: str | None, storefront_override: str | None = None
+    cookies_path: str | None, wrapper_url: str | None, storefront_override: str | None = None
 ) -> tuple[str, list[dict]]:
     personalized = await open_personalized_api(cookies_path, wrapper_url)
     storefront = (
         storefront_override
-        or getattr(personalized, "storefront", None)
         or getattr(personalized, "storefront", None)
         or "us"
     )
@@ -206,15 +216,19 @@ async def _collect(
 
 def home(payload: Payload, emit: Emit) -> Event:
     cookies_path_value = payload.get("cookies_path")
-    if not isinstance(cookies_path_value, str) or not cookies_path_value:
-        return error("no_cookies", "Sign in to Apple Music first.")
     wrapper_value = payload.get("wrapper_url")
     wrapper_url = wrapper_value if isinstance(wrapper_value, str) else None
+
+    # cookies_path is optional when wrapper_url is provided
+    cookies_path = cookies_path_value if isinstance(cookies_path_value, str) else None
+    if not cookies_path and not wrapper_url:
+        return error("no_cookies", "Sign in to Apple Music first.")
+
     storefront_value = payload.get("storefront")
     storefront_override = storefront_value if isinstance(storefront_value, str) else None
     try:
         emit(progress(10, "Reading Apple Music recommendations"))
-        storefront, shelves = asyncio.run(_collect(cookies_path_value, wrapper_url, storefront_override))
+        storefront, shelves = asyncio.run(_collect(cookies_path, wrapper_url, storefront_override))
         emit(progress(100, "Apple Music home ready"))
         return done(storefront=storefront, shelves=shelves)
     except FileNotFoundError:
