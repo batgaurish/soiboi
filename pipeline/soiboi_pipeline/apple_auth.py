@@ -146,6 +146,35 @@ def has_credentials(cookies_path: str | None, wrapper_url: str | None) -> bool:
     )
 
 
+def store_cookie_header(cookies_path: str) -> str | None:
+    """The file's store cookies (dsid, mz_at0, itspod) as a Cookie header value.
+
+    MZPlay's webPlayback resolves the item against the account's storefront
+    ledger, which it reads from the iTunes store session cookies — not from
+    the media-user-token alone. gamdl sends only the media-user-token, and
+    a request without the store session gets the 3077 "item not found for
+    fuse" dialog for every track.
+    """
+    if not cookies_path or not os.path.exists(cookies_path):
+        return None
+    try:
+        from http.cookiejar import MozillaCookieJar
+
+        cookies = MozillaCookieJar(cookies_path)
+        cookies.load(ignore_discard=True, ignore_expires=True)
+    except (OSError, ValueError):
+        return None
+    store_names = ("X-Dsid", "dsid", "mz_at0", "mz_at_ssl", "itspod", "itxt", "hsaccnt")
+    pairs = [
+        f"{c.name}={c.value}"
+        for c in cookies
+        if c.name in store_names or c.name.startswith(("mz_at", "des-"))
+    ]
+    if not pairs:
+        return None
+    return "; ".join(pairs)
+
+
 async def open_api(
     cookies_path: str | None, wrapper_url: str | None = None
 ) -> "AppleMusicApi":
@@ -159,7 +188,14 @@ async def open_api(
         return await AppleMusicApi.create(token=dev_token, media_user_token=user_token)
     if not cookies_path or not os.path.exists(cookies_path):
         raise FileNotFoundError("No Apple Music sign-in")
-    return await AppleMusicApi.create_from_netscape_cookies(cookies_path)
+    api = await AppleMusicApi.create_from_netscape_cookies(cookies_path)
+    header = store_cookie_header(cookies_path)
+    if header:
+        # The store session rides next to the media-user-token so MZPlay's
+        # webPlayback finds the item in the account's ledger.
+        existing = api.client.headers.get("cookie")
+        api.client.headers["cookie"] = f"{header}; {existing}" if existing else header
+    return api
 
 
 async def open_personalized_api(
