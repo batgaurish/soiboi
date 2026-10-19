@@ -304,6 +304,9 @@ class Player(
             onSongChanged(song)
         } catch (e: Exception) {
             EngineLog.failure("PLAYER", "load_failed", e, "song=${song.id} origin=${song.origin}")
+            // Stop what was already playing: leaving the old song audible while the
+            // UI shows the failed one reads as "the wrong song played".
+            runCatching { backend.stop() }
             _state.value = PlaybackState(error = e.message)
         }
     }
