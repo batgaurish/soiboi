@@ -58,10 +58,14 @@ enum class RightPanel { Now, Queue }
 class SongMenu(val song: Song, val inPlaylist: String? = null)
 
 /** Plain UI state and the actions screens call. Everything lasting lives in the [Engine]; this holds only where the user is and what is open. */
+enum class HomeTab { Offline, Streaming }
+
 class AppController(val engine: Engine, val scope: CoroutineScope, val platform: PlatformUi) {
     val stack = mutableStateListOf<Route>(Route.Today)
     val route: Route get() = stack.last()
 
+    /** The selected tab on the Today screen: Offline library or Streaming home. Persists across navigation. */
+    var homeTab by mutableStateOf(HomeTab.Offline)
     var nowPlayingOpen by mutableStateOf(false)
     /** What the right-hand column shows on wide screens: the now-playing panel, the queue, or nothing. */
     var rightPanel by mutableStateOf<RightPanel?>(RightPanel.Now)
