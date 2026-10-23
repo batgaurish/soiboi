@@ -13,15 +13,45 @@ Copyright (C) 2024-2026 Kushagra Singh and contributors
 https://github.com/kushagrasinghx/BitChord
 Licensed under the GNU General Public License Version 3.0 (GPL-3.0).
 
-BitChord includes third-party components:
+BitChord includes third-party components and dependencies:
 - DST decoder (`app/src/main/cpp/dsd/dst/`): Derived from Peter Ross's FFmpeg DST
-  decoder through DSD-Nexus. Licensed under LGPL-2.1-or-later (see
-  `app/src/main/cpp/dsd/dst/NOTICE.md`).
-- FFmpeg JNI shared libraries (`app/src/main/jniLibs/`): Distributed under the
-  terms of the GNU Lesser General Public License (LGPL) version 2.1 or later.
-- ONNX Runtime and models (`app/src/main/assets/`): ONNX Runtime (MIT License)
-  with models for audio beat and vocal analysis.
-- KizzyRPC: Discord RPC implementation for Android/JVM.
+  decoder through DSD-Nexus (commit b3f443d4c42ccf52806eb57def3b3a34805714bd).
+  Licensed under LGPL-2.1-or-later (see `app/src/main/cpp/dsd/dst/NOTICE.md` and
+  `app/src/main/cpp/dsd/dst/COPYING.LGPL-2.1`). The full license text is preserved
+  at `LICENSES/LGPL-2.1.txt` and packaged in the Android application at
+  `app/src/main/assets/licenses/LGPL-2.1.txt`.
+- FFmpeg JNI shared library (`app/src/main/jniLibs/<abi>/libffmpegJNI.so`):
+  Statically links `libavcodec` and `libavutil` from librempeg (commit
+  8e8b221e207f685119fcfe276ae28c94ff6f5aa0, https://github.com/librempeg/librempeg).
+  As documented in `native/ffmpeg/build.sh:12-16`, the build script configures
+  librempeg with `--enable-gpl --enable-version3` (without `--enable-agpl`),
+  producing a GPLv3 binary. The JNI interface source `native/ffmpeg/ffmpeg_jni.cc`
+  originates from the Android Open Source Project (AndroidX Media3 1.11.0) under the
+  Apache License, Version 2.0 (Copyright (C) 2016 The Android Open Source Project),
+  with modifications for BitChord (2026).
+- ONNX Runtime Android dependency: `com.microsoft.onnxruntime:onnxruntime-android:1.28.0`
+  declared in `app/build.gradle.kts:393`, licensed under the MIT License.
+- On-device ML model assets (`app/src/main/assets/`):
+  - `beat_this_int8.onnx`: CPJKU "Beat This!" beat and downbeat tracking model
+    (ISMIR 2024), weights documented under MIT License in
+    `shared/src/jvmSharedMain/kotlin/com/music/bitchord/playback/smart/BeatTracker.kt`
+    and `native/analyzer/mel_spectrogram.h`.
+  - `vocals_umxhq_int8.onnx`: Inria / SigSep open-unmix (UMX-HQ) vocals target model
+    (Stöter & Liutkus), weights documented under MIT License (Zenodo deposit) in
+    `shared/src/jvmSharedMain/kotlin/com/music/bitchord/playback/smart/VocalTracker.kt`.
+  Neither model asset binary contains internal license metadata, and `app/src/main/assets/`
+  contains no separate model license file.
+- KizzyRPC Discord Rich Presence (`shared/src/jvmSharedMain/kotlin/com/my/kizzy/`):
+  Incorporated from BitChord commit edc1e6f36febf71a118e649411d2fc21b70ead45.
+  Source files `KizzyRPC.kt`, `RpcImage.kt`, and `Ext.kt` carry copyright headers:
+  "Copyright (C) 2022 KizzyRPC.kt is part of Kizzy and can not be copied and/or
+  distributed without the express permission of yzziK(Vaibhav)". Upstream public
+  repository `dead8309/Kizzy` is GPL-3.0, while `dead8309/KizzyRPC` is Apache-2.0.
+  Because the embedded files retain restrictive express-permission headers and
+  BitChord includes no explicit license grant or written permission documentation,
+  their licensing status remains unestablished. Discord Rich Presence functionality
+  is retained in tree, but external redistribution is marked blocked pending legal
+  clearance or replacement.
 
 ---
 
@@ -40,7 +70,7 @@ Components and logic ported from Soiboi and Sylvakru originate under the
 Apache License, Version 2.0 (the "Apache License"). As permitted under Section 4
 of the Apache License and compatible with the GNU General Public License
 Version 3.0, these Apache-2.0 notices and attributions are retained for all
-reused and derivative logic originating from Soiboi and Sylvakru:
+reused and derivative logic originating from Soiboi and Sylvakru.
 
 The parts below were re-implemented in Kotlin from Sylvakru's Dart code and
 remain derived from it:
@@ -64,6 +94,13 @@ The parts below originated in Soiboi under the Apache License 2.0:
 ---
 
 ## Apache License 2.0 Terms (for Apache-Origin Components)
+Components originating from Soiboi, Sylvakru, and the Android Open Source Project
+JNI wrapper (`native/ffmpeg/ffmpeg_jni.cc`) are licensed under the Apache License,
+Version 2.0.
+
+The full license text is preserved at `LICENSES/Apache-2.0.txt` in this repository
+and packaged for runtime inspection at `app/src/main/assets/licenses/Apache-2.0.txt`.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use these files except in compliance with the License.
 You may obtain a copy of the License at
