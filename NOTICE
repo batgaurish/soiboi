@@ -1,31 +1,77 @@
+# Notices and Attribution
+
+## Combined Derivative Project
+This project is an integrated derivative combining BitChord and Soiboi.
+The overall project is licensed under the GNU General Public License Version 3.0 (GPL-3.0).
+See `LICENSE` for the full text of the GNU General Public License Version 3.
+
+---
+
+## BitChord Base Project
+BitChord
+Copyright (C) 2024-2026 Kushagra Singh and contributors
+https://github.com/kushagrasinghx/BitChord
+Licensed under the GNU General Public License Version 3.0 (GPL-3.0).
+
+BitChord includes third-party components:
+- DST decoder (`app/src/main/cpp/dsd/dst/`): Derived from Peter Ross's FFmpeg DST
+  decoder through DSD-Nexus. Licensed under LGPL-2.1-or-later (see
+  `app/src/main/cpp/dsd/dst/NOTICE.md`).
+- FFmpeg JNI shared libraries (`app/src/main/jniLibs/`): Distributed under the
+  terms of the GNU Lesser General Public License (LGPL) version 2.1 or later.
+- ONNX Runtime and models (`app/src/main/assets/`): ONNX Runtime (MIT License)
+  with models for audio beat and vocal analysis.
+- KizzyRPC: Discord RPC implementation for Android/JVM.
+
+---
+
+## Soiboi and Sylvakru Attribution (Reused Code)
 Soiboi
-Copyright 2026 batgaurish
+Copyright (C) 2026 batgaurish
+https://github.com/batgaurish/soiboi
 
-This product includes ideas and logic from the Sylvakru project.
+This product includes ideas, logic, and code from the Sylvakru project:
+Sylvakru
+Copyright (C) 2025-2026 AfalpHy
+https://github.com/AfalpHy/sylvakru
+Licensed under the Apache License, Version 2.0.
 
-  Sylvakru
-  Copyright 2025-2026 AfalpHy
-  https://github.com/AfalpHy/sylvakru
-  Licensed under the Apache License, Version 2.0
+Components and logic ported from Soiboi and Sylvakru originate under the
+Apache License, Version 2.0 (the "Apache License"). As permitted under Section 4
+of the Apache License and compatible with the GNU General Public License
+Version 3.0, these Apache-2.0 notices and attributions are retained for all
+reused and derivative logic originating from Soiboi and Sylvakru:
 
-Soiboi began as a fork of Sylvakru, retaining its Apache License 2.0 terms.
-The original copyright notice is preserved in LICENSE.
+The parts below were re-implemented in Kotlin from Sylvakru's Dart code and
+remain derived from it:
+- The play queue's reordering rules (insert next, add last, shuffle around
+  the current song, wrap-around navigation).
+- The library model: grouping songs into albums and artists, the splitting of
+  credited artists, and the song sort orders.
+- The LRC lyric parser, including word-timed lines and translation lines.
+- The audio quality classification from tag format and bitrate.
 
-The Flutter application and interface inherited from Sylvakru have been
-removed. Soiboi is now written in Kotlin with its own interface. The parts
-below were re-implemented in Kotlin from Sylvakru's Dart code and remain
-derived from it:
+The parts below originated in Soiboi under the Apache License 2.0:
+- Apple Music catalogue scraping and session token management.
+- Cross-platform SQLite persistence via `androidx.sqlite`.
+- Archival pipeline integration (gamdl 3.x queue and retry logic).
+- Playlist import parser from external platforms and ISRC matching logic.
+- Local library metadata extraction and scanner logic.
+- Linux headless daemon control socket and desktop system tray integration.
+- AI playlist generation and album recommendation logic.
+- Scrobbling and discovery helpers.
 
-  - The play queue's reordering rules (insert next, add last, shuffle around
-    the current song, wrap-around navigation).
-  - The library model: grouping songs into albums and artists, the splitting of
-    credited artists, and the song sort orders.
-  - The LRC lyric parser, including word-timed lines and translation lines.
-  - The Navidrome/OpenSubsonic and Emby/Jellyfin client behaviour.
-  - The audio quality classification from tag format and bitrate.
+---
 
-Everything else was added in Soiboi: the archiving pipeline and download
-queue, playlist import from nine platforms, Apple catalog matching, ListenBrainz
-discovery, AI playlists and mood tags, smart playlists, synced lyrics from
-LRCLIB, the Plex, WebDAV and Google Drive connectors, TorBox and Real-Debrid
-playback sources, the Compose interface, and the Linux and Android apps.
+## Apache License 2.0 Terms (for Apache-Origin Components)
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use these files except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

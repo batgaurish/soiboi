@@ -1,149 +1,158 @@
-# Soiboi
+<div align="center">
 
-Soiboi turns streaming playlists into a music library you own. Paste a link,
-and the app downloads, decrypts, tags and files the tracks on the device you
-are holding. It runs on Linux and Android with no server, no Docker and no
-sync service.
+<br/>
+<br/>
 
-Soiboi plays files you own, your own servers, and public streaming sources you
-switch on. It does not decrypt anyone's protected streams; Apple Music is
-only ever downloaded through your own subscription.
+<img src="Logo.png" alt="BitChord app icon" width="200" />
 
-## What it does
+# BitChord
 
-- **Plays your music** from folders on the device, with synced lyrics from
-  `.lrc` files or [LRCLIB](https://lrclib.net), a ten-band equalizer, a sleep
-  timer and a queue that survives a restart.
-- **Archives from a link.** Hand it an Apple Music track, album or playlist and
-  it queues the download, resumes after an interruption, and files tagged songs
-  with artwork into your library. ALAC lossless works through a bundled
-  [wrapper-v2](https://github.com/glomatico/wrapper-v2); Soiboi ships none of
-  Apple's code and asks for the one Apple Music app file the wrapper is pinned
-  to.
-- **Imports playlists from nine platforms:** Spotify, Deezer, YouTube Music,
-  Tidal, SoundCloud, JioSaavn, Qobuz, Gaana and Bandcamp, plus a pasted
-  tracklist. None of them need an account. Each song is matched to Apple's
-  catalog by ISRC first, then by artist and title; the ones that miss wait for
-  your pick instead of failing mid-download.
-- **Finds new music.** Weekly playlists from your public ListenBrainz profile,
-  and your own Apple Music playlists once you are signed in.
-- **Smart playlists** built on tempo, energy, danceability, play count, date
-  added and more. [bliss-audio](https://github.com/Polochon-street/bliss-rs)
-  measures the audio on the device.
-- **Optional AI** with your own key (Gemini, OpenRouter, Groq, Anthropic,
-  OpenAI, Ollama or any OpenAI-compatible endpoint): playlists from a sentence,
-  mood tags written once and read offline, and album ideas. Off until you add a
-  key.
-- **Other libraries next to your files:** Navidrome, OpenSubsonic, Jellyfin,
-  Emby, Plex, WebDAV and Google Drive, all in one searchable library.
-- **Streaming sources, built in:** YouTube Music (search, albums, artists,
-  playlists and a mix radio from any song), SoundCloud, and live internet radio
-  with the station's now-playing title. They appear in Search and Discover
-  beside your own music. Spotify works through a Spotify Connect device you own
-  (Premium and your own free Spotify app needed). Each can be switched off in
-  Sources.
-- **SMB shares and Nextcloud** as libraries, with no mounting.
-- **Lyrics** from LRCLIB first, then Paxsenix, then Musixmatch if you give it
-  your own token.
-- **From a terminal:** `soiboi --headless` runs without a window, and
-  `soiboi ctl status|play|pause|next|find|play-online ...` controls a running
-  Soiboi. On Linux there is also a tray and Discord presence, both off until you
-  turn them on in Settings.
-- **Addons:** paste the address of an addon server in Sources and its search
-  results, streams, album and artist pages and shelves appear in Soiboi. The
-  protocol is the one Eclipse uses (`/manifest.json`, `/search`, `/stream/{id}`,
-  `/album/{id}`, `/artist/{id}`, `/playlist/{id}`, `/catalog/{id}`), so Eclipse
-  addons work. Addon songs play from the queue and can be saved to playlists.
-- **Debrid sources:** TorBox and Real-Debrid accounts are searched for a song
-  that is not on the device, and the match streams. TorBox AirLock can be
-  switched per download, for files already in the account.
-- **Codec and bitrate on every song**, so lossless and lossy never look alike.
-- **Two looks:** Zine (chunky type, round corners, tilted codec stickers) and
-  Liner Notes (a record sleeve: serif headings, small corners, printed labels),
-  each in paper and ink.
+### Aesthetic YouTube Music Client
 
-Soiboi does not scrobble. Pair it with
-[Pano Scrobbler](https://github.com/kawaiiDango/pScrobbler) or any media-session
-scrobbler.
+<br/>
 
-## How it is built
+[![Latest release](https://img.shields.io/github/v/release/kushagrasinghx/BitChord?style=for-the-badge&labelColor=0d1117)](https://github.com/kushagrasinghx/BitChord/releases)
+[![License](https://img.shields.io/github/license/kushagrasinghx/BitChord?style=for-the-badge&labelColor=0d1117)](https://github.com/kushagrasinghx/BitChord/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/kushagrasinghx/BitChord/total?style=for-the-badge&labelColor=0d1117)](https://github.com/kushagrasinghx/BitChord/releases)
+[![Listening now](https://api.bitchord.kushagrasingh.in/api/stats/live/badge.svg)](https://api.bitchord.kushagrasingh.in/api/stats/live)
 
-```
-engine/        pure Kotlin: download queue, pipeline runner, sources, Apple
-               catalog, discovery, AI, smart playlists, lyrics, SQLite library,
-               server connectors, debrid, player controller. No UI.
-shared-ui/     one Compose UI source folder, compiled into both apps
-app-desktop/   Linux app. Audio through an mpv process.
-app-android/   Android app. Audio through Media3; Python runs in-process
-               through Chaquopy.
-pipeline/      the Python pipeline (gamdl, tag and cover reading, analysis),
-               the same code on both platforms
-```
+<br/>
 
-The engine never touches the screen or the operating system directly. Each app
-hands it a `Platform` (paths, a pipeline runner, an audio backend, a secret
-store), so a fix in the engine is a fix on both platforms.
+[**Download**](#download) · [**Features**](#features) · [**Contributing**](#contributing) · [**Support**](#support) · [**Disclaimer**](#disclaimer)
 
-## Install
+<br/>
 
-Build it from source for now; there are no tagged releases of the Kotlin
-version yet.
+<a href="https://fmhy.net/mobile#youtube-music" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/available/fmhy/cozy.svg" alt="Featured on FMHY" height="55"/></a>
+<a href="https://trendshift.io/repositories/177639?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/177639/daily?language=Kotlin" alt="kushagrasinghx%2FBitChord | Trendshift" width="250" height="55"/></a>
+<a href="https://trendshift.io/repositories/177639?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/177639/weekly?language=Kotlin" alt="kushagrasinghx%2FBitChord | Trendshift" width="250" height="55"/></a>
 
-## Build from source
+</div>
 
-You need JDK 21, Python 3.12+ with `venv`, and [mpv](https://mpv.io) on Linux.
+> [!IMPORTANT]
+> BitChord is not affiliated with, endorsed by, or connected to YouTube or Google in any way. Use it at your own discretion.
 
-### Linux
+---
 
-```shell
-git clone https://github.com/batgaurish/soiboi.git
-cd soiboi
-tools/build_pipeline.sh          # the Python environment, once
-./gradlew :app-desktop:run       # run from the checkout
-tools/install_linux.sh           # or install for your user
-```
+<div align="center">
 
-On Arch or CachyOS: `sudo pacman -S jdk21-openjdk python mpv`.
+<img src="Banner.png" alt="BitChord banner" width="100%" />
 
-The lossless wrapper is optional and built by `tools/build_wrapper.sh`.
+<h1><a id="features"></a>Features</h1>
 
-### Android
+<table>
+  <tr>
+    <td width="50%" valign="top">
 
-You need the Android SDK (platform 37) and Python 3.12 for Chaquopy.
+#### Playback
+- **Search, browse and play** anything available on YouTube Music.
+- **Hi-Res lossless audio** — FLAC/ALAC from a configured module source, with YouTube Music as fallback.
+- **Gapless playback with true crossfade**, adjustable 0–12s.
+- **Automix [Beta]** — DJ-style transitions with beat-matching and tempo-stretching.
+- **Offline downloads** — save tracks with embedded metadata.
+- **Local music library** integration.
+- **Background playback** via a proper foreground media session.
+- **Apple-like lyrics animation** — credit to [binimum](https://github.com/binimum/am-lyrics).
 
-```shell
-echo "sdk.dir=$HOME/Android/Sdk" > local.properties
-tools/build_android_pipeline.sh   # cross-compiles gamdl's muxer, bliss and the wheel repo
-./gradlew :app-android:assembleDebug
-```
+#### Connectivity & Accounts
+- **Sign in with your Google account** for personalized content.
+- **Spotify integration** — connect your account to play your playlists and Liked Songs.
+- **Discord Rich Presence** — in-app login, live track/artist/album and progress.
+- **Scrobbling** to Last.fm and ListenBrainz.
+- **Pluggable sources** — add, edit, test and health-check module sources.
 
-Without `pip-repo/` the app still builds and runs: scans and covers need only
-mutagen, and downloads report that the downloader is missing. Set
-`SOIBOI_ABIS=arm64-v8a` to leave out the x86_64 emulator libraries.
+    </td>
+    <td width="50%" valign="top">
 
-### Tests
+#### Experience
+- **Animated album canvas** — motion artwork on the now-playing screen.
+- **Word-synced lyrics** — word/syllable-level highlighting from multiple sources.
+- **Lyrics providers** — credit to [lrc.red](https://lrc.red), [BiniLyrics](https://github.com/binimum), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev), [Megalobiz](https://www.megalobiz.com), [KuGou](https://www.kugou.com), [LRCLIB](https://lrclib.net), [Musixmatch](https://www.musixmatch.com) and [Genius](https://genius.com).
+- **Dynamic, artwork-driven theming** — Material palette extracted from album art.
+- **Frosted-glass UI** — Telegram-style translucent bars via Haze, Material 3 theming.
 
-```shell
-./gradlew :engine:test           # Kotlin
-.pipeline-venv/bin/python -m pytest   # Python
-```
+#### Controls & Tweaks
+- **Per-network audio quality** — separate quality ceilings for Wi-Fi and mobile data.
+- **Playback speed control** (0.5×–2.0×) and **skip silence**.
+- **Sleep timer** — fixed presets or "stop after this track".
+- **System equalizer** integration.
+- **Stats for nerds** — codec, bit depth, sample rate, and more on the now-playing screen.
 
-## Credits
+    </td>
+  </tr>
+</table>
 
-Soiboi began as a fork of **[Sylvakru](https://github.com/AfalpHy/sylvakru)**
-by [AfalpHy](https://github.com/AfalpHy), a cross-platform music player under
-Apache 2.0, and has since been rewritten in Kotlin with its own interface. Some
-of the library, queue and lyric-parsing logic follows Sylvakru's design;
-[NOTICE](NOTICE) says exactly what. If you want a general player without the
-archiving, use Sylvakru.
+</div>
 
-Audio plays through [mpv](https://mpv.io) on Linux and
-[Media3](https://developer.android.com/media/media3) on Android. Downloads use
-[gamdl](https://github.com/glomatico/gamdl); tags and artwork use
-[mutagen](https://mutagen.readthedocs.io); the audio analysis is
-[bliss-audio](https://github.com/Polochon-street/bliss-rs). Type is Bricolage
-Grotesque, Fraunces and IBM Plex Sans, all under the SIL Open Font License.
+---
 
-## License
+<div align="center">
 
-Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+<h1><a id="download"></a>Download</h1>
+
+<a href="https://github.com/kushagrasinghx/BitChord/releases" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="55"/></a>
+<a href="https://github.com/kushagrasinghx/BitChord/releases" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/windows/cozy.svg" alt="Download for Windows" height="55"/></a>
+
+Grab the latest signed APK from the [Releases](https://github.com/kushagrasinghx/BitChord/releases) page. Sideloading requires enabling "Install unknown apps" for whichever app you download it with.
+
+For the Windows and Linux desktop app, see [DESKTOP.md](DESKTOP.md).
+
+</div>
+
+---
+
+<div align="center">
+
+<h1><a id="contributing"></a>Contributing</h1>
+
+We welcome contributions to BitChord! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request.
+
+[**Contributing Guide**](CONTRIBUTING.md) · [**Code of Conduct**](CODE_OF_CONDUCT.md) · [**Maintainers**](MAINTAINERS.md) · [**Additional Docs**](ADDITIONAL.md)
+
+### Thanks to all contributors ❤
+
+<a href="https://github.com/kushagrasinghx/BitChord/graphs/contributors">
+  <img src="https://raw.githubusercontent.com/kushagrasinghx/BitChord/contributors/contributors.svg" />
+</a>
+
+</div>
+
+---
+
+<div align="center">
+
+<h1><a id="support"></a>Support</h1>
+
+BitChord is free and always will be — if it's earned a spot in your rotation, you can chip in here:
+
+<a href="https://ko-fi.com/kushagrasinghx" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/kofi-singular-alt/cozy.svg" alt="Support me on Ko-fi" height="55"/></a>
+<a href="https://paypal.me/kuxhagrasingh" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/paypal-plural/cozy.svg" alt="Support us on PayPal" height="55"/></a>
+
+<br/>
+<img src="upi_support.jpg" alt="UPI Support" width="250" />
+
+</div>
+
+---
+
+<div align="center">
+
+<h1><a id="disclaimer"></a>Disclaimer & Legal Notice</h1>
+
+BitChord is an independent, community-driven third-party audio player and client. It is **not** associated with Google LLC, YouTube Music, Deezer, Telegram, or any of their parent companies.
+
+* **No Media Hosting:** BitChord does not host, upload, or store copyrighted music files. It operates strictly as an interface to scan local device storage or stream media directly from public, public-facing, or user-authenticated APIs.
+* **Fair Use & API Usage:** This software is created solely for personal research, educational, and fair-use purposes. The user is entirely responsible for ensuring their usage aligns with their local copyright laws and YouTube Terms of Service.
+* **No Ad-Blocking Guarantee:** While BitChord focuses on providing a clean listening environment, it does not guarantee permanent bypasses or modifications to commercial third-party platform conditions.
+* **Copyleft:** BitChord is free software under the GPLv3. The license does not let anyone forbid others from selling or redistributing copies, but any distribution must come with the Corresponding Source under the same license.
+
+</div>
+
+---
+
+<div align="center">
+
+<h1><a id="license"></a>License</h1>
+
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for details.
+
+</div>

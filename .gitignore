@@ -1,66 +1,56 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# Gradle
+.gradle/
+.vscode/
+/build/
+/app/build/
+/desktopApp/bin/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
 
-# IntelliJ related
+# Local configuration file (SDK path, etc.)
+local.properties
+
+# Kotlin
+.kotlin/
+
+# Android Studio / IntelliJ
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Log/OS files
+*.log
+.DS_Store
+Thumbs.db
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+# Release signing — never commit the key or its passwords
+keystore.properties
+*.jks
+*.keystore
 
-# Symbolication related
-app.*.symbols
+# Project scratch / debug artifacts
+.shots/
+.tmp_verify/
+.debug/
 
-# Obfuscation related
-app.*.map.json
+# AI agent configuration
+AGENTS.md
+/output/
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Built packages — release APKs/bundles are handed out, never committed
+*.apk
+*.aab
 
-.vscode
-*.pfx
-.pipeline-venv/
-build/android-native/
-android/pip-repo/
-pipeline/native/*/target/
+# SDD and Superpowers planning artifacts (do not commit)
+docs/superpowers/
+.superpowers/
+scorecard.png
 
-# desloppify local state
-.desloppify/
-
-# Built by tools/build_android_wrapper.sh
-/app-android/src/main/jniLibs/
-.claude/settings.local.json
-build/
-.gradle/
-local.properties
-*.iml
-.kotlin/
-dist/
-/pip-repo/
