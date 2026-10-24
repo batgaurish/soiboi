@@ -35,6 +35,22 @@ object PlaylistImportParser {
         return ImportedPlaylist(title, PlaylistImportProvider.PASTED, entries)
     }
 
+    /** Parses an offline Spotify Web API playlist object, including tracks.items[].track. */
+    fun parseSpotifyPlaylistResponse(response: String): ImportedPlaylist {
+        val root = json.parseToJsonElement(response).jsonObject
+        val title = root.stringAny("name")?.trim()?.takeIf(String::isNotEmpty) ?: "Imported Spotify playlist"
+        val items = ((root["tracks"] as? JsonObject)?.get("items") as? JsonArray).orEmpty()
+        val entries = items.mapNotNull { item ->
+            val track = (item as? JsonObject)?.get("track") as? JsonObject ?: return@mapNotNull null
+            val name = track.stringAny("name")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
+            val artists = (track["artists"] as? JsonArray).orEmpty()
+                .mapNotNull { (it as? JsonObject)?.stringAny("name")?.trim()?.takeIf(String::isNotEmpty) }
+            val isrc = (track["external_ids"] as? JsonObject)?.stringAny("isrc")?.uppercase(Locale.ROOT)
+            PlaylistEntry(name, artists.joinToString(", "), isrc, 0)
+        }
+        return ImportedPlaylist(title, PlaylistImportProvider.SPOTIFY, entries.mapIndexed { index, entry -> entry.copy(sourceIndex = index) })
+    }
+
     /** Offline provider fixtures use the common track-list shape emitted by provider adapters. */
     fun parseProviderFixture(provider: PlaylistImportProvider, fixture: String): ImportedPlaylist {
         require(provider != PlaylistImportProvider.PASTED)

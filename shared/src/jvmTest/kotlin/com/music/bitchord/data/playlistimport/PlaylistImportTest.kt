@@ -19,6 +19,17 @@ class PlaylistImportTest {
         }
     }
 
+    @Test fun spotifyApiResponseExtractsTracksAndSkipsDeletedItems() {
+        val fixture = this::class.java.getResource("/spotify-playlist-response.json")!!.readText()
+        val parsed = PlaylistImportParser.parseSpotifyPlaylistResponse(fixture)
+        assertEquals("Road Trip Mix", parsed.title)
+        assertEquals(PlaylistImportProvider.SPOTIFY, parsed.provider)
+        assertEquals(listOf("First Song", "Second Song", "First Song"), parsed.entries.map { it.title })
+        assertEquals(listOf("Artist One, Guest Artist", "Artist Two", "Artist One, Guest Artist"), parsed.entries.map { it.artist })
+        assertEquals(listOf("USAAA2400001", "GBBBB2400002", "USAAA2400001"), parsed.entries.map { it.isrc })
+        assertEquals(listOf(0, 1, 2), parsed.entries.map { it.sourceIndex })
+    }
+
     @Test fun isrcWinsAndManualChoiceRequiresConfirmation() {
         val entry = PlaylistEntry("Song", "Artist", "USAAA0000001", sourceIndex = 0)
         val candidates = listOf(ImportCandidate("same-title", "Song", "Artist"), ImportCandidate("isrc", "Other", "Other", "USAAA0000001"))
