@@ -22,8 +22,12 @@ import com.music.bitchord.ui.replay.ReplayCreditCard
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.music.bitchord.data.YtMusicRepository
+import com.music.bitchord.data.apple.AppleHomeCatalog
+import com.music.bitchord.data.apple.toUiState
 import com.music.bitchord.data.model.EntityType
 import com.music.bitchord.data.model.SearchHistoryEntity
+import com.music.bitchord.data.settings.HomeSource
+import java.util.Locale
 import com.music.bitchord.ui.LocalPullToRefreshEnabled
 import com.music.bitchord.ui.screens.ExploreScreen
 import com.music.bitchord.ui.screens.HomeScreen
@@ -563,6 +567,15 @@ fun BitChordDesktopApp() {
     var searchLoading by remember { mutableStateOf(false) }
     var searchError by remember { mutableStateOf<String?>(null) }
     var homeState by remember { mutableStateOf<UiState<List<HomeShelf>>>(UiState.Loading) }
+    var homeSource by remember { mutableStateOf(persistence.homeSource()) }
+    val appleHomeCatalog = remember {
+        AppleHomeCatalog(
+            cookieHeader = { null },
+            storefront = {
+                Locale.getDefault().country.takeIf { it.length == 2 }?.lowercase(Locale.ROOT) ?: "us"
+            },
+        )
+    }
     // The home feed is paged: `FEmusic_home` answers with a couple of shelves and a token, and
     // everything else arrives by following it.
     var homeContinuation by remember { mutableStateOf<String?>(null) }
@@ -2462,6 +2475,21 @@ fun BitChordDesktopApp() {
      * there is no Recently Played to ask for, which is also how the phone has it.
      */
     fun loadHome() {
+        if (homeSource == HomeSource.APPLE) {
+            val generation = ++homeGeneration
+            homeState = UiState.Loading
+            homeContinuation = null
+            homeSeenTitles.clear()
+            homeLoadingMore = false
+            homeRecentsLoading = false
+            scope.launch {
+                val result = appleHomeCatalog.home()
+                if (generation == homeGeneration) {
+                    homeState = result.toUiState()
+                }
+            }
+            return
+        }
         if (!youtubeSourceEnabled) {
             homeState = UiState.Error("YouTube Music is disabled")
             return
@@ -2510,8 +2538,17 @@ fun BitChordDesktopApp() {
         }
     }
 
+    fun setHomeSource(source: HomeSource) {
+        if (homeSource == source) return
+        homeSource = source
+        persistence.saveHomeSource(source)
+        appleHomeCatalog.invalidate()
+        loadHome()
+    }
+
     /** The next page of the core feed, as the list nears its end; a no-op once it has run dry. */
     fun loadMoreHome() {
+        if (homeSource == HomeSource.APPLE) return
         val token = homeContinuation ?: return
         if (homeLoadingMore || homeState !is UiState.Success) return
         val generation = homeGeneration
@@ -3780,6 +3817,8 @@ fun BitChordDesktopApp() {
                                     query = settingsQuery,
                                     onQueryChange = { settingsQuery = it },
                                     listState = settingsListState,
+                                    homeSource = homeSource,
+                                    onHomeSourceChange = ::setHomeSource,
                                     autoplay = autoplay,
                                     onAutoplayChange = ::setAutoplay,
                                     automix = automix,
@@ -4121,9 +4160,15 @@ fun BitChordDesktopApp() {
                             state = homeState,
                             listState = homeListState,
                             onItemClick = { item, shelfTitle -> openShelfItem(item, shelfTitle) },
-                            onRetry = ::loadHome,
+                            onRetry = {
+                                if (homeSource == HomeSource.APPLE) appleHomeCatalog.invalidate()
+                                loadHome()
+                            },
                             refreshing = false,
-                            onRefresh = ::loadHome,
+                            onRefresh = {
+                                if (homeSource == HomeSource.APPLE) appleHomeCatalog.invalidate()
+                                loadHome()
+                            },
                             pullState = rememberPullToRefreshState(),
                             contentPadding = sharedPagePadding,
                             title = null,
@@ -5864,6 +5909,8 @@ private fun DesktopSettingsScreen(
     query: String,
     onQueryChange: (String) -> Unit,
     listState: LazyListState,
+    homeSource: HomeSource = HomeSource.YOUTUBE,
+    onHomeSourceChange: (HomeSource) -> Unit = {},
     autoplay: Boolean,
     onAutoplayChange: (Boolean) -> Unit,
     automix: Boolean,
@@ -6543,6 +6590,27 @@ private fun DesktopSettingsScreen(
             if (section == DesktopSettingsSection.SOURCES) item {
                 SettingsGroup(DesktopStrings["sources_order_header", "Sources · tried in this order"]) {
                     val sourcesHeading = DesktopStrings["sources_order_header", "Sources · tried in this order"]
+                    if (settingsRowVisible("Home source", "Apple · YouTube")) {
+                        Text(
+                            "Home source",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = DesktopSecondary,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            HomeSource.entries.forEach { source ->
+                                FilterChip(
+                                    colors = desktopChipColors(),
+                                    selected = homeSource == source,
+                                    onClick = { onHomeSourceChange(source) },
+                                    label = { Text(source.label) },
+                                )
+                            }
+                        }
+                    }
                     val userAddedIds = sourceConfigs.inSourceOrder()
                         .filter(DesktopSourceConfig::isUserAdded)
                         .map(DesktopSourceConfig::id)

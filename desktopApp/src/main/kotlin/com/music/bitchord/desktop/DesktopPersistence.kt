@@ -2,6 +2,7 @@ package com.music.bitchord.desktop
 
 import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.settings.HomeSource
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -102,6 +103,13 @@ class DesktopPersistence {
 
     fun saveSourceEnabled(sourceId: String, enabled: Boolean) =
         saveBoolean("source_${sourceId}_enabled", enabled)
+
+    fun homeSource(): HomeSource =
+        runCatching { HomeSource.valueOf(string(KEY_HOME_SOURCE, HomeSource.YOUTUBE.name)) }
+            .getOrDefault(HomeSource.YOUTUBE)
+
+    fun saveHomeSource(value: HomeSource) =
+        saveString(KEY_HOME_SOURCE, value.name)
 
     /** The source list is the desktop equivalent of Android's encrypted SourceRegistry state. */
     internal fun sourceConfigs(): List<DesktopSourceConfig> {
@@ -294,6 +302,7 @@ class DesktopPersistence {
         runCatching { String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8) }.getOrDefault("")
 
     private companion object {
+        const val KEY_HOME_SOURCE = "home_source"
         const val KEY_LIKED_IDS = "liked_ids"
         const val KEY_DISLIKED_IDS = "disliked_ids"
         const val KEY_HISTORY = "history"

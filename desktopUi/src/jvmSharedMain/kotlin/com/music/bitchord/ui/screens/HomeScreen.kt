@@ -192,28 +192,38 @@ fun HomeScreen(
                     if (recentlyPlayedLoading) {
                         recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
                     }
-                    // The loading skeleton already owns the hero slot. Until
-                    // Recently Played lands, every real shelf must retain its
-                    // compact-card layout instead of briefly becoming a hero.
-                    itemsIndexedShelves(
-                        shelves = state.data,
-                        onItemClick = onItemClick,
-                        onItemLongPress = onItemLongPress,
-                        currentSong = currentSong,
-                        isPlaying = isPlaying,
-                        firstIsHero = leadHero && !recentlyPlayedLoading,
-                        recentsViewType = recentsViewType,
-                        onRecentsViewTypeToggle = {
-                            AppUi.host.setHomeRecentsViewType(
-                                if (recentsViewType == LibraryViewType.LIST) {
-                                    LibraryViewType.GRID
-                                } else {
-                                    LibraryViewType.LIST
-                                },
+                    if (state.data.isEmpty()) {
+                        item {
+                            MessageState(
+                                message = "No shelves available",
+                                actionLabel = stringResource(Res.string.retry),
+                                onAction = onRetry,
                             )
-                        },
-                    )
-                    if (loadingMore) feedMoreSkeleton()
+                        }
+                    } else {
+                        // The loading skeleton already owns the hero slot. Until
+                        // Recently Played lands, every real shelf must retain its
+                        // compact-card layout instead of briefly becoming a hero.
+                        itemsIndexedShelves(
+                            shelves = state.data,
+                            onItemClick = onItemClick,
+                            onItemLongPress = onItemLongPress,
+                            currentSong = currentSong,
+                            isPlaying = isPlaying,
+                            firstIsHero = leadHero && !recentlyPlayedLoading,
+                            recentsViewType = recentsViewType,
+                            onRecentsViewTypeToggle = {
+                                AppUi.host.setHomeRecentsViewType(
+                                    if (recentsViewType == LibraryViewType.LIST) {
+                                        LibraryViewType.GRID
+                                    } else {
+                                        LibraryViewType.LIST
+                                    },
+                                )
+                            },
+                        )
+                        if (loadingMore) feedMoreSkeleton()
+                    }
                 }
             }
         }
