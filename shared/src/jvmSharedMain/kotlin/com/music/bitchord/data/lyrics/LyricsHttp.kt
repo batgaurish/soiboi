@@ -20,7 +20,7 @@ internal const val LYRICS_AGENT = "BitChord (https://github.com/bitchord)"
 
 val lyricsJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
-private val client by lazy {
+internal val lyricsClient by lazy {
     // Derived from the shared client, so the connection pool and DNS stay
     // common — only the deadline differs.
     Http.client.newBuilder()
@@ -33,36 +33,48 @@ private val client by lazy {
 // before answering. Keep the fast deadline for the ordinary providers, but
 // match PaxSenix's own client timeout here so valid requests are not discarded
 // while its backend is still resolving a track.
-private val authenticatedClient by lazy {
-    client.newBuilder()
+internal val authenticatedLyricsClient by lazy {
+    lyricsClient.newBuilder()
         .callTimeout(15, TimeUnit.SECONDS)
         .connectTimeout(10, TimeUnit.SECONDS)
         .build()
 }
 
+internal var lyricsGetOverride: ((String) -> String?)? = null
+internal var lyricsGetBearerOverride: ((String, String) -> String?)? = null
+internal var lyricsGetAuthorizedOverride: ((String, String) -> String?)? = null
+
 /** Body of a successful GET, or null for any failure at all. */
 internal fun lyricsGet(url: String): String? = runCatching {
+    lyricsGetOverride?.let { return it(url) }
     val request = Request.Builder().url(url)
         .header("User-Agent", LYRICS_AGENT)
         .header("Accept", "application/json")
         .build()
-    client.newCall(request).execute().use { response ->
+    lyricsClient.newCall(request).execute().use { response ->
         if (response.isSuccessful) response.body?.string() else null
     }
-}.getOrNull()
+}.getOrElse { error ->
+    if (error is kotlinx.coroutines.CancellationException) throw error
+    null
+}
 
 /** Body of an authenticated provider GET without service-specific browser headers. */
 internal fun lyricsGetBearer(url: String, bearer: String): String? = runCatching {
+    lyricsGetBearerOverride?.let { return it(url, bearer) }
     if (bearer.isBlank()) return null
     val request = Request.Builder().url(url)
         .header("User-Agent", LYRICS_AGENT)
         .header("Accept", "application/json, text/plain, */*")
         .header("Authorization", "Bearer $bearer")
         .build()
-    authenticatedClient.newCall(request).execute().use { response ->
+    authenticatedLyricsClient.newCall(request).execute().use { response ->
         if (response.isSuccessful) response.body?.string() else null
     }
-}.getOrNull()
+}.getOrElse { error ->
+    if (error is kotlinx.coroutines.CancellationException) throw error
+    null
+}
 
 /**
  * [lyricsGet], with a bearer token and the headers Apple's own web player
@@ -70,6 +82,7 @@ internal fun lyricsGetBearer(url: String, bearer: String): String? = runCatching
  * `Origin` at all the same way it answers a wrong one, with a 403.
  */
 internal fun lyricsGetAuthorized(url: String, bearer: String): String? = runCatching {
+    lyricsGetAuthorizedOverride?.let { return it(url, bearer) }
     val request = Request.Builder().url(url)
         .header("User-Agent", LYRICS_AGENT)
         .header("Accept", "application/json")
@@ -77,7 +90,10 @@ internal fun lyricsGetAuthorized(url: String, bearer: String): String? = runCatc
         .header("Origin", "https://music.apple.com")
         .header("Referer", "https://music.apple.com/")
         .build()
-    client.newCall(request).execute().use { response ->
+    lyricsClient.newCall(request).execute().use { response ->
         if (response.isSuccessful) response.body?.string() else null
     }
-}.getOrNull()
+}.getOrElse { error ->
+    if (error is kotlinx.coroutines.CancellationException) throw error
+    null
+}

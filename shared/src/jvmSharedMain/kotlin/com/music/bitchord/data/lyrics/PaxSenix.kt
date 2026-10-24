@@ -20,6 +20,8 @@ import kotlin.math.abs
 object PaxSenix {
     private const val API = "https://api.paxsenix.org"
     private const val PUBLIC_PROXY = "https://lyrics.paxsenix.org"
+    internal var apiBase = API
+    internal var publicProxyBase = PUBLIC_PROXY
     private const val APPLE_SEARCH = "https://amp-api.music.apple.com/v1/catalog/us/search"
     private const val MINIMUM_MATCH_SCORE = 10
 
@@ -326,9 +328,9 @@ object PaxSenix {
         else -> 0
     }
 
-    private fun apiUrl(path: String) = "$API/$path".toHttpUrl().newBuilder()
+    private fun apiUrl(path: String) = "$apiBase/$path".toHttpUrl().newBuilder()
 
-    private fun publicUrl(path: String) = "$PUBLIC_PROXY/$path".toHttpUrl().newBuilder()
+    private fun publicUrl(path: String) = "$publicProxyBase/$path".toHttpUrl().newBuilder()
 
     private fun apiBody(url: HttpUrl): String? = apiKey.takeIf(String::isNotBlank)?.let { key ->
         lyricsGetBearer(url.toString(), key)

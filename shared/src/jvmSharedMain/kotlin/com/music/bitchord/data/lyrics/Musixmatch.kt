@@ -25,6 +25,7 @@ import kotlin.math.abs
 object Musixmatch {
 
     private const val BASE = "https://apic.musixmatch.com/ws/1.1"
+    internal var apiBase = BASE
     private const val APP_ID = "mobile-app-v1.0"
     private const val SEARCH_PAGE = "https://www.musixmatch.com/search"
     private const val BROWSER_AGENT =
@@ -39,7 +40,7 @@ object Musixmatch {
     private val cachedToken = AtomicReference<String?>(null)
     private val processGuid = UUID.randomUUID().toString()
 
-    private val client by lazy {
+    internal val lyricsClient by lazy {
         Http.client.newBuilder()
             .callTimeout(8, TimeUnit.SECONDS)
             .connectTimeout(4, TimeUnit.SECONDS)
@@ -100,7 +101,7 @@ object Musixmatch {
 
     private suspend fun searchTrack(title: String, artist: String): List<Track>? {
         val response = signedGet { token ->
-            "$BASE/track.search".toHttpUrl().newBuilder()
+            "$apiBase/track.search".toHttpUrl().newBuilder()
                 .addQueryParameter("app_id", APP_ID)
                 .addQueryParameter("format", "json")
                 .addQueryParameter("q_track", title)
@@ -121,7 +122,7 @@ object Musixmatch {
 
     private suspend fun fetchSubtitle(trackId: Long): String? {
         val response = signedGet { token ->
-            "$BASE/track.subtitle.get".toHttpUrl().newBuilder()
+            "$apiBase/track.subtitle.get".toHttpUrl().newBuilder()
                 .addQueryParameter("app_id", APP_ID)
                 .addQueryParameter("format", "json")
                 .addQueryParameter("track_id", trackId.toString())
@@ -136,7 +137,7 @@ object Musixmatch {
 
     private suspend fun fetchRichSync(trackId: Long): String? {
         val response = signedGet { token ->
-            "$BASE/track.richsync.get".toHttpUrl().newBuilder()
+            "$apiBase/track.richsync.get".toHttpUrl().newBuilder()
                 .addQueryParameter("app_id", APP_ID)
                 .addQueryParameter("format", "json")
                 .addQueryParameter("track_id", trackId.toString())
@@ -234,7 +235,7 @@ object Musixmatch {
     }
 
     private fun fetchToken(secret: String): String? {
-        val url = "$BASE/token.get".toHttpUrl().newBuilder()
+        val url = "$apiBase/token.get".toHttpUrl().newBuilder()
             .addQueryParameter("app_id", APP_ID)
             .addQueryParameter("guid", processGuid)
             .addQueryParameter("format", "json")
@@ -280,17 +281,23 @@ object Musixmatch {
     private fun browserGet(url: String, accept: String): String? =
         request(url, accept, cookie = "mxm_bab=AB")
 
+    internal var requestOverride: ((String) -> String?)? = null
+
     private fun request(url: String, accept: String, cookie: String? = null): String? = runCatching {
+        requestOverride?.let { return it(url) }
         val request = Request.Builder().url(url)
             .header("User-Agent", BROWSER_AGENT)
             .header("Accept", accept)
             .header("Accept-Language", "en-US,en;q=0.9")
             .apply { if (cookie != null) header("Cookie", cookie) }
             .build()
-        client.newCall(request).execute().use { response ->
+        lyricsClient.newCall(request).execute().use { response ->
             if (response.isSuccessful) response.body?.string() else null
         }
-    }.getOrNull()
+    }.getOrElse { error ->
+        if (error is kotlinx.coroutines.CancellationException) throw error
+        null
+    }
 
     @Serializable
     private data class Envelope<T>(val message: Message<T>)

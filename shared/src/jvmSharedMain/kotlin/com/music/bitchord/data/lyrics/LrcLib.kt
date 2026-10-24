@@ -25,6 +25,7 @@ import kotlin.math.abs
 object LrcLib {
 
     private const val BASE = "https://lrclib.net/api"
+    internal var baseUrl = BASE
     private const val AGENT = "BitChord (https://github.com/bitchord)"
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -36,14 +37,13 @@ object LrcLib {
             val cleanArtist = artist.clean()
             val seconds = (durationMs / 1000).toInt()
 
-            val exact = runCatching { exactMatch(cleanTitle, cleanArtist, seconds) }.getOrNull()
-            val synced = exact ?: runCatching { bestSearchHit(cleanTitle, cleanArtist, seconds) }
-                .getOrNull()
+            val exact = try { exactMatch(cleanTitle, cleanArtist, seconds) } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (_: Exception) { null }
+            val synced = exact ?: try { bestSearchHit(cleanTitle, cleanArtist, seconds) } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (_: Exception) { null }
             synced?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
         }
 
     private fun exactMatch(title: String, artist: String, seconds: Int): String? {
-        val url = "$BASE/get".toHttpUrl().newBuilder()
+        val url = "$baseUrl/get".toHttpUrl().newBuilder()
             .addQueryParameter("track_name", title)
             .addQueryParameter("artist_name", artist)
             .addQueryParameter("duration", seconds.toString())
@@ -58,7 +58,7 @@ object LrcLib {
      * actually playing — same song, different edit, would drift otherwise.
      */
     private fun bestSearchHit(title: String, artist: String, seconds: Int): String? {
-        val url = "$BASE/search".toHttpUrl().newBuilder()
+        val url = "$baseUrl/search".toHttpUrl().newBuilder()
             .addQueryParameter("track_name", title)
             .addQueryParameter("artist_name", artist)
             .build()
@@ -74,6 +74,7 @@ object LrcLib {
     }
 
     private fun get(url: String): String? {
+        lyricsGetOverride?.let { return it(url) }
         val request = Request.Builder().url(url).header("User-Agent", AGENT).build()
         Http.client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return null
