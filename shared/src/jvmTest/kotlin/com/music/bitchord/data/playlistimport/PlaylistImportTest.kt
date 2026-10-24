@@ -30,6 +30,17 @@ class PlaylistImportTest {
         assertEquals(listOf(0, 1, 2), parsed.entries.map { it.sourceIndex })
     }
 
+    @Test fun deezerPlaylistResponseExtractsTracksAndKeepsDuplicatesInOrder() {
+        val fixture = """{"title":"Night Drive","tracks":{"data":[{"title":"First Song","artist":{"name":"Artist One"},"isrc":"USAAA2400001"},{"title":"Second Song","artist":{"name":"Artist Two"},"isrc":"GBBBB2400002"},{"title":"First Song","artist":{"name":"Artist One"},"isrc":"USAAA2400001"}]}}"""
+        val parsed = PlaylistImportParser.parseDeezerPlaylistResponse(fixture)
+        assertEquals("Night Drive", parsed.title)
+        assertEquals(PlaylistImportProvider.DEEZER, parsed.provider)
+        assertEquals(listOf("First Song", "Second Song", "First Song"), parsed.entries.map { it.title })
+        assertEquals(listOf("Artist One", "Artist Two", "Artist One"), parsed.entries.map { it.artist })
+        assertEquals(listOf("USAAA2400001", "GBBBB2400002", "USAAA2400001"), parsed.entries.map { it.isrc })
+        assertEquals(listOf(0, 1, 2), parsed.entries.map { it.sourceIndex })
+    }
+
     @Test fun isrcWinsAndManualChoiceRequiresConfirmation() {
         val entry = PlaylistEntry("Song", "Artist", "USAAA0000001", sourceIndex = 0)
         val candidates = listOf(ImportCandidate("same-title", "Song", "Artist"), ImportCandidate("isrc", "Other", "Other", "USAAA0000001"))
