@@ -149,6 +149,7 @@ import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.scrobbling.LastFM
 import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.settings.HomeSource
 import com.music.bitchord.data.settings.OutputPcmMode
 import com.music.bitchord.playback.AudioOutputStatus
 import com.music.bitchord.data.settings.AutomixPerformanceMode
@@ -196,6 +197,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
 
+    val homeSource by AppSettings.homeSource.collectAsStateWithLifecycle()
     val wifiQuality by AppSettings.audioQualityWifi.collectAsStateWithLifecycle()
     val cellularQuality by AppSettings.audioQualityCellular.collectAsStateWithLifecycle()
     val metered by AppSettings.meteredConnection.collectAsStateWithLifecycle()
@@ -444,6 +446,20 @@ fun SettingsScreen(
         // longer a setting at all — see
         // [SourceResolver.requestForNow][com.music.bitchord.data.sources.SourceResolver.requestForNow].
         SearchableSettingsGroup(search, header = stringResource(R.string.audio_quality)) {
+            val homeSourceTitle = "Home source"
+            row(homeSourceTitle, "apple", "youtube", "music", "recommendations") {
+                SettingsRow(
+                    icon = BitChordIcons.Home,
+                    title = homeSourceTitle,
+                    subtitle = "Catalogue shelves shown on the Home screen",
+                )
+                SegmentedControl(
+                    options = HomeSource.entries.map { it.label },
+                    selectedIndex = HomeSource.entries.indexOf(homeSource),
+                    onSelect = { AppSettings.setHomeSource(HomeSource.entries[it]) },
+                    modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                )
+            }
             val sourceTitle = stringResource(R.string.source)
             val sourceSubtitle = stringResource(R.string.sources_subtitle)
             row(sourceTitle, sourceSubtitle, "addon", "lossless") {

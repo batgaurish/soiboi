@@ -25,7 +25,11 @@ import com.music.bitchord.data.lyrics.EmbeddedLyrics
 import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.lyrics.LyricsRepository
 import com.music.bitchord.data.lyrics.LyricsSource
+import com.music.bitchord.data.apple.AppleHomeCatalog
+import com.music.bitchord.data.apple.toUiState
+import com.music.bitchord.data.canvas.AppleMusicCanvas
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.settings.HomeSource
 import com.music.bitchord.data.innertube.Innertube
 import com.music.bitchord.data.innertube.PlaybackTracker
 import com.music.bitchord.data.innertube.StreamResolver
@@ -105,6 +109,10 @@ enum class SearchSource { YOUTUBE, LIBRARY, ADDONS }
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val authStore = AuthStore(app)
+    private val appleHomeCatalog = AppleHomeCatalog(
+        cookieHeader = { null },
+        storefront = { AppleMusicCanvas.storefront },
+    )
 
     // Process-wide, so the playback service offers Like on the same tracks.
     private val _signedIn = SignedIn.state(app)
@@ -1430,6 +1438,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             PlaybackTracker.registeredPlays.drop(1).collect { homeStale = true }
         }
         viewModelScope.launch {
+            AppSettings.homeSource.drop(1).collect {
+                appleHomeCatalog.invalidate()
+                loadHome()
+            }
+        }
+        viewModelScope.launch {
             BoundedContextRequests.snapshot.collect { snapshot ->
                 snapshot?.let(::applyBoundedContextSnapshot)
             }
@@ -1636,6 +1650,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         homeContinuation = null
         homeSeenTitles.clear()
         _homeLoadingMore.value = false
+        _homeRecentlyPlayedLoading.value = false
+        _homePendingShelves.value = 0
+
+        if (AppSettings.homeSource.value == HomeSource.APPLE) {
+            viewModelScope.launch {
+                val result = appleHomeCatalog.home()
+                if (isCurrentHomeLoad(identity, generation)) {
+                    _home.value = result.toUiState()
+                }
+            }
+            return
+        }
+
         _homeRecentlyPlayedLoading.value = _signedIn.value
         // The core feed plus one browse per supplement. Recently played is left
         // out: it has its own skeleton at the head of the page rather than the
@@ -1718,6 +1745,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Refreshes the core feed without blanking the current Play page first. */
     private suspend fun refreshHome(identity: String?) = coroutineScope {
+        if (AppSettings.homeSource.value == HomeSource.APPLE) {
+            appleHomeCatalog.invalidate()
+            val result = appleHomeCatalog.home()
+            if (identity == listenerKey()) {
+                _home.value = result.toUiState()
+            }
+            return@coroutineScope
+        }
         val recent = if (_signedIn.value) async { YtMusicRepository.homeRecentlyPlayed() } else null
         YtMusicRepository.home().onSuccess { feed ->
             if (identity != listenerKey()) return@onSuccess
@@ -1738,6 +1773,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * loaded — [homeContinuation] covers all three by construction.
      */
     fun loadMoreHome() {
+        if (AppSettings.homeSource.value == HomeSource.APPLE) return
         val token = homeContinuation ?: return
         if (_homeLoadingMore.value) return
         val identity = listenerKey()
