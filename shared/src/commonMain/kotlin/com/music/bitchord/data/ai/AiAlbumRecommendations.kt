@@ -5,7 +5,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 
 /** Signals a failure during AI payload parsing or response handling. */
 class AiException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -30,57 +29,86 @@ data class AiAlbumPick(
  */
 object AiAlbumRecommendationParser {
 
+    const val MAX_RESPONSE_CHARS = 65_536
+    const val MAX_ALBUMS = 50
+
     private val json = Json {
         ignoreUnknownKeys = true
-        isLenient = true
+        isLenient = false
     }
 
     /**
-     * Extracts the first top-level JSON object from [text], tolerating code fences and conversational
-     * chatter around it.
+     * Extracts exactly one balanced JSON object, tolerating code fences and conversational chatter.
      */
     fun extractJsonObject(text: String): JsonObject {
-        val start = text.indexOf('{')
-        val end = text.lastIndexOf('}')
-        if (start < 0 || end <= start) {
-            throw AiException("The model did not answer in the expected format")
+        if (text.length > MAX_RESPONSE_CHARS) throw AiException("The model response was too large")
+        val objects = mutableListOf<JsonObject>()
+        var start = -1
+        var depth = 0
+        var inString = false
+        var escaped = false
+        for (i in text.indices) {
+            val char = text[i]
+            if (start < 0) {
+                if (char == '{') {
+                    start = i
+                    depth = 1
+                }
+                continue
+            }
+            if (inString) {
+                when {
+                    escaped -> escaped = false
+                    char == '\\' -> escaped = true
+                    char == '"' -> inString = false
+                }
+            } else when (char) {
+                '"' -> inString = true
+                '{' -> depth++
+                '}' -> {
+                    depth--
+                    if (depth == 0) {
+                        val candidate = text.substring(start, i + 1)
+                        try {
+                            (json.parseToJsonElement(candidate) as? JsonObject)?.let(objects::add)
+                        } catch (_: Exception) {
+                            // Ignore braces in surrounding prose; a malformed sole payload is rejected below.
+                        }
+                        start = -1
+                    }
+                }
+            }
         }
-        val candidate = text.substring(start, end + 1)
-        return try {
-            json.parseToJsonElement(candidate) as? JsonObject
-                ?: throw AiException("The model did not answer in the expected format")
-        } catch (e: AiException) {
-            throw e
-        } catch (e: Exception) {
-            throw AiException("The model did not answer in the expected format", e)
-        }
+        if (objects.size != 1) throw AiException("The model did not answer in the expected format")
+        return objects.single()
     }
 
     /**
-     * Parses album recommendations from [response].
-     *
-     * Validates that the payload contains an `albums` array. Entries lacking either a valid artist or album
-     * title are discarded.
-     *
-     * @param response Raw response text from the model.
-     * @param requireNonEmpty If true, throws [AiException] when no valid picks remain.
+     * Parses album recommendations from [response]. Entries may omit artist/album or leave them blank;
+     * malformed field types and non-object entries reject the payload. Responses are bounded to 64 KiB
+     * and 50 album entries.
      */
     fun parse(response: String, requireNonEmpty: Boolean = false): List<AiAlbumPick> {
         val root = extractJsonObject(response)
         val albumsElement = root["albums"] ?: throw AiException("The model did not answer in the expected format")
         val albumsArray = albumsElement as? JsonArray ?: throw AiException("The model did not answer in the expected format")
+        if (albumsArray.size > MAX_ALBUMS) throw AiException("The model returned too many recommendations")
 
-        val picks = albumsArray.mapNotNull { element ->
-            val obj = element as? JsonObject ?: return@mapNotNull null
-            val artist = (obj["artist"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
-            val album = (obj["album"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
-            val why = (obj["why"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+        val picks = albumsArray.map { element ->
+            val obj = element as? JsonObject ?: throw AiException("The model did not answer in the expected format")
+            fun stringField(name: String, required: Boolean): String {
+                val value = obj[name] ?: return if (required) "" else ""
+                val primitive = value as? JsonPrimitive
+                if (primitive == null || !primitive.isString) throw AiException("The model did not answer in the expected format")
+                return primitive.content.trim()
+            }
+            val artist = stringField("artist", required = true)
+            val album = stringField("album", required = true)
+            val why = stringField("why", required = false)
             if (artist.isEmpty() || album.isEmpty()) null else AiAlbumPick(artist, album, why)
-        }
+        }.filterNotNull()
 
-        if (requireNonEmpty && picks.isEmpty()) {
-            throw AiException("No recommendations came back")
-        }
+        if (requireNonEmpty && picks.isEmpty()) throw AiException("No recommendations came back")
         return picks
     }
 }

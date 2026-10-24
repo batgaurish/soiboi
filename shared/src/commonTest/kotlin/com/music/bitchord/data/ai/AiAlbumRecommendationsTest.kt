@@ -145,6 +145,44 @@ class AiAlbumRecommendationsTest {
     }
 
     @Test
+    fun extractsSingleBalancedObjectWithBracesInsideStrings() {
+        val picks = AiAlbumRecommendationParser.parse(
+            "Before { not json } ```json {\"albums\":[{\"artist\":\"A {B}\",\"album\":\"C} D\"}]} ``` after",
+        )
+        assertEquals(listOf(AiAlbumPick("A {B}", "C} D")), picks)
+    }
+
+    @Test
+    fun rejectsAmbiguousMultipleJsonObjects() {
+        assertFailsWith<AiException> {
+            AiAlbumRecommendationParser.parse("{\"albums\":[]} and {\"albums\":[]}")
+        }
+    }
+
+    @Test
+    fun rejectsMalformedEntryTypesInsteadOfDroppingThem() {
+        assertFailsWith<AiException> {
+            AiAlbumRecommendationParser.parse("""{"albums":[{"artist":7,"album":"A"},{"artist":"B","album":"C"}]}""")
+        }
+        assertFailsWith<AiException> {
+            AiAlbumRecommendationParser.parse("""{"albums":[{"artist":"A","album":"B","why":false}]}""")
+        }
+    }
+
+    @Test
+    fun rejectsResponsesAndAlbumListsOverDocumentedBounds() {
+        assertFailsWith<AiException> {
+            AiAlbumRecommendationParser.parse(" ".repeat(65_537))
+        }
+        val tooMany = (0..50).joinToString(",") {
+            "{\"artist\":\"A\",\"album\":\"B\"}"
+        }
+        assertFailsWith<AiException> {
+            AiAlbumRecommendationParser.parse("{\"albums\":[$tooMany]}")
+        }
+    }
+
+    @Test
     fun rejectsMalformedJsonWithoutJsonObject() {
         val noJson = "I am a language model and I cannot generate recommendations right now."
         val ex = assertFailsWith<AiException> {
