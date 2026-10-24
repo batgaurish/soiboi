@@ -10,6 +10,32 @@ import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
 import java.util.Base64
 
+internal fun extractMusicUserToken(cookieHeader: String?): String? =
+    cookieHeader?.split(';')
+        ?.map(String::trim)
+        ?.firstOrNull { it.substringBefore('=', "").equals("media-user-token", ignoreCase = true) }
+        ?.substringAfter('=')
+        ?.trim()
+        ?.takeIf(String::isNotBlank)
+
+internal fun discoverWebPlayerAsset(homepage: String): String? =
+    Regex("/assets/index[~-][^/\\\"]+\\.js").find(homepage)?.value
+
+internal fun selectWebPlayerToken(bundle: String): String? {
+    val tokenPattern = Regex("eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+")
+    val json = Json { ignoreUnknownKeys = true }
+    return tokenPattern.findAll(bundle).firstNotNullOfOrNull { match ->
+        runCatching {
+            val parts = match.value.split('.')
+            val header = json.parseToJsonElement(Base64.getUrlDecoder().decode(parts[0]).decodeToString()).jsonObject
+            val payload = json.parseToJsonElement(Base64.getUrlDecoder().decode(parts[1]).decodeToString()).jsonObject
+            val kid = header["kid"]?.jsonPrimitive?.content
+            val issuer = payload["iss"]?.jsonPrimitive?.content
+            match.value.takeIf { kid == "WebPlayKid" && issuer == "AMPWebPlay" }
+        }.getOrNull()
+    }
+}
+
 /** Catalogue data is descriptive only; it never carries a BitChord playback id. */
 data class AppleHomeItem(val id: String, val type: String, val title: String, val subtitle: String, val artwork: String?)
 data class AppleHomeShelf(val title: String, val items: List<AppleHomeItem>, val public: Boolean = false)
@@ -35,12 +61,15 @@ class AppleHomeCatalog(
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun home(): AppleHomeResult {
-        val mut = cookieHeader()?.split(';')?.map(String::trim)?.firstOrNull { it.substringBefore('=', "").equals("media-user-token", ignoreCase = true) }
-            ?.substringAfter('=')?.takeIf(String::isNotBlank)
+        val mut = extractMusicUserToken(cookieHeader())
         val key = "${storefront()}|${mut.orEmpty()}"
         if (cacheKey == key && clock() - cachedAt < CACHE_TTL && cached != null) return cached!!
-        val result = if (mut == null) AppleHomeResult.Failed(Failure.MISSING_USER_TOKEN, "Apple Music account cookie is missing. Sign in again.") else personalized(mut)
-        cacheKey = key; cachedAt = clock(); cached = result
+        val result = if (mut == null) publicCharts() else personalized(mut)
+        if (result !is AppleHomeResult.Failed || result.kind != Failure.MISSING_USER_TOKEN) {
+            cacheKey = key
+            cachedAt = clock()
+            cached = result
+        }
         return result
     }
 
@@ -108,16 +137,13 @@ class AppleHomeCatalog(
     private suspend fun token(): String {
         if (developerToken != null && clock() - tokenFetchedAt < TOKEN_TTL) return developerToken!!
         val home = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { client.newCall(Request.Builder().url("https://music.apple.com/").build()).execute().use { it.body?.string().orEmpty() } }
-        val asset = Regex("/assets/index[~-][^/\\\"]+\\.js").find(home)?.value
+        val asset = discoverWebPlayerAsset(home)
             ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token asset was not found.")
-        val bundle = client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { it.body?.string().orEmpty() }
-        val jwt = Regex("eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+")
-            .findAll(bundle).map { it.value }.firstOrNull { candidate ->
-                runCatching {
-                    val header = String(Base64.getUrlDecoder().decode(candidate.substringBefore('.')))
-                    header.contains("WebPlayKid") || header.contains("AMPWebPlay")
-                }.getOrDefault(false)
-            } ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token was not found.")
+        val bundle = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { it.body?.string().orEmpty() }
+        }
+        val jwt = selectWebPlayerToken(bundle)
+            ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token was not found.")
         developerToken = jwt; tokenFetchedAt = clock(); return jwt
     }
 
