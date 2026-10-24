@@ -83,6 +83,16 @@ class AppleHomeMappingTest {
     }
 
     @Test
+    fun resultMappingHandlesExplicitEmptyResult() {
+        val result = AppleHomeResult.Empty("No shelves available")
+        val uiState = result.toUiState()
+        val success = assertIs<UiState.Success<*>>(uiState)
+        @Suppress("UNCHECKED_CAST")
+        val shelves = success.data as List<com.music.bitchord.data.model.HomeShelf>
+        assertTrue(shelves.isEmpty())
+    }
+
+    @Test
     fun resultMappingHandlesMissingCookie() {
         val result = AppleHomeResult.Failed(Failure.MISSING_USER_TOKEN, "Missing token")
         val uiState = result.toUiState()

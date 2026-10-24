@@ -43,6 +43,11 @@ internal object DesktopWebSignIn {
             "https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F",
             "https://open.spotify.com/",
         ),
+        APPLE_MUSIC(
+            "Sign in to Apple Music",
+            "https://music.apple.com/us/browse",
+            "https://music.apple.com/",
+        ),
     }
 
     /** Whether a sign-in window can be shown at all: it needs the JavaFX toolkit. */
@@ -53,6 +58,9 @@ internal object DesktopWebSignIn {
 
     /** The `sp_dc` cookie's value, taken as soon as Spotify sets it. */
     suspend fun captureSpotify(): String = capture(Service.SPOTIFY)
+
+    /** The `media-user-token` cookie from Apple Music, taken as soon as Apple sets it. */
+    suspend fun captureApple(): String = capture(Service.APPLE_MUSIC)
 
     private suspend fun capture(service: Service): String {
         check(available) { "This desktop cannot show a sign-in window (JavaFX did not start)." }
@@ -68,6 +76,7 @@ internal object DesktopWebSignIn {
     }
 
     private const val SPOTIFY_COOKIE = "sp_dc"
+    private const val APPLE_COOKIE = "media-user-token"
 
     /** The cookies [service] would send, as a `Cookie` header value. */
     private fun cookies(service: Service): String = runCatching {
@@ -80,6 +89,12 @@ internal object DesktopWebSignIn {
     private fun spotifySession(): String? = cookies(Service.SPOTIFY).split(';')
         .map(String::trim)
         .firstOrNull { it.substringBefore('=') == SPOTIFY_COOKIE }
+        ?.substringAfter('=')
+        ?.takeIf(String::isNotBlank)
+
+    private fun appleSession(): String? = cookies(Service.APPLE_MUSIC).split(';')
+        .map(String::trim)
+        .firstOrNull { it.substringBefore('=').equals(APPLE_COOKIE, ignoreCase = true) }
         ?.substringAfter('=')
         ?.takeIf(String::isNotBlank)
 
@@ -148,6 +163,9 @@ internal object DesktopWebSignIn {
                     confirm.isDisable = !url.startsWith("https://music.youtube.com") || youtubeSession() == null
                 Service.SPOTIFY -> if (url.startsWith("https://open.spotify.com")) {
                     spotifySession()?.let { complete(Result.success(it)) }
+                }
+                Service.APPLE_MUSIC -> if (url.startsWith("https://music.apple.com")) {
+                    appleSession()?.let { complete(Result.success("media-user-token=$it")) }
                 }
             }
         }

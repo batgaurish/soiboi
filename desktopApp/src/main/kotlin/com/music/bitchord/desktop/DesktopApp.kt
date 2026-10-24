@@ -568,9 +568,12 @@ fun BitChordDesktopApp() {
     var searchError by remember { mutableStateOf<String?>(null) }
     var homeState by remember { mutableStateOf<UiState<List<HomeShelf>>>(UiState.Loading) }
     var homeSource by remember { mutableStateOf(persistence.homeSource()) }
+    var appleSessionCookie by remember {
+        mutableStateOf(DesktopAppleAuth.cookie() ?: DesktopBrowserCookies.findAppleSession())
+    }
     val appleHomeCatalog = remember {
         AppleHomeCatalog(
-            cookieHeader = { null },
+            cookieHeader = { appleSessionCookie },
             storefront = {
                 Locale.getDefault().country.takeIf { it.length == 2 }?.lowercase(Locale.ROOT) ?: "us"
             },
@@ -919,6 +922,9 @@ fun BitChordDesktopApp() {
             }
         }
     }
+
+    var appleSignInJob by remember { mutableStateOf<Job?>(null) }
+    var appleSignInError by remember { mutableStateOf<String?>(null) }
 
     /** Takes a captured cookie all the way to a saved account. */
     suspend fun signIn(cookie: String, label: String, sourceProfile: String? = null) {
@@ -2544,6 +2550,40 @@ fun BitChordDesktopApp() {
         persistence.saveHomeSource(source)
         appleHomeCatalog.invalidate()
         loadHome()
+    }
+
+    fun setAppleMusicCookie(cookie: String?) {
+        if (cookie != null) {
+            DesktopAppleAuth.saveCookie(cookie)
+        } else {
+            DesktopAppleAuth.clear()
+        }
+        appleSessionCookie = DesktopAppleAuth.cookie() ?: DesktopBrowserCookies.findAppleSession()
+        appleHomeCatalog.invalidate()
+        if (homeSource == HomeSource.APPLE) {
+            loadHome()
+        }
+    }
+
+    fun signInToAppleMusic() {
+        appleSignInJob?.let {
+            it.cancel()
+            return
+        }
+        appleSignInError = null
+        appleSignInJob = scope.launch {
+            try {
+                val cookie = DesktopWebSignIn.captureApple()
+                setAppleMusicCookie(cookie)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                DesktopTrackLog.log("sign-in: Apple Music failed: ${failure.message}")
+                appleSignInError = failure.message ?: "Could not complete Apple Music sign-in."
+            } finally {
+                appleSignInJob = null
+            }
+        }
     }
 
     /** The next page of the core feed, as the list nears its end; a no-op once it has run dry. */
@@ -4172,8 +4212,14 @@ fun BitChordDesktopApp() {
                             pullState = rememberPullToRefreshState(),
                             contentPadding = sharedPagePadding,
                             title = null,
-                            signedIn = youtubeSignedIn,
-                            onSignIn = { overlays.accounts = true },
+                            signedIn = if (homeSource == HomeSource.APPLE) appleSessionCookie != null else youtubeSignedIn,
+                            onSignIn = {
+                                if (homeSource == HomeSource.APPLE) {
+                                    signInToAppleMusic()
+                                } else {
+                                    overlays.accounts = true
+                                }
+                            },
                             onItemLongPress = { item -> if (item.videoId != null) openMenu(item.toSong()) },
                             onLoadMore = ::loadMoreHome,
                             loadingMore = homeLoadingMore,

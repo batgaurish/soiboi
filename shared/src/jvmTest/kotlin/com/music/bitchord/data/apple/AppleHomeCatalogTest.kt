@@ -92,6 +92,57 @@ class AppleHomeCatalogTest {
         assertTrue(ready.shelves.any { it.title == "Made for Gaurish" && it.items.single().title == "Recommended Album" })
     }
 
+    @Test fun httpNon2xxWithPayloadCode3077MapsToService3077Failure() = runBlocking {
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" -> 200 to "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.encodedPath.endsWith("index~abc.js") -> 200 to token
+                request.url.encodedPath == "/v1/me/recommendations" -> 403 to """{"errors":[{"code":"3077","title":"Session Error"}]}"""
+                request.url.encodedPath == "/v1/me/recent/played" || request.url.encodedPath == "/v1/me/history/heavy-rotation" -> 200 to """{"data":[]}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Error")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(
+            cookieHeader = { "media-user-token=user-session" },
+            storefront = { "us" },
+            client = client,
+        ).home()
+
+        val failed = assertIs<AppleHomeResult.Failed>(result)
+        assertEquals(Failure.SERVICE_3077, failed.kind)
+    }
+
+    @Test fun recommendationExpansionHttpNon2xxWithCode3077MapsToService3077Failure() = runBlocking {
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" -> 200 to "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.encodedPath.endsWith("index~abc.js") -> 200 to token
+                request.url.encodedPath == "/v1/me/recommendations" -> 200 to """{"data":[{"id":"42","type":"personal-recommendation","attributes":{"title":{"stringForDisplay":"Made for Gaurish"}},"href":"/v1/me/recommendations/42"}]}"""
+                request.url.encodedPath == "/v1/me/recommendations/42" -> 400 to """{"errors":[{"id":"err-1","code":"3077","status":"400"}]}"""
+                request.url.encodedPath == "/v1/me/recent/played" || request.url.encodedPath == "/v1/me/history/heavy-rotation" -> 200 to """{"data":[]}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Error")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(
+            cookieHeader = { "media-user-token=user-session" },
+            storefront = { "us" },
+            client = client,
+        ).home()
+
+        val failed = assertIs<AppleHomeResult.Failed>(result)
+        assertEquals(Failure.SERVICE_3077, failed.kind)
+    }
+
     private fun jwt(header: String, payload: String): String {
         val encoder = Base64.getUrlEncoder().withoutPadding()
         fun encode(value: String) = encoder.encodeToString(value.encodeToByteArray())

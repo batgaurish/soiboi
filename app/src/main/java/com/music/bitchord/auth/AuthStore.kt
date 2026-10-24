@@ -18,10 +18,11 @@ import android.content.SharedPreferences
  * crashing on launch; see [EncryptedPrefs]. Kept out of backups for the first
  * reason, in backup_rules.xml and data_extraction_rules.xml.
  */
-class AuthStore(context: Context) {
+class AuthStore internal constructor(private val prefs: SharedPreferences) {
 
-    private val prefs: SharedPreferences =
+    constructor(context: Context) : this(
         EncryptedPrefs.open(context, "bitchord_auth", "bitchord_auth_plain")
+    )
 
     var cookie: String?
         get() = prefs.getString(KEY_COOKIE, null)
@@ -120,6 +121,17 @@ class AuthStore(context: Context) {
     var smbPassword: String?
         get() = prefs.getString(KEY_SMB_PASSWORD, null)
         set(value) = prefs.edit().putString(KEY_SMB_PASSWORD, value).apply()
+
+    /**
+     * The Apple Music web session cookie, containing media-user-token.
+     * Encrypted at rest like other credentials here.
+     */
+    var appleMusicCookie: String?
+        get() = prefs.getString(KEY_APPLE_MUSIC_COOKIE, null)
+        set(value) {
+            if (value != null) prefs.edit().putString(KEY_APPLE_MUSIC_COOKIE, value).apply()
+            else prefs.edit().remove(KEY_APPLE_MUSIC_COOKIE).apply()
+        }
 
     /**
      * The channel the listener chose to act as, if they chose one.
@@ -230,5 +242,6 @@ class AuthStore(context: Context) {
         private const val KEY_DISCORD_TOKEN = "discord_token"
         private const val KEY_WEBDAV_PASSWORD = "webdav_password"
         private const val KEY_SMB_PASSWORD = "smb_password"
+        private const val KEY_APPLE_MUSIC_COOKIE = "apple_music_cookie"
     }
 }

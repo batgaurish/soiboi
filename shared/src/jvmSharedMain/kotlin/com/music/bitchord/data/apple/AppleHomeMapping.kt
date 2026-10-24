@@ -24,6 +24,7 @@ fun AppleHomeShelf.toHomeShelf(): HomeShelf = HomeShelf(
 fun AppleHomeResult.toUiState(): UiState<List<HomeShelf>> = when (this) {
     is AppleHomeResult.Loading -> UiState.Loading
     is AppleHomeResult.Ready -> UiState.Success(shelves.map { it.toHomeShelf() })
+    is AppleHomeResult.Empty -> UiState.Success(emptyList())
     is AppleHomeResult.Failed -> when (kind) {
         Failure.MISSING_USER_TOKEN -> UiState.Error(
             message.ifBlank { "Apple Music session cookie is missing. Sign in to Apple Music." },

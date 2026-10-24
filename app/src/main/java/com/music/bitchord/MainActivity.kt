@@ -123,6 +123,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.music.bitchord.auth.AppleMusicLoginScreen
 import com.music.bitchord.auth.DiscordLoginScreen
 import com.music.bitchord.auth.SpotifyLoginScreen
 import com.music.bitchord.auth.WebSessionMode
@@ -137,6 +138,7 @@ import com.music.bitchord.data.TrackLog
 import com.music.bitchord.data.innertube.InnertubeParser
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.model.HomeShelf
+import com.music.bitchord.data.settings.HomeSource
 import com.music.bitchord.data.model.LikeStatus
 import com.music.bitchord.data.model.PlaybackSourceType
 import com.music.bitchord.data.model.SearchFilter
@@ -618,6 +620,7 @@ private fun BitChordApp(
     var showSpotify by remember { mutableStateOf(false) }
     var showDiscordLogin by remember { mutableStateOf(false) }
     var showSpotifyLogin by remember { mutableStateOf(false) }
+    var showAppleLogin by remember { mutableStateOf(false) }
     var discordDialog by remember { mutableStateOf<DiscordDialog?>(null) }
     var songActions by remember { mutableStateOf<Song?>(null) }
     var showLyricsOffset by remember { mutableStateOf(false) }
@@ -3080,15 +3083,24 @@ private fun BitChordApp(
                             contentPadding = listPadding,
                         )
                     } else when (key.removePrefix(TAB_KEY).toIntOrNull() ?: selectedTab) {
-                        TAB_HOME -> HomeScreen(
-                            state = homeState,
-                            listState = homeListState,
-                            currentSong = player.song,
-                            isPlaying = player.isPlaying,
-                            title = stringResource(R.string.listen_now),
-                            signedIn = signedIn,
-                            onSignIn = { webSession = WebSessionMode.SIGN_IN },
-                            onItemClick = { item, shelfTitle ->
+                        TAB_HOME -> {
+                            val activeHomeSource by AppSettings.homeSource.collectAsStateWithLifecycle()
+                            val isAppleHome = activeHomeSource == HomeSource.APPLE
+                            HomeScreen(
+                                state = homeState,
+                                listState = homeListState,
+                                currentSong = player.song,
+                                isPlaying = player.isPlaying,
+                                title = stringResource(R.string.listen_now),
+                                signedIn = if (isAppleHome) viewModel.hasAppleSession() else signedIn,
+                                onSignIn = {
+                                    if (isAppleHome) {
+                                        showAppleLogin = true
+                                    } else {
+                                        webSession = WebSessionMode.SIGN_IN
+                                    }
+                                },
+                                onItemClick = { item, shelfTitle ->
                                 val song = shelfSong(item)
                                 // Hoisted because ShelfItem lives in :shared, and
                                 // Kotlin will not smart-cast a public nullable
@@ -3117,6 +3129,7 @@ private fun BitChordApp(
                             loadingMore = homeLoadingMore,
                             recentlyPlayedLoading = homeRecentlyPlayedLoading,
                         )
+                    }
                         TAB_EXPLORE -> selectedMoodGenre?.let { category ->
                             MoodGenrePlaylistsScreen(
                                 title = category.title,
@@ -5377,6 +5390,42 @@ private fun BitChordApp(
                         onConnected = { token ->
                             AppSettings.setSpotifySpdcToken(token)
                             showSpotifyLogin = false
+                        },
+                    )
+                }
+            }
+        }
+
+        // ---- Apple Music sign-in (full screen WebView) ----
+        if (showAppleLogin) {
+            BackHandler { showAppleLogin = false }
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Column(Modifier.fillMaxSize()) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = { showAppleLogin = false }) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.close),
+                                tint = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
+                        Text(
+                            "Apple Music Sign In",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    AppleMusicLoginScreen(
+                        modifier = Modifier.navigationBarsPadding(),
+                        onConnected = { cookie ->
+                            viewModel.setAppleMusicCookie(cookie)
+                            showAppleLogin = false
                         },
                     )
                 }
