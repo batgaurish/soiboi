@@ -2,8 +2,28 @@
 
 ## Combined Derivative Project
 This project is an integrated derivative combining BitChord and Soiboi.
-The overall project is licensed under the GNU General Public License Version 3.0 (GPL-3.0).
-See `LICENSE` for the full text of the GNU General Public License Version 3.
+
+The root project license is the GNU General Public License Version 3.0 (GPL-3.0).
+Specific components and source files within the repository are governed by distinct
+coexisting licenses:
+- Orchard-derived audio analysis and Automix components are licensed under the
+  GNU Affero General Public License Version 3 or later (AGPL-3.0-or-later). As
+  provided in GNU GPLv3 Section 13, combination of GPLv3-covered code with
+  AGPLv3-covered code into a single combined work is permitted; the terms of the
+  GNU GPLv3 continue to apply to the GPLv3-covered parts, and the special
+  requirements of the GNU Affero General Public License Section 13 (conveying the
+  Corresponding Source to network users interacting with the software remotely
+  through a computer network) apply to the combination as such.
+- Components originating from Soiboi and Sylvakru are licensed under the Apache
+  License, Version 2.0 (see Section 4 notices and Apache License 2.0 terms below).
+- The DST decoder is licensed under the GNU Lesser General Public License Version
+  2.1 or later (LGPL-2.1-or-later).
+- The ONNX Runtime dependency and Open-Unmix model weights are governed by the MIT License.
+- The Beat This! model weights are governed by CC-BY-4.0.
+
+The root `LICENSE` remains the GNU General Public License Version 3.0 (GPL-3.0), matching BitChord. This combined program includes Orchard-derived components licensed under the GNU Affero General Public License Version 3 or later (AGPL-3.0-or-later). GNU GPLv3 Section 13 permits combining GPLv3 and AGPLv3 code; the GNU project's stated effect is that the AGPL applies to the combined program. This includes the AGPLv3 Section 13 requirement to offer corresponding source to users interacting with the program remotely over a network. See `LICENSES/AGPL-3.0.txt` for the full AGPL text and the Orchard entry below for the exact covered files.
+
+Components under Apache-2.0, LGPL-2.1-or-later, MIT, and CC-BY-4.0 retain their own license terms and attributions; see the relevant sections below. See `LICENSE` for the verbatim GPL-3.0 text, `LICENSES/AGPL-3.0.txt` for the verbatim AGPL-3.0 text, `LICENSES/Apache-2.0.txt` for Apache-2.0, and `LICENSES/LGPL-2.1.txt` for LGPL-2.1.
 
 ---
 
@@ -14,6 +34,46 @@ https://github.com/kushagrasinghx/BitChord
 Licensed under the GNU General Public License Version 3.0 (GPL-3.0).
 
 BitChord includes third-party components and dependencies:
+- Orchard audio analysis and Automix components:
+  Ported from Orchard (https://github.com/SFG5453/Orchard).
+  Copyright (C) 2026 SFG545 (original Orchard implementation)
+  Copyright (C) 2026 Kushagra Singh (BitChord adaptation)
+  Licensed under the GNU Affero General Public License Version 3 or later (AGPL-3.0-or-later).
+  Per AGPLv3 Section 13 and GPLv3 Section 13, these files are combined with BitChord
+  (GPL-3.0-or-later) while remaining themselves governed by AGPL-3.0-or-later; the
+  AGPLv3 Section 13 network-interaction requirements apply to the combination as such.
+  The full license text is preserved at `LICENSES/AGPL-3.0.txt` in this repository
+  and packaged in the Android application at `app/src/main/assets/licenses/AGPL-3.0.txt`.
+  Exact list of 19 AGPL-derived source files:
+  - JNI C++ bindings (3 files):
+    `app/src/main/cpp/jni/analysis_jni.cpp`
+    `app/src/main/cpp/jni/mel_jni.cpp`
+    `app/src/main/cpp/jni/vocal_jni.cpp`
+  - Native analyzer C++ DSP core (9 files):
+    `native/analyzer/audio_analysis.cpp`
+    `native/analyzer/audio_analysis.h`
+    `native/analyzer/mel_spectrogram.cpp`
+    `native/analyzer/mel_spectrogram.h`
+    `native/analyzer/resampler.cpp`
+    `native/analyzer/resampler.h`
+    `native/analyzer/tempo_analysis.cpp`
+    `native/analyzer/vocal_spectrogram.cpp`
+    `native/analyzer/vocal_spectrogram.h`
+  - Multiplatform smart playback Kotlin common sources (3 files):
+    `shared/src/commonMain/kotlin/com/music/bitchord/playback/smart/TrackAnalysis.kt`
+    `shared/src/commonMain/kotlin/com/music/bitchord/playback/smart/TransitionPlanner.kt`
+    `shared/src/commonMain/kotlin/com/music/bitchord/playback/smart/TransitionPolicy.kt`
+  - Multiplatform smart playback Kotlin JVM sources (4 files):
+    `shared/src/jvmSharedMain/kotlin/com/music/bitchord/playback/smart/BeatTracker.kt`
+    `shared/src/jvmSharedMain/kotlin/com/music/bitchord/playback/smart/MelSpectrogram.kt`
+    `shared/src/jvmSharedMain/kotlin/com/music/bitchord/playback/smart/TrackFeatures.kt`
+    `shared/src/jvmSharedMain/kotlin/com/music/bitchord/playback/smart/VocalTracker.kt`
+  Clarifications on related files:
+  - `app/src/main/java/com/music/bitchord/playback/smart/AudioDecoder.kt` and
+    `TrackAnalyzer.kt` are modeled on Orchard's architecture but are original works
+    by Kushagra Singh licensed under GPL-3.0-or-later.
+  - `native/ffmpeg/build.sh` was configured without `--enable-agpl`, producing a
+    GPLv3 binary for `libffmpegJNI.so`.
 - DST decoder (`app/src/main/cpp/dsd/dst/`): Derived from Peter Ross's FFmpeg DST
   decoder through DSD-Nexus (commit b3f443d4c42ccf52806eb57def3b3a34805714bd).
   Licensed under LGPL-2.1-or-later (see `app/src/main/cpp/dsd/dst/NOTICE.md` and

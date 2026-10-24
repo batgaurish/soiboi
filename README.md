@@ -153,6 +153,8 @@ BitChord is an independent, community-driven third-party audio player and client
 
 <h1><a id="license"></a>License</h1>
 
-This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for details.
+The root `LICENSE` remains the GNU GPL version 3 to match BitChord. This combined program includes Orchard-derived components under GNU AGPL version 3 or later. GPLv3 Section 13 permits the combination; GNU states that the AGPL applies to the combined program, including its network-interaction source requirements. See `NOTICE` for the exact 19 source files and `LICENSES/AGPL-3.0.txt` for the full text.
+
+Other components retain their own terms and notices: Apache-2.0 for Soiboi/Sylvakru-origin code, LGPL-2.1-or-later for the DST decoder, MIT for ONNX Runtime and Open-Unmix, and CC-BY-4.0 for the Beat This! model.
 
 </div>

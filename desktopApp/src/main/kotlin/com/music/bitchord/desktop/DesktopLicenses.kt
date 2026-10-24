@@ -39,6 +39,12 @@ internal object DesktopLicenses {
                         "deliberately; the GPL-enabled variant is not shipped.",
                 ),
                 DesktopLicense(
+                    "Orchard (Automix Analysis)",
+                    "AGPL-3.0-or-later",
+                    "https://github.com/SFG5453/Orchard",
+                    "See NOTICE for the exact AGPL-covered source files and LICENSES/AGPL-3.0.txt for the full text. AGPLv3 section 13 network-interaction requirements apply to the combined work.",
+                ),
+                DesktopLicense(
                     "JavaCPP / JavaCPP Presets",
                     "Apache-2.0",
                     "https://github.com/bytedeco/javacpp",
