@@ -182,6 +182,84 @@ object PlaylistImportParser {
         return ImportedPlaylist(title, PlaylistImportProvider.DEEZER, entries.mapIndexed { index, entry -> entry.copy(sourceIndex = index) })
     }
 
+    /** Parses an offline Tidal playlist response, filtering track items and preserving version in title. */
+    fun parseTidalPlaylistResponse(response: String): ImportedPlaylist {
+        val root = json.parseToJsonElement(response).jsonObject
+        val title = root.stringAny("title", "name")?.trim()?.takeIf(String::isNotEmpty) ?: "Imported Tidal playlist"
+        val items = (root["items"] as? JsonArray).orEmpty()
+        val entries = items.mapNotNull { element ->
+            val itemObj = element as? JsonObject ?: return@mapNotNull null
+            val type = itemObj.stringAny("type")?.trim()
+            if (type != null && type != "track") return@mapNotNull null
+            val track = (itemObj["item"] as? JsonObject) ?: return@mapNotNull null
+            val rawTitle = track.stringAny("title", "name")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
+            val version = track.stringAny("version")?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+            val fullTitle = if (version != null) "$rawTitle ($version)" else rawTitle
+            val artistsList = (track["artists"] as? JsonArray).orEmpty().mapNotNull {
+                (it as? JsonObject)?.stringAny("name")?.trim()?.takeIf(String::isNotEmpty)
+            }
+            val artist = if (artistsList.isNotEmpty()) {
+                artistsList.joinToString(", ")
+            } else {
+                (track["artist"] as? JsonObject)?.stringAny("name")?.trim()?.takeIf(String::isNotEmpty)
+                    ?: track.stringAny("artistName", "artist")?.trim()?.takeIf(String::isNotEmpty)
+            } ?: return@mapNotNull null
+            val isrc = track.stringAny("isrc")?.trim()?.takeIf(String::isNotEmpty)?.uppercase(Locale.ROOT)
+            PlaylistEntry(fullTitle, artist, isrc, 0)
+        }
+        return ImportedPlaylist(title, PlaylistImportProvider.TIDAL, entries.mapIndexed { index, entry -> entry.copy(sourceIndex = index) })
+    }
+
+    /** Parses an offline SoundCloud set response, extracting publisher or user artist metadata. */
+    fun parseSoundcloudPlaylistResponse(response: String): ImportedPlaylist {
+        val root = json.parseToJsonElement(response).jsonObject
+        val title = root.stringAny("title", "name")?.trim()?.takeIf(String::isNotEmpty) ?: "Imported SoundCloud playlist"
+        val tracks = (root["tracks"] as? JsonArray).orEmpty()
+        val entries = tracks.mapNotNull { element ->
+            val track = element as? JsonObject ?: return@mapNotNull null
+            val name = track.stringAny("title")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
+            val publisher = track["publisher_metadata"] as? JsonObject
+            val publisherArtist = publisher?.stringAny("artist")?.trim()?.takeIf(String::isNotEmpty)
+            val userArtist = (track["user"] as? JsonObject)?.stringAny("username")?.trim()?.takeIf(String::isNotEmpty)
+            val artist = publisherArtist ?: userArtist ?: return@mapNotNull null
+            val isrc = publisher?.stringAny("isrc")?.trim()?.takeIf(String::isNotEmpty)?.uppercase(Locale.ROOT)
+            PlaylistEntry(name, artist, isrc, 0)
+        }
+        return ImportedPlaylist(title, PlaylistImportProvider.SOUNDCLOUD, entries.mapIndexed { index, entry -> entry.copy(sourceIndex = index) })
+    }
+
+    /** Parses an offline JioSaavn playlist response, unescaping HTML entities and parsing primary artists. */
+    fun parseJioSaavnPlaylistResponse(response: String): ImportedPlaylist {
+        val root = json.parseToJsonElement(response).jsonObject
+        val rawTitle = root.stringAny("title", "name")?.trim()?.takeIf(String::isNotEmpty) ?: "Imported JioSaavn playlist"
+        val title = unescapeHtml(rawTitle)
+        val list = (root["list"] as? JsonArray).orEmpty()
+        val entries = list.mapNotNull { element ->
+            val song = element as? JsonObject ?: return@mapNotNull null
+            val rawSongTitle = song.stringAny("title", "song")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
+            val moreInfo = song["more_info"] as? JsonObject
+            val artistMap = moreInfo?.get("artistMap") as? JsonObject
+            val primaryArtists = (artistMap?.get("primary_artists") as? JsonArray).orEmpty()
+            val artistNames = primaryArtists.mapNotNull {
+                (it as? JsonObject)?.stringAny("name")?.trim()?.takeIf(String::isNotEmpty)?.let(::unescapeHtml)
+            }
+            if (artistNames.isEmpty()) return@mapNotNull null
+            val songTitle = unescapeHtml(rawSongTitle)
+            val artist = artistNames.joinToString(", ")
+            val isrc = (moreInfo?.stringAny("isrc") ?: song.stringAny("isrc"))?.trim()?.takeIf(String::isNotEmpty)?.uppercase(Locale.ROOT)
+            PlaylistEntry(songTitle, artist, isrc, 0)
+        }
+        return ImportedPlaylist(title, PlaylistImportProvider.JIOSAAVN, entries.mapIndexed { index, entry -> entry.copy(sourceIndex = index) })
+    }
+
+    private fun unescapeHtml(text: String): String = text
+        .replace("&quot;", "\"")
+        .replace("&#039;", "'")
+        .replace("&apos;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
+
     /** Offline provider fixtures use the common track-list shape emitted by provider adapters. */
     fun parseProviderFixture(provider: PlaylistImportProvider, fixture: String): ImportedPlaylist {
         require(provider != PlaylistImportProvider.PASTED)
@@ -199,7 +277,7 @@ object PlaylistImportParser {
         }
         return ImportedPlaylist(title, provider, entries.mapIndexed { i, e -> e.copy(sourceIndex = i) })
     }
-    private fun JsonObject.stringAny(vararg keys: String): String? = keys.firstNotNullOfOrNull { key -> this[key]?.let { runCatching { it.jsonPrimitive.content }.getOrNull() } }
+    private fun JsonObject.stringAny(vararg keys: String): String? = keys.firstNotNullOfOrNull { key -> this[key]?.takeUnless { it is JsonNull }?.let { runCatching { it.jsonPrimitive.content }.getOrNull() } }
 }
 
 object PlaylistImportMatcher {
