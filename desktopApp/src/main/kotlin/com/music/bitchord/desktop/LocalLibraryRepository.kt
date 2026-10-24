@@ -69,9 +69,33 @@ class LocalLibraryRepository(private val roots: List<Path>) {
                 val idLength = if (version == 2) 3 else 4
                 val id = tag.copyOfRange(offset, offset + idLength).toString(Charsets.ISO_8859_1)
                 if (id.all { it == '\u0000' }) break
-                val frameSize = if (version == 2) ((tag[offset+3].toInt() and 255) shl 16) or ((tag[offset+4].toInt() and 255) shl 8) or (tag[offset+5].toInt() and 255)
-                    else if (version == 4) syncSafe(tag, offset + 4) else ((tag[offset+4].toInt() and 255) shl 24) or ((tag[offset+5].toInt() and 255) shl 16) or ((tag[offset+6].toInt() and 255) shl 8) or (tag[offset+7].toInt() and 255)
-                if (frameSize <= 0 || offset + frameHeaderSize + frameSize > tag.size) break
+                val frameSize = if (version == 2) {
+                    ((tag[offset + 3].toInt() and 255) shl 16) or ((tag[offset + 4].toInt() and 255) shl 8) or (tag[offset + 5].toInt() and 255)
+                } else if (version == 4) {
+                    val ss = syncSafe(tag, offset + 4)
+                    val raw = ((tag[offset + 4].toInt() and 255) shl 24) or
+                        ((tag[offset + 5].toInt() and 255) shl 16) or
+                        ((tag[offset + 6].toInt() and 255) shl 8) or
+                        (tag[offset + 7].toInt() and 255)
+                    if (ss >= 0 && offset + frameHeaderSize + ss <= tag.size &&
+                        (raw < 0 || offset + frameHeaderSize + raw > tag.size || isValidNextFrame(tag, offset + frameHeaderSize + ss, version))) {
+                        ss
+                    } else if (raw in 0..(tag.size - offset - frameHeaderSize)) {
+                        raw
+                    } else {
+                        ss
+                    }
+                } else {
+                    ((tag[offset + 4].toInt() and 255) shl 24) or
+                        ((tag[offset + 5].toInt() and 255) shl 16) or
+                        ((tag[offset + 6].toInt() and 255) shl 8) or
+                        (tag[offset + 7].toInt() and 255)
+                }
+                if (frameSize < 0 || offset + frameHeaderSize + frameSize > tag.size) break
+                if (frameSize == 0) {
+                    offset += frameHeaderSize
+                    continue
+                }
                 val normalizedId = when (id) { "TT2" -> "TIT2"; "TP1" -> "TPE1"; "TAL" -> "TALB"; else -> id }
                 if (normalizedId in setOf("TIT2", "TPE1", "TALB") && frameSize > 1) {
                     decodeText(tag, offset + frameHeaderSize, frameSize)?.let { if (it.isNotBlank()) result[normalizedId] = it }
@@ -82,6 +106,18 @@ class LocalLibraryRepository(private val roots: List<Path>) {
         }
     } catch (_: Exception) { emptyMap() }
 
+    private fun isValidNextFrame(bytes: ByteArray, offset: Int, version: Int): Boolean {
+        if (offset == bytes.size) return true
+        val idLength = if (version == 2) 3 else 4
+        if (offset + idLength > bytes.size) return false
+        val nextId = bytes.copyOfRange(offset, offset + idLength)
+        if (nextId.all { it == 0.toByte() }) return true
+        return nextId.all {
+            val c = it.toInt().toChar()
+            (c in 'A'..'Z') || (c in '0'..'9')
+        }
+    }
+
     private fun syncSafe(bytes: ByteArray, offset: Int): Int {
         if (offset + 4 > bytes.size) return -1
         return (0..3).fold(0) { value, index -> val byte = bytes[offset + index].toInt() and 255; if (byte > 127) return -1; (value shl 7) or byte }
@@ -90,7 +126,7 @@ class LocalLibraryRepository(private val roots: List<Path>) {
     private fun decodeText(bytes: ByteArray, offset: Int, size: Int): String? {
         val encoding = bytes[offset].toInt() and 255
         val charset = when (encoding) { 0 -> Charsets.ISO_8859_1; 1 -> Charsets.UTF_16; 2 -> Charsets.UTF_16BE; 3 -> Charsets.UTF_8; else -> return null }
-        return bytes.copyOfRange(offset + 1, offset + size).toString(charset).trimEnd('\u0000').trim()
+        return bytes.copyOfRange(offset + 1, offset + size).toString(charset).trimEnd('\u0000').removePrefix("\uFEFF").trim()
     }
 
     companion object {
