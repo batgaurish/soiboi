@@ -12,16 +12,15 @@ import android.content.SharedPreferences
 
 class AppleSessionWiringTest {
 
-    @Test
-    fun authStoreAppleCookieSavesAndRetrievesSecurely() {
-        val memoryStore = mutableMapOf<String, Any>()
+    private fun memoryPreferences(memoryStore: MutableMap<String, Any>): SharedPreferences {
         val editor = Proxy.newProxyInstance(
             SharedPreferences.Editor::class.java.classLoader,
             arrayOf(SharedPreferences.Editor::class.java),
         ) { proxy, method, args ->
             when (method.name) {
                 "putString" -> {
-                    memoryStore[args[0] as String] = args[1] as String
+                    if (args[1] == null) memoryStore.remove(args[0] as String)
+                    else memoryStore[args[0] as String] = args[1] as String
                     proxy
                 }
                 "remove" -> {
@@ -32,8 +31,7 @@ class AppleSessionWiringTest {
                 else -> if (method.returnType == SharedPreferences.Editor::class.java) proxy else null
             }
         } as SharedPreferences.Editor
-
-        val prefs = Proxy.newProxyInstance(
+        return Proxy.newProxyInstance(
             SharedPreferences::class.java.classLoader,
             arrayOf(SharedPreferences::class.java),
         ) { _, method, args ->
@@ -43,13 +41,35 @@ class AppleSessionWiringTest {
                 else -> null
             }
         } as SharedPreferences
+    }
+
+    @Test
+    fun appleCookieIsNotStoredWhenSecureStoreIsUnavailable() {
+        val generalValues = mutableMapOf<String, Any>()
+        val prefs = memoryPreferences(generalValues)
 
         val authStore = AuthStore(prefs)
+        authStore.appleMusicCookie = "media-user-token=must-not-fallback-to-plain-prefs"
+
+        assertNull(generalValues["apple_music_cookie"])
+        assertNull(authStore.appleMusicCookie)
+    }
+
+    @Test
+    fun authStoreAppleCookieSavesAndRetrievesSecurely() {
+        val legacyValues = mutableMapOf<String, Any>()
+        val secureValues = mutableMapOf<String, Any>()
+        val authStore = AuthStore(
+            memoryPreferences(legacyValues),
+            memoryPreferences(secureValues),
+        )
 
         assertNull(authStore.appleMusicCookie)
         authStore.appleMusicCookie = "media-user-token=test-token-123"
         assertEquals("media-user-token=test-token-123", authStore.appleMusicCookie)
         assertEquals("test-token-123", extractMusicUserToken(authStore.appleMusicCookie))
+        assertNull(legacyValues["apple_music_cookie"])
+        assertEquals("media-user-token=test-token-123", secureValues["apple_music_cookie"])
 
         authStore.appleMusicCookie = null
         assertNull(authStore.appleMusicCookie)

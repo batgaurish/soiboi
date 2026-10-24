@@ -2,35 +2,43 @@ package com.music.bitchord.desktop
 
 import com.music.bitchord.data.apple.AppleHomeCatalog
 import com.music.bitchord.data.apple.extractMusicUserToken
-import java.util.UUID
-import java.util.prefs.Preferences
-import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class DesktopAppleAuthTest {
-    private val isolatedNode =
-        Preferences.userRoot().node("com.music.bitchord.desktop.test.appleauth.${UUID.randomUUID()}")
-    private val persistence = DesktopPersistence(isolatedNode)
 
-    @AfterTest
-    fun tearDown() {
-        runCatching { isolatedNode.removeNode() }
+    @Test
+    fun appleCookieIsNotSavedWhenSecretServiceIsUnavailable() {
+        val storage = AppleCookieCredentialStore(
+            lookup = { null },
+            store = { _, _, _ -> false },
+            remove = { true },
+        )
+
+        assertFalse(storage.saveCookie("media-user-token=must-not-fallback-to-plain-prefs"))
+        assertNull(storage.cookie())
     }
 
     @Test
-    fun appleAuthSavesAndRetrievesCookie() {
-        DesktopAppleAuth.clear()
-        assertNull(DesktopAppleAuth.cookie())
+    fun appleCookieRoundTripsThroughSecretStore() {
+        var stored: ByteArray? = null
+        val storage = AppleCookieCredentialStore(
+            lookup = { stored },
+            store = { _, _, secret -> stored = secret; true },
+            remove = { stored = null; true },
+        )
 
-        DesktopAppleAuth.saveCookie("media-user-token=desktop-test-token")
-        val cookie = DesktopAppleAuth.cookie()
+        assertNull(storage.cookie())
+        assertTrue(storage.saveCookie("media-user-token=desktop-test-token"))
+        val cookie = storage.cookie()
         assertEquals("media-user-token=desktop-test-token", cookie)
         assertEquals("desktop-test-token", extractMusicUserToken(cookie))
 
-        DesktopAppleAuth.clear()
-        assertNull(DesktopAppleAuth.cookie())
+        storage.clear()
+        assertNull(storage.cookie())
     }
 
     @Test

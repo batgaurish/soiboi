@@ -36,6 +36,12 @@ internal object EncryptedPrefs {
     fun open(context: Context, name: String, plainName: String): SharedPreferences =
         opened.getOrPut(name) { resolve(context.applicationContext, name, plainName) }
 
+    /** Opens an encrypted-only store. Credentials using this path are never sent to plain prefs. */
+    fun openSecure(context: Context, name: String): SharedPreferences? =
+        runCatching { create(context.applicationContext, name) }
+            .onFailure { Log.w(TAG, "EncryptedSharedPreferences unavailable for secure store $name: ${describe(it)}") }
+            .getOrNull()
+
     private fun resolve(context: Context, name: String, plainName: String): SharedPreferences {
         val encrypted = try {
             create(context, name)
