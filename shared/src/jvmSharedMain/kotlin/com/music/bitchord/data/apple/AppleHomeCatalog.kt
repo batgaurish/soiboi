@@ -88,7 +88,7 @@ class AppleHomeCatalog(
         val key = "${storefront()}|${mut.orEmpty()}"
         if (cacheKey == key && clock() - cachedAt < CACHE_TTL && cached != null) return cached!!
         val result = if (mut == null) publicCharts() else personalized(mut)
-        if (result !is AppleHomeResult.Failed || result.kind != Failure.MISSING_USER_TOKEN) {
+        if (result is AppleHomeResult.Ready || result is AppleHomeResult.Empty) {
             cacheKey = key
             cachedAt = clock()
             cached = result
@@ -170,7 +170,14 @@ class AppleHomeCatalog(
                 ?: contents?.get("links")?.jsonObject?.get("related")?.jsonPrimitive?.content
                 ?: return null
             val path = recommendationExpansionPath(href) ?: return null
-            val (code, body) = request(path, token, mut)
+            var (code, body) = request(path, token, mut)
+            if (code == 401) {
+                developerToken = null
+                val newToken = token()
+                val retry = request(path, newToken, mut)
+                code = retry.first
+                body = retry.second
+            }
             if (containsService3077(body)) {
                 throw AppleFailure(Failure.SERVICE_3077, "Apple Music could not expand this recommendation.")
             }
@@ -190,7 +197,15 @@ class AppleHomeCatalog(
 
     private suspend fun publicCharts(): AppleHomeResult = try {
         val path = "/v1/catalog/${storefront()}/charts?types=albums,playlists,artists&limit=25"
-        val (code, body) = request(path, token(), null)
+        var requestToken = token()
+        var (code, body) = request(path, requestToken, null)
+        if (code == 401) {
+            developerToken = null
+            requestToken = token()
+            val retry = request(path, requestToken, null)
+            code = retry.first
+            body = retry.second
+        }
         if (containsService3077(body)) {
             AppleHomeResult.Failed(Failure.SERVICE_3077, "Apple Music charts returned error 3077.")
         } else if (code !in 200..299) {
@@ -220,17 +235,25 @@ class AppleHomeCatalog(
         val request = Request.Builder().url(url).header("Authorization", "Bearer $token")
             .header("Origin", "https://music.apple.com").apply { if (mut != null) header("Music-User-Token", mut) }.build()
         return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            client.newCall(request).execute().use { response -> response.code to (response.body?.string().orEmpty()) }
+            client.newCall(request).execute().use { response -> response.code to response.body.string() }
         }
     }
 
     private suspend fun token(): String {
         if (developerToken != null && clock() - tokenFetchedAt < TOKEN_TTL) return developerToken!!
-        val home = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { client.newCall(Request.Builder().url("https://music.apple.com/").build()).execute().use { it.body?.string().orEmpty() } }
+        val home = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            client.newCall(Request.Builder().url("https://music.apple.com/").build()).execute().use { response ->
+                if (!response.isSuccessful) throw AppleFailure(Failure.HTTP, "Apple Music homepage returned HTTP ${response.code}.")
+                response.body.string()
+            }
+        }
         val asset = discoverWebPlayerAsset(home)
             ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token asset was not found.")
         val bundle = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { it.body?.string().orEmpty() }
+            client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { response ->
+                if (!response.isSuccessful) throw AppleFailure(Failure.HTTP, "Apple Music web-player bundle returned HTTP ${response.code}.")
+                response.body.string()
+            }
         }
         val jwt = selectWebPlayerToken(bundle)
             ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token was not found.")
