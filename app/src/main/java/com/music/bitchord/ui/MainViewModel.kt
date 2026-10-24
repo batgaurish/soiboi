@@ -110,9 +110,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val authStore = AuthStore(app)
     private val appleHomeCatalog = AppleHomeCatalog(
-        cookieHeader = { null },
+        cookieHeader = { resolveAppleCookie() },
         storefront = { AppleMusicCanvas.storefront },
     )
+
+    private fun resolveAppleCookie(): String? {
+        val stored = authStore.appleMusicCookie?.takeIf(String::isNotBlank)
+        if (stored != null) return stored
+        return runCatching {
+            android.webkit.CookieManager.getInstance().getCookie("https://music.apple.com")
+        }.getOrNull()?.takeIf(String::isNotBlank)
+    }
+
+    fun setAppleMusicCookie(cookie: String?) {
+        authStore.appleMusicCookie = cookie?.takeIf(String::isNotBlank)
+        appleHomeCatalog.invalidate()
+        loadHome()
+    }
+
+    fun hasAppleSession(): Boolean = resolveAppleCookie() != null
 
     // Process-wide, so the playback service offers Like on the same tracks.
     private val _signedIn = SignedIn.state(app)

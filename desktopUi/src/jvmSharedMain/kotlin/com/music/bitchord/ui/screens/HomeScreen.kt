@@ -196,8 +196,6 @@ fun HomeScreen(
                         item {
                             MessageState(
                                 message = "No shelves available",
-                                actionLabel = stringResource(Res.string.retry),
-                                onAction = onRetry,
                             )
                         }
                     } else {
