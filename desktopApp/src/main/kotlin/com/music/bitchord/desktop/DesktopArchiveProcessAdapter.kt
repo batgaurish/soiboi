@@ -15,11 +15,25 @@ class DesktopArchiveProcessAdapter(private val executable: File, private val wor
         require(id.matches(Regex("[A-Za-z0-9._-]{1,128}"))) { "Invalid job id" }
         val process = ProcessBuilder(listOf(executable.absolutePath, action, id) + args).directory(workDirectory).redirectErrorStream(true).start()
         processes[id] = process
+        val output = StringBuilder()
+        val drain = Thread {
+            process.inputStream.bufferedReader().use { reader ->
+                val buffer = CharArray(4096)
+                while (true) {
+                    val count = reader.read(buffer)
+                    if (count < 0) break
+                    synchronized(output) {
+                        if (output.length < maxOutputChars) output.append(buffer, 0, minOf(count, maxOutputChars - output.length))
+                    }
+                }
+            }
+        }.apply { isDaemon = true; start() }
         try {
             if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) { process.destroyForcibly(); throw IllegalStateException("Archive process timed out") }
-            val output = ArchiveProcessProtocol.bounded(process.inputStream.bufferedReader().use { it.readText() }, maxOutputChars)
-            if (process.exitValue() != 0) throw IllegalStateException(ArchiveProcessProtocol.redact(output))
-            return if (optional && output.isBlank()) null else ArchiveProcessProtocol.parseResult(output)
+            drain.join()
+            val captured = synchronized(output) { output.toString() }
+            if (process.exitValue() != 0) throw IllegalStateException(ArchiveProcessProtocol.bounded(ArchiveProcessProtocol.redact(captured), maxOutputChars))
+            return if (optional && captured.isBlank()) null else ArchiveProcessProtocol.parseResult(captured)
         } finally { processes.remove(id, process) }
     }
 }

@@ -17,4 +17,19 @@ class ArchivePipelineTest {
         assertEquals("123", ArchiveProcessProtocol.bounded("123456", 3))
     }
     @Test fun missingRestartStateIsRepresentedAsMissing() { assertNull(ArchiveProcessProtocol.parseOptionalResult("")) }
+
+    @Test fun drainsLargeChildOutputWithoutExceedingConfiguredCaptureLimit() {
+        val dir = java.nio.file.Files.createTempDirectory("archive-process-test").toFile()
+        try {
+            val executable = java.io.File(dir, "fake-child").apply {
+                writeText("#!/bin/sh\nprintf 'token=hidden ' >&2\nhead -c 200000 /dev/zero | tr '\\\\000' x >&2\nexit 7\n")
+                setExecutable(true)
+            }
+            val failure = assertFailsWith<IllegalStateException> {
+                DesktopArchiveProcessAdapter(executable, dir, timeoutSeconds = 3, maxOutputChars = 128).status("job1")
+            }
+            assertEquals(true, failure.message!!.length <= 128)
+            assertEquals(true, failure.message!!.contains("token=[REDACTED]"))
+        } finally { dir.deleteRecursively() }
+    }
 }
