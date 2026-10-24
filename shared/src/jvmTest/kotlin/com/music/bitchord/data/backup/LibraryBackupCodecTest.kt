@@ -266,4 +266,46 @@ class LibraryBackupCodecTest {
             LibraryBackupCodec.decode(corruptedJson)
         }
     }
+
+    @Test
+    fun arbitrarySettingsAndPlaylistTextCannotLeakSuspiciousValues() {
+        val secret = "ghp_abcdefghijklmnopqrstuvwxyz123456"
+        val encoded = LibraryBackupCodec.export(
+            playlists = listOf(BackupPlaylist(
+                name = "Bearer abcdefghijklmnop",
+                songs = listOf(BackupTrack(
+                    id = "opaque_id",
+                    title = secret,
+                    artist = "file:///home/alice/Music/song.flac",
+                    album = "content://private/audio",
+                    durationText = "token=secret-value",
+                )),
+            )),
+            settings = mapOf(
+                "custom_feature" to secret,
+                "harmless_label" to "/home/alice/Music/private.mp3",
+                "ordinary_flag" to "true",
+            ),
+        )
+        assertFalse(encoded.contains(secret))
+        assertFalse(encoded.contains("Bearer abcdefghijklmnop"))
+        assertFalse(encoded.contains("file:///home"))
+        assertFalse(encoded.contains("content://"))
+        assertFalse(encoded.contains("token=secret-value"))
+        assertFalse(encoded.contains("ordinary_flag"))
+    }
+
+    @Test
+    fun decodeFiltersForbiddenFieldsAndEnforcesVersionPolicy() {
+        val imported = """{"version":1,"app":"bitchord","exportedAt":"now","playlists":[{"name":"safe","pinned":false,"songs":[{"id":"id","title":"ghp_abcdefghijklmnopqrstuvwxyz123456","artist":"/home/a/song.mp3","album":"Bearer abcdefghijklmnop","durationText":"3:00"}]}],"settings":{"theme_mode":"dark","custom":"token=hidden","auth_token":"hidden"},"futureField":"ignored"}"""
+        val decoded = LibraryBackupCodec.decode(imported)
+        assertEquals("dark", decoded.settings["theme_mode"])
+        assertFalse(decoded.settings.containsKey("custom"))
+        assertFalse(decoded.settings.containsKey("auth_token"))
+        assertFalse(LibraryBackupCodec.encode(decoded).contains("hidden"))
+        assertTrue(LibraryBackupCodec.decode("""{"playlists":[],"settings":{}}""").version == LibraryBackupCodec.SCHEMA_VERSION)
+        assertFailsWith<UnknownBackupVersionException> {
+            LibraryBackupCodec.decode("""{"version":0,"playlists":[],"settings":{}}""")
+        }
+    }
 }

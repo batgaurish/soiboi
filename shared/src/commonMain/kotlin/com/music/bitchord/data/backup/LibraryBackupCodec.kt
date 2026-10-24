@@ -102,6 +102,18 @@ object LibraryBackupCodec {
     const val SCHEMA_VERSION = 1
     const val APP_TAG = "bitchord"
 
+    // Only explicitly portable preferences are eligible; this is not a general settings export.
+    private val PORTABLE_SETTING_KEYS = setOf(
+        "theme_mode", "equalizer_enabled", "equalizer_bands", "crossfade_seconds",
+        "shuffle_enabled", "repeat_mode", "automix_performance_mode",
+    )
+
+    private val SECRET_VALUE_PATTERNS = listOf(
+        Regex("(?i)\\bbearer\\s+\\S+"), Regex("(?i)(token|secret|password|cookie|session|auth|credential|api[_-]?key)\\s*[:=]"),
+        Regex("(?i)\\bgh[pousr]_[A-Za-z0-9]{20,}\\b"), Regex("(?i)\\bsk-[A-Za-z0-9_-]{16,}\\b"),
+        Regex("(?i)SAPISID=[^;\\s]+"),
+    )
+
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -147,6 +159,9 @@ object LibraryBackupCodec {
     fun isAudioPathValue(value: String): Boolean {
         val trimmed = value.trim()
         return trimmed.startsWith("/") ||
+            trimmed.contains("\\") ||
+            Regex("(?i)^[a-z]:[\\\\/]").containsMatchIn(trimmed) ||
+            trimmed.contains("://") ||
             trimmed.startsWith("file://") ||
             trimmed.startsWith("content://") ||
             trimmed.endsWith(".mp3", ignoreCase = true) ||
@@ -161,19 +176,14 @@ object LibraryBackupCodec {
     /** Returns true if [value] contains sensitive credential substrings. */
     fun isSecretValue(value: String): Boolean {
         val lower = value.lowercase()
-        return lower.contains("bearer_token") ||
-            lower.contains("sapisid=") ||
-            lower.contains("secret") ||
-            lower.contains("token")
+        return SECRET_VALUE_PATTERNS.any { it.containsMatchIn(value) } || lower.contains("sapisid=")
     }
 
     /**
      * Sanitizes settings to ensure no secrets or device-local audio paths are serialized.
      */
     fun sanitizeSettings(rawSettings: Map<String, Any?>): Map<String, String> {
-        return rawSettings.filterKeys { key ->
-            !isSecretKey(key) && !isAudioPathKey(key)
-        }.mapNotNull { (key, value) ->
+        return rawSettings.filterKeys { key -> key in PORTABLE_SETTING_KEYS }.mapNotNull { (key, value) ->
             val stringValue = value?.toString() ?: return@mapNotNull null
             if (isAudioPathValue(stringValue) || isSecretValue(stringValue)) {
                 null
@@ -190,17 +200,21 @@ object LibraryBackupCodec {
         val sanitizedSettings = sanitizeSettings(backup.settings)
         val sanitizedPlaylists = backup.playlists.map { playlist ->
             playlist.copy(
+                name = safeText(playlist.name),
                 songs = playlist.songs.map { track ->
                     track.copy(
-                        id = track.id?.takeIf { !isAudioPathValue(it) },
+                        id = track.id?.takeIf { safeText(it).isNotEmpty() },
+                        title = safeText(track.title),
+                        artist = safeText(track.artist),
+                        album = track.album?.let(::safeText),
+                        durationText = track.durationText?.let(::safeText),
                     )
                 },
             )
         }
         val safeBackup = backup.copy(
-            version = backup.version,
-            app = backup.app,
-            exportedAt = backup.exportedAt,
+            app = safeText(backup.app),
+            exportedAt = safeText(backup.exportedAt),
             playlists = sanitizedPlaylists,
             settings = sanitizedSettings,
         )
@@ -236,8 +250,19 @@ object LibraryBackupCodec {
                 "Unsupported backup version: ${backup.version} (current schema version is $SCHEMA_VERSION)",
             )
         }
-        return backup
+        return backup.copy(
+            app = safeText(backup.app), exportedAt = safeText(backup.exportedAt),
+            playlists = backup.playlists.map { p -> p.copy(name = safeText(p.name), songs = p.songs.map { t ->
+                t.copy(id = t.id?.let(::safeText), title = safeText(t.title), artist = safeText(t.artist),
+                    album = t.album?.let(::safeText), durationText = t.durationText?.let(::safeText))
+            }) },
+            settings = sanitizeSettings(backup.settings),
+        )
     }
+
+    private fun safeText(value: String): String = value.takeUnless {
+        isAudioPathValue(it) || isSecretValue(it)
+    } ?: ""
 
     /**
      * Non-throwing variant of [decode] returning a [Result].
