@@ -93,7 +93,8 @@ class SmartContext(
     val valenceOf: (Song) -> String? = { null },
     val vibeEnergyOf: (Song) -> String? = { null },
     val languageOf: (Song) -> String? = { null },
-    val random: Random = Random(0),
+    /** Seed used to produce the same random order on every evaluation. */
+    val randomSeed: Int = 0,
 )
 
 /** Value stays text whatever the field: half-typed rules degrade to non-matching without throwing. */
@@ -154,13 +155,13 @@ data class SmartRule(
     }
 
     private fun matchesText(actual: String?): Boolean {
-        val subject = (actual ?: "").lowercase()
-        val target = value.lowercase().trim()
+        val subject = actual.orEmpty()
+        val target = value.trim()
         return when (operator) {
-            SmartOperator.Contains -> target in subject
-            SmartOperator.NotContains -> target !in subject
-            SmartOperator.Equals -> subject == target
-            SmartOperator.NotEquals -> subject != target
+            SmartOperator.Contains -> subject.contains(target, ignoreCase = true)
+            SmartOperator.NotContains -> !subject.contains(target, ignoreCase = true)
+            SmartOperator.Equals -> subject.equals(target, ignoreCase = true)
+            SmartOperator.NotEquals -> !subject.equals(target, ignoreCase = true)
             else -> false
         }
     }
@@ -195,7 +196,7 @@ data class SmartRule(
             "false", "no", "0" -> false
             else -> return false
         }
-        val actualBool = actual ?: false
+        val actualBool = actual ?: return false
         return when (operator) {
             SmartOperator.Equals -> actualBool == targetBool
             SmartOperator.NotEquals -> actualBool != targetBool
@@ -251,7 +252,7 @@ data class SmartPlaylist(
 
     private fun sortSongs(songs: List<Song>, ctx: SmartContext): List<Song> {
         if (sort == SmartSort.Random) {
-            return songs.shuffled(ctx.random)
+            return songs.shuffled(Random(ctx.randomSeed))
         }
 
         val primaryComparator: Comparator<Song> = when (sort) {
@@ -271,13 +272,20 @@ data class SmartPlaylist(
             SmartSort.Random -> Comparator { _, _ -> 0 }
         }
 
-        // Secondary deterministic tie-breaking ensures identical order across platforms and JVM runs
-        val stableComparator = primaryComparator
-            .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
-            .thenBy(String.CASE_INSENSITIVE_ORDER) { it.artist }
-            .thenBy { it.videoId }
-
-        return songs.sortedWith(stableComparator)
+        // Common-Kotlin comparators keep sorting portable across KMP targets. The source
+        // index is the final tie-breaker, so exact duplicate metadata remains stable.
+        return songs.withIndex()
+            .sortedWith(Comparator { left, right ->
+                val a = left.value
+                val b = right.value
+                primaryComparator.compare(a, b)
+                    .takeIf { it != 0 }
+                    ?: a.title.compareTo(b.title, ignoreCase = true).takeIf { it != 0 }
+                    ?: a.artist.compareTo(b.artist, ignoreCase = true).takeIf { it != 0 }
+                    ?: a.videoId.compareTo(b.videoId).takeIf { it != 0 }
+                    ?: left.index.compareTo(right.index)
+            })
+            .map { it.value }
     }
 
     private fun <T : Comparable<T>> comparatorNullsLast(

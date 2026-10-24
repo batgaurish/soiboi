@@ -1,7 +1,6 @@
 package com.music.bitchord.data.smartplaylist
 
 import com.music.bitchord.data.model.Song
-import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -11,7 +10,7 @@ class SmartPlaylistTest {
     private val nowEpochSeconds = 1760486400L // 2026-10-15T00:00:00Z
     private val ctx = SmartContext(
         nowEpochSeconds = nowEpochSeconds,
-        random = Random(42),
+        randomSeed = 42,
     )
 
     private fun song(
@@ -167,6 +166,12 @@ class SmartPlaylistTest {
     }
 
     @Test
+    fun missingExplicitFlagDoesNotMatchFalse() {
+        assertFalse(SmartRule(SmartField.Explicit, SmartOperator.Equals, "false").matches(song("unknown"), ctx))
+        assertTrue(SmartRule(SmartField.Explicit, SmartOperator.Equals, "false").matches(song("clear", isExplicit = false), ctx))
+    }
+
+    @Test
     fun flagRulesFavouriteAndVideo() {
         val ctxFav = SmartContext(isFavorite = { it.videoId == "fav" })
         val favSong = song("fav", isVideo = true)
@@ -220,13 +225,37 @@ class SmartPlaylistTest {
     }
 
     @Test
+    fun textMatchingUsesLocaleIndependentCaseInsensitiveComparison() {
+        val track = song("unicode", title = "Été en France")
+        assertTrue(SmartRule(SmartField.Title, SmartOperator.Contains, "été").matches(track, ctx))
+        assertTrue(SmartRule(SmartField.Title, SmartOperator.Equals, "été EN france").matches(track, ctx))
+    }
+
+    @Test
+    fun equalSortKeysPreserveLibraryOrder() {
+        val first = song("duplicate", title = "Same", artist = "Artist", album = "First")
+        val second = song("duplicate", title = "Same", artist = "Artist", album = "Second")
+        val sorted = SmartPlaylist("Stable", emptyList(), sort = SmartSort.Title, descending = false)
+            .evaluate(listOf(first, second), ctx)
+        assertEquals(listOf("First", "Second"), sorted.map { it.albumName })
+    }
+
+    @Test
+    fun randomSortCanBeRepeatedWithSameContext() {
+        val songs = (1..20).map { song("r$it") }
+        val playlist = SmartPlaylist("Random", emptyList(), sort = SmartSort.Random)
+        val context = SmartContext(randomSeed = 12345)
+        assertEquals(playlist.evaluate(songs, context).map { it.videoId }, playlist.evaluate(songs, context).map { it.videoId })
+    }
+
+    @Test
     fun injectableSeededRandomSortIsDeterministic() {
         val songs = (1..20).map { song("s$it", title = "Track $it") }
 
         val playlist = SmartPlaylist("Random", emptyList(), sort = SmartSort.Random)
-        val res1 = playlist.evaluate(songs, SmartContext(random = Random(12345)))
-        val res2 = playlist.evaluate(songs, SmartContext(random = Random(12345)))
-        val resDiffSeed = playlist.evaluate(songs, SmartContext(random = Random(99999)))
+        val res1 = playlist.evaluate(songs, SmartContext(randomSeed = 12345))
+        val res2 = playlist.evaluate(songs, SmartContext(randomSeed = 12345))
+        val resDiffSeed = playlist.evaluate(songs, SmartContext(randomSeed = 99999))
 
         assertEquals(res1.map { it.videoId }, res2.map { it.videoId })
         // Different seed produces different ordering
