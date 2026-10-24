@@ -7,6 +7,7 @@
     <cloud-backup>
         <exclude domain="sharedpref" path="bitchord_auth.xml" />
         <exclude domain="sharedpref" path="bitchord_auth_plain.xml" />
+        <exclude domain="sharedpref" path="bitchord_apple_music_auth.xml" />
         <exclude domain="sharedpref" path="bitchord_sources.xml" />
         <exclude domain="sharedpref" path="bitchord_sources_plain.xml" />
         <!-- Playback queues are local session state; do not resurrect them after reinstall. -->
@@ -17,6 +18,7 @@
     <device-transfer>
         <exclude domain="sharedpref" path="bitchord_auth.xml" />
         <exclude domain="sharedpref" path="bitchord_auth_plain.xml" />
+        <exclude domain="sharedpref" path="bitchord_apple_music_auth.xml" />
         <exclude domain="sharedpref" path="bitchord_sources.xml" />
         <exclude domain="sharedpref" path="bitchord_sources_plain.xml" />
         <!-- Playback queues are local session state; do not resurrect them after reinstall. -->

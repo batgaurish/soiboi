@@ -569,7 +569,7 @@ fun BitChordDesktopApp() {
     var homeState by remember { mutableStateOf<UiState<List<HomeShelf>>>(UiState.Loading) }
     var homeSource by remember { mutableStateOf(persistence.homeSource()) }
     var appleSessionCookie by remember {
-        mutableStateOf(DesktopAppleAuth.cookie() ?: DesktopBrowserCookies.findAppleSession())
+        mutableStateOf(DesktopAppleAuth.cookie())
     }
     val appleHomeCatalog = remember {
         AppleHomeCatalog(
@@ -925,6 +925,16 @@ fun BitChordDesktopApp() {
 
     var appleSignInJob by remember { mutableStateOf<Job?>(null) }
     var appleSignInError by remember { mutableStateOf<String?>(null) }
+    appleSignInError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { appleSignInError = null },
+            title = { Text("Apple Music session") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { appleSignInError = null }) { Text("OK") }
+            },
+        )
+    }
 
     /** Takes a captured cookie all the way to a saved account. */
     suspend fun signIn(cookie: String, label: String, sourceProfile: String? = null) {
@@ -2554,11 +2564,15 @@ fun BitChordDesktopApp() {
 
     fun setAppleMusicCookie(cookie: String?) {
         if (cookie != null) {
-            DesktopAppleAuth.saveCookie(cookie)
+            val saved = DesktopAppleAuth.saveCookie(cookie)
+            appleSessionCookie = cookie
+            if (!saved) {
+                appleSignInError = "Apple Music is connected for this session only. Linux keyring storage is unavailable."
+            }
         } else {
             DesktopAppleAuth.clear()
+            appleSessionCookie = null
         }
-        appleSessionCookie = DesktopAppleAuth.cookie() ?: DesktopBrowserCookies.findAppleSession()
         appleHomeCatalog.invalidate()
         if (homeSource == HomeSource.APPLE) {
             loadHome()

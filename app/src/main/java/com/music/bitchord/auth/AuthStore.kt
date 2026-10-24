@@ -2,6 +2,7 @@ package com.music.bitchord.auth
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.music.bitchord.data.DebugLog as Log
 
 /**
  * Encrypted-at-rest storage for credentials.
@@ -18,11 +19,26 @@ import android.content.SharedPreferences
  * crashing on launch; see [EncryptedPrefs]. Kept out of backups for the first
  * reason, in backup_rules.xml and data_extraction_rules.xml.
  */
-class AuthStore internal constructor(private val prefs: SharedPreferences) {
+class AuthStore internal constructor(
+    private val prefs: SharedPreferences,
+    private val applePrefs: SharedPreferences? = null,
+) {
+
+    init {
+        // Older builds put this field in the general auth preferences, which can fall back to disk
+        // plaintext when Android Keystore is unavailable. Never read or retain that legacy value.
+        runCatching { prefs.edit().remove(KEY_APPLE_MUSIC_COOKIE).apply() }
+    }
 
     constructor(context: Context) : this(
-        EncryptedPrefs.open(context, "bitchord_auth", "bitchord_auth_plain")
-    )
+        EncryptedPrefs.open(context, "bitchord_auth", "bitchord_auth_plain"),
+        EncryptedPrefs.openSecure(context, "bitchord_apple_music_auth"),
+    ) {
+        runCatching {
+            context.getSharedPreferences("bitchord_auth_plain", Context.MODE_PRIVATE)
+                .edit().remove(KEY_APPLE_MUSIC_COOKIE).apply()
+        }
+    }
 
     var cookie: String?
         get() = prefs.getString(KEY_COOKIE, null)
@@ -127,10 +143,13 @@ class AuthStore internal constructor(private val prefs: SharedPreferences) {
      * Encrypted at rest like other credentials here.
      */
     var appleMusicCookie: String?
-        get() = prefs.getString(KEY_APPLE_MUSIC_COOKIE, null)
+        get() = runCatching { applePrefs?.getString(KEY_APPLE_MUSIC_COOKIE, null) }.getOrNull()
         set(value) {
-            if (value != null) prefs.edit().putString(KEY_APPLE_MUSIC_COOKIE, value).apply()
-            else prefs.edit().remove(KEY_APPLE_MUSIC_COOKIE).apply()
+            val securePrefs = applePrefs ?: return
+            runCatching {
+                if (value != null) securePrefs.edit().putString(KEY_APPLE_MUSIC_COOKIE, value).apply()
+                else securePrefs.edit().remove(KEY_APPLE_MUSIC_COOKIE).apply()
+            }.onFailure { Log.w("BitChord", "Apple Music session could not be written to encrypted storage") }
         }
 
     /**
