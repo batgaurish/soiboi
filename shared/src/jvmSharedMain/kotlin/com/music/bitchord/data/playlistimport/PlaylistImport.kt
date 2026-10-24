@@ -51,6 +51,23 @@ object PlaylistImportParser {
         return ImportedPlaylist(title, PlaylistImportProvider.SPOTIFY, entries.mapIndexed { index, entry -> entry.copy(sourceIndex = index) })
     }
 
+    /** Parses the public Deezer playlist response, including its nested `tracks.data` collection. */
+    fun parseDeezerPlaylistResponse(response: String): ImportedPlaylist {
+        val root = json.parseToJsonElement(response).jsonObject
+        val title = root.stringAny("title")?.trim()?.takeIf(String::isNotEmpty) ?: "Imported Deezer playlist"
+        val tracks = (root["tracks"] as? JsonObject)?.get("data") as? JsonArray ?: JsonArray(emptyList())
+        val entries = tracks.mapNotNull { element ->
+            val track = element as? JsonObject ?: return@mapNotNull null
+            val name = track.stringAny("title")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
+            val artist = (track["artist"] as? JsonObject)?.stringAny("name")?.trim()?.takeIf(String::isNotEmpty)
+                ?: track.stringAny("artistName")?.trim()?.takeIf(String::isNotEmpty)
+                ?: return@mapNotNull null
+            val isrc = track.stringAny("isrc")?.trim()?.takeIf(String::isNotEmpty)?.uppercase(Locale.ROOT)
+            PlaylistEntry(name, artist, isrc, 0)
+        }
+        return ImportedPlaylist(title, PlaylistImportProvider.DEEZER, entries.mapIndexed { index, entry -> entry.copy(sourceIndex = index) })
+    }
+
     /** Offline provider fixtures use the common track-list shape emitted by provider adapters. */
     fun parseProviderFixture(provider: PlaylistImportProvider, fixture: String): ImportedPlaylist {
         require(provider != PlaylistImportProvider.PASTED)
