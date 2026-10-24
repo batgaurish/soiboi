@@ -1,0 +1,126 @@
+package com.music.bitchord.data.apple
+
+import com.music.bitchord.data.Http
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Request
+import java.util.Base64
+
+/** Catalogue data is descriptive only; it never carries a BitChord playback id. */
+data class AppleHomeItem(val id: String, val type: String, val title: String, val subtitle: String, val artwork: String?)
+data class AppleHomeShelf(val title: String, val items: List<AppleHomeItem>, val public: Boolean = false)
+sealed interface AppleHomeResult {
+    data object Loading : AppleHomeResult
+    data class Ready(val shelves: List<AppleHomeShelf>, val personalized: Boolean) : AppleHomeResult
+    data class Failed(val kind: Failure, val message: String) : AppleHomeResult
+}
+enum class Failure { MISSING_USER_TOKEN, SERVICE_3077, HTTP, PARSE }
+
+/** Apple Music web catalogue. The scraped web-player token is memory-only. */
+class AppleHomeCatalog(
+    private val cookieHeader: () -> String?,
+    private val storefront: () -> String,
+    private val client: okhttp3.OkHttpClient = Http.client,
+    private val clock: () -> Long = System::currentTimeMillis,
+) {
+    private var developerToken: String? = null
+    private var tokenFetchedAt = 0L
+    private var cacheKey: String? = null
+    private var cachedAt = 0L
+    private var cached: AppleHomeResult? = null
+    private val json = Json { ignoreUnknownKeys = true }
+
+    suspend fun home(): AppleHomeResult {
+        val mut = cookieHeader()?.split(';')?.map(String::trim)?.firstOrNull { it.substringBefore('=', "").equals("media-user-token", ignoreCase = true) }
+            ?.substringAfter('=')?.takeIf(String::isNotBlank)
+        val key = "${storefront()}|${mut.orEmpty()}"
+        if (cacheKey == key && clock() - cachedAt < CACHE_TTL && cached != null) return cached!!
+        val result = if (mut == null) AppleHomeResult.Failed(Failure.MISSING_USER_TOKEN, "Apple Music account cookie is missing. Sign in again.") else personalized(mut)
+        cacheKey = key; cachedAt = clock(); cached = result
+        return result
+    }
+
+    fun invalidate() { cacheKey = null; cached = null }
+
+    private suspend fun personalized(mut: String): AppleHomeResult = coroutineScope {
+        try {
+            val token = token()
+            val paths = listOf("/v1/me/recommendations?limit=10", "/v1/me/recent/played?limit=20", "/v1/me/history/heavy-rotation?limit=20")
+            val responses = paths.map { path -> async { request(path, token, mut) } }.map { it.await() }
+            if (responses.any { it.first == 401 }) {
+                developerToken = null
+                val renewed = token()
+                val retried = paths.mapIndexed { index, path -> async { if (responses[index].first == 401) request(path, renewed, mut) else responses[index] } }.map { it.await() }
+                parsePersonalized(retried)
+            } else parsePersonalized(responses)
+        } catch (e: AppleFailure) { AppleHomeResult.Failed(e.kind, e.message ?: "Apple Music request failed") }
+        catch (e: Exception) { AppleHomeResult.Failed(Failure.HTTP, e.message ?: "Apple Music request failed") }
+    }
+
+    private fun parsePersonalized(responses: List<Pair<Int, String>>): AppleHomeResult {
+        if (responses.any { it.first == 401 }) return AppleHomeResult.Failed(Failure.HTTP, "Apple Music rejected the account session. Sign in again.")
+        if (responses.any { it.first !in 200..299 }) return AppleHomeResult.Failed(Failure.HTTP, "Apple Music returned HTTP ${responses.first { it.first !in 200..299 }.first}.")
+        return try {
+            val shelves = responses.mapNotNull { (_, body) ->
+                val root = json.parseToJsonElement(body).jsonObject
+                val errors = root["errors"]?.jsonArray.orEmpty()
+                if (errors.any { it.toString().contains("3077") }) throw AppleFailure(Failure.SERVICE_3077, "Apple Music could not load this account's home. Check the Apple Music session.")
+                val data = root["data"]?.jsonArray.orEmpty()
+                if (data.isEmpty()) null else AppleHomeShelf("For you", data.mapNotNull(::item))
+            }
+            AppleHomeResult.Ready(shelves, true)
+        } catch (e: AppleFailure) { AppleHomeResult.Failed(e.kind, e.message ?: "Apple Music error") }
+        catch (e: Exception) { AppleHomeResult.Failed(Failure.PARSE, "Apple Music returned unreadable home data.") }
+    }
+
+    private suspend fun publicCharts(): AppleHomeResult = try {
+        val path = "/v1/catalog/${storefront()}/charts?types=albums,playlists,artists&limit=25"
+        val (code, body) = request(path, token(), null)
+        if (code !in 200..299) AppleHomeResult.Failed(Failure.HTTP, "Apple Music charts returned HTTP $code.")
+        else {
+            val data = json.parseToJsonElement(body).jsonObject["results"]?.jsonObject?.values?.firstOrNull()?.jsonObject?.get("data")?.jsonArray.orEmpty()
+            AppleHomeResult.Ready(listOf(AppleHomeShelf("Popular on Apple Music", data.mapNotNull(::item), public = true)).filter { it.items.isNotEmpty() }, false)
+        }
+    } catch (e: AppleFailure) { AppleHomeResult.Failed(e.kind, e.message ?: "Apple Music error") }
+      catch (_: Exception) { AppleHomeResult.Failed(Failure.PARSE, "Apple Music charts could not be read.") }
+
+    private fun item(element: kotlinx.serialization.json.JsonElement): AppleHomeItem? = runCatching {
+        val obj = element.jsonObject; val attr = obj["attributes"]!!.jsonObject
+        AppleHomeItem(obj["id"]!!.jsonPrimitive.content, obj["type"]!!.jsonPrimitive.content,
+            attr["name"]!!.jsonPrimitive.content,
+            attr["artistName"]?.jsonPrimitive?.content.orEmpty(),
+            attr["artwork"]?.jsonObject?.get("url")?.jsonPrimitive?.content)
+    }.getOrNull()
+
+    private suspend fun request(path: String, token: String, mut: String?): Pair<Int, String> {
+        val url = "https://api.music.apple.com$path"
+        val request = Request.Builder().url(url).header("Authorization", "Bearer $token")
+            .header("Origin", "https://music.apple.com").apply { if (mut != null) header("Music-User-Token", mut) }.build()
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            client.newCall(request).execute().use { response -> response.code to (response.body?.string().orEmpty()) }
+        }
+    }
+
+    private suspend fun token(): String {
+        if (developerToken != null && clock() - tokenFetchedAt < TOKEN_TTL) return developerToken!!
+        val home = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { client.newCall(Request.Builder().url("https://music.apple.com/").build()).execute().use { it.body?.string().orEmpty() } }
+        val asset = Regex("/assets/index[~-][^/\\\"]+\\.js").find(home)?.value
+            ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token asset was not found.")
+        val bundle = client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { it.body?.string().orEmpty() }
+        val jwt = Regex("eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+")
+            .findAll(bundle).map { it.value }.firstOrNull { candidate ->
+                runCatching {
+                    val header = String(Base64.getUrlDecoder().decode(candidate.substringBefore('.')))
+                    header.contains("WebPlayKid") || header.contains("AMPWebPlay")
+                }.getOrDefault(false)
+            } ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token was not found.")
+        developerToken = jwt; tokenFetchedAt = clock(); return jwt
+    }
+
+    private data class AppleFailure(val kind: Failure, override val message: String?) : Exception(message)
+    companion object { const val CACHE_TTL = 5 * 60 * 1000L; private const val TOKEN_TTL = 30 * 60 * 1000L }
+}
