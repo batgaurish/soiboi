@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import java.util.Base64
 
@@ -33,6 +34,20 @@ internal fun selectWebPlayerToken(bundle: String): String? {
             val issuer = payload["iss"]?.jsonPrimitive?.content
             match.value.takeIf { kid == "WebPlayKid" && issuer == "AMPWebPlay" }
         }.getOrNull()
+    }
+}
+
+internal fun recommendationExpansionPath(href: String): String? {
+    val absoluteUrl = if (href.startsWith('/')) "https://api.music.apple.com$href" else href
+    val url = absoluteUrl.toHttpUrlOrNull() ?: return null
+    if (url.scheme != "https" || url.host != "api.music.apple.com") return null
+    val expanded = url.newBuilder()
+        .removeAllQueryParameters("types")
+        .addQueryParameter("types", "albums,playlists,stations")
+        .build()
+    return buildString {
+        append(expanded.encodedPath)
+        expanded.encodedQuery?.let { append('?').append(it) }
     }
 }
 
@@ -77,33 +92,76 @@ class AppleHomeCatalog(
 
     private suspend fun personalized(mut: String): AppleHomeResult = coroutineScope {
         try {
-            val token = token()
+            var requestToken = token()
             val paths = listOf("/v1/me/recommendations?limit=10", "/v1/me/recent/played?limit=20", "/v1/me/history/heavy-rotation?limit=20")
-            val responses = paths.map { path -> async { request(path, token, mut) } }.map { it.await() }
+            var responses = paths.map { path -> async { request(path, requestToken, mut) } }.map { it.await() }
             if (responses.any { it.first == 401 }) {
                 developerToken = null
-                val renewed = token()
-                val retried = paths.mapIndexed { index, path -> async { if (responses[index].first == 401) request(path, renewed, mut) else responses[index] } }.map { it.await() }
-                parsePersonalized(retried)
-            } else parsePersonalized(responses)
+                requestToken = token()
+                responses = paths.mapIndexed { index, path ->
+                    async { if (responses[index].first == 401) request(path, requestToken, mut) else responses[index] }
+                }.map { it.await() }
+            }
+            parsePersonalized(responses, requestToken, mut)
         } catch (e: AppleFailure) { AppleHomeResult.Failed(e.kind, e.message ?: "Apple Music request failed") }
         catch (e: Exception) { AppleHomeResult.Failed(Failure.HTTP, e.message ?: "Apple Music request failed") }
     }
 
-    private fun parsePersonalized(responses: List<Pair<Int, String>>): AppleHomeResult {
-        if (responses.any { it.first == 401 }) return AppleHomeResult.Failed(Failure.HTTP, "Apple Music rejected the account session. Sign in again.")
-        if (responses.any { it.first !in 200..299 }) return AppleHomeResult.Failed(Failure.HTTP, "Apple Music returned HTTP ${responses.first { it.first !in 200..299 }.first}.")
-        return try {
-            val shelves = responses.mapNotNull { (_, body) ->
-                val root = json.parseToJsonElement(body).jsonObject
-                val errors = root["errors"]?.jsonArray.orEmpty()
-                if (errors.any { it.toString().contains("3077") }) throw AppleFailure(Failure.SERVICE_3077, "Apple Music could not load this account's home. Check the Apple Music session.")
-                val data = root["data"]?.jsonArray.orEmpty()
-                if (data.isEmpty()) null else AppleHomeShelf("For you", data.mapNotNull(::item))
+    private suspend fun parsePersonalized(
+        responses: List<Pair<Int, String>>,
+        token: String,
+        mut: String,
+    ): AppleHomeResult = coroutineScope {
+        if (responses.any { it.first == 401 }) return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, "Apple Music rejected the account session. Sign in again.")
+        if (responses.any { it.first !in 200..299 }) return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, "Apple Music returned HTTP ${responses.first { it.first !in 200..299 }.first}.")
+        try {
+            val roots = responses.map { json.parseToJsonElement(it.second).jsonObject }
+            if (roots.any { root -> root["errors"]?.jsonArray.orEmpty().any { it.toString().contains("3077") } }) {
+                throw AppleFailure(Failure.SERVICE_3077, "Apple Music could not load this account's home. Check the Apple Music session.")
             }
-            AppleHomeResult.Ready(shelves, true)
+            val recommendationRows = roots[0]["data"]?.jsonArray.orEmpty()
+            val recommendationShelves = recommendationRows.map { recommendation ->
+                async { recommendationShelf(recommendation.jsonObject, token, mut) }
+            }.mapNotNull { it.await() }
+            val recent = catalogShelf("Recently Played", roots[1])
+            val rotation = catalogShelf("Heavy Rotation", roots[2])
+            AppleHomeResult.Ready(recommendationShelves + listOfNotNull(recent, rotation), true)
         } catch (e: AppleFailure) { AppleHomeResult.Failed(e.kind, e.message ?: "Apple Music error") }
         catch (e: Exception) { AppleHomeResult.Failed(Failure.PARSE, "Apple Music returned unreadable home data.") }
+    }
+
+    private suspend fun recommendationShelf(
+        recommendation: kotlinx.serialization.json.JsonObject,
+        token: String,
+        mut: String,
+    ): AppleHomeShelf? {
+        val attributes = recommendation["attributes"]?.jsonObject ?: return null
+        val title = attributes["title"]?.jsonObject?.get("stringForDisplay")?.jsonPrimitive?.content
+            ?: return null
+        val contents = recommendation["relationships"]?.jsonObject?.get("contents")?.jsonObject
+        var rows = contents?.get("data")?.jsonArray.orEmpty()
+        if (rows.isEmpty()) {
+            val href = recommendation["href"]?.jsonPrimitive?.content
+                ?: contents?.get("href")?.jsonPrimitive?.content
+                ?: contents?.get("links")?.jsonObject?.get("related")?.jsonPrimitive?.content
+                ?: return null
+            val path = recommendationExpansionPath(href) ?: return null
+            val (code, body) = request(path, token, mut)
+            if (code !in 200..299) throw AppleFailure(Failure.HTTP, "Apple Music recommendation expansion returned HTTP $code.")
+            val expanded = json.parseToJsonElement(body).jsonObject
+            if (expanded["errors"]?.jsonArray.orEmpty().any { it.toString().contains("3077") }) {
+                throw AppleFailure(Failure.SERVICE_3077, "Apple Music could not expand this recommendation.")
+            }
+            rows = expanded["data"]?.jsonArray.orEmpty()
+        }
+        val items = rows.mapNotNull(::item)
+        return items.takeIf(List<*>::isNotEmpty)?.let { AppleHomeShelf(title, it) }
+    }
+
+    private fun catalogShelf(title: String, root: kotlinx.serialization.json.JsonObject): AppleHomeShelf? {
+        val rows = root["data"]?.jsonArray.orEmpty()
+        val items = rows.mapNotNull(::item)
+        return items.takeIf(List<*>::isNotEmpty)?.let { AppleHomeShelf(title, it) }
     }
 
     private suspend fun publicCharts(): AppleHomeResult = try {
