@@ -117,7 +117,7 @@ object Downloads {
     val saved: StateFlow<Map<String, String>> = _saved.asStateFlow()
 
     private val _savedMetadata = MutableStateFlow<Map<String, SavedSongMetadata>>(emptyMap())
-    val savedMetadata: StateFlow<Map<String, SavedSongMetadata>> = _savedMetadata.asStateFlow()
+    internal val savedMetadata: StateFlow<Map<String, SavedSongMetadata>> = _savedMetadata.asStateFlow()
 
     private val _collections = MutableStateFlow<Map<String, SavedCollection>>(emptyMap())
 
@@ -171,9 +171,9 @@ object Downloads {
             json.decodeFromString(collectionSerializer, prefs.getString(KEY_SAVED_COLLECTIONS, null) ?: "{}")
         }.getOrDefault(emptyMap())
         archiveAdapter = pipeline ?: runCatching {
-            AndroidArchivePipelineAdapter(context.applicationContext) {
+            AndroidArchivePipelineAdapter(context.applicationContext, cookieProvider = {
                 runCatching { BitChordApplication.authStore.appleMusicNetscapeJar }.getOrNull()
-            }
+            })
         }.getOrNull()
     }
 
@@ -897,9 +897,9 @@ object Downloads {
             id.startsWith("session:") -> id.removePrefix("session:")
             else -> id
         }
-        val adapter = archiveAdapter ?: AndroidArchivePipelineAdapter(context.applicationContext) {
+        val adapter = archiveAdapter ?: AndroidArchivePipelineAdapter(context.applicationContext, cookieProvider = {
             runCatching { BitChordApplication.authStore.appleMusicNetscapeJar }.getOrNull()
-        }.also { archiveAdapter = it }
+        }).also { archiveAdapter = it }
 
         val outputDir = File(context.filesDir, "downloads").apply { mkdirs() }.absolutePath
         val format = if (AppSettings.downloadQuality.value.keepsLossless) "alac" else "aac"

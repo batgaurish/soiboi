@@ -273,7 +273,7 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
     private val manifests = DesktopSharedCalls<DesktopAddonManifest>(MANIFEST_TTL_MS, calls)
     private val searches = DesktopSharedCalls<DesktopAddonSearchResponse>(SEARCH_TTL_MS, calls)
     private val streams = DesktopSharedCalls<DesktopAddonStream>(STREAM_TTL_MS, calls)
-    private val isrcResolutions = DesktopSharedCalls<String?>(ISRC_TTL_MS, calls)
+    private val isrcResolutions = DesktopSharedCalls<String>(ISRC_TTL_MS, calls)
 
     /** When this addon may be spoken to again after it said it was being asked too often. */
     @Volatile
@@ -369,7 +369,7 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
             }.fold(
                 onSuccess = { targetUrl ->
                     fetch<DesktopAddonResolveIsrcResponse>(targetUrl)
-                        .map { it.trackId?.trim()?.ifEmpty { null } }
+                        .map { it.trackId?.trim()?.takeIf(String::isNotEmpty).orEmpty() }
                 },
                 onFailure = { failure ->
                     if (failure is CancellationException) throw failure
@@ -390,7 +390,7 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
             }
             return Result.failure(sanitized)
         }
-        return outcome
+        return outcome.map { it.takeIf(String::isNotBlank) }
     }
 
     /** A playable URL for one of this addon's own track ids. */

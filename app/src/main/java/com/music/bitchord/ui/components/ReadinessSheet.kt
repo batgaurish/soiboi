@@ -548,17 +548,17 @@ private fun CheckCard(
                 )
             }
 
-            if (check.fix != null) {
+            check.fix?.let { fix ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(
-                        onClick = { onFix(check.fix) },
+                        onClick = { onFix(fix) },
                         modifier = Modifier.height(32.dp)
                     ) {
                         Text(
-                            text = check.fix.label,
+                            text = fix.label,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -580,7 +580,7 @@ private fun EmptyChecksView() {
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(

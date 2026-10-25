@@ -804,7 +804,6 @@ object AppSettings {
     fun init(context: Context, authStore: AuthStore) {
         prefs = context.getSharedPreferences("bitchord_settings", Context.MODE_PRIVATE)
         this.authStore = authStore
-        com.music.bitchord.download.AndroidAutoDownloadHook.init(context)
         com.music.bitchord.data.spotify.LocalPlaylistStore.init(context)
         readAll()
         watchConnection(context)

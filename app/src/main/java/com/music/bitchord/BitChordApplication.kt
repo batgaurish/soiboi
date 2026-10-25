@@ -1,6 +1,7 @@
 package com.music.bitchord
 
 import android.app.Application
+import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import coil3.ImageLoader
