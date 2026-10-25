@@ -12,6 +12,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.URLBuilder
 import io.ktor.http.Url
 import io.ktor.http.appendPathSegments
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -74,6 +75,11 @@ internal data class DesktopAddonSettingOption(
 ) {
     val stringValue: String? get() = value?.asQueryValue()
 }
+
+@Serializable
+internal data class DesktopAddonResolveIsrcResponse(
+    @SerialName("trackId") val trackId: String? = null,
+)
 
 @Serializable
 internal data class DesktopAddonSearchResponse(
@@ -267,6 +273,7 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
     private val manifests = DesktopSharedCalls<DesktopAddonManifest>(MANIFEST_TTL_MS, calls)
     private val searches = DesktopSharedCalls<DesktopAddonSearchResponse>(SEARCH_TTL_MS, calls)
     private val streams = DesktopSharedCalls<DesktopAddonStream>(STREAM_TTL_MS, calls)
+    private val isrcResolutions = DesktopSharedCalls<String?>(ISRC_TTL_MS, calls)
 
     /** When this addon may be spoken to again after it said it was being asked too often. */
     @Volatile
@@ -274,26 +281,52 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
 
     /** What the addon says it is, or a failure explaining why it cannot be used. */
     suspend fun manifest(): Result<DesktopAddonManifest> = manifests.get(baseUrl) {
-        fetch<DesktopAddonManifest>(manifestUrl(baseUrl)).mapCatching { manifest ->
-            if (manifest.id.isBlank()) {
-                throw DesktopAddonException("That URL answered, but not with an addon manifest")
+        runCatching {
+            manifestUrl(baseUrl)
+        }.fold(
+            onSuccess = { targetUrl ->
+                fetch<DesktopAddonManifest>(targetUrl).mapCatching { manifest ->
+                    if (manifest.id.isBlank()) {
+                        throw DesktopAddonException("That URL answered, but not with an addon manifest")
+                    }
+                    if (!manifest.isPlayable) {
+                        val declared = manifest.resources.joinToString(", ")
+                        throw DesktopAddonException("This addon declares $declared — BitChord needs search")
+                    }
+                    manifest
+                }
+            },
+            onFailure = { failure ->
+                if (failure is CancellationException) throw failure
+                Result.failure(DesktopAddonException(sanitizeMessage(failure.message)))
             }
-            if (!manifest.isPlayable) {
-                val declared = manifest.resources.joinToString(", ")
-                throw DesktopAddonException("This addon declares $declared — BitChord needs search")
-            }
-            manifest
-        }.recoverCatching { failure ->
+        ).recoverCatching { failure ->
             // A manifest 404 is not "no such track", it is "no addon here".
+            if (failure is CancellationException) throw failure
             if (failure is DesktopAddonNotFound) throw DesktopAddonException("No manifest at that URL")
-            throw failure
+            val safeDiagnostic = sanitizeMessage(failure.message)
+            val sanitized = when (failure) {
+                is DesktopAddonUnavailable -> DesktopAddonUnavailable(safeDiagnostic)
+                is DesktopAddonException -> DesktopAddonException(safeDiagnostic)
+                else -> DesktopAddonUnavailable(safeDiagnostic)
+            }
+            throw sanitized
         }
     }
 
     /** Whether the search endpoint answers, asked without reference to a manifest. */
     suspend fun probeSearch(): Result<Int> =
-        fetch<DesktopAddonSearchResponse>(endpoint(listOf("search"), mapOf("q" to PROBE_QUERY)))
-            .map { it.tracks.size }
+        runCatching {
+            endpoint(listOf("search"), mapOf("q" to PROBE_QUERY))
+        }.fold(
+            onSuccess = { targetUrl ->
+                fetch<DesktopAddonSearchResponse>(targetUrl).map { it.tracks.size }
+            },
+            onFailure = { failure ->
+                if (failure is CancellationException) throw failure
+                Result.failure(DesktopAddonException(sanitizeMessage(failure.message)))
+            }
+        )
 
     /** Tracks the addon holds for [query]. */
     suspend fun search(query: String, tier: String): Result<List<DesktopAddonTrack>> {
@@ -303,8 +336,61 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
         // The parameters are in the key because they are in the request: the same query at a
         // different quality is a different question.
         return searches.get(keyOf(trimmed, params.toString())) {
-            fetch<DesktopAddonSearchResponse>(endpoint(listOf("search"), params + ("q" to trimmed)))
+            runCatching {
+                endpoint(listOf("search"), params + ("q" to trimmed))
+            }.fold(
+                onSuccess = { targetUrl ->
+                    fetch<DesktopAddonSearchResponse>(targetUrl)
+                },
+                onFailure = { failure ->
+                    if (failure is CancellationException) throw failure
+                    val safeDiagnostic = sanitizeMessage(failure.message)
+                    Result.failure(DesktopAddonException(safeDiagnostic))
+                }
+            )
         }.map { it.tracks }
+    }
+
+    /**
+     * Resolves [isrc] to this addon's canonical track id, or null if not found. Never a guess.
+     *
+     * Exact verified contract from original Soiboi:
+     * - Endpoint: GET `/resolve-isrc?isrc={isrc}`
+     * - Status 200 with JSON `{"trackId": "..."}`
+     * - Status 404 is a miss (not held or unsupported), returning null without fault
+     */
+    suspend fun resolveIsrc(isrc: String): Result<String?> {
+        val trimmed = isrc.trim()
+        if (trimmed.isEmpty()) return Result.success(null)
+        val params = settingsFor("")
+        val outcome = isrcResolutions.get(keyOf(trimmed, params.toString())) {
+            runCatching {
+                endpoint(listOf("resolve-isrc"), params + ("isrc" to trimmed))
+            }.fold(
+                onSuccess = { targetUrl ->
+                    fetch<DesktopAddonResolveIsrcResponse>(targetUrl)
+                        .map { it.trackId?.trim()?.ifEmpty { null } }
+                },
+                onFailure = { failure ->
+                    if (failure is CancellationException) throw failure
+                    val safeDiagnostic = sanitizeMessage(failure.message, trimmed)
+                    Result.failure(DesktopAddonException(safeDiagnostic))
+                }
+            )
+        }
+        val failure = outcome.exceptionOrNull()
+        if (failure is CancellationException) throw failure
+        if (failure is DesktopAddonNotFound) return Result.success(null)
+        if (failure != null) {
+            val safeDiagnostic = sanitizeMessage(failure.message, trimmed)
+            val sanitized = when (failure) {
+                is DesktopAddonUnavailable -> DesktopAddonUnavailable(safeDiagnostic)
+                is DesktopAddonException -> DesktopAddonException(safeDiagnostic)
+                else -> DesktopAddonUnavailable(safeDiagnostic)
+            }
+            return Result.failure(sanitized)
+        }
+        return outcome
     }
 
     /** A playable URL for one of this addon's own track ids. */
@@ -312,7 +398,18 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
     suspend fun stream(trackId: String, tier: String, stereoOnly: Boolean = false): Result<DesktopAddonStream> {
         val params = settingsFor(tier, stereoOnly)
         return streams.get(keyOf(trackId, params.toString())) {
-            fetch<DesktopAddonStream>(endpoint(listOf("stream", trackId), params))
+            runCatching {
+                endpoint(listOf("stream", trackId), params)
+            }.fold(
+                onSuccess = { targetUrl ->
+                    fetch<DesktopAddonStream>(targetUrl)
+                },
+                onFailure = { failure ->
+                    if (failure is CancellationException) throw failure
+                    val safeDiagnostic = sanitizeMessage(failure.message)
+                    Result.failure(DesktopAddonException(safeDiagnostic))
+                }
+            )
         }
     }
 
@@ -321,6 +418,7 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
         manifests.clear()
         searches.clear()
         streams.clear()
+        isrcResolutions.clear()
         quietUntilMs = 0L
     }
 
@@ -328,6 +426,7 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
     fun clearCompletedTrackCalls() {
         searches.clearCompleted()
         streams.clearCompleted()
+        isrcResolutions.clearCompleted()
     }
 
     /** The query parameters that travel with every request. */
@@ -390,8 +489,38 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
         }.buildString()
     }
 
+    private fun sanitizeMessage(message: String?, isrc: String? = null): String {
+        val raw = message?.takeIf { it.isNotBlank() } ?: "Request failed"
+        var out = redactMessage(raw)
+        if (!isrc.isNullOrBlank() && out.contains(isrc)) {
+            out = out.replace(isrc, maskIsrc(isrc))
+        }
+        val basePath = runCatching { Url(baseUrl).encodedPath.trim('/').takeIf { it.isNotBlank() } }.getOrNull()
+        if (basePath != null && out.contains(basePath)) {
+            out = out.replace(basePath, "***")
+        }
+        runCatching { Url(baseUrl).pathSegments.filter { it.isNotBlank() } }.getOrNull()?.forEach { segment ->
+            if (segment.length >= 4 && out.contains(segment)) {
+                out = out.replace(segment, "***")
+            }
+        }
+        return out
+    }
+
     private suspend inline fun <reified T> fetch(url: String): Result<T> =
         runCatching { json.decodeFromString<T>(body(url)) }
+            .onFailure { if (it is CancellationException) throw it }
+            .recoverCatching { failure ->
+                if (failure is CancellationException) throw failure
+                if (failure is DesktopAddonNotFound) throw failure
+                val safeDiagnostic = sanitizeMessage(failure.message)
+                val sanitized = when (failure) {
+                    is DesktopAddonUnavailable -> DesktopAddonUnavailable(safeDiagnostic)
+                    is DesktopAddonException -> DesktopAddonException(safeDiagnostic)
+                    else -> DesktopAddonUnavailable(safeDiagnostic)
+                }
+                throw sanitized
+            }
 
     /** One GET, with the addon's own back-pressure honoured. */
     private suspend fun body(url: String): String = withContext(Dispatchers.IO) {
@@ -444,6 +573,7 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
         const val CALL_TIMEOUT_MS = 20_000L
         const val MANIFEST_TTL_MS = 10 * 60 * 1000L
         const val SEARCH_TTL_MS = 10 * 60 * 1000L
+        const val ISRC_TTL_MS = 10 * 60 * 1000L
         const val STREAM_TTL_MS = 5 * 60 * 1000L
 
         private const val QUALITY_KEY = "quality"
@@ -487,11 +617,29 @@ internal class DesktopAddonClient(rawBaseUrl: String) {
 
         fun manifestUrl(base: String): String = "$base$MANIFEST_SUFFIX"
 
+        private val URL_REGEX = Regex("""https?://[^\s)"',;>]+""")
+        private val SENSITIVE_QUERY_REGEX = Regex("""(?i)\b(isrc|token|auth|api_?key|secret|password|access_token|refresh_token|session)=[^&\s)"',;>]+""")
+        private val ISRC_REGEX = Regex("""\b[A-Z]{2}-?[A-Z0-9]{3}-?[0-9]{2}-?[0-9]{5}\b""", RegexOption.IGNORE_CASE)
+
+        fun maskIsrc(isrc: String?): String {
+            if (isrc.isNullOrBlank()) return "***"
+            val clean = isrc.trim()
+            return if (clean.length < 6) "***" else "${clean.take(2)}***${clean.takeLast(2)}"
+        }
+
         /** A URL with its token-bearing path hidden, for anything user-visible or logged. */
         fun redact(url: String): String = runCatching {
             val parsed = Url(url)
             "${parsed.protocol.name}://${parsed.host}/***"
         }.getOrDefault("***")
+
+        fun redactMessage(message: String?): String {
+            if (message.isNullOrBlank()) return "no reason given"
+            var out = URL_REGEX.replace(message) { match -> redact(match.value) }
+            out = SENSITIVE_QUERY_REGEX.replace(out, "$1=***")
+            out = ISRC_REGEX.replace(out) { match -> maskIsrc(match.value) }
+            return out
+        }
     }
 }
 
@@ -586,7 +734,13 @@ internal object DesktopAddonSource {
                 if (addon.probeSearch().isSuccess) {
                     Result.success("No manifest · search works")
                 } else {
-                    Result.failure(failure)
+                    val safeDiagnostic = DesktopAddonClient.redactMessage(failure.message)
+                    val sanitized = when (failure) {
+                        is DesktopAddonUnavailable -> DesktopAddonUnavailable(safeDiagnostic)
+                        is DesktopAddonException -> DesktopAddonException(safeDiagnostic)
+                        else -> DesktopAddonUnavailable(safeDiagnostic)
+                    }
+                    Result.failure(sanitized)
                 }
             },
         )
@@ -648,6 +802,15 @@ internal object DesktopAddonSource {
         return emptyList()
     }
 
+    /** Resolves an ISRC to this addon's track id, without creating streaming playback. */
+    suspend fun resolveIsrc(config: DesktopSourceConfig, isrc: String): String? {
+        refreshPolicy(config)
+        val result = client(config).resolveIsrc(isrc)
+        val failure = result.exceptionOrNull()
+        if (failure is CancellationException) throw failure
+        return result.getOrNull()
+    }
+
     /**
      * @param picked [song] is the queue's own row from this addon — chosen from the Addons search —
      *   not a match found for another track. A stereo row is then asked for as stereo, with no
@@ -665,10 +828,11 @@ internal object DesktopAddonSource {
         val tier = tierFor(quality)
         val stereoOnly = picked && song.sourceQuality != null && song.sourceQuality != DesktopModuleSource.DOLBY
         val outcome = client(config).stream(reference.trackId, tier, stereoOnly)
+        val failure = outcome.exceptionOrNull()
+        if (failure is CancellationException) throw failure
         val answer = outcome.getOrNull()
         if (answer == null) {
             // A 404 is the addon saying it does not hold this one, which is a miss, not a fault.
-            val failure = outcome.exceptionOrNull()
             if (failure !is DesktopAddonNotFound) {
                 DesktopTrackLog.log(
                     "${config.displayName}: stream failed for ${reference.trackId} — " +
@@ -682,7 +846,7 @@ internal object DesktopAddonSource {
             // Some addons name a credential the listener has to go and set on their own setup page.
             DesktopTrackLog.log(
                 "${config.displayName}: no stream for ${reference.trackId}" +
-                    (answer.error?.ifBlank { null }?.let { " — $it" } ?: ""),
+                    (answer.error?.ifBlank { null }?.let { " — ${redact(it)}" } ?: ""),
             )
             return@runCatching fromRow(config, reference.trackId, tier)
         }
@@ -779,7 +943,7 @@ internal object DesktopAddonSource {
 
     /** An addon's base URL embeds the account's signed token, so no message may carry one. */
     private fun redact(message: String?): String =
-        message?.replace(Regex("""https?://\S+"""), "the addon") ?: "no reason given"
+        DesktopAddonClient.redactMessage(message)
 
     /** Containers that name their own codec. */
     private val SELF_DESCRIBING_CONTAINERS = setOf("flac", "wav", "mp3", "aiff")
@@ -847,7 +1011,15 @@ internal object DesktopSourceFormats {
         }
         // Report what was actually found over a transport error from a URL the user never typed.
         firstUnsupported?.let { return@withContext Result.success(it) }
-        Result.failure(lastFailure ?: DesktopAddonUnavailable("Nothing answered at that address"))
+        val safeFailure = lastFailure?.let { failure ->
+            val safeDiagnostic = DesktopAddonClient.redactMessage(failure.message)
+            when (failure) {
+                is DesktopAddonUnavailable -> DesktopAddonUnavailable(safeDiagnostic)
+                is DesktopAddonException -> DesktopAddonException(safeDiagnostic)
+                else -> DesktopAddonUnavailable(safeDiagnostic)
+            }
+        } ?: DesktopAddonUnavailable("Nothing answered at that address")
+        Result.failure(safeFailure)
     }
 
     internal fun detect(body: String, url: String = ""): DesktopDetectedFormat {

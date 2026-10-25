@@ -10,6 +10,7 @@ import com.music.bitchord.data.sources.addon.AddonNotFound
 import com.music.bitchord.data.sources.addon.AddonStream
 import com.music.bitchord.data.sources.addon.AddonTrack
 import com.music.bitchord.playback.StreamContainer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Collections
@@ -133,7 +134,7 @@ class AddonSource(
                     TrackLog.d(TAG, "${config.displayName}: no manifest, but search answers")
                     return@fold SourceHealth.Ok("No manifest · search works")
                 }
-                val reason = failure.message ?: "Could not reach the addon"
+                val reason = failure.message?.let(AddonClient::redactMessage) ?: "Could not reach the addon"
                 if (failure is AddonException) {
                     SourceHealth.Rejected(reason)
                 } else {
@@ -193,7 +194,8 @@ class AddonSource(
             if (!admitted("a search")) return@withContext emptyList()
             val tier = request?.tier ?: AddonClient.TIER_LOSSLESS
             val tracks = client.search(query, tier).getOrElse { failure ->
-                TrackLog.w(TAG, "${config.displayName}: search failed — ${failure.message}")
+                if (failure is CancellationException) throw failure
+                TrackLog.w(TAG, "${config.displayName}: search failed — ${AddonClient.redactMessage(failure.message)}")
                 return@withContext emptyList()
             }
             tracks.asSequence()
@@ -227,6 +229,19 @@ class AddonSource(
                 .toList()
         }
 
+    // ── ISRC Resolution ───────────────────────────────────────────────────
+
+    /**
+     * Resolves a recording by ISRC to an addon track id, without creating streaming playback.
+     */
+    suspend fun resolveIsrc(isrc: String): String? = withContext(Dispatchers.IO) {
+        if (!admitted("an isrc resolution")) return@withContext null
+        val result = client.resolveIsrc(isrc)
+        val failure = result.exceptionOrNull()
+        if (failure is CancellationException) throw failure
+        result.getOrNull()
+    }
+
     // ── Stream ────────────────────────────────────────────────────────────
 
     override suspend fun stream(trackId: String, request: StreamRequest): SourceStream? =
@@ -254,8 +269,9 @@ class AddonSource(
                 // fault worth a line, and both end the same way: whatever the
                 // search row had, else null so [SourceResolver] moves on.
                 val failure = result.exceptionOrNull()
+                if (failure is CancellationException) throw failure
                 if (failure !is AddonNotFound) {
-                    TrackLog.w(TAG, "${config.displayName}: stream failed for $trackId — ${failure?.message}")
+                    TrackLog.w(TAG, "${config.displayName}: stream failed for $trackId — ${AddonClient.redactMessage(failure?.message)}")
                 }
                 return@withContext fromRow(trackId, tier)
             }
@@ -269,7 +285,7 @@ class AddonSource(
                 TrackLog.w(
                     TAG,
                     "${config.displayName}: no stream for $trackId" +
-                        (answer.error?.ifBlank { null }?.let { " — $it" } ?: ""),
+                        (answer.error?.ifBlank { null }?.let { " — ${AddonClient.redactMessage(it)}" } ?: ""),
                 )
                 return@withContext fromRow(trackId, tier)
             }
@@ -322,7 +338,7 @@ class AddonSource(
         if (ModuleSource.malformed(url)) {
             TrackLog.w(
                 TAG,
-                "${config.displayName}: malformed URL for $trackId; skipping it — ${url.take(120)}",
+                "${config.displayName}: malformed URL for $trackId; skipping it — ${AddonClient.redact(url)}",
             )
             return null
         }
