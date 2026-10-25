@@ -33,9 +33,9 @@ internal object DesktopUpdateChecker {
     )
 
     private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/kushagrasinghx/BitChord/releases/latest"
+        "https://api.github.com/repos/batgaurish/soiboi/releases/latest"
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.8-beta1"
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "4.0.0"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -73,7 +73,7 @@ internal object DesktopUpdateChecker {
     private fun installerUrl(release: JsonObject): String? {
         val suffixes = when {
             DesktopPlatform.isWindows -> listOf("-windows-x64-setup.exe")
-            DesktopPlatform.isLinux -> listOf(".AppImage", "-linux-amd64.deb")
+            DesktopPlatform.isLinux -> listOf("-linux-x64.jar", ".AppImage", "-linux-amd64.deb")
             else -> return null
         }
         val assets = release["assets"]?.jsonArray?.mapNotNull { it as? JsonObject }.orEmpty()
