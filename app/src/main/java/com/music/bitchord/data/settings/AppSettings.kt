@@ -573,6 +573,14 @@ object AppSettings {
     val librarySort = MutableStateFlow(LibrarySort.DEFAULT)
 
     /**
+     * Account playlist background sync & auto-download loop (SOI-ACC-001/002).
+     * Off by default. When on, monitors signed-in sessions and queues newly
+     * added playlist tracks into Downloads.
+     */
+    val accountSyncEnabled = MutableStateFlow(false)
+    val accountSyncIntervalMinutes = MutableStateFlow(30)
+
+    /**
      * Each album/playlist page's track-list order, keyed by browse id —
      * Spotify-style, every page keeps its own. A page never touched reads as
      * [SongSort.DEFAULT].
@@ -923,6 +931,8 @@ object AppSettings {
         localMusicViewType.value = readLibraryViewType(KEY_LOCAL_MUSIC_VIEW_TYPE)
         downloadedMusicViewType.value = readLibraryViewType(KEY_DOWNLOADED_MUSIC_VIEW_TYPE)
         homeSource.value = readHomeSource()
+        accountSyncEnabled.value = prefs.getBoolean(KEY_ACCOUNT_SYNC_ENABLED, false)
+        accountSyncIntervalMinutes.value = prefs.getInt(KEY_ACCOUNT_SYNC_INTERVAL_MINS, 30)
         homeRecentsViewType.value = readLibraryViewType(KEY_HOME_RECENTS_VIEW_TYPE)
         librarySort.value = prefs.getString(KEY_LIBRARY_SORT, null)
             ?.let { saved -> LibrarySort.entries.firstOrNull { it.name == saved } }
@@ -1737,6 +1747,17 @@ object AppSettings {
         prefs.edit().putString(KEY_HOME_SOURCE, value.name).apply()
     }
 
+    fun setAccountSyncEnabled(value: Boolean) {
+        accountSyncEnabled.value = value
+        prefs.edit().putBoolean(KEY_ACCOUNT_SYNC_ENABLED, value).apply()
+    }
+
+    fun setAccountSyncIntervalMinutes(value: Int) {
+        val clamped = value.coerceIn(5, 1440)
+        accountSyncIntervalMinutes.value = clamped
+        prefs.edit().putInt(KEY_ACCOUNT_SYNC_INTERVAL_MINS, clamped).apply()
+    }
+
     private fun readHomeSource(): HomeSource =
         runCatching {
             HomeSource.valueOf(prefs.getString(KEY_HOME_SOURCE, null) ?: HomeSource.YOUTUBE.name)
@@ -2072,6 +2093,8 @@ object AppSettings {
     private const val KEY_DOWNLOADED_MUSIC_VIEW_TYPE = "downloaded_music_view_type"
     private const val KEY_HOME_RECENTS_VIEW_TYPE = "home_recents_view_type"
     private const val KEY_HOME_SOURCE = "home_source"
+    private const val KEY_ACCOUNT_SYNC_ENABLED = "account_sync_enabled"
+    private const val KEY_ACCOUNT_SYNC_INTERVAL_MINS = "account_sync_interval_mins"
     private const val KEY_LOCAL_MUSIC_FOLDER_URI = "local_music_folder_uri"
     private const val KEY_WEBDAV_URL = "webdav_url"
     private const val KEY_WEBDAV_USERNAME = "webdav_username"

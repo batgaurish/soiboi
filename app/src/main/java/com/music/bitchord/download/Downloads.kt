@@ -117,6 +117,7 @@ object Downloads {
     val saved: StateFlow<Map<String, String>> = _saved.asStateFlow()
 
     private val _savedMetadata = MutableStateFlow<Map<String, SavedSongMetadata>>(emptyMap())
+    val savedMetadata: StateFlow<Map<String, SavedSongMetadata>> = _savedMetadata.asStateFlow()
 
     private val _collections = MutableStateFlow<Map<String, SavedCollection>>(emptyMap())
 

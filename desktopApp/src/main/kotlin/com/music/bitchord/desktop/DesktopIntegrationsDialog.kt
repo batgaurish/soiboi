@@ -75,6 +75,7 @@ internal fun DesktopIntegrationsDialog(
                 modifier = Modifier.padding(start = panelInset(20.dp), end = panelInset(20.dp), top = 18.dp, bottom = 12.dp),
             )
             SpotifySection(spotify)
+            AccountSyncSection()
             DiscordSection(song, onOpenDiscordToken, onChoose = { choosing = it }, onEdit = { editing = it })
             ScrobblingSection(onOpenLastfm, onOpenListenBrainz)
         }
@@ -162,6 +163,53 @@ private fun SpotifySection(spotify: DesktopSpotifyConnection) {
                 subtitle = "Copy sp_dc from open.spotify.com yourself",
                 destructive = false,
                 onClick = spotify.onPasteCookie,
+            )
+        }
+    }
+}
+
+/** Monitors connected accounts and auto-downloads newly added playlist tracks. */
+@Composable
+private fun AccountSyncSection() {
+    val enabled = remember { mutableStateOf(DesktopPersistence().accountSyncEnabled()) }
+    val statuses by DesktopAccountSync.sync.statuses.collectAsState()
+    val isSyncing by DesktopAccountSync.sync.isSyncing.collectAsState()
+
+    PanelGroup(
+        header = DesktopStrings["account_sync", "Account playlist sync"],
+        footer = DesktopStrings[
+            "account_sync_footer",
+            "Monitors connected YouTube Music, Spotify, and Apple Music accounts and auto-downloads newly added playlist tracks into your BitChord folder.",
+        ],
+    ) {
+        PanelSwitchRow(
+            title = DesktopStrings["auto_download_additions", "Auto-download new playlist tracks"],
+            subtitle = if (enabled.value) {
+                if (isSyncing) "Syncing connected accounts now…"
+                else "Periodic sync active (30-minute interval)"
+            } else {
+                "Background sync is turned off"
+            },
+            checked = enabled.value,
+            onCheckedChange = { checked ->
+                enabled.value = checked
+                DesktopAccountSync.setEnabled(checked)
+            },
+            onClick = {
+                val next = !enabled.value
+                enabled.value = next
+                DesktopAccountSync.setEnabled(next)
+            },
+        )
+        if (enabled.value || statuses.isNotEmpty()) {
+            DesktopCardRule()
+            PanelActionRow(
+                title = DesktopStrings["sync_now", "Sync now"],
+                subtitle = if (isSyncing) "Sync in progress…" else "Check all connected playlists for additions",
+                destructive = false,
+                onClick = {
+                    DesktopAccountSync.sync.syncNow()
+                },
             )
         }
     }
