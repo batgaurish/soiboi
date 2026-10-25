@@ -35,6 +35,11 @@ val lastfmSecret: String = (
         ?: System.getenv("LASTFM_SECRET")
         ?: ""
     ).trim()
+val googleApiKey: String = (
+    localProps.getProperty("GOOGLE_API_KEY")
+        ?: System.getenv("GOOGLE_API_KEY")
+        ?: ""
+    ).trim()
 
 /*
  * Where Listen Together's party server lives. Not a credential — it is a public
@@ -74,6 +79,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += (System.getenv("SOIBOI_ABIS") ?: "arm64-v8a,x86_64").split(",").map { it.trim() } }
 
+        // Google API key comes from local.properties or the build environment; never commit it.
+        buildConfigField("String", "GOOGLE_API_KEY", "\"${googleApiKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         // Last.fm credentials are supplied locally and never committed.
         buildConfigField("String", "LASTFM_API_KEY", "\"${lastfmApiKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         buildConfigField("String", "LASTFM_SECRET", "\"${lastfmSecret.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
