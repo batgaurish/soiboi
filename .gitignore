@@ -54,3 +54,12 @@ docs/superpowers/
 .superpowers/
 scorecard.png
 
+# Rust build output
+/pipeline/native/bliss_analyze/target/
+
+# Python / Chaquopy artifacts
+*.pyc
+__pycache__/
+.pytest_cache/
+
+

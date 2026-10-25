@@ -139,8 +139,9 @@ class AuthStore internal constructor(
         set(value) = prefs.edit().putString(KEY_SMB_PASSWORD, value).apply()
 
     /**
-     * The Apple Music web session cookie, containing media-user-token.
-     * Encrypted at rest like other credentials here.
+     * The Apple Music web session as a Cookie header (`name=value; …`), used by catalog API
+     * callers such as AppleHomeCatalog. Encrypted at rest; null when EncryptedSharedPreferences
+     * is unavailable — callers must fail closed rather than falling back to a plaintext path.
      */
     var appleMusicCookie: String?
         get() = runCatching { applePrefs?.getString(KEY_APPLE_MUSIC_COOKIE, null) }.getOrNull()
@@ -150,6 +151,30 @@ class AuthStore internal constructor(
                 if (value != null) securePrefs.edit().putString(KEY_APPLE_MUSIC_COOKIE, value).apply()
                 else securePrefs.edit().remove(KEY_APPLE_MUSIC_COOKIE).apply()
             }.onFailure { Log.w("BitChord", "Apple Music session could not be written to encrypted storage") }
+        }
+
+    /**
+     * The Apple Music session in Netscape/Mozilla cookie-jar format.
+     *
+     * This is what pipeline/soiboi_pipeline/apple_auth.py reads via MozillaCookieJar.
+     * It contains media-user-token plus Apple store cookies (dsid, mz_at0, itspod, …)
+     * required to resolve purchases in the account's storefront ledger. Archive adapters
+     * write this verbatim to a temp file and pass the path to apple_auth.open_api().
+     *
+     * Stored separately from appleMusicCookie so archive adapters always receive the
+     * correct Netscape format and catalog callers always receive a plain Cookie header —
+     * no runtime conversion on either side. Both representations are cleared together
+     * on sign-out. Encrypted at rest via the same secure-only prefs as appleMusicCookie;
+     * null when secure storage is unavailable — callers must fail closed.
+     */
+    var appleMusicNetscapeJar: String?
+        get() = runCatching { applePrefs?.getString(KEY_APPLE_NETSCAPE_JAR, null) }.getOrNull()
+        set(value) {
+            val securePrefs = applePrefs ?: return
+            runCatching {
+                if (value != null) securePrefs.edit().putString(KEY_APPLE_NETSCAPE_JAR, value).apply()
+                else securePrefs.edit().remove(KEY_APPLE_NETSCAPE_JAR).apply()
+            }.onFailure { Log.w("BitChord", "Apple Music Netscape jar could not be written to encrypted storage") }
         }
 
     /**
@@ -262,5 +287,6 @@ class AuthStore internal constructor(
         private const val KEY_WEBDAV_PASSWORD = "webdav_password"
         private const val KEY_SMB_PASSWORD = "smb_password"
         private const val KEY_APPLE_MUSIC_COOKIE = "apple_music_cookie"
+        private const val KEY_APPLE_NETSCAPE_JAR = "apple_music_netscape_jar"
     }
 }

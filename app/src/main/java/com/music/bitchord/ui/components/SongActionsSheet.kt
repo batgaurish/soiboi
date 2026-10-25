@@ -215,6 +215,7 @@ fun SongActionsSheet(
     // A local file or a finished download has no YouTube identity behind it to
     // rate, save, queue into a playlist, fetch again, or share a link for.
     val isOffline = song.localUri != null
+    val isArchive = song.videoId.startsWith("apple:") || song.videoId.startsWith("archive:") || song.videoId.startsWith("session:")
 
     val rows: @Composable ColumnScope.() -> Unit = {
         // Leads the list whenever it's available: which recording is playing
@@ -226,7 +227,7 @@ fun SongActionsSheet(
         // a substituted copy, the other for a track held on YouTube's own —
         // and between them they are the whole of the choice, which is why they
         // sit in the same place under the same divider.
-        if (onRollbackToOriginal != null || onUpgradeQuality != null || onToggleAudioVersion != null) {
+        if (!isArchive && (onRollbackToOriginal != null || onUpgradeQuality != null || onToggleAudioVersion != null)) {
             (onRollbackToOriginal ?: onUpgradeQuality)?.let {
                 ActionRow(
                     icon = if (onRollbackToOriginal != null) {
@@ -262,7 +263,7 @@ fun SongActionsSheet(
             GroupSeparator(palette)
         }
 
-        if (signedIn && !isOffline) {
+        if (signedIn && !isOffline && !isArchive) {
             ActionRow(
                 icon = if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                 label = if (liked) stringResource(R.string.remove_from_liked) else stringResource(R.string.like),
@@ -295,25 +296,27 @@ fun SongActionsSheet(
         }
 
         DownloadRow(song, palette, isOffline, onDownload)
-        WebDavUploadRow(song, palette, isOffline, onUploadToWebDav)
-        ActionRow(
-            icon = Icons.Rounded.Radio,
-            label = stringResource(R.string.start_radio),
-            accent = palette.accent,
-            onClick = onStartRadio,
-        )
-        ActionRow(
-            icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
-            label = stringResource(R.string.play_next),
-            accent = palette.accent,
-            onClick = onPlayNext,
-        )
-        ActionRow(
-            icon = Icons.AutoMirrored.Rounded.QueueMusic,
-            label = stringResource(R.string.add_to_queue),
-            accent = palette.accent,
-            onClick = onAddToQueue,
-        )
+        if (!isArchive) {
+            WebDavUploadRow(song, palette, isOffline, onUploadToWebDav)
+            ActionRow(
+                icon = Icons.Rounded.Radio,
+                label = stringResource(R.string.start_radio),
+                accent = palette.accent,
+                onClick = onStartRadio,
+            )
+            ActionRow(
+                icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                label = stringResource(R.string.play_next),
+                accent = palette.accent,
+                onClick = onPlayNext,
+            )
+            ActionRow(
+                icon = Icons.AutoMirrored.Rounded.QueueMusic,
+                label = stringResource(R.string.add_to_queue),
+                accent = palette.accent,
+                onClick = onAddToQueue,
+            )
+        }
         when (val id = song.albumId) {
             null -> if (resolvingLinks) {
                 LoadingActionRow(Icons.Rounded.Album, stringResource(R.string.open_album), palette)
@@ -354,7 +357,7 @@ fun SongActionsSheet(
                 onClick = it,
             )
         }
-        if (!isOffline) {
+        if (!isOffline && !isArchive) {
             onShare?.let {
                 ActionRow(Icons.Rounded.Share, stringResource(R.string.share), accent = palette.accent, onClick = it)
             }

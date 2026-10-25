@@ -1,6 +1,7 @@
 package com.music.bitchord.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.music.bitchord.R
@@ -26,6 +27,9 @@ import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.lyrics.LyricsRepository
 import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.apple.AppleHomeCatalog
+import com.music.bitchord.data.apple.AppleHomeItem
+import com.music.bitchord.data.apple.AppleHomeResult
+import com.music.bitchord.data.apple.AppleHomeShelf
 import com.music.bitchord.data.apple.toUiState
 import com.music.bitchord.data.canvas.AppleMusicCanvas
 import com.music.bitchord.data.settings.AppSettings
@@ -114,21 +118,48 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         storefront = { AppleMusicCanvas.storefront },
     )
 
-    private fun resolveAppleCookie(): String? {
-        val stored = authStore.appleMusicCookie?.takeIf(String::isNotBlank)
-        if (stored != null) return stored
-        return runCatching {
-            android.webkit.CookieManager.getInstance().getCookie("https://music.apple.com")
-        }.getOrNull()?.takeIf(String::isNotBlank)
+    private fun resolveAppleCookie(): String? =
+        // Read only the encrypted Cookie header. Never fall back to the WebView's
+        // persistent cookie jar — the session is cleared from the jar after handoff
+        // and must not be re-read as a fallback credential.
+        authStore.appleMusicCookie?.takeIf(String::isNotBlank)
+
+    /**
+     * Persists both Apple Music session representations and invalidates the catalog cache.
+     *
+     * [netscapeJar] is stored for archive adapters (apple_auth.open_api / MozillaCookieJar).
+     * [cookieHeader] is stored for catalog API callers (AppleHomeCatalog).
+     * Both are encrypted via EncryptedSharedPreferences; if secure storage is unavailable
+     * the setter silently no-ops, leaving both fields null — callers see no session.
+     */
+    fun setAppleMusicSession(netscapeJar: String, cookieHeader: String) {
+        authStore.appleMusicNetscapeJar = netscapeJar.takeIf(String::isNotBlank)
+        authStore.appleMusicCookie = cookieHeader.takeIf(String::isNotBlank)
+        appleHomeCatalog.invalidate()
+        loadHome()
     }
 
-    fun setAppleMusicCookie(cookie: String?) {
-        authStore.appleMusicCookie = cookie?.takeIf(String::isNotBlank)
+    fun signOutAppleMusic() {
+        authStore.appleMusicNetscapeJar = null
+        authStore.appleMusicCookie = null
         appleHomeCatalog.invalidate()
         loadHome()
     }
 
     fun hasAppleSession(): Boolean = resolveAppleCookie() != null
+
+    fun findAppleItem(title: String, subtitle: String): AppleHomeItem? =
+        _appleHomeShelves.value.flatMap { it.items }.firstOrNull { it.title == title && it.subtitle == subtitle }
+
+    fun archiveAppleItem(context: Context, item: AppleHomeItem) {
+        val song = Song(
+            videoId = "apple:${item.id}",
+            title = item.title,
+            artist = item.subtitle,
+            thumbnailUrl = item.artwork,
+        )
+        Downloads.enqueue(context, song, from = "Apple Music")
+    }
 
     // Process-wide, so the playback service offers Like on the same tracks.
     private val _signedIn = SignedIn.state(app)
@@ -136,6 +167,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _home = MutableStateFlow<UiState<List<HomeShelf>>>(UiState.Loading)
     val home: StateFlow<UiState<List<HomeShelf>>> = _home.asStateFlow()
+
+    private val _appleHomeShelves = MutableStateFlow<List<AppleHomeShelf>>(emptyList())
+    val appleHomeShelves: StateFlow<List<AppleHomeShelf>> = _appleHomeShelves.asStateFlow()
 
     /**
      * Token for the next page of Home shelves; null once there's nothing
@@ -1673,6 +1707,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             viewModelScope.launch {
                 val result = appleHomeCatalog.home()
                 if (isCurrentHomeLoad(identity, generation)) {
+                    if (result is AppleHomeResult.Ready) {
+                        _appleHomeShelves.value = result.shelves
+                    } else if (result !is AppleHomeResult.Loading) {
+                        _appleHomeShelves.value = emptyList()
+                    }
                     _home.value = result.toUiState()
                 }
             }
@@ -1765,6 +1804,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             appleHomeCatalog.invalidate()
             val result = appleHomeCatalog.home()
             if (identity == listenerKey()) {
+                if (result is AppleHomeResult.Ready) {
+                    _appleHomeShelves.value = result.shelves
+                } else if (result !is AppleHomeResult.Loading) {
+                    _appleHomeShelves.value = emptyList()
+                }
                 _home.value = result.toUiState()
             }
             return@coroutineScope

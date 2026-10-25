@@ -122,6 +122,9 @@ object DesktopDownloadQueue {
     /** Puts a failed track back at the end of the queue. */
     fun retry(videoId: String) {
         val song = _active.value[videoId]?.song ?: return
+        if (DesktopDownloadManager.isArchiveId(videoId)) {
+            DesktopDownloadManager.resume(videoId)
+        }
         _active.update { it - videoId }
         enqueue(song)
     }

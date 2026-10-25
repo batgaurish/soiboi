@@ -212,11 +212,13 @@ import com.music.bitchord.playback.upgradeQuality
 import com.music.bitchord.playback.revertToOriginal
 import com.music.bitchord.playback.swapToVersion
 import com.music.bitchord.playback.smart.VersionAudioAligner
+import com.music.bitchord.data.apple.AppleHomeItem
 import com.music.bitchord.download.DownloadSession
 import com.music.bitchord.download.DownloadStore
 import com.music.bitchord.download.MediaTagger
 import com.music.bitchord.download.DownloadTarget
 import com.music.bitchord.download.Downloads
+import com.music.bitchord.ui.components.AppleCatalogueSheet
 import com.music.bitchord.ui.components.BrowseActionsSheet
 import com.music.bitchord.ui.components.BrowseTarget
 import com.music.bitchord.ui.components.ConfirmationAlert
@@ -621,6 +623,7 @@ private fun BitChordApp(
     var showDiscordLogin by remember { mutableStateOf(false) }
     var showSpotifyLogin by remember { mutableStateOf(false) }
     var showAppleLogin by remember { mutableStateOf(false) }
+    var appleCatalogueTarget by remember { mutableStateOf<AppleHomeItem?>(null) }
     var discordDialog by remember { mutableStateOf<DiscordDialog?>(null) }
     var songActions by remember { mutableStateOf<Song?>(null) }
     var showLyricsOffset by remember { mutableStateOf(false) }
@@ -2865,6 +2868,9 @@ private fun BitChordApp(
                                 showSettings = false
                                 webSession = WebSessionMode.SIGN_IN
                             },
+                            onAppleSignIn = {
+                                showAppleLogin = true
+                            },
                             onSignOut = { viewModel.signOut() },
                             onAccountScrobbling = {
                                 settingsSubScreen = "account_scrobbling"
@@ -3101,25 +3107,51 @@ private fun BitChordApp(
                                     }
                                 },
                                 onItemClick = { item, shelfTitle ->
-                                val song = shelfSong(item)
-                                // Hoisted because ShelfItem lives in :shared, and
-                                // Kotlin will not smart-cast a public nullable
-                                // property declared in another module.
-                                val browseId = item.browseId
-                                when {
-                                    song != null -> playRadio(
-                                        song,
-                                        QueueSource(shelfTitle, PlaybackSourceType.HOME),
-                                    )
-                                    browseId != null -> viewModel.openDetail(
-                                        browseId = browseId,
-                                        title = item.title,
-                                        subtitle = item.subtitle,
-                                        thumbnailUrl = item.thumbnailUrl,
-                                    )
-                                }
-                            },
-                            onItemLongPress = onShelfLongPress,
+                                    if (isAppleHome) {
+                                        val appleItem = viewModel.findAppleItem(item.title, item.subtitle)
+                                            ?: AppleHomeItem(
+                                                id = item.title.hashCode().toString(),
+                                                type = "song",
+                                                title = item.title,
+                                                subtitle = item.subtitle,
+                                                artwork = item.thumbnailUrl,
+                                            )
+                                        appleCatalogueTarget = appleItem
+                                    } else {
+                                        val song = shelfSong(item)
+                                        // Hoisted because ShelfItem lives in :shared, and
+                                        // Kotlin will not smart-cast a public nullable
+                                        // property declared in another module.
+                                        val browseId = item.browseId
+                                        when {
+                                            song != null -> playRadio(
+                                                song,
+                                                QueueSource(shelfTitle, PlaybackSourceType.HOME),
+                                            )
+                                            browseId != null -> viewModel.openDetail(
+                                                browseId = browseId,
+                                                title = item.title,
+                                                subtitle = item.subtitle,
+                                                thumbnailUrl = item.thumbnailUrl,
+                                            )
+                                        }
+                                    }
+                                },
+                                onItemLongPress = { item ->
+                                    if (isAppleHome) {
+                                        val appleItem = viewModel.findAppleItem(item.title, item.subtitle)
+                                            ?: AppleHomeItem(
+                                                id = item.title.hashCode().toString(),
+                                                type = "song",
+                                                title = item.title,
+                                                subtitle = item.subtitle,
+                                                artwork = item.thumbnailUrl,
+                                            )
+                                        appleCatalogueTarget = appleItem
+                                    } else {
+                                        onShelfLongPress(item)
+                                    }
+                                },
                             onRetry = viewModel::loadHome,
                             refreshing = MainViewModel.Feed.HOME in refreshing,
                             onRefresh = { viewModel.refresh(MainViewModel.Feed.HOME) },
@@ -5421,15 +5453,55 @@ private fun BitChordApp(
                             color = MaterialTheme.colorScheme.onBackground,
                         )
                     }
+                    // Concise guided steps: two lines below the title bar.
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            "1. Use your Apple ID to sign in on the page.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "2. BitChord captures the session and closes this window automatically.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     AppleMusicLoginScreen(
                         modifier = Modifier.navigationBarsPadding(),
-                        onConnected = { cookie ->
-                            viewModel.setAppleMusicCookie(cookie)
+                        onConnected = { netscapeJar, cookieHeader ->
+                            viewModel.setAppleMusicSession(netscapeJar, cookieHeader)
                             showAppleLogin = false
                         },
                     )
                 }
             }
+        }
+
+        appleCatalogueTarget?.let { item ->
+            AppleCatalogueSheet(
+                item = item,
+                onArchive = {
+                    viewModel.archiveAppleItem(context, item)
+                    appleCatalogueTarget = null
+                },
+                onCancel = {
+                    Downloads.cancel("apple:${item.id}")
+                },
+                onDelete = {
+                    scope.launch { Downloads.delete(context, "apple:${item.id}") }
+                },
+                onRetry = {
+                    viewModel.archiveAppleItem(context, item)
+                },
+                onDismiss = {
+                    appleCatalogueTarget = null
+                },
+            )
         }
 
         if (showSpotifyCanvasAuth) {

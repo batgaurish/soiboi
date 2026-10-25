@@ -2562,11 +2562,14 @@ fun BitChordDesktopApp() {
         loadHome()
     }
 
-    fun setAppleMusicCookie(cookie: String?) {
-        if (cookie != null) {
-            val saved = DesktopAppleAuth.saveCookie(cookie)
-            appleSessionCookie = cookie
-            if (!saved) {
+    fun setAppleMusicSession(session: AppleSession?) {
+        if (session != null) {
+            // Both representations must be saved. If SecretService is unavailable both
+            // save calls return false and both fields stay null after restart — fail closed.
+            val savedJar = DesktopAppleAuth.saveNetscapeJar(session.netscapeJar)
+            val savedHeader = DesktopAppleAuth.saveCookie(session.cookieHeader)
+            appleSessionCookie = session.cookieHeader
+            if (!savedJar || !savedHeader) {
                 appleSignInError = "Apple Music is connected for this session only. Linux keyring storage is unavailable."
             }
         } else {
@@ -2587,8 +2590,8 @@ fun BitChordDesktopApp() {
         appleSignInError = null
         appleSignInJob = scope.launch {
             try {
-                val cookie = DesktopWebSignIn.captureApple()
-                setAppleMusicCookie(cookie)
+                val session = DesktopWebSignIn.captureApple()
+                setAppleMusicSession(session)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {

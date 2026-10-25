@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Brightness4
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.DeleteSweep
@@ -138,6 +139,7 @@ import coil3.compose.AsyncImage
 import com.music.bitchord.ui.components.isGlassSupported
 import com.music.bitchord.ui.components.languageDisplayNameRes
 import com.music.bitchord.ui.components.MessageState
+import com.music.bitchord.ui.components.ReadinessSheet
 import com.music.bitchord.ui.components.SearchField
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.icons.BitChordIcons
@@ -192,6 +194,7 @@ fun SettingsScreen(
     onSpotifyCanvasAuth: () -> Unit,
     onAppLanguage: () -> Unit,
     onEditSignatureApi: () -> Unit,
+    onAppleSignIn: (() -> Unit)? = null,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -290,6 +293,7 @@ fun SettingsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var picking by remember { mutableStateOf<QualityTarget?>(null) }
     var pickingDownloadQuality by remember { mutableStateOf(false) }
+    var showingReadiness by remember { mutableStateOf(false) }
     var pickingAutomixPerformance by remember { mutableStateOf(false) }
     // What the last export or import did, shown on the row that did it rather
     // than as a toast: a backup is the one action here whose outcome nobody can
@@ -564,6 +568,15 @@ fun SettingsScreen(
                     checked = exportDownloads,
                     onCheckedChange = AppSettings::setExportDownloads,
                     subtitle = "Music/BitChord".takeIf { exportDownloads },
+                )
+            }
+            val downloadReadinessTitle = "Download readiness"
+            row(downloadReadinessTitle, "readiness", "status", "python", "wrapper", "dependencies", "checks", divided = false) {
+                SettingsRow(
+                    icon = Icons.Rounded.CheckCircle,
+                    title = downloadReadinessTitle,
+                    subtitle = "Inspect dependencies, engine, lossless wrapper, storage, and network",
+                    onClick = { showingReadiness = true },
                 )
             }
         }
@@ -1667,6 +1680,13 @@ fun SettingsScreen(
                 },
             )
         }
+    }
+
+    if (showingReadiness) {
+        ReadinessSheet(
+            onDismiss = { showingReadiness = false },
+            onSignIn = onAppleSignIn ?: onSignIn,
+        )
     }
 
     // Everything in the Cached songs folder goes with it, so say so first.

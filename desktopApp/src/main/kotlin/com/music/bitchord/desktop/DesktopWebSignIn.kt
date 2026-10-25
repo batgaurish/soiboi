@@ -14,10 +14,23 @@ import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
+import javafx.scene.layout.VBox
 import javafx.scene.web.WebView
 import javafx.stage.Stage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+
+/**
+ * Both credential representations produced by a successful Apple Music sign-in.
+ *
+ * [netscapeJar] is for archive adapters — written verbatim to a temp file and passed to
+ * apple_auth.open_api(cookies_path). It contains media-user-token plus Apple store cookies
+ * (dsid, mz_at0, itspod, …) in Netscape/Mozilla format so MozillaCookieJar.load() succeeds.
+ *
+ * [cookieHeader] is for catalog API callers — the same cookies as a `Cookie: name=value; …`
+ * header string, for use in HTTP requests to Apple's catalog and personalized endpoints.
+ */
+internal data class AppleSession(val netscapeJar: String, val cookieHeader: String)
 
 /**
  * In-app sign-in, as Android does it: the provider's own web login in a WebView, and the session read
@@ -59,8 +72,26 @@ internal object DesktopWebSignIn {
     /** The `sp_dc` cookie's value, taken as soon as Spotify sets it. */
     suspend fun captureSpotify(): String = capture(Service.SPOTIFY)
 
-    /** The `media-user-token` cookie from Apple Music, taken as soon as Apple sets it. */
-    suspend fun captureApple(): String = capture(Service.APPLE_MUSIC)
+    /**
+     * Both Apple Music session representations, taken once media-user-token appears.
+     *
+     * Collects cookies from all Apple domains (music.apple.com, buy.itunes.apple.com,
+     * apple.com, idmsa.apple.com) and returns them as both a Netscape jar (for archive
+     * adapters) and a Cookie header (for catalog API callers). The WebView's cookie jar
+     * is reset after capture via [DesktopWebCookies.reset] regardless of success.
+     */
+    suspend fun captureApple(): AppleSession {
+        check(available) { "This desktop cannot show a sign-in window (JavaFX did not start)." }
+        return suspendCancellableCoroutine { continuation ->
+            Platform.runLater {
+                val window = AppleSignInWindow { result ->
+                    if (continuation.isActive) continuation.resumeWith(result)
+                }
+                continuation.invokeOnCancellation { Platform.runLater(window::cancel) }
+                window.show()
+            }
+        }
+    }
 
     private suspend fun capture(service: Service): String {
         check(available) { "This desktop cannot show a sign-in window (JavaFX did not start)." }
@@ -94,9 +125,137 @@ internal object DesktopWebSignIn {
 
     private fun appleSession(): String? = cookies(Service.APPLE_MUSIC).split(';')
         .map(String::trim)
-        .firstOrNull { it.substringBefore('=').equals(APPLE_COOKIE, ignoreCase = true) }
+        .firstOrNull { it.substringBefore('=') == APPLE_COOKIE }
         ?.substringAfter('=')
         ?.takeIf(String::isNotBlank)
+
+    /**
+     * Collects ALL Apple cookies from every relevant domain via the JavaFX CookieHandler and
+     * returns both session representations, or null if media-user-token is not present yet.
+     *
+     * JavaFX's CookieHandler.get() is URI-scoped, so we query each Apple domain separately.
+     * The handler returns only name=value pairs without domain/path/expires metadata, so
+     * domains are assigned using the same rules as apple_auth.py's store_cookie_header().
+     */
+    private fun appleSessionFull(): AppleSession? {
+        val appleDomains = listOf(
+            "https://music.apple.com",
+            "https://buy.itunes.apple.com",
+            "https://apple.com",
+            "https://idmsa.apple.com",
+            "https://appleid.apple.com",
+        )
+        val storeNames = setOf("X-Dsid", "dsid", "mz_at0", "mz_at_ssl", "itspod", "itxt", "hsaccnt")
+        // Collect name/value/sourceUrl triples; keep first occurrence when a name appears in multiple jars.
+        val pairs = appleDomains.flatMap { domainUrl ->
+            runCatching {
+                CookieHandler.getDefault()
+                    .get(URI(domainUrl), emptyMap())["Cookie"].orEmpty()
+                    .joinToString("; ")
+            }.getOrDefault("").split(';').mapNotNull { entry ->
+                val name = entry.substringBefore('=').trim()
+                val value = entry.substringAfter('=', "").trim()
+                if (name.isEmpty() || value.isEmpty()) null else Triple(name, value, domainUrl)
+            }
+        }.distinctBy { it.first }
+
+        // media-user-token must be present before we hand off
+        if (pairs.none { it.first.equals("media-user-token", ignoreCase = true) && it.second.isNotBlank() }) {
+            return null
+        }
+
+        val jarLines = pairs.joinToString("\n") { (name, value, sourceUrl) ->
+            val domain = when {
+                name.equals("media-user-token", ignoreCase = true) -> ".music.apple.com"
+                name in storeNames || name.startsWith("mz_at") || name.startsWith("des-") -> ".apple.com"
+                sourceUrl.contains("music.apple.com") -> ".music.apple.com"
+                else -> ".apple.com"
+            }
+            listOf(domain, "TRUE", "/", "TRUE", "0", name, value).joinToString("\t")
+        }
+        val netscapeJar = "# Netscape HTTP Cookie File\n# Written by BitChord. Do not edit.\n$jarLines\n"
+        val cookieHeader = pairs.joinToString("; ") { "${it.first}=${it.second}" }
+        return AppleSession(netscapeJar, cookieHeader)
+    }
+
+    /** One Apple Music sign-in window that resolves an [AppleSession] when complete. */
+    private class AppleSignInWindow(
+        private val finish: (Result<AppleSession>) -> Unit,
+    ) {
+        private val stage = Stage()
+        private val root = BorderPane()
+        private val where = Label().apply { style = "-fx-text-fill: #888888;" }
+        private var view: WebView? = null
+        private var storage: Path? = null
+        private var done = false
+
+        init {
+            stage.title = Service.APPLE_MUSIC.title
+            val startOver = Button("Start over").apply { setOnAction { load() } }
+            val steps = Label(
+                "1. Use your Apple ID to sign in on the page.\n" +
+                    "2. BitChord captures the session automatically.",
+            ).apply {
+                style = "-fx-text-fill: #888888; -fx-font-size: 12;"
+                isWrapText = true
+            }
+            val bar = HBox(8.0, startOver, Region().also { HBox.setHgrow(it, Priority.ALWAYS) }, where)
+            bar.padding = Insets(6.0, 8.0, 6.0, 8.0)
+            val top = VBox(4.0, steps, bar).apply { style = "-fx-padding: 8 8 0 8;" }
+            root.top = top
+            stage.scene = Scene(root, 480.0, 760.0)
+            stage.setOnHidden { cancel() }
+            load()
+        }
+
+        fun show() = stage.show()
+
+        fun cancel() = complete(Result.failure(CancellationException("Apple Music sign-in cancelled")))
+
+        private fun load() {
+            discard()
+            DesktopWebCookies.reset()
+            val folder = Files.createTempDirectory("bitchord-apple-sign-in-").also { storage = it }
+            val next = WebView().also { view = it }
+            val engine = next.engine
+            engine.userDataDirectory = folder.toFile()
+            engine.locationProperty().addListener { _, _, url -> where.text = hostOf(url) }
+            engine.loadWorker.stateProperty().addListener { _, _, state ->
+                if (state == Worker.State.SUCCEEDED && view === next) checkPage(engine.location.orEmpty())
+            }
+            root.center = next
+            engine.load(Service.APPLE_MUSIC.startUrl)
+        }
+
+        private fun checkPage(url: String) {
+            if (!url.startsWith("https://music.apple.com")) return
+            appleSessionFull()?.let { complete(Result.success(it)) }
+        }
+
+        private fun complete(result: Result<AppleSession>) {
+            if (done) return
+            done = true
+            if (result.isSuccess) DesktopTrackLog.log("sign-in: Apple Music session captured")
+            stage.close()
+            discard()
+            // Clear the sign-in window's cookie jar regardless of success or failure.
+            DesktopWebCookies.reset()
+            finish(result)
+        }
+
+        private fun hostOf(url: String): String = runCatching { URI(url).host }.getOrNull().orEmpty()
+
+        private fun discard() {
+            view?.engine?.load("about:blank")
+            view = null
+            storage?.toFile()?.let { folder ->
+                if (!folder.deleteRecursively()) {
+                    Runtime.getRuntime().addShutdownHook(Thread { folder.deleteRecursively() })
+                }
+            }
+            storage = null
+        }
+    }
 
     /** One sign-in: a window that resolves [finish] once, with the session or a cancellation. */
     private class SignInWindow(

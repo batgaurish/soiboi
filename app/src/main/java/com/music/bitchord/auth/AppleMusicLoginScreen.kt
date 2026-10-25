@@ -2,7 +2,6 @@ package com.music.bitchord.auth
 
 import android.annotation.SuppressLint
 import android.net.Uri
-import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
@@ -20,8 +19,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 private const val LOGIN_URL = "https://music.apple.com/us/browse"
 
-private val APPLE_COOKIE_URLS = listOf(
+/** Every Apple domain whose cookies are needed by the pipeline and catalog API. */
+private val APPLE_CAPTURE_URLS = listOf(
     "https://music.apple.com",
+    "https://buy.itunes.apple.com",
     "https://apple.com",
     "https://idmsa.apple.com",
     "https://appleid.apple.com",
@@ -40,11 +41,48 @@ private fun hostMatches(uri: Uri?, suffixes: List<String>): Boolean {
 private fun isLoginHost(uri: Uri?) = hostMatches(uri, LOGIN_HOST_SUFFIXES)
 
 /**
- * Signs the login WebView out of Apple Music.
+ * Cookie names that the pipeline's apple_auth.store_cookie_header() needs for the iTunes store
+ * ledger. gamdl's webPlayback otherwise returns error 3077 ("item not found for fuse").
+ */
+private val STORE_COOKIE_NAMES = setOf("X-Dsid", "dsid", "mz_at0", "mz_at_ssl", "itspod", "itxt", "hsaccnt")
+
+/**
+ * Assign a Netscape domain for a cookie whose source domain metadata is unavailable.
+ * gamdl requires media-user-token on exactly .music.apple.com; store cookies on .apple.com.
+ */
+private fun netscapeDomainFor(name: String, sourceUrl: String): String = when {
+    name.equals("media-user-token", ignoreCase = true) -> ".music.apple.com"
+    name in STORE_COOKIE_NAMES || name.startsWith("mz_at") || name.startsWith("des-") -> ".apple.com"
+    sourceUrl.contains("music.apple.com") -> ".music.apple.com"
+    else -> ".apple.com"
+}
+
+/**
+ * Builds a Netscape/Mozilla cookie jar string from name-value pairs.
+ *
+ * android.webkit.CookieManager.getCookie() returns only "name=value" pairs — no domain, path,
+ * expires, or httpOnly metadata. We assign domains from the cookie name and source URL using
+ * the same rules as apple_auth.py's store_cookie_header(). Expires is 0 (session cookie);
+ * gamdl loads the jar with ignore_discard=True and ignore_expires=True, so this is fine.
+ */
+private fun buildNetscapeJar(pairs: List<Triple<String, String, String>>): String {
+    val header = "# Netscape HTTP Cookie File\n# Written by BitChord. Do not edit.\n"
+    val lines = pairs.joinToString("\n") { (name, value, sourceUrl) ->
+        val domain = netscapeDomainFor(name, sourceUrl)
+        listOf(domain, "TRUE", "/", "TRUE", "0", name, value).joinToString("\t")
+    }
+    return header + lines + "\n"
+}
+
+/**
+ * Clears all Apple WebView cookies from the shared process cookie jar.
+ *
+ * Called after the session is handed off whether saving to secure storage succeeded or failed.
+ * Prevents the persistent WebView jar from being re-read as a credential fallback.
  */
 fun clearAppleWebSession() {
     val cookies = CookieManager.getInstance()
-    for (url in APPLE_COOKIE_URLS) {
+    for (url in APPLE_CAPTURE_URLS) {
         val names = cookies.getCookie(url)?.split(";")
             ?.map { it.substringBefore("=").trim() }
             ?.filter { it.isNotEmpty() }
@@ -59,13 +97,27 @@ fun clearAppleWebSession() {
 }
 
 /**
- * In-app Apple Music sign-in. Lets music.apple.com handle the login,
- * capturing the `media-user-token` once set.
+ * In-app Apple Music sign-in.
+ *
+ * Lets music.apple.com handle the sign-in (Apple ID, 2FA, passkeys) — BitChord never sees
+ * credentials. Once media-user-token appears, ALL Apple cookies from every relevant domain are
+ * collected and converted into:
+ *
+ *  - a Netscape/Mozilla cookie jar string (for archive adapters → apple_auth.py)
+ *  - a Cookie header string (for catalog API callers → AppleHomeCatalog)
+ *
+ * [onConnected] is called with both. The WebView cookies are cleared immediately afterwards
+ * regardless of whether saving to secure storage succeeds or fails, so the persistent WebView
+ * jar cannot be re-read as a fallback credential.
+ *
+ * The composable does not render a header or guided steps — those are the caller's
+ * responsibility so the layout stays consistent with the rest of the sign-in sheets.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun AppleMusicLoginScreen(
-    onConnected: (String) -> Unit,
+    /** Called once with (netscapeJar, cookieHeader) when the session is ready. */
+    onConnected: (netscapeJar: String, cookieHeader: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
@@ -96,18 +148,42 @@ fun AppleMusicLoginScreen(
                     override fun onPageFinished(view: WebView, url: String?) {
                         canGoBack = view.canGoBack()
                         if (sent) return
-                        val raw = CookieManager.getInstance().getCookie("https://music.apple.com") ?: return
-                        if (raw.contains("media-user-token=")) {
-                            val token = raw.split(";")
-                                .map { it.trim() }
-                                .firstOrNull { it.startsWith("media-user-token=") }
-                                ?.substringAfter("=")
-                                ?.takeIf { it.isNotBlank() }
-                            if (token != null) {
-                                sent = true
-                                view.visibility = View.GONE
-                                onConnected("media-user-token=$token")
+
+                        // Wait until media-user-token is present before harvesting the session.
+                        val musicCookies = CookieManager.getInstance().getCookie("https://music.apple.com")
+                        if (musicCookies == null || !musicCookies.contains("media-user-token=")) return
+                        val tokenPresent = musicCookies.split(";")
+                            .any { it.substringBefore("=").trim().equals("media-user-token", ignoreCase = true) &&
+                                it.substringAfter("=", "").trim().isNotBlank() }
+                        if (!tokenPresent) return
+
+                        // Collect cookies from all Apple domains. CookieManager.getCookie() is
+                        // host-scoped and returns only name=value pairs; we assign Netscape
+                        // domain fields from name and source URL.
+                        val manager = CookieManager.getInstance()
+                        val pairs = APPLE_CAPTURE_URLS.flatMap { captureUrl ->
+                            manager.getCookie(captureUrl).orEmpty().split(";").mapNotNull { part ->
+                                val eq = part.indexOf('=')
+                                if (eq <= 0) return@mapNotNull null
+                                val name = part.substring(0, eq).trim()
+                                val value = part.substring(eq + 1).trim()
+                                if (name.isEmpty() || value.isEmpty()) null
+                                else Triple(name, value, captureUrl)
                             }
+                        }.distinctBy { it.first }  // keep first occurrence if a name appears in multiple jars
+
+                        // Require media-user-token in the collected set before handing off.
+                        if (pairs.none { it.first.equals("media-user-token", ignoreCase = true) }) return
+
+                        sent = true
+                        val netscapeJar = buildNetscapeJar(pairs)
+                        val cookieHeader = pairs.joinToString("; ") { "${it.first}=${it.second}" }
+
+                        // Hand off then clear, regardless of what the caller does with the session.
+                        try {
+                            onConnected(netscapeJar, cookieHeader)
+                        } finally {
+                            clearAppleWebSession()
                         }
                     }
                 }

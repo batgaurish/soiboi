@@ -2,19 +2,31 @@ package com.music.bitchord.desktop
 
 import com.music.bitchord.data.model.Song
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.ConcurrentHashMap
 
 /** Downloads resolved audio into the user's own BitChord folder. */
 object DesktopDownloadManager {
     private val activeJobs = ConcurrentHashMap<String, Job>()
+
+    @Volatile
+    var archiveAdapter: ArchivePipeline = DesktopArchiveProcessAdapter()
+
+    fun isArchiveTrack(song: Song): Boolean =
+        isArchiveId(song.videoId)
+
+    fun isArchiveId(videoId: String): Boolean =
+        videoId.startsWith("apple:") || videoId.startsWith("archive:") || videoId.startsWith("session:")
 
     /** Keeps an interrupted transfer in place and resumes it when the user tries again. */
     suspend fun download(
@@ -26,6 +38,9 @@ object DesktopDownloadManager {
         if (job != null) activeJobs[song.videoId] = job
         return try {
             require(song.localPath == null) { "This track is already local" }
+            if (isArchiveTrack(song)) {
+                return runArchiveDownload(song, quality, onProgress)
+            }
             val stream = DesktopMusicSources.resolve(song, quality, forDownload = true).getOrThrow()
             val directory = Path.of(System.getProperty("user.home"), "Music", "BitChord")
             Files.createDirectories(directory)
@@ -109,6 +124,10 @@ object DesktopDownloadManager {
             }
             Result.success(song.copy(localUri = target.toUri().toString(), localPath = target.toString()))
         } catch (cancelled: CancellationException) {
+            if (isArchiveTrack(song)) {
+                val cleanId = song.videoId.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                runCatching { archiveAdapter.cancel(cleanId) }
+            }
             throw cancelled
         } catch (failure: Throwable) {
             Result.failure(failure)
@@ -117,8 +136,111 @@ object DesktopDownloadManager {
         }
     }
 
+    private suspend fun runArchiveDownload(
+        song: Song,
+        quality: String,
+        onProgress: (downloaded: Long, total: Long?) -> Unit,
+    ): Result<Song> = withContext(Dispatchers.IO) {
+        val id = song.videoId
+        val cleanId = id.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val mediaId = when {
+            id.startsWith("apple:") -> id.removePrefix("apple:")
+            id.startsWith("archive:") -> id.removePrefix("archive:")
+            id.startsWith("session:") -> id.removePrefix("session:")
+            else -> id
+        }
+        val directory = Path.of(System.getProperty("user.home"), "Music", "BitChord")
+        Files.createDirectories(directory)
+
+        val safeName = buildString {
+            append(song.artist)
+            append(" - ")
+            append(song.title)
+        }.replace(ILLEGAL_FILENAME, "_").trim().take(180).ifBlank { cleanId }
+
+        val format = if (quality.equals("LOSSLESS", ignoreCase = true) || quality.equals("ALAC", ignoreCase = true)) "alac" else "aac"
+        val expectedExt = if (format == "alac") "m4a" else "m4a"
+        val target = directory.resolve("$safeName.$expectedExt")
+        if (Files.isRegularFile(target) && Files.size(target) > 0L) {
+            return@withContext Result.success(song.copy(localUri = target.toUri().toString(), localPath = target.toString()))
+        }
+
+        val request = ArchiveJobRequest(
+            jobId = cleanId,
+            mediaId = mediaId,
+            mediaType = "track",
+            outputDirectory = directory.toString(),
+            format = format,
+        )
+
+        val enqueued = archiveAdapter.enqueue(request)
+        if (enqueued.state == ArchiveJobState.FAILED) {
+            val msg = ArchiveProcessProtocol.redact(enqueued.message ?: "Archival failed to start")
+            return@withContext Result.failure(IllegalStateException(msg))
+        }
+
+        onProgress(0, 100)
+        while (true) {
+            currentCoroutineContext().ensureActive()
+            delay(250)
+            val status = archiveAdapter.status(cleanId) ?: break
+            when (status.state) {
+                ArchiveJobState.RUNNING -> {
+                    onProgress(50, 100)
+                }
+                ArchiveJobState.DONE -> {
+                    val filePath = status.path
+                    val file = if (!filePath.isNullOrBlank()) java.io.File(filePath) else null
+                    val resolvedFile = file?.takeIf { it.exists() && it.length() > 0 }
+                        ?: target.toFile().takeIf { it.exists() && it.length() > 0 }
+                        ?: findAudioFile(directory, safeName)
+                        ?: throw IllegalStateException("Archive completed but output audio file not found on disk")
+                    onProgress(100, 100)
+                    DesktopTrackLog.log("archived and saved ${song.title} to $resolvedFile")
+                    return@withContext Result.success(song.copy(
+                        localUri = resolvedFile.toURI().toString(),
+                        localPath = resolvedFile.absolutePath,
+                    ))
+                }
+                ArchiveJobState.FAILED -> {
+                    val msg = ArchiveProcessProtocol.redact(status.message ?: "Archive download failed")
+                    return@withContext Result.failure(IllegalStateException(msg))
+                }
+                ArchiveJobState.CANCELLED -> {
+                    throw CancellationException("Archive download cancelled")
+                }
+                ArchiveJobState.QUEUED -> {
+                    onProgress(10, 100)
+                }
+            }
+        }
+        Result.failure(IllegalStateException("Archive process finished without a terminal status"))
+    }
+
+    private fun findAudioFile(directory: Path, baseName: String): java.io.File? {
+        val extensions = listOf("m4a", "flac", "alac", "mp3", "wav")
+        for (ext in extensions) {
+            val candidate = directory.resolve("$baseName.$ext")
+            if (Files.isRegularFile(candidate) && Files.size(candidate) > 0L) {
+                return candidate.toFile()
+            }
+        }
+        return null
+    }
+
     fun cancel(videoId: String) {
+        if (isArchiveId(videoId)) {
+            val cleanId = videoId.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            runCatching { archiveAdapter.cancel(cleanId) }
+        }
         activeJobs[videoId]?.cancel(CancellationException("Download cancelled"))
+    }
+
+    fun resume(videoId: String) {
+        if (isArchiveId(videoId)) {
+            val cleanId = videoId.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            runCatching { archiveAdapter.resume(cleanId) }
+        }
     }
 
     /**

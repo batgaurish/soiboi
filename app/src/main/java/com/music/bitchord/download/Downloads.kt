@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +35,12 @@ import kotlinx.serialization.json.Json
 import java.io.OutputStream
 import java.io.File
 import java.util.Locale
+import com.music.bitchord.BitChordApplication
+import com.music.bitchord.archive.AndroidArchivePipelineAdapter
+import com.music.bitchord.desktop.ArchiveJobRequest
+import com.music.bitchord.desktop.ArchiveJobResult
+import com.music.bitchord.desktop.ArchiveJobState
+import com.music.bitchord.desktop.ArchivePipeline
 
 /** Where a track is between "not on this device" and "on it". */
 sealed interface DownloadState {
@@ -142,7 +149,16 @@ object Downloads {
      */
     private val running = LinkedHashMap<String, Job?>()
 
-    fun init(context: Context) {
+    @Volatile
+    var archiveAdapter: ArchivePipeline? = null
+
+    fun isArchiveTrack(song: Song): Boolean =
+        song.videoId.startsWith("apple:") || song.videoId.startsWith("archive:") || song.videoId.startsWith("session:")
+
+    fun isArchiveId(videoId: String): Boolean =
+        videoId.startsWith("apple:") || videoId.startsWith("archive:") || videoId.startsWith("session:")
+
+    fun init(context: Context, pipeline: ArchivePipeline? = null) {
         prefs = context.getSharedPreferences("bitchord_settings", Context.MODE_PRIVATE)
         _saved.value = runCatching {
             json.decodeFromString(serializer, prefs.getString(KEY_SAVED, null) ?: "{}")
@@ -153,6 +169,11 @@ object Downloads {
         _collections.value = runCatching {
             json.decodeFromString(collectionSerializer, prefs.getString(KEY_SAVED_COLLECTIONS, null) ?: "{}")
         }.getOrDefault(emptyMap())
+        archiveAdapter = pipeline ?: runCatching {
+            AndroidArchivePipelineAdapter(context.applicationContext) {
+                runCatching { BitChordApplication.authStore.appleMusicNetscapeJar }.getOrNull()
+            }
+        }.getOrNull()
     }
 
     // ---- Asking -------------------------------------------------------------
@@ -224,12 +245,23 @@ object Downloads {
             if (videoId !in running) return@synchronized null
             running.remove(videoId)
         }
+        if (isArchiveId(videoId)) {
+            val cleanId = videoId.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            runCatching { archiveAdapter?.cancel(cleanId) }
+        }
         job?.cancel()
         clear(videoId)
         // A download the user called off is not something they need reminding to
         // check on, so it leaves the manager rather than sitting in it as a
         // permanent "cancelled" row.
         DownloadSession.forget(videoId)
+    }
+
+    fun resume(videoId: String) {
+        if (isArchiveId(videoId)) {
+            val cleanId = videoId.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            runCatching { archiveAdapter?.resume(cleanId) }
+        }
     }
 
     // ---- The record ---------------------------------------------------------
@@ -831,19 +863,92 @@ object Downloads {
         DownloadSession.running(id, 0f)
 
         try {
-            val plan = prepare(context, song)
-            // The manager is showing the row that was tapped, which for a music
-            // video is the wrong title and the wrong cover for the file actually
-            // being written. Corrected here rather than left to disagree with
-            // the notification and with the Downloads page afterwards.
-            DownloadSession.retitle(id, plan.track)
-            transfer(context, song, plan)
+            if (isArchiveTrack(song)) {
+                runArchiveDownload(context, song)
+            } else {
+                val plan = prepare(context, song)
+                // The manager is showing the row that was tapped, which for a music
+                // video is the wrong title and the wrong cover for the file actually
+                // being written. Corrected here rather than left to disagree with
+                // the notification and with the Downloads page afterwards.
+                DownloadSession.retitle(id, plan.track)
+                transfer(context, song, plan)
+            }
         } catch (e: CancellationException) {
+            if (isArchiveTrack(song)) {
+                val cleanId = id.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                runCatching { archiveAdapter?.cancel(cleanId) }
+            }
             clear(id)
             throw e
         } catch (e: Exception) {
             Log.w(TAG, "download failed for $id: ${e.message}", e)
             fail(id, e.friendly())
+        }
+    }
+
+    private suspend fun runArchiveDownload(context: Context, song: Song) = withContext(Dispatchers.IO) {
+        val id = song.videoId
+        val cleanId = id.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val mediaId = when {
+            id.startsWith("apple:") -> id.removePrefix("apple:")
+            id.startsWith("archive:") -> id.removePrefix("archive:")
+            id.startsWith("session:") -> id.removePrefix("session:")
+            else -> id
+        }
+        val adapter = archiveAdapter ?: AndroidArchivePipelineAdapter(context.applicationContext) {
+            runCatching { BitChordApplication.authStore.appleMusicNetscapeJar }.getOrNull()
+        }.also { archiveAdapter = it }
+
+        val outputDir = File(context.filesDir, "downloads").apply { mkdirs() }.absolutePath
+        val format = if (AppSettings.downloadQuality.value.keepsLossless) "alac" else "aac"
+
+        val request = ArchiveJobRequest(
+            jobId = cleanId,
+            mediaId = mediaId,
+            mediaType = "track",
+            outputDirectory = outputDir,
+            format = format,
+        )
+
+        val enqueued = adapter.enqueue(request)
+        if (enqueued.state == ArchiveJobState.FAILED) {
+            fail(id, enqueued.message ?: "Archival failed to start")
+            return@withContext
+        }
+
+        var finished = false
+        while (!finished) {
+            delay(250)
+            val status = adapter.status(cleanId) ?: break
+            when (status.state) {
+                ArchiveJobState.RUNNING -> {
+                    _active.update { it + (id to DownloadState.Running(0.5f)) }
+                    DownloadSession.running(id, 0.5f)
+                }
+                ArchiveJobState.DONE -> {
+                    finished = true
+                    val filePath = status.path
+                    val file = if (!filePath.isNullOrBlank()) File(filePath) else null
+                    val savedUri = file?.takeIf { it.exists() }?.let { Uri.fromFile(it) }
+                        ?: Uri.fromFile(File(outputDir, DownloadStore.fileNameFor(song, if (format == "alac") "m4a" else "m4a")))
+                    remember(song, song, savedUri, format)
+                    DownloadSession.done(id)
+                    clear(id)
+                    Log.d(TAG, "archived and saved $id to $savedUri")
+                }
+                ArchiveJobState.FAILED -> {
+                    finished = true
+                    fail(id, status.message ?: "Archival failed")
+                }
+                ArchiveJobState.CANCELLED -> {
+                    finished = true
+                    clear(id)
+                }
+                ArchiveJobState.QUEUED -> {
+                    // still queued in bridge
+                }
+            }
         }
     }
 
