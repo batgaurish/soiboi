@@ -68,6 +68,9 @@ fun AccountAndScrobblingScreen(
     val discordUsername by AppSettings.discordUsername.collectAsStateWithLifecycle()
     val discordRpcEnabled by AppSettings.discordRpcEnabled.collectAsStateWithLifecycle()
     val spotifyConnected by AppSettings.spotifySpdcToken.collectAsStateWithLifecycle()
+    val accountSyncEnabled by AppSettings.accountSyncEnabled.collectAsStateWithLifecycle()
+    val isSyncing by com.music.bitchord.data.account.AndroidAccountSync.sync.isSyncing.collectAsStateWithLifecycle()
+    val syncStatuses by com.music.bitchord.data.account.AndroidAccountSync.sync.statuses.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -127,6 +130,44 @@ fun AccountAndScrobblingScreen(
                     onClick = {
                         clearSpotifyWebSession()
                         AppSettings.setSpotifySpdcToken("")
+                    },
+                )
+            }
+        }
+
+        SettingsGroup(
+            header = "Account Playlist Sync",
+            footer = "Monitors your connected YouTube Music, Spotify, and Apple Music accounts and auto-downloads newly added playlist tracks into your library.",
+        ) {
+            SettingsRow(
+                icon = Icons.Rounded.Cloud,
+                title = "Auto-download new playlist tracks",
+                subtitle = if (accountSyncEnabled) {
+                    if (isSyncing) "Syncing connected accounts now…"
+                    else "Periodic 30-minute sync active"
+                } else {
+                    "Background sync is turned off"
+                },
+                trailing = {
+                    Switch(
+                        checked = accountSyncEnabled,
+                        onCheckedChange = AppSettings::setAccountSyncEnabled,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            checkedBorderColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
+                },
+                onClick = { AppSettings.setAccountSyncEnabled(!accountSyncEnabled) },
+            )
+            if (accountSyncEnabled || syncStatuses.isNotEmpty()) {
+                RowDivider()
+                SettingsRow(
+                    icon = Icons.Rounded.Tune,
+                    title = "Sync now",
+                    subtitle = if (isSyncing) "Sync in progress…" else "Check connected accounts for new tracks",
+                    onClick = {
+                        com.music.bitchord.data.account.AndroidAccountSync.sync.syncNow()
                     },
                 )
             }

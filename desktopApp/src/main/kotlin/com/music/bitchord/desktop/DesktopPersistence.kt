@@ -105,6 +105,14 @@ class DesktopPersistence(
     fun saveSourceEnabled(sourceId: String, enabled: Boolean) =
         saveBoolean("source_${sourceId}_enabled", enabled)
 
+    fun accountSyncEnabled(): Boolean = boolean(KEY_ACCOUNT_SYNC_ENABLED, false)
+
+    fun saveAccountSyncEnabled(value: Boolean) = saveBoolean(KEY_ACCOUNT_SYNC_ENABLED, value)
+
+    fun accountSyncIntervalMinutes(): Int = int(KEY_ACCOUNT_SYNC_INTERVAL_MINS, 30)
+
+    fun saveAccountSyncIntervalMinutes(value: Int) = saveInt(KEY_ACCOUNT_SYNC_INTERVAL_MINS, value)
+
     fun homeSource(): HomeSource =
         runCatching { HomeSource.valueOf(string(KEY_HOME_SOURCE, HomeSource.YOUTUBE.name)) }
             .getOrDefault(HomeSource.YOUTUBE)
@@ -304,6 +312,8 @@ class DesktopPersistence(
 
     private companion object {
         const val KEY_HOME_SOURCE = "home_source"
+        const val KEY_ACCOUNT_SYNC_ENABLED = "account_sync_enabled"
+        const val KEY_ACCOUNT_SYNC_INTERVAL_MINS = "account_sync_interval_mins"
         const val KEY_LIKED_IDS = "liked_ids"
         const val KEY_DISLIKED_IDS = "disliked_ids"
         const val KEY_HISTORY = "history"
