@@ -682,11 +682,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * on a round trip before the heart fills reads as the tap not having
      * registered, and people tap again.
      */
-    fun setLike(videoId: String, status: LikeStatus) {
+    fun setLike(videoId: String, status: LikeStatus, song: Song? = null) {
         if (!requireSignIn()) return
         val previous = likeStatusOf(videoId)
         if (previous == status) return
         LikeState.set(videoId, status)
+        if (status == LikeStatus.LIKE) {
+            val candidate = song ?: findSongByVideoId(videoId)
+            if (candidate != null) {
+                com.music.bitchord.download.AndroidAutoDownloadHook.handleSongLiked(getApplication(), candidate)
+            }
+        }
         viewModelScope.launch {
             YtMusicRepository.rate(videoId, status).fold(
                 onSuccess = {
@@ -763,10 +769,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The heart: liked becomes neutral, anything else becomes liked. */
-    fun toggleLike(videoId: String) = setLike(
-        videoId,
-        if (likeStatusOf(videoId) == LikeStatus.LIKE) LikeStatus.INDIFFERENT else LikeStatus.LIKE,
+    fun toggleLike(videoId: String, song: Song? = null) = setLike(
+        videoId = videoId,
+        status = if (likeStatusOf(videoId) == LikeStatus.LIKE) LikeStatus.INDIFFERENT else LikeStatus.LIKE,
+        song = song,
     )
+
+    private fun findSongByVideoId(videoId: String): Song? {
+        (_history.value as? UiState.Success)?.data?.firstOrNull { it.videoId == videoId }?.let { return it }
+        (_library.value as? UiState.Success)?.data?.likedSongs?.firstOrNull { it.videoId == videoId }?.let { return it }
+        _detailStack.value.forEach { detail ->
+            (detail.songs as? UiState.Success)?.data?.firstOrNull { it.videoId == videoId }?.let { return it }
+        }
+        return null
+    }
 
     /** As [toggleLike], for the thumb-down. */
     fun toggleDislike(videoId: String): LikeStatus? {
@@ -1021,6 +1037,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 // reachable from a row's own menu on it — so the track goes
                 // into it for the same reason [addSuggestedSong] does.
                 appendToOpenPlaylist(playlist.browseId, song, added[song.videoId])
+                com.music.bitchord.download.AndroidAutoDownloadHook.handlePlaylistSongsAdded(
+                    getApplication(),
+                    playlist.title,
+                    listOf(song),
+                )
                 AddOutcome.ADDED
             },
             onFailure = { AddOutcome.FAILED },
@@ -1075,6 +1096,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                                 browseId = created.browseId,
                             ),
                         ) + items.filterNot { it.browseId == created.browseId }
+                    }
+                    if (song != null) {
+                        com.music.bitchord.download.AndroidAutoDownloadHook.handlePlaylistSongsAdded(
+                            getApplication(),
+                            name,
+                            listOf(song),
+                        )
                     }
                 },
                 onFailure = {},

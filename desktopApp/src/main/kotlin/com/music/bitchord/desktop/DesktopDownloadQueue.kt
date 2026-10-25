@@ -105,6 +105,7 @@ object DesktopDownloadQueue {
         }
         job?.cancel()
         DesktopDownloadManager.cancel(videoId)
+        DesktopAutoDownloadHook.onDownloadCleared(videoId)
         // A download called off is not something anyone needs reminding to check on, so it leaves
         // the manager rather than sitting in it as a permanent "cancelled" row.
         _active.update { it - videoId }

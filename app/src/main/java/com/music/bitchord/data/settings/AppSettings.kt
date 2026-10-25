@@ -209,6 +209,18 @@ object AppSettings {
      */
     val exportDownloads = MutableStateFlow(false)
 
+    /**
+     * User-configurable auto-download policy settings (Task 11 SOI-DWN-003).
+     * Defaults to completely off to preserve user control.
+     */
+    val autoDownloadEnabled = MutableStateFlow(false)
+    val autoDownloadLiked = MutableStateFlow(false)
+    val autoDownloadPlaylists = MutableStateFlow(false)
+    val autoDownloadAccountSync = MutableStateFlow(false)
+    val autoDownloadWifiOnly = MutableStateFlow(true)
+    val autoDownloadStorageLimitMb = MutableStateFlow(2048L)
+    val autoDownloadMinFreeSpaceMb = MutableStateFlow(512L)
+
     /** Whether the active network charges for data. `null` while offline. */
     val meteredConnection = MutableStateFlow<Boolean?>(null)
 
@@ -784,6 +796,7 @@ object AppSettings {
     fun init(context: Context, authStore: AuthStore) {
         prefs = context.getSharedPreferences("bitchord_settings", Context.MODE_PRIVATE)
         this.authStore = authStore
+        com.music.bitchord.download.AndroidAutoDownloadHook.init(context)
         com.music.bitchord.data.spotify.LocalPlaylistStore.init(context)
         readAll()
         watchConnection(context)
@@ -817,6 +830,13 @@ object AppSettings {
         downloadQuality.value = readDownloadQuality()
         wifiOnlyDownloads.value = prefs.getBoolean(KEY_WIFI_ONLY_DOWNLOADS, true)
         exportDownloads.value = prefs.getBoolean(KEY_EXPORT_DOWNLOADS, false)
+        autoDownloadEnabled.value = prefs.getBoolean(KEY_AUTO_DOWNLOAD_ENABLED, false)
+        autoDownloadLiked.value = prefs.getBoolean(KEY_AUTO_DOWNLOAD_LIKED, false)
+        autoDownloadPlaylists.value = prefs.getBoolean(KEY_AUTO_DOWNLOAD_PLAYLISTS, false)
+        autoDownloadAccountSync.value = prefs.getBoolean(KEY_AUTO_DOWNLOAD_ACCOUNT_SYNC, false)
+        autoDownloadWifiOnly.value = prefs.getBoolean(KEY_AUTO_DOWNLOAD_WIFI_ONLY, true)
+        autoDownloadStorageLimitMb.value = prefs.getLong(KEY_AUTO_DOWNLOAD_STORAGE_LIMIT_MB, 2048L)
+        autoDownloadMinFreeSpaceMb.value = prefs.getLong(KEY_AUTO_DOWNLOAD_MIN_FREE_SPACE_MB, 512L)
         crossfadeSeconds.value = prefs.getInt(KEY_CROSSFADE, 0)
         smartFadeEnabled.value = prefs.getBoolean(KEY_SMART_FADE, false)
         automixPerformanceMode.value = runCatching {
@@ -1107,6 +1127,55 @@ object AppSettings {
         wifiOnlyDownloads.value = value
         prefs.edit().putBoolean(KEY_WIFI_ONLY_DOWNLOADS, value).apply()
     }
+
+    fun setAutoDownloadEnabled(value: Boolean) {
+        autoDownloadEnabled.value = value
+        prefs.edit().putBoolean(KEY_AUTO_DOWNLOAD_ENABLED, value).apply()
+        if (!value) {
+            com.music.bitchord.download.AndroidAutoDownloadHook.cancelAll()
+        }
+    }
+
+    fun setAutoDownloadLiked(value: Boolean) {
+        autoDownloadLiked.value = value
+        prefs.edit().putBoolean(KEY_AUTO_DOWNLOAD_LIKED, value).apply()
+    }
+
+    fun setAutoDownloadPlaylists(value: Boolean) {
+        autoDownloadPlaylists.value = value
+        prefs.edit().putBoolean(KEY_AUTO_DOWNLOAD_PLAYLISTS, value).apply()
+    }
+
+    fun setAutoDownloadAccountSync(value: Boolean) {
+        autoDownloadAccountSync.value = value
+        prefs.edit().putBoolean(KEY_AUTO_DOWNLOAD_ACCOUNT_SYNC, value).apply()
+    }
+
+    fun setAutoDownloadWifiOnly(value: Boolean) {
+        autoDownloadWifiOnly.value = value
+        prefs.edit().putBoolean(KEY_AUTO_DOWNLOAD_WIFI_ONLY, value).apply()
+    }
+
+    fun setAutoDownloadStorageLimitMb(value: Long) {
+        autoDownloadStorageLimitMb.value = value
+        prefs.edit().putLong(KEY_AUTO_DOWNLOAD_STORAGE_LIMIT_MB, value).apply()
+    }
+
+    fun setAutoDownloadMinFreeSpaceMb(value: Long) {
+        autoDownloadMinFreeSpaceMb.value = value
+        prefs.edit().putLong(KEY_AUTO_DOWNLOAD_MIN_FREE_SPACE_MB, value).apply()
+    }
+
+    fun currentAutoDownloadPolicy(): com.music.bitchord.data.download.AutoDownloadPolicy =
+        com.music.bitchord.data.download.AutoDownloadPolicy(
+            enabled = autoDownloadEnabled.value,
+            downloadLikedSongs = autoDownloadLiked.value,
+            downloadPlaylists = autoDownloadPlaylists.value,
+            downloadAccountSync = autoDownloadAccountSync.value,
+            wifiOnly = autoDownloadWifiOnly.value,
+            storageLimitMb = autoDownloadStorageLimitMb.value,
+            minFreeSpaceMb = autoDownloadMinFreeSpaceMb.value,
+        )
 
     fun setCrossfadeSeconds(value: Int) {
         crossfadeSeconds.value = value
@@ -2003,6 +2072,13 @@ object AppSettings {
     private const val KEY_QUALITY_DOWNLOAD = "audio_quality_download"
     private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
     private const val KEY_EXPORT_DOWNLOADS = "export_downloads"
+    private const val KEY_AUTO_DOWNLOAD_ENABLED = "auto_download_enabled"
+    private const val KEY_AUTO_DOWNLOAD_LIKED = "auto_download_liked"
+    private const val KEY_AUTO_DOWNLOAD_PLAYLISTS = "auto_download_playlists"
+    private const val KEY_AUTO_DOWNLOAD_ACCOUNT_SYNC = "auto_download_account_sync"
+    private const val KEY_AUTO_DOWNLOAD_WIFI_ONLY = "auto_download_wifi_only"
+    private const val KEY_AUTO_DOWNLOAD_STORAGE_LIMIT_MB = "auto_download_storage_limit_mb"
+    private const val KEY_AUTO_DOWNLOAD_MIN_FREE_SPACE_MB = "auto_download_min_free_space_mb"
     private const val KEY_LOSSLESS = "lossless_audio"
     private const val KEY_CROSSFADE = "crossfade_seconds"
     private const val KEY_SMART_FADE = "smart_fade_enabled"

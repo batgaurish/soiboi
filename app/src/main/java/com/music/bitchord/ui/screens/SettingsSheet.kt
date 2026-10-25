@@ -240,6 +240,11 @@ fun SettingsScreen(
     val downloadQuality by AppSettings.downloadQuality.collectAsStateWithLifecycle()
     val wifiOnlyDownloads by AppSettings.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val exportDownloads by AppSettings.exportDownloads.collectAsStateWithLifecycle()
+    val autoDownloadEnabled by AppSettings.autoDownloadEnabled.collectAsStateWithLifecycle()
+    val autoDownloadLiked by AppSettings.autoDownloadLiked.collectAsStateWithLifecycle()
+    val autoDownloadPlaylists by AppSettings.autoDownloadPlaylists.collectAsStateWithLifecycle()
+    val autoDownloadAccountSync by AppSettings.autoDownloadAccountSync.collectAsStateWithLifecycle()
+    val autoDownloadWifiOnly by AppSettings.autoDownloadWifiOnly.collectAsStateWithLifecycle()
     val stopOnTaskRemoved by AppSettings.stopOnTaskRemoved.collectAsStateWithLifecycle()
     val hideVolumeBar by AppSettings.hideVolumeBar.collectAsStateWithLifecycle()
     val hideStatusBarInPlayer by AppSettings.hideStatusBarInPlayer.collectAsStateWithLifecycle()
@@ -565,6 +570,53 @@ fun SettingsScreen(
                     onCheckedChange = AppSettings::setExportDownloads,
                     subtitle = "Music/BitChord".takeIf { exportDownloads },
                 )
+            }
+            val autoDownloadTitle = "Auto-download music"
+            row(autoDownloadTitle, "auto", "download", "offline", divided = false) {
+                SettingsSubRow(
+                    title = autoDownloadTitle,
+                    subtitle = "Automatically download music based on your preferences",
+                    checked = autoDownloadEnabled,
+                    onCheckedChange = AppSettings::setAutoDownloadEnabled,
+                )
+            }
+            if (autoDownloadEnabled) {
+                val autoDownloadLikedTitle = "Auto-download liked songs"
+                row(autoDownloadLikedTitle, "auto", "liked", "favorite", divided = false) {
+                    SettingsSubRow(
+                        title = autoDownloadLikedTitle,
+                        subtitle = "Queue tracks as offline downloads when liked",
+                        checked = autoDownloadLiked,
+                        onCheckedChange = AppSettings::setAutoDownloadLiked,
+                    )
+                }
+                val autoDownloadPlaylistsTitle = "Auto-download playlists"
+                row(autoDownloadPlaylistsTitle, "auto", "playlist", divided = false) {
+                    SettingsSubRow(
+                        title = autoDownloadPlaylistsTitle,
+                        subtitle = "Queue tracks when added to playlists or imported",
+                        checked = autoDownloadPlaylists,
+                        onCheckedChange = AppSettings::setAutoDownloadPlaylists,
+                    )
+                }
+                val autoDownloadAccountSyncTitle = "Auto-download synced accounts"
+                row(autoDownloadAccountSyncTitle, "auto", "account", "sync", divided = false) {
+                    SettingsSubRow(
+                        title = autoDownloadAccountSyncTitle,
+                        subtitle = "Queue tracks discovered during library account sync",
+                        checked = autoDownloadAccountSync,
+                        onCheckedChange = AppSettings::setAutoDownloadAccountSync,
+                    )
+                }
+                val autoDownloadWifiTitle = "Auto-download over Wi-Fi only"
+                row(autoDownloadWifiTitle, "auto", "wi-fi", "cellular", divided = false) {
+                    SettingsSubRow(
+                        title = autoDownloadWifiTitle,
+                        checked = autoDownloadWifiOnly,
+                        onCheckedChange = AppSettings::setAutoDownloadWifiOnly,
+                        badge = stringResource(R.string.blocking).takeIf { autoDownloadWifiOnly && metered == true },
+                    )
+                }
             }
         }
 
