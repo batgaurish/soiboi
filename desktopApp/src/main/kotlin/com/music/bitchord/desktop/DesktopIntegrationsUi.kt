@@ -285,7 +285,7 @@ internal fun DesktopListenBrainzTokenDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun DialogHeading(title: String, message: String, isError: Boolean = false) {
+internal fun DialogHeading(title: String, message: String, isError: Boolean = false) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp), vertical = 18.dp),
         horizontalAlignment = if (LocalDesktopPanelIsPage.current) Alignment.Start else Alignment.CenterHorizontally,
@@ -318,141 +318,11 @@ internal fun DesktopSpotifyImportDialog(
     onImported: suspend (title: String, songs: List<Song>) -> String?,
     onDismiss: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-    var link by remember { mutableStateOf("") }
-    var working by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf<String?>(null) }
-    var failed by remember { mutableStateOf(false) }
-    var unmatched by remember { mutableStateOf<List<SpotifyImportTrack>?>(null) }
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    val title = DesktopStrings["spotify_import_title", "Import Spotify playlist"]
-
-    fun start() {
-        if (working) return
-        val id = SpotifyImporter.extractPlaylistId(link) ?: run {
-            status = DesktopStrings["spotify_import_invalid", "That isn't a Spotify playlist link."]
-            failed = true
-            return
-        }
-        working = true
-        failed = false
-        status = DesktopStrings["spotify_import_fetching", "Reading the Spotify playlist…"]
-        scope.launch {
-            try {
-                val (name, tracks) = SpotifyImporter.fetchPlaylistTracks(id)
-                val (songs, missed) = SpotifyImporter.resolveToSongs(tracks) { done, total ->
-                    status = DesktopStrings.format("spotify_import_matching", done, total, fallback = "Matching songs %1\$d of %2\$d")
-                }
-                if (songs.isEmpty()) {
-                    error(DesktopStrings["spotify_import_none", "None of those songs were found on YouTube Music."])
-                }
-                val note = onImported(name, songs)
-                if (missed.isEmpty() && note == null) {
-                    onDismiss()
-                } else {
-                    status = note
-                    unmatched = missed
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (failure: Exception) {
-                DesktopTrackLog.log("spotify import failed: ${failure.message}")
-                status = DesktopStrings.format(
-                    "spotify_import_failed",
-                    failure.message.orEmpty(),
-                    fallback = "Couldn't import the playlist: %1\$s",
-                )
-                failed = true
-            }
-            working = false
-        }
-    }
-
-    // Not dismissed mid-import, which would leave the matching running with nowhere to report.
-    DesktopDialogPanel(onDismiss = { if (!working) onDismiss() }, maxWidth = 420, popup = true) {
-        val missed = unmatched
-        if (missed == null) {
-            DialogHeading(
-                title = title,
-                message = if (signedIn) {
-                    DesktopStrings["spotify_import_description", "Paste a public playlist link. Songs are matched on YouTube Music."]
-                } else {
-                    DesktopStrings[
-                        "spotify_import_description_local",
-                        "Paste a public playlist link. Songs are matched on YouTube Music and saved on this device.",
-                    ]
-                },
-            )
-            DialogField(
-                value = link,
-                onValueChange = {
-                    link = it
-                    if (failed) status = null
-                    failed = false
-                },
-                placeholder = DesktopStrings["spotify_import_hint", "open.spotify.com/playlist/…"],
-                enabled = !working,
-                onSubmit = ::start,
-                modifier = Modifier.focusRequester(focus),
-            )
-            status?.let {
-                Text(
-                    it,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp), vertical = 6.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (failed) DesktopDestructive else DesktopSecondary,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            DialogActions(
-                confirm = DesktopStrings["spotify_import_button", "Import"],
-                confirmEnabled = link.isNotBlank() && !working,
-                busy = working,
-                onConfirm = ::start,
-                onDismiss = onDismiss,
-            )
-        } else {
-            DialogHeading(
-                title = title,
-                message = listOfNotNull(
-                    status,
-                    DesktopStrings.format(
-                        "spotify_import_unmatched",
-                        missed.size,
-                        fallback = "%1\$d songs weren't found on YouTube Music",
-                    ).takeIf { missed.isNotEmpty() },
-                ).joinToString("\n"),
-            )
-            if (missed.isNotEmpty()) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = panelInset(22.dp))
-                        .heightIn(max = 200.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color.White.copy(alpha = 0.06f))
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    missed.forEach { track ->
-                        Text(
-                            if (track.artist.isBlank()) track.title else "${track.title} · ${track.artist}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = DesktopSecondary,
-                        )
-                    }
-                }
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = panelInset(16.dp), vertical = 12.dp),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                TextButton(onClick = onDismiss) { Text(DesktopStrings["done", "Done"], color = DesktopAccent) }
-            }
-        }
-    }
+    DesktopPlaylistImportDialog(
+        signedIn = signedIn,
+        onImported = onImported,
+        onDismiss = onDismiss,
+    )
 }
 
 /** The same filled field the playlist dialogs use. */
@@ -505,7 +375,7 @@ private fun DialogField(
 }
 
 @Composable
-private fun DialogActions(
+internal fun DialogActions(
     confirm: String,
     confirmEnabled: Boolean,
     busy: Boolean,

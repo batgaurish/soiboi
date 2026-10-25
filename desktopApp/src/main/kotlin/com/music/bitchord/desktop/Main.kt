@@ -43,6 +43,12 @@ fun main() {
     SpotifyLibrary.auth = SpotifyLibrary.Auth {
         DesktopSpotifyToken.accessToken()?.let { SpotifyLibrary.Tokens(it, DesktopSpotifyToken.clientToken()) }
     }
+    val desktopPersistence = DesktopPersistence()
+    com.music.bitchord.data.playlistimport.PlaylistImportOverrides.installStore(object : com.music.bitchord.data.playlistimport.PlaylistImportStore {
+        override fun getString(key: String): String? = desktopPersistence.string(key, "").takeIf { it.isNotEmpty() }
+        override fun putString(key: String, value: String) = desktopPersistence.saveString(key, value)
+        override fun remove(key: String) = desktopPersistence.saveString(key, "")
+    })
     // Desktop follows its own language picker (zh-Hant / zh-Hans preserved).
     com.music.bitchord.data.innertube.Innertube.appLanguage = { DesktopStrings.resolvedTag() }
     // YouTube playback is the phone's StreamResolver over InnerTubeX, with BotGuard PoTokens
