@@ -120,6 +120,42 @@ class DesktopPersistence(
     fun saveHomeSource(value: HomeSource) =
         saveString(KEY_HOME_SOURCE, value.name)
 
+    /** User-configurable auto-download policy settings (Task 11 SOI-DWN-003). Defaults to disabled. */
+    fun autoDownloadEnabled(): Boolean = boolean("auto_download_enabled", false)
+    fun saveAutoDownloadEnabled(value: Boolean) = saveBoolean("auto_download_enabled", value)
+
+    fun autoDownloadLiked(): Boolean = boolean("auto_download_liked", false)
+    fun saveAutoDownloadLiked(value: Boolean) = saveBoolean("auto_download_liked", value)
+
+    fun autoDownloadPlaylists(): Boolean = boolean("auto_download_playlists", false)
+    fun saveAutoDownloadPlaylists(value: Boolean) = saveBoolean("auto_download_playlists", value)
+
+    fun autoDownloadAccountSync(): Boolean = boolean("auto_download_account_sync", false)
+    fun saveAutoDownloadAccountSync(value: Boolean) = saveBoolean("auto_download_account_sync", value)
+
+    fun autoDownloadWifiOnly(): Boolean = boolean("auto_download_wifi_only", true)
+    fun saveAutoDownloadWifiOnly(value: Boolean) = saveBoolean("auto_download_wifi_only", value)
+
+    fun autoDownloadStorageLimitMb(): Long = preferences.getLong("auto_download_storage_limit_mb", 2048L)
+    fun saveAutoDownloadStorageLimitMb(value: Long) = preferences.putLong("auto_download_storage_limit_mb", value)
+
+    fun autoDownloadMinFreeSpaceMb(): Long = preferences.getLong("auto_download_min_free_space_mb", 512L)
+    fun saveAutoDownloadMinFreeSpaceMb(value: Long) = preferences.putLong("auto_download_min_free_space_mb", value)
+
+    fun autoDownloadedBytes(): Long = preferences.getLong("auto_downloaded_bytes", 0L)
+    fun saveAutoDownloadedBytes(value: Long) = preferences.putLong("auto_downloaded_bytes", value)
+
+    fun currentAutoDownloadPolicy(): com.music.bitchord.data.download.AutoDownloadPolicy =
+        com.music.bitchord.data.download.AutoDownloadPolicy(
+            enabled = autoDownloadEnabled(),
+            downloadLikedSongs = autoDownloadLiked(),
+            downloadPlaylists = autoDownloadPlaylists(),
+            downloadAccountSync = autoDownloadAccountSync(),
+            wifiOnly = autoDownloadWifiOnly(),
+            storageLimitMb = autoDownloadStorageLimitMb(),
+            minFreeSpaceMb = autoDownloadMinFreeSpaceMb(),
+        )
+
     /** The source list is the desktop equivalent of Android's encrypted SourceRegistry state. */
     internal fun sourceConfigs(): List<DesktopSourceConfig> {
         val protected = DesktopPreferenceChunks.read(preferences, KEY_SOURCE_CONFIGS_PROTECTED)

@@ -1079,6 +1079,7 @@ object Downloads {
                     remember(song, track, alreadyThere)
                     DownloadSession.done(id)
                     clear(id)
+                    AndroidAutoDownloadHook.onDownloadCompleted(context, song)
                     return@coroutineScope
                 }
 
@@ -1113,6 +1114,7 @@ object Downloads {
                     remember(song, track, savedUri, route.downloadFormat)
                     DownloadSession.done(id)
                     clear(id)
+                    AndroidAutoDownloadHook.onDownloadCompleted(context, song)
                     Log.d(TAG, "saved offline ${if (manifest.dash) "DASH" else "HLS"} package for $name")
                     return@coroutineScope
                 }
@@ -1137,6 +1139,7 @@ object Downloads {
                 remember(song, track, savedUri, route.downloadFormat, artworkUri)
                 DownloadSession.done(id)
                 clear(id)
+                AndroidAutoDownloadHook.onDownloadCompleted(context, song)
                 Log.d(TAG, "saved $name")
             }
         } catch (e: Throwable) {

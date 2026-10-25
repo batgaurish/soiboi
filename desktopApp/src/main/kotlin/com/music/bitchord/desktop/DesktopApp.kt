@@ -700,6 +700,11 @@ fun BitChordDesktopApp() {
     var volume by remember { mutableStateOf(persistence.string("volume", "1.0").toFloatOrNull()?.coerceIn(0.0f, 1.0f) ?: 1.0f) }
     var crossfadeSeconds by remember { mutableStateOf(persistence.string("crossfade_seconds", "0").toIntOrNull()?.coerceIn(0, 12) ?: 0) }
     var downloadQuality by remember { mutableStateOf(persistence.string("download_quality", "LOSSLESS")) }
+    var autoDownloadEnabled by remember { mutableStateOf(persistence.autoDownloadEnabled()) }
+    var autoDownloadLiked by remember { mutableStateOf(persistence.autoDownloadLiked()) }
+    var autoDownloadPlaylists by remember { mutableStateOf(persistence.autoDownloadPlaylists()) }
+    var autoDownloadAccountSync by remember { mutableStateOf(persistence.autoDownloadAccountSync()) }
+    var autoDownloadWifiOnly by remember { mutableStateOf(persistence.autoDownloadWifiOnly()) }
     var trayIconEnabled by remember { mutableStateOf(persistence.boolean("tray_icon", true)) }
     var closeToTray by remember { mutableStateOf(persistence.boolean("close_to_tray", true)) }
     // The three the FFmpeg engine unlocked: none of them could exist while JavaFX owned the decode,
@@ -1031,6 +1036,11 @@ fun BitChordDesktopApp() {
         }
         persistence.saveLikedIds(likedIds)
         persistence.saveDislikedIds(dislikedIds)
+        if (status == LikeStatus.LIKE) {
+            DesktopAutoDownloadHook.onSongLiked(song)
+        } else {
+            DesktopAutoDownloadHook.cancelAutoDownload(song.videoId)
+        }
         scope.launch {
             DesktopSearchClient.rate(song.videoId, status)
                 .onFailure { DesktopTrackLog.log("youtube: rating ${song.videoId} failed: ${it.message}") }
@@ -1492,6 +1502,7 @@ fun BitChordDesktopApp() {
         if (!DesktopYouTubeAuth.isSignedIn || (seed != null && !DesktopSearchClient.isVideoId(seed.videoId))) {
             playlists = playlists + DesktopPlaylist(title = name, songs = listOfNotNull(seed))
             persistence.savePlaylists(playlists)
+            seed?.let { DesktopAutoDownloadHook.onPlaylistSongsAdded(name, listOf(it)) }
             closePlaylistDialogs()
             return
         }
@@ -1500,6 +1511,7 @@ fun BitChordDesktopApp() {
         scope.launch {
             DesktopSearchClient.createPlaylist(name, privacy, listOfNotNull(seed?.videoId))
                 .onSuccess { playlistId ->
+                    seed?.let { DesktopAutoDownloadHook.onPlaylistSongsAdded(name, listOf(it)) }
                     closePlaylistDialogs()
                     editPlaylistShelf { items ->
                         val card = ShelfItem(
@@ -1567,6 +1579,7 @@ fun BitChordDesktopApp() {
         val playlist = DesktopPlaylist(title = title, songs = songs)
         playlists = playlists + playlist
         persistence.savePlaylists(playlists)
+        DesktopAutoDownloadHook.onPlaylistSongsAdded(title, songs)
         openPlaylist(playlist)
         return if (signedIn) {
             DesktopStrings.format(
@@ -1585,6 +1598,7 @@ fun BitChordDesktopApp() {
             if (current.id == playlist.id) current.copy(songs = (current.songs + song).distinctBy(Song::videoId)) else current
         }
         persistence.savePlaylists(playlists)
+        DesktopAutoDownloadHook.onPlaylistSongsAdded(playlist.title, listOf(song))
         playlistTarget = null
     }
 
@@ -1594,7 +1608,10 @@ fun BitChordDesktopApp() {
         playlistError = null
         scope.launch {
             DesktopSearchClient.addToPlaylist(playlist.playlistId, listOf(song.videoId))
-                .onSuccess { closePlaylistDialogs() }
+                .onSuccess {
+                    DesktopAutoDownloadHook.onPlaylistSongsAdded(playlist.title, listOf(song))
+                    closePlaylistDialogs()
+                }
                 .onFailure {
                     DesktopTrackLog.log("playlist: could not add ${song.videoId}: ${it.message}")
                     playlistBusy = false
@@ -2720,6 +2737,7 @@ fun BitChordDesktopApp() {
         DesktopDownloadQueue.finished.collect { saved ->
             downloads = (listOf(saved) + downloads.filterNot { it.videoId == saved.videoId }).take(200)
             persistence.saveDownloads(downloads)
+            DesktopAutoDownloadHook.onDownloadFinished(saved)
         }
     }
 
@@ -4010,6 +4028,34 @@ fun BitChordDesktopApp() {
                                     onDownloadQualityChange = {
                                         downloadQuality = it
                                         persistence.saveString("download_quality", it)
+                                    },
+                                    autoDownloadEnabled = autoDownloadEnabled,
+                                    onAutoDownloadEnabledChange = {
+                                        autoDownloadEnabled = it
+                                        persistence.saveAutoDownloadEnabled(it)
+                                        if (!it) {
+                                            DesktopAutoDownloadHook.cancelAll()
+                                        }
+                                    },
+                                    autoDownloadLiked = autoDownloadLiked,
+                                    onAutoDownloadLikedChange = {
+                                        autoDownloadLiked = it
+                                        persistence.saveAutoDownloadLiked(it)
+                                    },
+                                    autoDownloadPlaylists = autoDownloadPlaylists,
+                                    onAutoDownloadPlaylistsChange = {
+                                        autoDownloadPlaylists = it
+                                        persistence.saveAutoDownloadPlaylists(it)
+                                    },
+                                    autoDownloadAccountSync = autoDownloadAccountSync,
+                                    onAutoDownloadAccountSyncChange = {
+                                        autoDownloadAccountSync = it
+                                        persistence.saveAutoDownloadAccountSync(it)
+                                    },
+                                    autoDownloadWifiOnly = autoDownloadWifiOnly,
+                                    onAutoDownloadWifiOnlyChange = {
+                                        autoDownloadWifiOnly = it
+                                        persistence.saveAutoDownloadWifiOnly(it)
                                     },
                                     audioQuality = audioQuality,
                                     onAudioQualityChange = {
@@ -6037,6 +6083,16 @@ private fun DesktopSettingsScreen(
     outputSummary: String,
     downloadQuality: String,
     onDownloadQualityChange: (String) -> Unit,
+    autoDownloadEnabled: Boolean = false,
+    onAutoDownloadEnabledChange: (Boolean) -> Unit = {},
+    autoDownloadLiked: Boolean = false,
+    onAutoDownloadLikedChange: (Boolean) -> Unit = {},
+    autoDownloadPlaylists: Boolean = false,
+    onAutoDownloadPlaylistsChange: (Boolean) -> Unit = {},
+    autoDownloadAccountSync: Boolean = false,
+    onAutoDownloadAccountSyncChange: (Boolean) -> Unit = {},
+    autoDownloadWifiOnly: Boolean = true,
+    onAutoDownloadWifiOnlyChange: (Boolean) -> Unit = {},
     audioQuality: DesktopAudioQuality,
     onAudioQualityChange: (DesktopAudioQuality) -> Unit,
     sleepTimerMinutes: Int?,
@@ -6634,19 +6690,51 @@ private fun DesktopSettingsScreen(
             if (section == DesktopSettingsSection.DOWNLOADS) item {
                 SettingsGroup(DesktopStrings["download_channel_name", "Downloads"]) {
                     if (settingsRowVisible(DesktopStrings["download_channel_name", "Downloads"])) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        listOf("STANDARD" to "Standard", "HIGH" to "High", "LOSSLESS" to "Lossless").forEach { (value, label) ->
-                            FilterChip(
-                                colors = desktopChipColors(),
-                                selected = downloadQuality == value,
-                                onClick = { onDownloadQualityChange(value) },
-                                label = { Text(label) },
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            listOf("STANDARD" to "Standard", "HIGH" to "High", "LOSSLESS" to "Lossless").forEach { (value, label) ->
+                                FilterChip(
+                                    colors = desktopChipColors(),
+                                    selected = downloadQuality == value,
+                                    onClick = { onDownloadQualityChange(value) },
+                                    label = { Text(label) },
+                                )
+                            }
+                        }
+                        SettingsToggle(
+                            title = "Auto-download music",
+                            subtitle = "Automatically download new music matching your preferences",
+                            checked = autoDownloadEnabled,
+                            onCheckedChange = onAutoDownloadEnabledChange,
+                        )
+                        if (autoDownloadEnabled) {
+                            SettingsToggle(
+                                title = "Auto-download liked songs",
+                                subtitle = "Queue tracks as offline downloads when you like them",
+                                checked = autoDownloadLiked,
+                                onCheckedChange = onAutoDownloadLikedChange,
+                            )
+                            SettingsToggle(
+                                title = "Auto-download playlists",
+                                subtitle = "Queue tracks when added to local playlists or imported",
+                                checked = autoDownloadPlaylists,
+                                onCheckedChange = onAutoDownloadPlaylistsChange,
+                            )
+                            SettingsToggle(
+                                title = "Auto-download synced accounts",
+                                subtitle = "Queue tracks discovered during library and account sync",
+                                checked = autoDownloadAccountSync,
+                                onCheckedChange = onAutoDownloadAccountSyncChange,
+                            )
+                            SettingsToggle(
+                                title = "Wi-Fi only",
+                                subtitle = "Avoid auto-downloading when connected to metered networks",
+                                checked = autoDownloadWifiOnly,
+                                onCheckedChange = onAutoDownloadWifiOnlyChange,
                             )
                         }
-                    }
                     }
                 }
             }

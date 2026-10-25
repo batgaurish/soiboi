@@ -21,11 +21,13 @@ object LocalPlaylistStore {
     private const val KEY_PLAYLISTS = "playlists_json"
 
     private lateinit var prefs: SharedPreferences
+    private var appContext: Context? = null
 
     private val _playlists = MutableStateFlow<List<LocalPlaylist>>(emptyList())
     val playlists = _playlists.asStateFlow()
 
     fun init(context: Context) {
+        appContext = context.applicationContext
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         load()
     }
@@ -69,6 +71,9 @@ object LocalPlaylistStore {
         val updated = listOf(playlist) + _playlists.value.filterNot { it.id == id }
         _playlists.value = updated
         persist(updated)
+        appContext?.let { ctx ->
+            com.music.bitchord.download.AndroidAutoDownloadHook.handlePlaylistSongsAdded(ctx, title, songs)
+        }
         return playlist
     }
 
