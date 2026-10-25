@@ -69,6 +69,16 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
         SpotifyLibrary.auth = SpotifyLibrary.Auth {
             SpotifyToken.accessToken()?.let { SpotifyLibrary.Tokens(it, SpotifyToken.clientToken()) }
         }
+        val importPrefs = getSharedPreferences("bitchord_playlist_import_overrides", Context.MODE_PRIVATE)
+        com.music.bitchord.data.playlistimport.PlaylistImportOverrides.installStore(object : com.music.bitchord.data.playlistimport.PlaylistImportStore {
+            override fun getString(key: String): String? = importPrefs.getString(key, null)
+            override fun putString(key: String, value: String) {
+                importPrefs.edit().putString(key, value).apply()
+            }
+            override fun remove(key: String) {
+                importPrefs.edit().remove(key).apply()
+            }
+        })
         // The per-app language picker, which YouTube Music's `hl` follows.
         // Full tag (zh-Hant / zh-Hans preserved); Innertube maps to hl/gl.
         Innertube.appLanguage = { AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag() }
