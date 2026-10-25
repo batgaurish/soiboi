@@ -125,6 +125,18 @@ data class AddonSettingOption(
     val stringValue: String? get() = value?.asQueryValue()
 }
 
+// ── ISRC Resolution ───────────────────────────────────────────────────────
+
+/**
+ * An ISRC resolution answer from `/resolve-isrc`.
+ *
+ * Implements SOI-SRC-004 catalog resolution. Contains the addon's canonical track id.
+ */
+@Serializable
+data class AddonResolveIsrcResponse(
+    @SerialName("trackId") val trackId: String? = null,
+)
+
 // ── Search ───────────────────────────────────────────────────────────────
 
 /**

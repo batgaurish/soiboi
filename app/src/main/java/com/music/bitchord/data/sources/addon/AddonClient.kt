@@ -50,6 +50,7 @@ class AddonClient(rawBaseUrl: String) {
     private val manifests = SharedCalls<AddonManifest>(MANIFEST_TTL_MS, calls, ::logReuse)
     private val searches = SharedCalls<AddonSearchResponse>(SEARCH_TTL_MS, calls, ::logReuse)
     private val streams = SharedCalls<AddonStream>(STREAM_TTL_MS, calls, ::logReuse)
+    private val isrcResolutions = SharedCalls<String?>(ISRC_TTL_MS, calls, ::logReuse)
 
     private fun logReuse(line: String) = TrackLog.d(TAG, line)
 
@@ -83,20 +84,37 @@ class AddonClient(rawBaseUrl: String) {
         key = baseUrl,
         describe = { "▶ addon manifest(${redact(baseUrl)})" },
     ) {
-        fetch<AddonManifest>(manifestUrl(baseUrl)).mapCatching { manifest ->
-            if (manifest.id.isBlank()) {
-                throw AddonException("That URL answered, but not with an addon manifest")
+        runCatching {
+            manifestUrl(baseUrl)
+        }.fold(
+            onSuccess = { targetUrl ->
+                fetch<AddonManifest>(targetUrl).mapCatching { manifest ->
+                    if (manifest.id.isBlank()) {
+                        throw AddonException("That URL answered, but not with an addon manifest")
+                    }
+                    if (!manifest.isPlayable) {
+                        val declared = manifest.resources.joinToString(", ")
+                        throw AddonException("This addon declares $declared — BitChord needs search")
+                    }
+                    manifest
+                }
+            },
+            onFailure = { failure ->
+                if (failure is CancellationException) throw failure
+                Result.failure(AddonException(sanitizeMessage(failure.message)))
             }
-            if (!manifest.isPlayable) {
-                val declared = manifest.resources.joinToString(", ")
-                throw AddonException("This addon declares $declared — BitChord needs search")
-            }
-            manifest
-        }.recoverCatching { failure ->
+        ).recoverCatching { failure ->
             // A manifest 404 is not "no such track", it is "no addon here" —
             // the one place the miss/fault distinction below has to be undone.
+            if (failure is CancellationException) throw failure
             if (failure is AddonNotFound) throw AddonException("No manifest at that URL")
-            throw failure
+            val safeDiagnostic = sanitizeMessage(failure.message)
+            val sanitized = when (failure) {
+                is AddonUnavailable -> AddonUnavailable(safeDiagnostic)
+                is AddonException -> AddonException(safeDiagnostic)
+                else -> AddonUnavailable(safeDiagnostic)
+            }
+            throw sanitized
         }
     }
 
@@ -117,8 +135,17 @@ class AddonClient(rawBaseUrl: String) {
      * read the [Result] rather than the count.
      */
     suspend fun probeSearch(): Result<Int> =
-        fetch<AddonSearchResponse>(endpoint(listOf("search"), mapOf("q" to PROBE_QUERY)))
-            .map { it.tracks.size }
+        runCatching {
+            endpoint(listOf("search"), mapOf("q" to PROBE_QUERY))
+        }.fold(
+            onSuccess = { targetUrl ->
+                fetch<AddonSearchResponse>(targetUrl).map { it.tracks.size }
+            },
+            onFailure = { failure ->
+                if (failure is CancellationException) throw failure
+                Result.failure(AddonException(sanitizeMessage(failure.message)))
+            }
+        )
 
     // ── Search ────────────────────────────────────────────────────────────
 
@@ -140,10 +167,68 @@ class AddonClient(rawBaseUrl: String) {
             // and an addon whose catalogue differs by tier would otherwise
             // answer the second one with the first one's rows.
             key = keyOf(trimmed, params.toString()),
-            describe = { "▶ addon search(${redact(baseUrl)}) q=\"$trimmed\" tier=$tier" },
+            describe = { "▶ addon search(${redact(baseUrl)}) q=\"${redactMessage(trimmed)}\" tier=$tier" },
         ) {
-            fetch<AddonSearchResponse>(endpoint(listOf("search"), params + ("q" to trimmed)))
+            runCatching {
+                endpoint(listOf("search"), params + ("q" to trimmed))
+            }.fold(
+                onSuccess = { targetUrl ->
+                    fetch<AddonSearchResponse>(targetUrl)
+                },
+                onFailure = { failure ->
+                    if (failure is CancellationException) throw failure
+                    val safeDiagnostic = sanitizeMessage(failure.message)
+                    Result.failure(AddonException(safeDiagnostic))
+                }
+            )
         }.map { it.tracks }
+    }
+
+    // ── ISRC Resolution ───────────────────────────────────────────────────
+
+    /**
+     * The addon's track id for an exact recording with [isrc], or null. Never a guess.
+     *
+     * Exact contract verified from original Soiboi:
+     * - Endpoint: GET `/resolve-isrc?isrc={isrc}`
+     * - Status 200 with JSON `{"trackId": "..."}`
+     * - Status 404 is a miss (not held by addon or no resolver), returning null without fault
+     */
+    suspend fun resolveIsrc(isrc: String): Result<String?> {
+        val trimmed = isrc.trim()
+        if (trimmed.isEmpty()) return Result.success(null)
+        val params = settingsFor("")
+        val outcome = isrcResolutions.get(
+            key = keyOf(trimmed, params.toString()),
+            describe = { "▶ addon resolve-isrc(${redact(baseUrl)}) isrc=${maskIsrc(trimmed)}" },
+        ) {
+            runCatching {
+                endpoint(listOf("resolve-isrc"), params + ("isrc" to trimmed))
+            }.fold(
+                onSuccess = { targetUrl ->
+                    fetch<AddonResolveIsrcResponse>(targetUrl)
+                        .map { it.trackId?.trim()?.ifEmpty { null } }
+                },
+                onFailure = { failure ->
+                    if (failure is CancellationException) throw failure
+                    val safeDiagnostic = sanitizeMessage(failure.message, trimmed)
+                    Result.failure(AddonException(safeDiagnostic))
+                }
+            )
+        }
+        val failure = outcome.exceptionOrNull()
+        if (failure is CancellationException) throw failure
+        if (failure is AddonNotFound) return Result.success(null)
+        if (failure != null) {
+            val safeDiagnostic = sanitizeMessage(failure.message, trimmed)
+            val sanitized = when (failure) {
+                is AddonUnavailable -> AddonUnavailable(safeDiagnostic)
+                is AddonException -> AddonException(safeDiagnostic)
+                else -> AddonUnavailable(safeDiagnostic)
+            }
+            return Result.failure(sanitized)
+        }
+        return outcome
     }
 
     // ── Stream ────────────────────────────────────────────────────────────
@@ -165,9 +250,20 @@ class AddonClient(rawBaseUrl: String) {
         val params = settingsFor(tier, stereoOnly)
         return streams.get(
             key = keyOf(trackId, params.toString()),
-            describe = { "▶ addon stream(${redact(baseUrl)}) id=$trackId tier=$tier" },
+            describe = { "▶ addon stream(${redact(baseUrl)}) id=${redactMessage(trackId)} tier=$tier" },
         ) {
-            fetch<AddonStream>(endpoint(listOf("stream", trackId), params))
+            runCatching {
+                endpoint(listOf("stream", trackId), params)
+            }.fold(
+                onSuccess = { targetUrl ->
+                    fetch<AddonStream>(targetUrl)
+                },
+                onFailure = { failure ->
+                    if (failure is CancellationException) throw failure
+                    val safeDiagnostic = sanitizeMessage(failure.message)
+                    Result.failure(AddonException(safeDiagnostic))
+                }
+            )
         }
     }
 
@@ -303,6 +399,24 @@ class AddonClient(rawBaseUrl: String) {
         return builder.build().toString()
     }
 
+    private fun sanitizeMessage(message: String?, isrc: String? = null): String {
+        val raw = message?.takeIf { it.isNotBlank() } ?: "Request failed"
+        var out = redactMessage(raw)
+        if (!isrc.isNullOrBlank() && out.contains(isrc)) {
+            out = out.replace(isrc, maskIsrc(isrc))
+        }
+        val basePath = baseUrl.toHttpUrlOrNull()?.encodedPath?.trim('/')?.takeIf { it.isNotBlank() }
+        if (basePath != null && out.contains(basePath)) {
+            out = out.replace(basePath, "***")
+        }
+        baseUrl.toHttpUrlOrNull()?.pathSegments?.filter { it.isNotBlank() }?.forEach { segment ->
+            if (segment.length >= 4 && out.contains(segment)) {
+                out = out.replace(segment, "***")
+            }
+        }
+        return out
+    }
+
     private suspend inline fun <reified T> fetch(url: String): Result<T> =
         runCatching { json.decodeFromString<T>(body(url)) }
             .onFailure { failure ->
@@ -310,8 +424,19 @@ class AddonClient(rawBaseUrl: String) {
                 // A miss is not worth a line. Everything else is: this is the
                 // only place that knows why an addon didn't answer.
                 if (failure !is AddonNotFound) {
-                    TrackLog.w(TAG, "  ✗ addon call failed ${redact(url)}: ${failure.message}")
+                    val safeDiagnostic = sanitizeMessage(failure.message)
+                    TrackLog.w(TAG, "  ✗ addon call failed ${redact(url)}: $safeDiagnostic")
                 }
+            }.recoverCatching { failure ->
+                if (failure is CancellationException) throw failure
+                if (failure is AddonNotFound) throw failure
+                val safeDiagnostic = sanitizeMessage(failure.message)
+                val sanitized = when (failure) {
+                    is AddonUnavailable -> AddonUnavailable(safeDiagnostic)
+                    is AddonException -> AddonException(safeDiagnostic)
+                    else -> AddonUnavailable(safeDiagnostic)
+                }
+                throw sanitized
             }
 
     /**
@@ -385,6 +510,7 @@ class AddonClient(rawBaseUrl: String) {
         manifests.clear()
         searches.clear()
         streams.clear()
+        isrcResolutions.clear()
         quietUntilMs = 0L
     }
 
@@ -400,6 +526,7 @@ class AddonClient(rawBaseUrl: String) {
     fun clearCompletedTrackCalls() {
         searches.clearCompleted()
         streams.clearCompleted()
+        isrcResolutions.clearCompleted()
     }
 
     /** Parts joined length-prefixed, so no byte a part may contain can act as a delimiter. */
@@ -465,8 +592,26 @@ class AddonClient(rawBaseUrl: String) {
          * kept, because it is what makes a line traceable to an addon at all
          * and it is not the secret.
          */
+        private val URL_REGEX = Regex("""https?://[^\s)"',;>]+""")
+        private val SENSITIVE_QUERY_REGEX = Regex("""(?i)\b(isrc|token|auth|api_?key|secret|password|access_token|refresh_token|session)=[^&\s)"',;>]+""")
+        private val ISRC_REGEX = Regex("""\b[A-Z]{2}-?[A-Z0-9]{3}-?[0-9]{2}-?[0-9]{5}\b""", RegexOption.IGNORE_CASE)
+
+        fun maskIsrc(isrc: String?): String {
+            if (isrc.isNullOrBlank()) return "***"
+            val clean = isrc.trim()
+            return if (clean.length < 6) "***" else "${clean.take(2)}***${clean.takeLast(2)}"
+        }
+
         fun redact(url: String): String =
             url.toHttpUrlOrNull()?.let { "${it.scheme}://${it.host}/***" } ?: "***"
+
+        fun redactMessage(message: String?): String {
+            if (message.isNullOrBlank()) return "no reason given"
+            var out = URL_REGEX.replace(message) { match -> redact(match.value) }
+            out = SENSITIVE_QUERY_REGEX.replace(out, "$1=***")
+            out = ISRC_REGEX.replace(out) { match -> maskIsrc(match.value) }
+            return out
+        }
 
         /**
          * How long a manifest is trusted.
@@ -481,6 +626,7 @@ class AddonClient(rawBaseUrl: String) {
 
         /** Whether a catalogue holds a recording is not a fact that turns over minute to minute. */
         const val SEARCH_TTL_MS = 10 * 60 * 1000L
+        const val ISRC_TTL_MS = 10 * 60 * 1000L
 
         /**
          * How long a stream URL is reused — short, because its expiry is not

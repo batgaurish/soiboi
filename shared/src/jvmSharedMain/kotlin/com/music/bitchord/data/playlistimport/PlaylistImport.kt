@@ -1,5 +1,6 @@
 package com.music.bitchord.data.playlistimport
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.*
 import java.text.Normalizer
 import java.util.Locale
@@ -297,6 +298,53 @@ object PlaylistImportMatcher {
     fun manualResolution(entry: PlaylistEntry, candidateId: String, candidates: List<ImportCandidate>, confirmed: Boolean): ImportMatchState {
         if (!confirmed) return ImportMatchState.Unmatched
         return candidates.firstOrNull { it.id == candidateId }?.let(ImportMatchState::ManualConfirmed) ?: ImportMatchState.Unmatched
+    }
+
+    /**
+     * Resolves a [PlaylistEntry] against candidates and an optional external ISRC resolver (such as [com.music.bitchord.data.sources.addon.AddonIsrcResolver]).
+     *
+     * When [isrcResolver] is supplied and [entry] has an ISRC, queries the resolver first.
+     * If resolved, returns [ImportMatchState.Matched] with confidence 1.0 and method [ImportMatchState.Method.ISRC].
+     * Otherwise falls back to candidate / title / artist matching.
+     * Note: References only; does not create streaming playback.
+     */
+    suspend fun resolveWithIsrc(
+        entry: PlaylistEntry,
+        candidates: List<ImportCandidate> = emptyList(),
+        isrcResolver: (suspend (String) -> String?)? = null,
+    ): ImportMatchState {
+        val normalizedIsrc = entry.isrc?.normalizeIsrc()
+        if (normalizedIsrc != null && isrcResolver != null) {
+            val resolvedId = try {
+                isrcResolver(normalizedIsrc)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+            if (!resolvedId.isNullOrBlank()) {
+                val candidate = candidates.firstOrNull { it.id == resolvedId }
+                    ?: ImportCandidate(id = resolvedId, title = entry.title, artist = entry.artist, isrc = normalizedIsrc)
+                return ImportMatchState.Matched(candidate, 1.0, ImportMatchState.Method.ISRC)
+            }
+        }
+        return resolve(entry, candidates)
+    }
+
+    /**
+     * Resolves playlist [entries] against an [com.music.bitchord.data.sources.addon.AddonIsrcResolver], matching tracks by ISRC where available
+     * and falling back to [candidates]. References only; does not create streaming playback.
+     */
+    suspend fun resolveAllWithAddon(
+        entries: List<PlaylistEntry>,
+        candidates: List<ImportCandidate> = emptyList(),
+        addonResolver: com.music.bitchord.data.sources.addon.AddonIsrcResolver,
+    ): List<ImportMatchState> {
+        return entries.map { entry ->
+            resolveWithIsrc(entry, candidates) { isrc ->
+                addonResolver.resolveIsrc(isrc).getOrNull()
+            }
+        }
     }
 }
 
