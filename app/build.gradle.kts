@@ -7,6 +7,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.chaquo.python")
 }
 
 /**
@@ -71,6 +72,7 @@ android {
         versionName = rootProject.extra["bitchordVersionName"] as String
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk { abiFilters += (System.getenv("SOIBOI_ABIS") ?: "arm64-v8a,x86_64").split(",").map { it.trim() } }
 
         // Last.fm credentials are supplied locally and never committed.
         buildConfigField("String", "LASTFM_API_KEY", "\"${lastfmApiKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
@@ -90,7 +92,7 @@ android {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            include("arm64-v8a", "x86_64")
             isUniversalApk = true
         }
     }
@@ -193,6 +195,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
         resources {
             // SMBJ's BouncyCastle and jspecify both ship this descriptor.
             excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
@@ -518,5 +523,35 @@ if (providers.gradleProperty("bitchord.bundleWear").orNull != "false" && findPro
             apks.from(rootProject.layout.projectDirectory.dir("wearos/build/outputs/apk/$flavor/$type"))
         }
         variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleWearApk::outputDir)
+    }
+}
+
+val pipRepo = listOf(
+    rootProject.file("pip-repo"),
+    rootProject.file("../../pip-repo"),
+    file("../pip-repo")
+).firstOrNull { it.exists() && it.isDirectory }
+
+chaquopy {
+    defaultConfig {
+        version = "3.12"
+        buildPython(System.getenv("CHAQUOPY_PYTHON") ?: "python3.12")
+        pip {
+            if (pipRepo != null) {
+                options("--find-links", pipRepo.path)
+                install("gamdl==3.8.5")
+                install("bliss_analyze==0.1.0")
+            } else {
+                install("mutagen")
+            }
+        }
+    }
+    sourceSets {
+        getByName("main") {
+            srcDir("../pipeline")
+            exclude("native/**")
+            exclude("**/__pycache__/**")
+            exclude("**/*.pyc")
+        }
     }
 }

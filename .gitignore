@@ -54,3 +54,12 @@ docs/superpowers/
 .superpowers/
 scorecard.png
 
+# Python / Chaquopy artifacts
+*.pyc
+__pycache__/
+.chaquopy/
+/pip-repo/
+pip-repo/
+*.whl
+.pipeline-venv/
+

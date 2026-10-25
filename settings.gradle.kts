@@ -3,6 +3,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
+        maven("https://chaquo.com/maven")
     }
 }
 dependencyResolutionManagement {
@@ -12,6 +13,7 @@ dependencyResolutionManagement {
         mavenCentral()
         // NewPipeExtractor is published via JitPack.
         maven("https://jitpack.io")
+        maven("https://chaquo.com/maven")
     }
 }
 
