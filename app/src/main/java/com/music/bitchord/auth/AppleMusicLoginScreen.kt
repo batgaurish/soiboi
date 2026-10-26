@@ -16,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 private const val LOGIN_URL = "https://music.apple.com/us/browse"
 
@@ -80,20 +82,33 @@ private fun buildNetscapeJar(pairs: List<Triple<String, String, String>>): Strin
  * Called after the session is handed off whether saving to secure storage succeeded or failed.
  * Prevents the persistent WebView jar from being re-read as a credential fallback.
  */
-fun clearAppleWebSession() {
+fun clearAppleWebSession(onComplete: () -> Unit = {}) {
     val cookies = CookieManager.getInstance()
-    for (url in APPLE_CAPTURE_URLS) {
+    val expirations = APPLE_CAPTURE_URLS.flatMap { url ->
         val names = cookies.getCookie(url)?.split(";")
             ?.map { it.substringBefore("=").trim() }
             ?.filter { it.isNotEmpty() }
             .orEmpty()
-        for (name in names) {
+        names.flatMap { name ->
             val expired = "$name=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/"
-            cookies.setCookie(url, expired)
-            cookies.setCookie(url, "$expired; Domain=.apple.com")
+            listOf(url to expired, url to "$expired; Domain=.apple.com")
         }
     }
-    cookies.flush()
+    if (expirations.isEmpty()) {
+        cookies.flush()
+        onComplete()
+        return
+    }
+
+    val pending = AtomicInteger(expirations.size)
+    expirations.forEach { (url, expired) ->
+        cookies.setCookie(url, expired) {
+            if (pending.decrementAndGet() == 0) {
+                cookies.flush()
+                onComplete()
+            }
+        }
+    }
 }
 
 /**
@@ -122,11 +137,14 @@ fun AppleMusicLoginScreen(
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
+    val sessionActive = remember { AtomicBoolean(false) }
 
     AndroidView(
         modifier = modifier.fillMaxSize(),
         factory = { context ->
-            WebView(context).apply {
+            sessionActive.set(true)
+            var captureGate: AppleSessionCaptureGate? = null
+            val loginView = WebView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -151,11 +169,7 @@ fun AppleMusicLoginScreen(
 
                         // Wait until media-user-token is present before harvesting the session.
                         val musicCookies = CookieManager.getInstance().getCookie("https://music.apple.com")
-                        if (musicCookies == null || !musicCookies.contains("media-user-token=")) return
-                        val tokenPresent = musicCookies.split(";")
-                            .any { it.substringBefore("=").trim().equals("media-user-token", ignoreCase = true) &&
-                                it.substringAfter("=", "").trim().isNotBlank() }
-                        if (!tokenPresent) return
+                        val sessionToken = captureGate?.newSessionToken(musicCookies) ?: return
 
                         // Collect cookies from all Apple domains. CookieManager.getCookie() is
                         // host-scoped and returns only name=value pairs; we assign Netscape
@@ -173,7 +187,10 @@ fun AppleMusicLoginScreen(
                         }.distinctBy { it.first }  // keep first occurrence if a name appears in multiple jars
 
                         // Require media-user-token in the collected set before handing off.
-                        if (pairs.none { it.first.equals("media-user-token", ignoreCase = true) }) return
+                        if (pairs.none {
+                                it.first.equals("media-user-token", ignoreCase = true) && it.second == sessionToken
+                            }
+                        ) return
 
                         sent = true
                         val netscapeJar = buildNetscapeJar(pairs)
@@ -188,10 +205,23 @@ fun AppleMusicLoginScreen(
                     }
                 }
                 webView = this
-                loadUrl(LOGIN_URL)
             }
+            clearAppleWebSession {
+                if (sessionActive.get()) {
+                    // Record only cookies that remain after expiration callbacks have completed.
+                    // A token from a previous WebView session must not close this sign-in window.
+                    captureGate = AppleSessionCaptureGate(
+                        CookieManager.getInstance().getCookie("https://music.apple.com"),
+                    )
+                    loginView.loadUrl(LOGIN_URL)
+                }
+            }
+            loginView
         },
-        onRelease = { it.destroy() },
+        onRelease = {
+            sessionActive.set(false)
+            it.destroy()
+        },
     )
 
     BackHandler(enabled = canGoBack) {

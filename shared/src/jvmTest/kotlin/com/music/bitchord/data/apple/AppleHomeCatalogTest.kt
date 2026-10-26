@@ -571,6 +571,33 @@ class AppleHomeCatalogTest {
         assertEquals(2, attempts)
     }
 
+    @Test fun publicChartsParsesCurrentAppleChartArrayResponse() = runBlocking {
+        val requests = mutableListOf<Request>()
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            requests += request
+            val body = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" ->
+                    "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.encodedPath.endsWith("index~abc.js") -> token
+                request.url.encodedPath.endsWith("/charts") -> """{"results":{"albums":[{"chart":"most-played","name":"Top Albums","data":[{"id":"a1","type":"albums","attributes":{"name":"Album One","artistName":"Artist One"}}]}],"playlists":[{"chart":"most-played","name":"Top Playlists","data":[{"id":"p1","type":"playlists","attributes":{"name":"Playlist One","artistName":"Artist Two"}}]}]}}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(cookieHeader = { null }, storefront = { "in" }, client = client).home()
+
+        val ready = assertIs<AppleHomeResult.Ready>(result)
+        assertEquals(listOf("Top Albums", "Top Playlists"), ready.shelves.map { it.title })
+        assertEquals(listOf("Album One", "Playlist One"), ready.shelves.map { it.items.single().title })
+        assertTrue(ready.shelves.all { it.public })
+        val chartRequest = requests.single { it.url.encodedPath.endsWith("/charts") }
+        assertEquals(listOf("albums,playlists,songs"), chartRequest.url.queryParameterValues("types"))
+    }
+
     private fun jwt(header: String, payload: String): String {
         val encoder = Base64.getUrlEncoder().withoutPadding()
         fun encode(value: String) = encoder.encodeToString(value.encodeToByteArray())

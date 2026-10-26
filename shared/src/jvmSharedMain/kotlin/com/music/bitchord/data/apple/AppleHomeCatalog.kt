@@ -211,7 +211,7 @@ class AppleHomeCatalog(
     }
 
     private suspend fun publicCharts(): AppleHomeResult = try {
-        val path = "/v1/catalog/${storefront()}/charts?types=albums,playlists,artists&limit=25"
+        val path = "/v1/catalog/${storefront()}/charts?types=albums,playlists,songs&limit=25"
         var requestToken = token()
         var (code, body) = request(path, requestToken, null)
         if (code == 401) {
@@ -226,8 +226,27 @@ class AppleHomeCatalog(
         } else if (code !in 200..299) {
             AppleHomeResult.Failed(Failure.HTTP, "Apple Music charts returned HTTP $code.")
         } else {
-            val data = json.parseToJsonElement(body).jsonObject["results"]?.jsonObject?.values?.firstOrNull()?.jsonObject?.get("data")?.jsonArray.orEmpty()
-            val shelves = listOf(AppleHomeShelf("Popular on Apple Music", data.mapNotNull(::item), public = true)).filter { it.items.isNotEmpty() }
+            val results = json.parseToJsonElement(body).jsonObject["results"]?.jsonObject.orEmpty()
+            val shelves = results.flatMap { (_, chartGroup) ->
+                when (chartGroup) {
+                    is kotlinx.serialization.json.JsonArray -> chartGroup.mapNotNull { chartElement ->
+                        val chart = chartElement as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+                        val items = chart["data"]?.jsonArray.orEmpty().mapNotNull(::item)
+                        val title = chart["name"]?.jsonPrimitive?.content
+                            ?.takeIf(String::isNotBlank)
+                            ?: "Popular on Apple Music"
+                        items.takeIf(List<*>::isNotEmpty)?.let { AppleHomeShelf(title, it, public = true) }
+                    }
+                    is kotlinx.serialization.json.JsonObject -> {
+                        // Retain support for the older flattened response/fixture shape.
+                        val items = chartGroup["data"]?.jsonArray.orEmpty().mapNotNull(::item)
+                        listOfNotNull(items.takeIf(List<*>::isNotEmpty)?.let {
+                            AppleHomeShelf("Popular on Apple Music", it, public = true)
+                        })
+                    }
+                    else -> emptyList()
+                }
+            }
             if (shelves.isEmpty()) {
                 AppleHomeResult.Empty("No Apple Music charts available.")
             } else {
