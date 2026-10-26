@@ -104,6 +104,10 @@ fun ListenBrainzTokenAlert(
 @Composable
 fun LastfmLoginAlert(
     hazeState: HazeState,
+    apiKeyInput: String,
+    onApiKeyInputChange: (String) -> Unit,
+    secretInput: String,
+    onSecretInputChange: (String) -> Unit,
     usernameInput: String,
     onUsernameInputChange: (String) -> Unit,
     passwordInput: String,
@@ -133,6 +137,16 @@ fun LastfmLoginAlert(
                 color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
+            if (apiKeyInput.isBlank() || secretInput.isBlank()) {
+                PillTextField(value = apiKeyInput, onValueChange = onApiKeyInputChange,
+                    placeholder = "Last.fm API key", enabled = !loading,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
+                Spacer(Modifier.height(8.dp))
+                PillTextField(value = secretInput, onValueChange = onSecretInputChange,
+                    placeholder = "Last.fm shared secret", enabled = !loading, isPassword = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next))
+                Spacer(Modifier.height(8.dp))
+            }
             PillTextField(
                 value = usernameInput,
                 onValueChange = onUsernameInputChange,
@@ -158,7 +172,8 @@ fun LastfmLoginAlert(
             label = if (loading) stringResource(R.string.signing_in) else stringResource(R.string.sign_in),
             emphasised = true,
             onClick = onSignIn,
-            enabled = !loading && usernameInput.isNotBlank() && passwordInput.isNotBlank(),
+            enabled = !loading && usernameInput.isNotBlank() && passwordInput.isNotBlank() &&
+                apiKeyInput.isNotBlank() && secretInput.isNotBlank(),
         )
         AlertRule()
         AlertAction(

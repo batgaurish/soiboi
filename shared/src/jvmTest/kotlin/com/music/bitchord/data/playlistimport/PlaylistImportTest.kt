@@ -5,6 +5,38 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class PlaylistImportTest {
+    @Test fun appleCatalogResponsePreservesOrderDuplicatesAndSourceOffsets() {
+        val fixture = """{"data":[{"attributes":{"name":"Road Mix"},"relationships":{"tracks":{"data":[{"type":"songs","attributes":{"name":"Track","artistName":"Artist","isrc":"usaaa2400001"}},{"type":"songs","attributes":{"name":"broken"}},{"type":"songs","attributes":{"name":"Track","artistName":"Artist"}}]}}}]}"""
+        val parsed = PlaylistImportParser.parseAppleCatalogPlaylistResponse(fixture)
+        assertEquals("Road Mix", parsed.title)
+        assertEquals(PlaylistImportProvider.APPLE_MUSIC, parsed.provider)
+        assertEquals(listOf("Track", "Track"), parsed.entries.map { it.title })
+        assertEquals(listOf("Artist", "Artist"), parsed.entries.map { it.artist })
+        assertEquals(listOf("USAAA2400001", null), parsed.entries.map { it.isrc })
+        assertEquals(listOf(0, 2), parsed.entries.map { it.sourceIndex })
+    }
+
+    @Test fun appleCatalogResolvesIncludedResourcesAndPaginatedTrackPages() {
+        val playlistFixture = """{"data":[{"id":"pl.123","type":"playlists","attributes":{"name":"Included Mix"},"relationships":{"tracks":{"data":[{"id":"song-1","type":"songs"},{"id":"song-1","type":"songs"}]}}}],"included":[{"id":"song-1","type":"songs","attributes":{"name":"Repeat","artistName":"Artist","isrc":"usaaa2400001"}}]}"""
+        val included = PlaylistImportParser.parseAppleCatalogPlaylistResponse(playlistFixture)
+        assertEquals("Included Mix", included.title)
+        assertEquals(listOf("Repeat", "Repeat"), included.entries.map { it.title })
+        assertEquals(listOf(0, 1), included.entries.map { it.sourceIndex })
+
+        val trackPageFixture = """{"data":[{"id":"song-2","type":"songs","attributes":{"name":"Next","artistName":"Other"}}]}"""
+        val trackPage = PlaylistImportParser.parseAppleCatalogPlaylistResponse(trackPageFixture)
+        assertEquals(listOf("Next"), trackPage.entries.map { it.title })
+        assertEquals(listOf(0), trackPage.entries.map { it.sourceIndex })
+    }
+
+    @Test fun applePlaylistExtractorRequiresExactHttpsUrl() {
+        assertEquals("us" to "pl.abc-123", PlaylistImportService.extractApplePlaylist("https://music.apple.com/us/playlist/road/pl.abc-123?l=en"))
+        assertEquals("us" to "pl.abc-123", PlaylistImportService.extractApplePlaylist("https://www.music.apple.com/us/playlist/road/pl.abc-123"))
+        assertEquals(null, PlaylistImportService.extractApplePlaylist("http://music.apple.com/us/playlist/road/pl.abc"))
+        assertEquals(null, PlaylistImportService.extractApplePlaylist("https://evil.example/us/playlist/road/pl.abc"))
+        assertEquals(null, PlaylistImportService.extractApplePlaylist("https://music.apple.com.evil.example/us/playlist/road/pl.abc"))
+    }
+
     @Test fun pastedTracksKeepOrderAndDuplicates() {
         val result = PlaylistImportParser.parse("Title\tArtist\tISRC\nFirst\tA\tUSAAA0000001\nSecond - B\nFirst - A")
         assertEquals(listOf("First", "Second", "First"), result.entries.map { it.title })

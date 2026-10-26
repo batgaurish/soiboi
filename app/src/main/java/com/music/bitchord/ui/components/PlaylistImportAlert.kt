@@ -62,6 +62,7 @@ private enum class AndroidImportPhase {
 fun PlaylistImportAlert(
     hazeState: HazeState,
     signedIn: Boolean,
+    appleMusic: Boolean = false,
     onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -127,7 +128,8 @@ fun PlaylistImportAlert(
         if (working || input.isBlank()) return
         working = true
         errorMessage = null
-        statusMessage = context.getString(R.string.spotify_import_fetching)
+        val fetchingMessage = context.getString(R.string.spotify_import_fetching)
+        statusMessage = if (appleMusic) fetchingMessage.replace("Spotify", "Apple Music", ignoreCase = true) else fetchingMessage
         val tokenToUse = credential.trim().takeIf(String::isNotBlank)
 
         scope.launch {
@@ -191,15 +193,16 @@ fun PlaylistImportAlert(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = stringResource(R.string.spotify_import_title),
+                        text = if (appleMusic) "Import Apple Music playlist" else stringResource(R.string.spotify_import_title),
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        text = statusMessage ?: errorMessage ?: stringResource(
-                            if (signedIn) R.string.spotify_import_description
-                            else R.string.spotify_import_description_local,
+                        text = statusMessage ?: errorMessage ?: if (appleMusic) {
+                            "Paste an Apple Music playlist link. Review matched tracks before saving."
+                        } else stringResource(
+                            if (signedIn) R.string.spotify_import_description else R.string.spotify_import_description_local,
                         ),
                         modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
@@ -222,7 +225,7 @@ fun PlaylistImportAlert(
                     ) {
                         if (input.isEmpty()) {
                             Text(
-                                text = "Paste link or tracklist\n(Spotify, Deezer, YouTube, Tidal, etc.)",
+                                text = if (appleMusic) "Paste an Apple Music playlist link or tracklist" else "Paste link or tracklist\n(Spotify, Deezer, YouTube, Tidal, etc.)",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             )

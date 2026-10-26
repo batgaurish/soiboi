@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -30,6 +31,16 @@ import java.util.concurrent.atomic.AtomicInteger
  * and deterministic match resolution across all supported providers.
  */
 object PlaylistImportService {
+
+    private val APPLE_MUSIC_URL_REGEX = Regex("""^/([a-z]{2})/playlist/[^/?#]+/(pl\.[A-Za-z0-9-]+)/?$""", RegexOption.IGNORE_CASE)
+
+    fun extractApplePlaylist(input: String): Pair<String, String>? {
+        val url = input.trim().toHttpUrlOrNull() ?: return null
+        if (url.scheme != "https" || url.host.lowercase() !in setOf("music.apple.com", "www.music.apple.com") || url.port != 443) return null
+        if (url.username.isNotEmpty() || url.password.isNotEmpty()) return null
+        val match = APPLE_MUSIC_URL_REGEX.matchEntire(url.encodedPath) ?: return null
+        return match.groupValues[1].lowercase() to match.groupValues[2]
+    }
 
     private const val USER_AGENT =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -145,6 +156,51 @@ object PlaylistImportService {
         }
     }
 
+    private fun safeAppleCatalogPath(href: String): String? {
+        val absolute = if (href.startsWith("/")) "https://api.music.apple.com$href" else href
+        val parsed = absolute.toHttpUrlOrNull() ?: return null
+        if (parsed.scheme != "https" || parsed.host != "api.music.apple.com" || parsed.port != 443) return null
+        if (parsed.username.isNotEmpty() || parsed.password.isNotEmpty()) return null
+        return buildString { append(parsed.encodedPath); parsed.encodedQuery?.let { append('?').append(it) } }
+    }
+
+    private fun appleNextPagePath(responseBody: String, playlistPage: Boolean): String? {
+        val root = json.parseToJsonElement(responseBody).jsonObject
+        val linkContainer = if (playlistPage) {
+            val playlist = (root["data"] as? JsonArray)?.firstOrNull() as? JsonObject
+            val relationships = playlist?.get("relationships") as? JsonObject
+            relationships?.get("tracks") as? JsonObject ?: return null
+        } else {
+            root
+        }
+        val next = linkContainer["next"]
+            ?: (linkContainer["links"] as? JsonObject)?.get("next")
+        return runCatching { next?.jsonPrimitive?.contentOrNull }.getOrNull()?.takeIf(String::isNotBlank)
+    }
+
+    private fun applePageTrackCount(responseBody: String, playlistPage: Boolean): Int {
+        val root = json.parseToJsonElement(responseBody).jsonObject
+        val data = root["data"] as? JsonArray ?: return 0
+        if (!playlistPage) return data.size
+        val playlist = data.firstOrNull() as? JsonObject ?: return 0
+        val relationships = playlist["relationships"] as? JsonObject ?: return 0
+        val tracks = relationships["tracks"] as? JsonObject ?: return 0
+        return (tracks["data"] as? JsonArray)?.size ?: 0
+    }
+
+    private fun fetchAppleWebBundle(): String {
+        val homepage = Http.client.newCall(Request.Builder().url("https://music.apple.com/").build()).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Apple Music token page failed (HTTP ${response.code}).")
+            response.body?.string().orEmpty()
+        }
+        val asset = com.music.bitchord.data.apple.discoverWebPlayerAsset(homepage)
+            ?: throw IOException("Apple Music token asset unavailable.")
+        return Http.client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Apple Music token asset failed (HTTP ${response.code}).")
+            response.body?.string().orEmpty()
+        }
+    }
+
     /**
      * Sanitizes diagnostic messages and exception text so auth tokens and client IDs
      * are never leaked in error logs or UI messages.
@@ -189,6 +245,60 @@ object PlaylistImportService {
             trimmed.startsWith("spotify:playlist:", ignoreCase = true) ||
             trimmed.startsWith("spotify:album:", ignoreCase = true)
         ) {
+            val applePlaylist = extractApplePlaylist(trimmed)
+            if (applePlaylist != null) {
+                val (storefront, id) = applePlaylist
+                val collected = mutableListOf<PlaylistEntry>()
+                var nextPath: String? = "/v1/catalog/$storefront/playlists/$id/tracks?limit=100"
+                var pageCount = 0
+                var sourceOffset = 0
+                val token = com.music.bitchord.data.apple.selectWebPlayerToken(fetchAppleWebBundle())
+                    ?: throw IOException("Apple Music developer token unavailable.")
+                val playlistMetadataPath = safeAppleCatalogPath("/v1/catalog/$storefront/playlists/$id?include=tracks")
+                    ?: throw IOException("Apple Music playlist path is invalid.")
+                val metadataRequest = Request.Builder().url("https://api.music.apple.com$playlistMetadataPath")
+                    .header("Authorization", "Bearer $token")
+                    .header("Origin", "https://music.apple.com")
+                    .build()
+                val metadataBody = Http.client.newCall(metadataRequest).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("Apple Music catalog request failed (HTTP ${response.code}).")
+                    response.body?.string().orEmpty()
+                }
+                val playlistTitle = PlaylistImportParser.parseAppleCatalogPlaylistResponse(metadataBody).title
+                val expectedTrackPath = "/v1/catalog/$storefront/playlists/$id/tracks"
+                while (nextPath != null && pageCount < 10 && collected.size < 1000) {
+                    pageCount++
+                    val path = safeAppleCatalogPath(nextPath)
+                        ?: throw IOException("Apple Music returned an invalid catalog page link.")
+                    if (path.substringBefore('?') != expectedTrackPath) {
+                        throw IOException("Apple Music returned an unexpected catalog page path.")
+                    }
+                    val request = Request.Builder().url("https://api.music.apple.com$path")
+                        .header("Authorization", "Bearer $token")
+                        .header("Origin", "https://music.apple.com")
+                        .build()
+                    val body = Http.client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) throw IOException("Apple Music catalog request failed (HTTP ${response.code}).")
+                        response.body?.string().orEmpty()
+                    }
+                    val parsed = PlaylistImportParser.parseAppleCatalogPlaylistResponse(body)
+                    val rawTrackCount = applePageTrackCount(body, playlistPage = false)
+                    val pageOffset = sourceOffset
+                    collected.addAll(parsed.entries.take(1000 - collected.size).map { it.copy(sourceIndex = pageOffset + it.sourceIndex) })
+                    sourceOffset += rawTrackCount
+                    val nextHref = appleNextPagePath(body, playlistPage = false)
+                    nextPath = nextHref?.let { safeAppleCatalogPath(it) ?: throw IOException("Apple Music returned an invalid catalog page link.") }
+                }
+                if (nextPath != null) {
+                    throw IOException("Apple Music playlist exceeds the safe 1,000-track import limit.")
+                }
+                return@withContext ImportedPlaylist(
+                    customTitle?.takeIf(String::isNotBlank) ?: playlistTitle,
+                    PlaylistImportProvider.APPLE_MUSIC,
+                    collected,
+                )
+            }
+
             // 1. Spotify
             val spotifyId = SpotifyImporter.extractPlaylistId(trimmed)
             if (spotifyId != null) {

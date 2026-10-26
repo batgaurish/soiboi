@@ -7,7 +7,7 @@ import java.util.Locale
 import com.music.bitchord.data.model.Song
 
 /** Imported entries are references only; they never introduce a playback source. */
-enum class PlaylistImportProvider { PASTED, SPOTIFY, DEEZER, YOUTUBE_MUSIC, TIDAL, SOUNDCLOUD, JIOSAAVN, QOBUZ, GAANA, BANDCAMP }
+enum class PlaylistImportProvider { PASTED, SPOTIFY, DEEZER, YOUTUBE_MUSIC, TIDAL, SOUNDCLOUD, JIOSAAVN, QOBUZ, GAANA, BANDCAMP, APPLE_MUSIC }
 
 data class PlaylistEntry(val title: String, val artist: String, val isrc: String? = null, val sourceIndex: Int)
 data class ImportedPlaylist(val title: String, val provider: PlaylistImportProvider, val entries: List<PlaylistEntry>)
@@ -200,6 +200,48 @@ object PlaylistImportParser {
         }
         cells.add(current.toString().trim())
         return cells
+    }
+
+    /** Parses an Apple public catalog playlist or paginated tracks response. */
+    fun parseAppleCatalogPlaylistResponse(response: String): ImportedPlaylist {
+        val root = json.parseToJsonElement(response).jsonObject
+        val data = (root["data"] as? JsonArray).orEmpty()
+        val first = data.firstOrNull() as? JsonObject
+        val isTrackPage = first?.stringAny("type") == "songs"
+        val playlist = first.takeUnless { isTrackPage }
+        val title = if (playlist != null) {
+            (playlist["attributes"] as? JsonObject)?.stringAny("name")?.trim()?.takeIf(String::isNotEmpty)
+                ?: "Imported Apple Music playlist"
+        } else {
+            "Imported Apple Music playlist"
+        }
+        val includedById = (root["included"] as? JsonArray).orEmpty()
+            .mapNotNull { it as? JsonObject }
+            .filter { it.stringAny("type") == "songs" }
+            .mapNotNull { track -> track.stringAny("id")?.let { it to track } }
+            .toMap()
+        val trackRows = if (playlist != null) {
+            (((playlist["relationships"] as? JsonObject)?.get("tracks") as? JsonObject)?.get("data") as? JsonArray)
+                ?: JsonArray(emptyList())
+        } else {
+            data
+        }
+        val entries = trackRows.mapIndexedNotNull { index, row ->
+            val reference = row as? JsonObject ?: return@mapIndexedNotNull null
+            val type = reference.stringAny("type")
+            if (type != null && type != "songs") return@mapIndexedNotNull null
+            val track = if (reference["attributes"] is JsonObject) {
+                reference
+            } else {
+                reference.stringAny("id")?.let(includedById::get) ?: return@mapIndexedNotNull null
+            }
+            val attrs = track["attributes"] as? JsonObject ?: return@mapIndexedNotNull null
+            val name = attrs.stringAny("name")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapIndexedNotNull null
+            val artist = attrs.stringAny("artistName")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapIndexedNotNull null
+            val isrc = attrs.stringAny("isrc")?.trim()?.takeIf(String::isNotEmpty)?.normalizeIsrc()
+            PlaylistEntry(name, artist, isrc, index)
+        }
+        return ImportedPlaylist(title, PlaylistImportProvider.APPLE_MUSIC, entries)
     }
 
     /** Parses an offline Spotify Web API playlist object, including tracks.items[].track. */

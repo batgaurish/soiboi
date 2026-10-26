@@ -519,6 +519,7 @@ fun BitChordDesktopApp() {
     // transport and queue gesture reaches Listen Together without duplicating protocol logic.
     val partySyncHolder = remember { arrayOfNulls<DesktopPartySync>(1) }
     val partyState by DesktopListenTogether.state.collectAsState()
+    val listenBrainzToken by DesktopScrobbleSettings.listenBrainzToken.collectAsState()
     var personalQueueStash by remember { mutableStateOf<DesktopQueue?>(null) }
     var personalPositionStash by remember { mutableStateOf(0L) }
     var personalPlayingStash by remember { mutableStateOf(false) }
@@ -598,6 +599,7 @@ fun BitChordDesktopApp() {
     /** What the Spotify grid is waiting on, or why it is empty; null once its playlists are in. */
     var spotifyLibraryStatus by remember { mutableStateOf<String?>(null) }
     var spotifyImportOpen by remember { mutableStateOf(false) }
+    var appleMusicImportOpen by remember { mutableStateOf(false) }
     /** Where the one back button in the top bar goes: every place visited, oldest first. */
     val navHistory = remember { mutableStateListOf<DesktopNavEntry>() }
     /** Set while [goBack] puts a place back, so that move is not itself recorded as a visit. */
@@ -3706,6 +3708,14 @@ fun BitChordDesktopApp() {
                         )
                     }
 
+                    if (appleMusicImportOpen) {
+                        DesktopAppleMusicImportDialog(
+                            signedIn = youtubeSignedIn,
+                            onImported = ::importSpotifyPlaylist,
+                            onDismiss = { appleMusicImportOpen = false },
+                        )
+                    }
+
                     if (overlays.signIn) {
                         DesktopSignInDialog(
                             busy = signInBusy,
@@ -4178,6 +4188,7 @@ fun BitChordDesktopApp() {
                                             spotifyCanvasCookie = ""
                                         },
                                     ),
+                                    onOpenAppleMusic = ::signInToAppleMusic,
                                     onOpenLastfm = { overlays.lastfmLogin = true },
                                     onOpenListenBrainz = { overlays.listenBrainzToken = true },
                                     onOpenDiscordToken = { overlays.discordToken = true },
@@ -4288,6 +4299,8 @@ fun BitChordDesktopApp() {
                             loadingMore = homeLoadingMore,
                             recentlyPlayedLoading = homeRecentsLoading,
                             leadHero = false,
+                            listenBrainzToken = listenBrainzToken,
+                            onListenBrainzTrack = { track -> runSearch("${track.title} ${track.artist}") },
                         )
                         destination == DesktopDestination.EXPLORE && selectedMoodGenre != null -> Column(Modifier.fillMaxSize()) {
                             MoodGenrePlaylistsScreen(
@@ -4437,6 +4450,7 @@ fun BitChordDesktopApp() {
                             onShelfItemLongPress = { item -> if (item.videoId != null) openMenu(item.toSong()) },
                             onNewPlaylist = { overlays.playlistDialog = true },
                             onImportSpotifyPlaylist = { spotifyImportOpen = true },
+                            onImportAppleMusicPlaylist = { appleMusicImportOpen = true },
                             onShowAll = { shelf -> libraryShowAll = shelf },
                             replay = {
                                 // The phone's wallet of Replay cards, or nothing until there is

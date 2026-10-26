@@ -115,6 +115,19 @@ class AppleHomeCatalog(
         catch (e: Exception) { AppleHomeResult.Failed(Failure.HTTP, e.message ?: "Apple Music request failed") }
     }
 
+    private fun safeAppleError(status: Int, body: String): String {
+        val details = runCatching {
+            val errors = json.parseToJsonElement(body).jsonObject["errors"]?.jsonArray.orEmpty()
+            errors.mapNotNull { row ->
+                val obj = row as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+                val code = obj["code"]?.jsonPrimitive?.content?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{1,40}")) }
+                val title = obj["title"]?.jsonPrimitive?.content?.replace(Regex("[\\\\r\\\\n\\\\p{Cntrl}]"), " ")?.take(120)
+                listOfNotNull(code, title).joinToString(": ").takeIf(String::isNotBlank)
+            }.take(3).joinToString("; ")
+        }.getOrDefault("")
+        return "Apple Music returned HTTP $status." + if (details.isBlank()) "" else " $details"
+    }
+
     private fun containsService3077(body: String): Boolean = runCatching {
         val root = json.parseToJsonElement(body).jsonObject
         root["errors"]?.jsonArray.orEmpty().any { errorElement ->
@@ -135,7 +148,9 @@ class AppleHomeCatalog(
             )
         }
         if (responses.any { it.first == 401 }) return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, "Apple Music rejected the account session. Sign in again.")
-        if (responses.any { it.first !in 200..299 }) return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, "Apple Music returned HTTP ${responses.first { it.first !in 200..299 }.first}.")
+        responses.firstOrNull { it.first !in 200..299 }?.let { (status, body) ->
+            return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, safeAppleError(status, body))
+        }
         try {
             val roots = responses.map { json.parseToJsonElement(it.second).jsonObject }
             val recommendationRows = roots[0]["data"]?.jsonArray.orEmpty()

@@ -325,6 +325,13 @@ internal fun DesktopSpotifyImportDialog(
     )
 }
 
+@Composable
+internal fun DesktopAppleMusicImportDialog(
+    signedIn: Boolean,
+    onImported: suspend (title: String, songs: List<Song>) -> String?,
+    onDismiss: () -> Unit,
+) = DesktopPlaylistImportDialog(signedIn = signedIn, onImported = onImported, onDismiss = onDismiss)
+
 /** The same filled field the playlist dialogs use. */
 @Composable
 private fun DialogField(

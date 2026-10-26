@@ -26,7 +26,7 @@ val isArm64 = hostArch == "aarch64" || hostArch == "arm64"
 // Windows installer metadata requires MAJOR.MINOR.BUILD even though the app's public version is
 // intentionally displayed without a patch number (1.7 rather than 1.7.0).
 // The build number is the desktop version code; it also keeps "-beta1" out of the numeric installer version.
-val desktopVersionCode = 30
+val desktopVersionCode = 31
 val nativePackageVersion = appVersion.substringBefore('-').split('.').take(2).joinToString(".") + ".$desktopVersionCode"
 
 // FFmpeg decodes audio; see DesktopAudioDecoder.
@@ -380,6 +380,18 @@ tasks.named<Jar>("jar") {
     val kotlinClasses = tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin")
     dependsOn(kotlinClasses)
     from(kotlinClasses.flatMap { it.destinationDirectory })
+}
+
+// UberJars merge dependency classes and manifests, invalidating embedded JAR signatures.
+// The Compose plugin registers the current-OS packaging task late, so attach the filter after
+// all projects have finished registering their distribution tasks.
+val projectTasks = tasks
+gradle.projectsEvaluated {
+    projectTasks.named("packageReleaseUberJarForCurrentOS").configure {
+        (this as org.gradle.api.tasks.AbstractCopyTask).exclude(
+            "META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA", "META-INF/*.EC", "META-INF/SIG-*",
+        )
+    }
 }
 
 /** A Windows build that can be assembled here, since an installer cannot be. */

@@ -2042,7 +2042,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * ensures the saved entity carries real artwork and metadata instead of
      * a blank placeholder.
      */
-    fun searchFor(term: String) {
+    fun searchFor(term: String) = searchFor(term, _searchSource.value)
+
+    /** Selects a source and searches without issuing an intermediate query for the old text. */
+    fun searchFor(term: String, source: SearchSource) {
+        _searchSource.value = source
         _query.value = term
         searchSubmitted = true
         _suggestions.value = emptyList()

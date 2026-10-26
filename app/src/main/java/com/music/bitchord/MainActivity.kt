@@ -159,6 +159,7 @@ import com.music.bitchord.data.settings.LibrarySort
 import com.music.bitchord.data.settings.ThemeMode
 import com.music.bitchord.ui.components.AccountProfileSelector
 import com.music.bitchord.ui.components.SpotifyImportAlert
+import com.music.bitchord.ui.components.AppleMusicImportAlert
 import com.music.bitchord.ui.screens.WearOsScreen
 import com.music.bitchord.ui.screens.AccountAndScrobblingScreen
 import com.music.bitchord.ui.screens.DiscordDialog
@@ -663,6 +664,7 @@ private fun BitChordApp(
     // creating the playlist is the whole errand.
     var creatingPlaylist by remember { mutableStateOf(false) }
     var showSpotifyImportDialog by remember { mutableStateOf(false) }
+    var showAppleMusicImportDialog by remember { mutableStateOf(false) }
     // Which album or playlist the collection menu is open on, or null when it
     // is shut. One slot for every surface that can open it — the shelves on
     // three tabs, the search rows, the artist page's carousels, the release
@@ -2828,6 +2830,7 @@ private fun BitChordApp(
                             onOpenLastfmLogin = { showLastfmLogin = true },
                             onOpenDiscord = { showDiscord = true },
                             onOpenSpotify = { showSpotify = true },
+                            onOpenAppleMusic = { showAppleLogin = true },
                             contentPadding = listPadding,
                         )
                     } else if (key == "sources") {
@@ -3137,6 +3140,11 @@ private fun BitChordApp(
                                         }
                                     }
                                 },
+                                listenBrainzToken = listenBrainzToken,
+                                onListenBrainzTrack = { track ->
+                                    selectedTab = TAB_SEARCH
+                                    viewModel.searchFor("${track.title} ${track.artist}", SearchSource.YOUTUBE)
+                                },
                                 onItemLongPress = { item ->
                                     if (isAppleHome) {
                                         val appleItem = viewModel.findAppleItem(item.title, item.subtitle)
@@ -3391,6 +3399,7 @@ private fun BitChordApp(
                             onShelfItemLongPress = onBrowseLongPress,
                             onNewPlaylist = { creatingPlaylist = true },
                             onImportSpotifyPlaylist = { showSpotifyImportDialog = true },
+                            onImportAppleMusicPlaylist = { showAppleMusicImportDialog = true },
                             onShowAll = { shelf -> libraryShowAll = shelf },
                             replay = {
                                 LibraryReplayEntry(
@@ -3452,6 +3461,7 @@ private fun BitChordApp(
                                 onOpenLastfmLogin = { showLastfmLogin = true },
                                 onOpenDiscord = { showDiscord = true },
                                 onOpenSpotify = { showSpotify = true },
+                                onOpenAppleMusic = { showAppleLogin = true },
                                 contentPadding = listPadding,
                             )
                         }
@@ -4656,6 +4666,18 @@ private fun BitChordApp(
             }
         }
 
+        if (showAppleMusicImportDialog) {
+            BackHandler { showAppleMusicImportDialog = false }
+            AppleMusicImportAlert(
+                hazeState = hazeState,
+                signedIn = signedIn,
+                onImported = { title, privacy, songs ->
+                    viewModel.createPlaylistWithVideoIds(title, privacy, songs.map { it.videoId }, songs) { _, _, _ -> }
+                },
+                onDismiss = { showAppleMusicImportDialog = false },
+            )
+        }
+
         if (showSpotifyImportDialog) {
             BackHandler { showSpotifyImportDialog = false }
             SpotifyImportAlert(
@@ -5191,12 +5213,18 @@ private fun BitChordApp(
         }
 
         if (showLastfmLogin) {
+            var apiKeyInput by remember { mutableStateOf(AppSettings.lastfmApiKey.value) }
+            var secretInput by remember { mutableStateOf(AppSettings.lastfmSecret.value) }
             var usernameInput by remember { mutableStateOf("") }
             var passwordInput by remember { mutableStateOf("") }
             var lastfmError by remember { mutableStateOf<String?>(null) }
             var lastfmLoading by remember { mutableStateOf(false) }
             LastfmLoginAlert(
                 hazeState = hazeState,
+                apiKeyInput = apiKeyInput,
+                onApiKeyInputChange = { apiKeyInput = it },
+                secretInput = secretInput,
+                onSecretInputChange = { secretInput = it },
                 usernameInput = usernameInput,
                 onUsernameInputChange = { usernameInput = it },
                 passwordInput = passwordInput,
@@ -5208,9 +5236,11 @@ private fun BitChordApp(
                     lastfmError = null
                     scope.launch {
                         try {
+                            AppSettings.setLastfmApiKey(apiKeyInput.trim())
+                            AppSettings.setLastfmSecret(secretInput.trim())
                             LastFM.initialize(
-                                apiKey = AppSettings.lastfmApiKey.value,
-                                secret = AppSettings.lastfmSecret.value,
+                                apiKey = apiKeyInput.trim(),
+                                secret = secretInput.trim(),
                             )
                             LastFM.getMobileSession(usernameInput.trim(), passwordInput)
                                 .onSuccess { auth ->

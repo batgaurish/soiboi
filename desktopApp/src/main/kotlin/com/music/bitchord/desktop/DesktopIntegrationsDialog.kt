@@ -55,6 +55,7 @@ import kotlin.math.roundToInt
 internal fun DesktopIntegrationsDialog(
     song: Song?,
     spotify: DesktopSpotifyConnection,
+    onOpenAppleMusic: () -> Unit,
     onOpenLastfm: () -> Unit,
     onOpenListenBrainz: () -> Unit,
     onOpenDiscordToken: () -> Unit,
@@ -75,6 +76,9 @@ internal fun DesktopIntegrationsDialog(
                 modifier = Modifier.padding(start = panelInset(20.dp), end = panelInset(20.dp), top = 18.dp, bottom = 12.dp),
             )
             SpotifySection(spotify)
+            PanelGroup(header = "Apple Music") {
+                PanelActionRow(title = "Apple Music", subtitle = "Tap to sign in", destructive = false, onClick = onOpenAppleMusic)
+            }
             AccountSyncSection()
             DiscordSection(song, onOpenDiscordToken, onChoose = { choosing = it }, onEdit = { editing = it })
             ScrobblingSection(onOpenLastfm, onOpenListenBrainz)

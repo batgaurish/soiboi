@@ -245,7 +245,7 @@ internal fun DesktopPlaylistImportDialog(
                     ) {
                         if (rawInput.isEmpty()) {
                             Text(
-                                text = "open.spotify.com/playlist/…\ndeezer.com/playlist/…\nor paste lines: Artist - Title",
+                                text = "music.apple.com/…\nopen.spotify.com/playlist/…\ndeezer.com/playlist/…\nor paste lines: Artist - Title",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = DesktopSecondary.copy(alpha = 0.6f),
                             )
@@ -370,7 +370,7 @@ internal fun DesktopPlaylistImportDialog(
                             .padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        val providers = listOf("Spotify", "Deezer", "YouTube", "Tidal", "SoundCloud", "Text")
+                        val providers = listOf("Apple Music", "Spotify", "Deezer", "YouTube", "Tidal", "SoundCloud", "Text")
                         providers.forEach { name ->
                             Box(
                                 modifier = Modifier

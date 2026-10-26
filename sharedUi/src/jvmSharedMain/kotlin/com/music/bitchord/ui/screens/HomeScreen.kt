@@ -69,6 +69,7 @@ import com.music.bitchord.data.model.ROW_ART_PX
 import com.music.bitchord.data.model.ShelfItem
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.UiState
+import com.music.bitchord.data.discovery.ListenBrainzWeeklyTrack
 import java.util.Locale
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.data.settings.LibraryViewType
@@ -81,6 +82,8 @@ import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.SearchPlayingBars
 import com.music.bitchord.ui.components.SignInBanner
+import com.music.bitchord.ui.components.ListenBrainzTrackAction
+import com.music.bitchord.ui.components.ListenBrainzWeeklyHome
 import com.music.bitchord.ui.components.feedMoreSkeleton
 import com.music.bitchord.ui.components.feedSkeleton
 import com.music.bitchord.ui.components.recentlyPlayedSkeleton
@@ -142,6 +145,8 @@ fun HomeScreen(
     leadHero: Boolean = true,
     currentSong: Song? = null,
     isPlaying: Boolean = false,
+    listenBrainzToken: String? = null,
+    onListenBrainzTrack: ((ListenBrainzWeeklyTrack) -> Unit)? = null,
 ) {
     val recentsViewType by AppUi.host.homeRecentsViewType.collectAsStateWithLifecycle()
 
@@ -171,6 +176,15 @@ fun HomeScreen(
             if (!signedIn && onSignIn != null) {
                 item {
                     SignInBanner(onSignIn = onSignIn, modifier = Modifier.padding(bottom = 8.dp))
+                }
+            }
+            if (!listenBrainzToken.isNullOrBlank() && onListenBrainzTrack != null) {
+                item(key = "listenbrainz-weekly") {
+                    ListenBrainzWeeklyHome(
+                        token = listenBrainzToken,
+                        onTrack = ListenBrainzTrackAction(onListenBrainzTrack),
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
                 }
             }
             when (state) {

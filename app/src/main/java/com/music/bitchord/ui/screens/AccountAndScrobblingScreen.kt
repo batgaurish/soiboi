@@ -49,6 +49,7 @@ fun AccountAndScrobblingScreen(
     onOpenLastfmLogin: () -> Unit,
     onOpenDiscord: () -> Unit,
     onOpenSpotify: () -> Unit,
+    onOpenAppleMusic: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -133,6 +134,15 @@ fun AccountAndScrobblingScreen(
                     },
                 )
             }
+        }
+
+        SettingsGroup(header = "Apple Music") {
+            SettingsRow(
+                icon = Icons.Rounded.LibraryMusic,
+                title = "Apple Music",
+                subtitle = stringResource(R.string.tap_to_sign_in),
+                onClick = onOpenAppleMusic,
+            )
         }
 
         SettingsGroup(
