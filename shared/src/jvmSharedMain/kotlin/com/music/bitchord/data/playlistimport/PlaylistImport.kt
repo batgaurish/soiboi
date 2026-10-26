@@ -9,8 +9,19 @@ import com.music.bitchord.data.model.Song
 /** Imported entries are references only; they never introduce a playback source. */
 enum class PlaylistImportProvider { PASTED, SPOTIFY, DEEZER, YOUTUBE_MUSIC, TIDAL, SOUNDCLOUD, JIOSAAVN, QOBUZ, GAANA, BANDCAMP, APPLE_MUSIC }
 
-data class PlaylistEntry(val title: String, val artist: String, val isrc: String? = null, val sourceIndex: Int)
-data class ImportedPlaylist(val title: String, val provider: PlaylistImportProvider, val entries: List<PlaylistEntry>)
+data class PlaylistEntry(
+    val title: String,
+    val artist: String,
+    val isrc: String? = null,
+    val sourceIndex: Int,
+    val sourceId: String? = null,
+)
+data class ImportedPlaylist(
+    val title: String,
+    val provider: PlaylistImportProvider,
+    val entries: List<PlaylistEntry>,
+    val sourceUrl: String? = null,
+)
 data class ImportCandidate(val id: String, val title: String, val artist: String, val isrc: String? = null)
 
 sealed interface ImportMatchState {
@@ -239,7 +250,9 @@ object PlaylistImportParser {
             val name = attrs.stringAny("name")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapIndexedNotNull null
             val artist = attrs.stringAny("artistName")?.trim()?.takeIf(String::isNotEmpty) ?: return@mapIndexedNotNull null
             val isrc = attrs.stringAny("isrc")?.trim()?.takeIf(String::isNotEmpty)?.normalizeIsrc()
-            PlaylistEntry(name, artist, isrc, index)
+            val sourceId = track.stringAny("id")?.trim()?.takeIf(String::isNotEmpty)
+                ?: reference.stringAny("id")?.trim()?.takeIf(String::isNotEmpty)
+            PlaylistEntry(name, artist, isrc, index, sourceId)
         }
         return ImportedPlaylist(title, PlaylistImportProvider.APPLE_MUSIC, entries)
     }

@@ -2,6 +2,7 @@ package com.music.bitchord.desktop
 
 import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.playlistimport.ApplePlaylistMirror
 import com.music.bitchord.data.settings.HomeSource
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -87,6 +88,15 @@ class DesktopPersistence(
     fun playlists(): List<DesktopPlaylist> = readLines(KEY_PLAYLISTS).mapNotNull(::decodePlaylist)
 
     fun savePlaylists(playlists: List<DesktopPlaylist>) = writeLines(KEY_PLAYLISTS, playlists.map(DesktopPlaylist::toPreferenceLine))
+
+    fun applePlaylistMirrors(): List<ApplePlaylistMirror> =
+        runCatching { sourceJson.decodeFromString<List<ApplePlaylistMirror>>(string(KEY_APPLE_PLAYLIST_MIRRORS, "[]")) }
+            .getOrDefault(emptyList())
+
+    fun saveApplePlaylistMirror(mirror: ApplePlaylistMirror) {
+        val updated = applePlaylistMirrors().filterNot { it.targetId == mirror.targetId } + mirror
+        saveString(KEY_APPLE_PLAYLIST_MIRRORS, sourceJson.encodeToString(updated))
+    }
 
     fun boolean(key: String, default: Boolean): Boolean = preferences.getBoolean(key, default)
 
@@ -356,6 +366,7 @@ class DesktopPersistence(
         const val KEY_QUEUE = "queue"
         const val KEY_DOWNLOADS = "downloads"
         const val KEY_PLAYLISTS = "playlists"
+        const val KEY_APPLE_PLAYLIST_MIRRORS = "apple_playlist_mirrors"
         const val KEY_MODULE_INDEX_URL = "module_index_url"
         private const val KEY_ORIGINAL_VERSIONS = "original_versions"
         private const val KEY_AUDIO_QUALITY = "audio_quality"

@@ -188,17 +188,25 @@ object PlaylistImportService {
         return (tracks["data"] as? JsonArray)?.size ?: 0
     }
 
-    private fun fetchAppleWebBundle(): String {
-        val homepage = Http.client.newCall(Request.Builder().url("https://music.apple.com/").build()).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Apple Music token page failed (HTTP ${response.code}).")
-            response.body?.string().orEmpty()
+    private fun fetchAppleWebBundle(storefront: String): String {
+        var lastStatus: Int? = null
+        for (pageUrl in listOf("https://music.apple.com/", "https://music.apple.com/$storefront/browse")) {
+            val (status, homepage) = Http.client.newCall(Request.Builder().url(pageUrl).build()).execute().use { response ->
+                response.code to response.body?.string().orEmpty()
+            }
+            if (status !in 200..299) {
+                lastStatus = status
+                continue
+            }
+            val asset = com.music.bitchord.data.apple.discoverWebPlayerAsset(homepage) ?: continue
+            return Http.client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { response ->
+                if (!response.isSuccessful) throw IOException("Apple Music token asset failed (HTTP ${response.code}).")
+                response.body?.string().orEmpty()
+            }
         }
-        val asset = com.music.bitchord.data.apple.discoverWebPlayerAsset(homepage)
-            ?: throw IOException("Apple Music token asset unavailable.")
-        return Http.client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Apple Music token asset failed (HTTP ${response.code}).")
-            response.body?.string().orEmpty()
-        }
+        val detail = lastStatus?.let { "Apple Music token page failed (HTTP $it) and the storefront page had no web-player asset." }
+            ?: "Apple Music token asset unavailable on the home or storefront page."
+        throw IOException(detail)
     }
 
     /**
@@ -252,7 +260,7 @@ object PlaylistImportService {
                 var nextPath: String? = "/v1/catalog/$storefront/playlists/$id/tracks?limit=100"
                 var pageCount = 0
                 var sourceOffset = 0
-                val token = com.music.bitchord.data.apple.selectWebPlayerToken(fetchAppleWebBundle())
+                val token = com.music.bitchord.data.apple.selectWebPlayerToken(fetchAppleWebBundle(storefront))
                     ?: throw IOException("Apple Music developer token unavailable.")
                 val playlistMetadataPath = safeAppleCatalogPath("/v1/catalog/$storefront/playlists/$id?include=tracks")
                     ?: throw IOException("Apple Music playlist path is invalid.")
@@ -296,6 +304,7 @@ object PlaylistImportService {
                     customTitle?.takeIf(String::isNotBlank) ?: playlistTitle,
                     PlaylistImportProvider.APPLE_MUSIC,
                     collected,
+                    sourceUrl = "https://music.apple.com/$storefront/playlist/imported/$id",
                 )
             }
 

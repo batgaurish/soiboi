@@ -4671,8 +4671,25 @@ private fun BitChordApp(
             AppleMusicImportAlert(
                 hazeState = hazeState,
                 signedIn = signedIn,
-                onImported = { title, privacy, songs ->
-                    viewModel.createPlaylistWithVideoIds(title, privacy, songs.map { it.videoId }, songs) { _, _, _ -> }
+                onImportedWithDetails = { source, rows, title, privacy, songs ->
+                    viewModel.createPlaylistWithVideoIds(
+                        title,
+                        privacy,
+                        songs.map { it.videoId },
+                        songs,
+                    ) { browseId, playlistTitle, savedLocally ->
+                        browseId?.let { id ->
+                            com.music.bitchord.data.playlistimport.applePlaylistMirrorFromImport(
+                                source = source,
+                                targetId = id,
+                                targetIsLocal = savedLocally,
+                                rows = rows,
+                            )?.let { mirror ->
+                                com.music.bitchord.data.playlistimport.ApplePlaylistMirrorStore.put(context, mirror)
+                            }
+                            viewModel.openDetail(id, playlistTitle, "${songs.size} songs", songs.firstOrNull()?.thumbnailUrl)
+                        }
+                    }
                 },
                 onDismiss = { showAppleMusicImportDialog = false },
             )

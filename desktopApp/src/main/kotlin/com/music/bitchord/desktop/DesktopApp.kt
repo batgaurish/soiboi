@@ -1557,7 +1557,22 @@ fun BitChordDesktopApp() {
      * otherwise on this computer, which is also the fallback if the account refuses it. Returns a
      * note only for that fallback.
      */
-    suspend fun importSpotifyPlaylist(title: String, songs: List<Song>): String? {
+    suspend fun importSpotifyPlaylist(
+        title: String,
+        songs: List<Song>,
+        appleSource: com.music.bitchord.data.playlistimport.ImportedPlaylist? = null,
+        appleRows: List<com.music.bitchord.data.playlistimport.ImportRowState> = emptyList(),
+    ): String? {
+        fun saveAppleMirror(targetId: String, targetIsLocal: Boolean) {
+            val source = appleSource ?: return
+            com.music.bitchord.data.playlistimport.applePlaylistMirrorFromImport(
+                source = source.copy(title = title),
+                targetId = targetId,
+                targetIsLocal = targetIsLocal,
+                rows = appleRows,
+            )?.let(persistence::saveApplePlaylistMirror)
+        }
+
         val signedIn = DesktopYouTubeAuth.isSignedIn
         if (signedIn) {
             val created = DesktopSearchClient.createPlaylist(title, PlaylistPrivacy.PRIVATE, songs.map(Song::videoId))
@@ -1572,6 +1587,7 @@ fun BitChordDesktopApp() {
                     )
                     listOf(card) + items.filterNot { it.browseId == card.browseId }
                 }
+                saveAppleMirror("VL$playlistId", targetIsLocal = false)
                 libraryStale = true
                 openCollection("VL$playlistId")
                 return null
@@ -1581,6 +1597,7 @@ fun BitChordDesktopApp() {
         val playlist = DesktopPlaylist(title = title, songs = songs)
         playlists = playlists + playlist
         persistence.savePlaylists(playlists)
+        saveAppleMirror(playlist.id, targetIsLocal = true)
         DesktopAutoDownloadHook.onPlaylistSongsAdded(title, songs)
         openPlaylist(playlist)
         return if (signedIn) {
@@ -1591,6 +1608,126 @@ fun BitChordDesktopApp() {
             )
         } else {
             null
+        }
+    }
+
+    suspend fun applyApplePlaylistMirrorChanges(
+        mirror: com.music.bitchord.data.playlistimport.ApplePlaylistMirror,
+        title: String,
+        songs: List<Song>,
+    ): Result<Unit> {
+        return try {
+            if (mirror.targetIsLocal) {
+                val existing = playlists.firstOrNull { it.id == mirror.targetId }
+                    ?: error("The local target playlist no longer exists.")
+                val remainingCounts = existing.songs.groupingBy(Song::videoId).eachCount().toMutableMap()
+                val addedSongs = songs.filter { song ->
+                    val count = remainingCounts[song.videoId] ?: 0
+                    if (count > 0) {
+                        remainingCounts[song.videoId] = count - 1
+                        false
+                    } else {
+                        true
+                    }
+                }
+                playlists = playlists.map { playlist ->
+                    if (playlist.id == existing.id) playlist.copy(title = title, songs = songs) else playlist
+                }
+                persistence.savePlaylists(playlists)
+                if (addedSongs.isNotEmpty()) DesktopAutoDownloadHook.onPlaylistSongsAdded(title, addedSongs)
+                openedCollection?.takeIf { it.browseId == mirror.targetId }?.let { opened ->
+                    openedCollection = opened.copy(
+                        title = title,
+                        subtitle = "Playlist • ${songs.size} songs",
+                        thumbnailUrl = songs.firstOrNull()?.thumbnailUrl,
+                        songs = songs,
+                        continuation = null,
+                        loading = false,
+                    )
+                }
+                return Result.success(Unit)
+            }
+
+            require(mirror.targetId.startsWith("VL")) { "The YouTube Music target id is invalid." }
+            val playlistId = mirror.targetId.removePrefix("VL")
+            val current = DesktopSearchClient.playlistEntries(mirror.targetId).getOrThrow()
+            val desiredCounts = songs.groupingBy(Song::videoId).eachCount().toMutableMap()
+            val removals = mutableListOf<Pair<String, String>>()
+            current.forEach { existing ->
+                val remaining = desiredCounts[existing.videoId] ?: 0
+                if (remaining > 0) desiredCounts[existing.videoId] = remaining - 1
+                else {
+                    val setVideoId = existing.setVideoId ?: error("Target playlist entry has no set-video-id.")
+                    removals += setVideoId to existing.videoId
+                }
+            }
+            if (removals.isNotEmpty()) DesktopSearchClient.removeFromPlaylist(playlistId, removals).getOrThrow()
+            val additions = desiredCounts.flatMap { (videoId, count) -> List(count) { videoId } }
+            if (additions.isNotEmpty()) DesktopSearchClient.addToPlaylist(playlistId, additions).getOrThrow()
+            val addedCounts = additions.groupingBy { it }.eachCount().toMutableMap()
+            val addedSongs = songs.filter { song ->
+                val count = addedCounts[song.videoId] ?: 0
+                if (count > 0) {
+                    addedCounts[song.videoId] = count - 1
+                    true
+                } else {
+                    false
+                }
+            }
+
+            val refreshed = DesktopSearchClient.playlistEntries(mirror.targetId).getOrThrow()
+            val actualCounts = refreshed.groupingBy(Song::videoId).eachCount()
+            val expectedCounts = songs.groupingBy(Song::videoId).eachCount()
+            check(actualCounts == expectedCounts) { "Target playlist did not accept the mirrored tracks." }
+            val queues = refreshed.groupBy(Song::videoId).mapValues { (_, entries) -> entries.toMutableList() }
+            val targetOrder = songs.map { song ->
+                val entry = queues[song.videoId]?.takeIf { it.isNotEmpty() }?.removeAt(0)
+                    ?: error("A mirrored target entry is missing after adding tracks.")
+                entry.setVideoId ?: error("Target playlist entry has no set-video-id.")
+            }
+            val currentOrder = refreshed.map { it.setVideoId ?: error("Target playlist entry has no set-video-id.") }
+            if (currentOrder != targetOrder) {
+                DesktopSearchClient.reorderPlaylist(playlistId, currentOrder, targetOrder).getOrThrow()
+            }
+            if (mirror.title != title) DesktopSearchClient.renamePlaylist(playlistId, title).getOrThrow()
+            if (addedSongs.isNotEmpty()) DesktopAutoDownloadHook.onPlaylistSongsAdded(title, addedSongs)
+            libraryStale = true
+            if (openedCollection?.browseId == mirror.targetId) {
+                val displayed = if (currentOrder == targetOrder) refreshed else
+                    DesktopSearchClient.playlistEntries(mirror.targetId).getOrThrow()
+                openedCollection = openedCollection?.copy(
+                    title = title,
+                    subtitle = "Playlist • ${displayed.size} songs",
+                    thumbnailUrl = displayed.firstOrNull()?.thumbnailUrl,
+                    songs = displayed,
+                    continuation = null,
+                    loading = false,
+                )
+            }
+            Result.success(Unit)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Throwable) {
+            Result.failure(failure)
+        }
+    }
+
+    suspend fun syncApplePlaylistMirrors() {
+        persistence.applePlaylistMirrors().forEach { mirror ->
+            val result = com.music.bitchord.data.playlistimport.ApplePlaylistMirrorSync.refresh(
+                mirror = mirror,
+                applyChanges = ::applyApplePlaylistMirrorChanges,
+            )
+            result.onSuccess(persistence::saveApplePlaylistMirror)
+                .onFailure { DesktopTrackLog.log("apple playlist sync failed: ${it.javaClass.simpleName}") }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        syncApplePlaylistMirrors()
+        while (true) {
+            delay(30 * 60 * 1_000L)
+            syncApplePlaylistMirrors()
         }
     }
 
@@ -3703,7 +3840,7 @@ fun BitChordDesktopApp() {
                     if (spotifyImportOpen) {
                         DesktopSpotifyImportDialog(
                             signedIn = youtubeSignedIn,
-                            onImported = ::importSpotifyPlaylist,
+                            onImported = { title, songs -> importSpotifyPlaylist(title, songs) },
                             onDismiss = { spotifyImportOpen = false },
                         )
                     }
@@ -3711,7 +3848,10 @@ fun BitChordDesktopApp() {
                     if (appleMusicImportOpen) {
                         DesktopAppleMusicImportDialog(
                             signedIn = youtubeSignedIn,
-                            onImported = ::importSpotifyPlaylist,
+                            onImported = { title, songs -> importSpotifyPlaylist(title, songs) },
+                            onImportedWithDetails = { source, rows, title, songs ->
+                                importSpotifyPlaylist(title, songs, appleSource = source, appleRows = rows)
+                            },
                             onDismiss = { appleMusicImportOpen = false },
                         )
                     }

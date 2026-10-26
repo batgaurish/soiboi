@@ -4,6 +4,8 @@ import java.net.CookieHandler
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
+import javafx.animation.KeyFrame
+import javafx.animation.Timeline
 import javafx.application.Platform
 import javafx.concurrent.Worker
 import javafx.geometry.Insets
@@ -17,6 +19,7 @@ import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.scene.web.WebView
 import javafx.stage.Stage
+import javafx.util.Duration
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -187,6 +190,7 @@ internal object DesktopWebSignIn {
         private val where = Label().apply { style = "-fx-text-fill: #888888;" }
         private var view: WebView? = null
         private var storage: Path? = null
+        private var sessionPoller: Timeline? = null
         private var done = false
 
         init {
@@ -223,6 +227,12 @@ internal object DesktopWebSignIn {
             engine.loadWorker.stateProperty().addListener { _, _, state ->
                 if (state == Worker.State.SUCCEEDED && view === next) checkPage(engine.location.orEmpty())
             }
+            sessionPoller = Timeline(KeyFrame(Duration.seconds(1.0), javafx.event.EventHandler {
+                if (view === next) checkPage(engine.location.orEmpty())
+            })).apply {
+                cycleCount = Timeline.INDEFINITE
+                playFromStart()
+            }
             root.center = next
             engine.load(Service.APPLE_MUSIC.startUrl)
         }
@@ -238,7 +248,7 @@ internal object DesktopWebSignIn {
             if (result.isSuccess) DesktopTrackLog.log("sign-in: Apple Music session captured")
             stage.close()
             discard()
-            // Clear the sign-in window's cookie jar regardless of success or failure.
+            // Clear the sign-in window's cookie jar regardless of success.
             DesktopWebCookies.reset()
             finish(result)
         }
@@ -246,6 +256,8 @@ internal object DesktopWebSignIn {
         private fun hostOf(url: String): String = runCatching { URI(url).host }.getOrNull().orEmpty()
 
         private fun discard() {
+            sessionPoller?.stop()
+            sessionPoller = null
             view?.engine?.load("about:blank")
             view = null
             storage?.toFile()?.let { folder ->

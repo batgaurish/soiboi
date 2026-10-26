@@ -65,6 +65,7 @@ import com.music.bitchord.data.settings.SearchHistory
 import com.music.bitchord.download.Downloads
 import android.util.LruCache
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -1202,6 +1203,84 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private suspend fun syncApplePlaylistMirrors() {
+        val context = getApplication<Application>()
+        val store = com.music.bitchord.data.playlistimport.ApplePlaylistMirrorStore
+        store.all(context).forEach { mirror ->
+            val result = com.music.bitchord.data.playlistimport.ApplePlaylistMirrorSync.refresh(
+                mirror = mirror,
+                applyChanges = ::applyApplePlaylistMirrorChanges,
+            )
+            result.onSuccess { store.put(context, it) }
+                .onFailure { failure ->
+                    android.util.Log.w("ApplePlaylistMirror", "Playlist sync failed (${failure.javaClass.simpleName}).")
+                }
+        }
+    }
+
+    private suspend fun applyApplePlaylistMirrorChanges(
+        mirror: com.music.bitchord.data.playlistimport.ApplePlaylistMirror,
+        title: String,
+        songs: List<Song>,
+    ): Result<Unit> {
+        return try {
+            if (mirror.targetIsLocal) {
+                val replaced = com.music.bitchord.data.spotify.LocalPlaylistStore.replacePlaylist(
+                    id = mirror.targetId,
+                    title = title,
+                    songs = songs,
+                )
+                check(replaced) { "The local target playlist no longer exists." }
+                return Result.success(Unit)
+            }
+
+            require(mirror.targetId.startsWith("VL")) { "The YouTube Music target id is invalid." }
+            val playlistId = mirror.targetId.removePrefix("VL")
+            val current = YtMusicRepository.playlistEntries(mirror.targetId).getOrThrow()
+            val desiredCounts = songs.groupingBy(Song::videoId).eachCount().toMutableMap()
+            val removals = mutableListOf<Pair<String, String>>()
+            current.forEach { existing ->
+                val remaining = desiredCounts[existing.videoId] ?: 0
+                if (remaining > 0) {
+                    desiredCounts[existing.videoId] = remaining - 1
+                } else {
+                    val setVideoId = existing.setVideoId ?: error("Target playlist entry has no set-video-id.")
+                    removals += setVideoId to existing.videoId
+                }
+            }
+            if (removals.isNotEmpty()) {
+                YtMusicRepository.removeFromPlaylist(playlistId, removals).getOrThrow()
+            }
+            val additions = desiredCounts.flatMap { (videoId, count) -> List(count) { videoId } }
+            if (additions.isNotEmpty()) {
+                YtMusicRepository.addToPlaylist(playlistId, additions).getOrThrow()
+            }
+
+            val refreshed = YtMusicRepository.playlistEntries(mirror.targetId).getOrThrow()
+            val actualCounts = refreshed.groupingBy(Song::videoId).eachCount()
+            val expectedCounts = songs.groupingBy(Song::videoId).eachCount()
+            check(actualCounts == expectedCounts) { "Target playlist did not accept the mirrored tracks." }
+            val queues = refreshed.groupBy(Song::videoId).mapValues { (_, entries) -> entries.toMutableList() }
+            val targetOrder = songs.map { song ->
+                val entry = queues[song.videoId]?.takeIf { it.isNotEmpty() }?.removeAt(0)
+                    ?: error("A mirrored target entry is missing after adding tracks.")
+                entry.setVideoId ?: error("Target playlist entry has no set-video-id.")
+            }
+            val currentOrder = refreshed.map { it.setVideoId ?: error("Target playlist entry has no set-video-id.") }
+            if (currentOrder != targetOrder) {
+                YtMusicRepository.reorderPlaylist(playlistId, currentOrder, targetOrder).getOrThrow()
+            }
+            if (mirror.title != title) {
+                YtMusicRepository.renamePlaylist(playlistId, title).getOrThrow()
+            }
+            Result.success(Unit)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Throwable) {
+            Result.failure(failure)
+        }
+    }
+
     /**
      * Drops [song] from the playlist page it is being read on, and takes the
      * row out from under the reader rather than waiting for a re-fetch.
@@ -1563,6 +1642,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // downloaded it — see AppUpdateChecker.clearCache.
             AppUpdateChecker.clearCache(getApplication())
             AppUpdateChecker.check()
+        }
+        viewModelScope.launch {
+            syncApplePlaylistMirrors()
+            while (true) {
+                delay(30 * 60 * 1_000L)
+                syncApplePlaylistMirrors()
+            }
         }
     }
 

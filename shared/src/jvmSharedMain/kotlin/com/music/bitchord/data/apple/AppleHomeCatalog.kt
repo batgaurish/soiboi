@@ -69,6 +69,8 @@ sealed interface AppleHomeResult {
 }
 enum class Failure { MISSING_USER_TOKEN, SERVICE_3077, HTTP, PARSE }
 
+private data class AppleHomeResponse(val path: String, val status: Int, val body: String)
+
 /** Apple Music web catalogue. The scraped web-player token is memory-only. */
 class AppleHomeCatalog(
     private val cookieHeader: () -> String?,
@@ -101,13 +103,23 @@ class AppleHomeCatalog(
     private suspend fun personalized(mut: String): AppleHomeResult = coroutineScope {
         try {
             var requestToken = token()
-            val paths = listOf("/v1/me/recommendations?limit=10", "/v1/me/recent/played?limit=20", "/v1/me/history/heavy-rotation?limit=20")
-            var responses = paths.map { path -> async { request(path, requestToken, mut) } }.map { it.await() }
-            if (responses.any { it.first == 401 }) {
+            val paths = listOf(
+                "/v1/me/recommendations?limit=10",
+                "/v1/me/recent/played?limit=20",
+                "/v1/me/history/heavy-rotation?limit=20",
+            )
+            var responses = paths.map { path -> async {
+                val (status, body) = request(path, requestToken, mut)
+                AppleHomeResponse(path, status, body)
+            } }.map { it.await() }
+            if (responses.any { it.status == 401 }) {
                 developerToken = null
                 requestToken = token()
-                responses = paths.mapIndexed { index, path ->
-                    async { if (responses[index].first == 401) request(path, requestToken, mut) else responses[index] }
+                responses = responses.map { response ->
+                    if (response.status == 401) async {
+                        val (status, body) = request(response.path, requestToken, mut)
+                        AppleHomeResponse(response.path, status, body)
+                    } else async { response }
                 }.map { it.await() }
             }
             parsePersonalized(responses, requestToken, mut)
@@ -137,31 +149,37 @@ class AppleHomeCatalog(
     }.getOrDefault(false)
 
     private suspend fun parsePersonalized(
-        responses: List<Pair<Int, String>>,
+        responses: List<AppleHomeResponse>,
         token: String,
         mut: String,
     ): AppleHomeResult = coroutineScope {
-        if (responses.any { containsService3077(it.second) }) {
+        if (responses.any { containsService3077(it.body) }) {
             return@coroutineScope AppleHomeResult.Failed(
                 Failure.SERVICE_3077,
                 "Apple Music could not load this account's home. Check the Apple Music session.",
             )
         }
-        if (responses.any { it.first == 401 }) return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, "Apple Music rejected the account session. Sign in again.")
-        responses.firstOrNull { it.first !in 200..299 }?.let { (status, body) ->
-            return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, safeAppleError(status, body))
+        if (responses.any { it.status == 401 }) {
+            return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, "Apple Music rejected the account session. Sign in again.")
+        }
+        responses.firstOrNull { it.status !in 200..299 && it.status != 404 }?.let { response ->
+            return@coroutineScope AppleHomeResult.Failed(
+                Failure.HTTP,
+                "Apple Music personalized home returned HTTP ${response.status}.",
+            )
         }
         try {
-            val roots = responses.map { json.parseToJsonElement(it.second).jsonObject }
-            val recommendationRows = roots[0]["data"]?.jsonArray.orEmpty()
+            val roots = responses.filter { it.status in 200..299 }
+                .associate { response -> response.path.substringBefore('?') to json.parseToJsonElement(response.body).jsonObject }
+            val recommendationRows = roots["/v1/me/recommendations"]?.get("data")?.jsonArray.orEmpty()
             val recommendationShelves = recommendationRows.map { recommendation ->
                 async { recommendationShelf(recommendation.jsonObject, token, mut) }
             }.mapNotNull { it.await() }
-            val recent = catalogShelf("Recently Played", roots[1])
-            val rotation = catalogShelf("Heavy Rotation", roots[2])
+            val recent = roots["/v1/me/recent/played"]?.let { catalogShelf("Recently Played", it) }
+            val rotation = roots["/v1/me/history/heavy-rotation"]?.let { catalogShelf("Heavy Rotation", it) }
             val allShelves = recommendationShelves + listOfNotNull(recent, rotation)
             if (allShelves.isEmpty()) {
-                AppleHomeResult.Empty("No Apple Music recommendations or history available yet.")
+                publicCharts()
             } else {
                 AppleHomeResult.Ready(allShelves, true)
             }
@@ -196,6 +214,7 @@ class AppleHomeCatalog(
             if (containsService3077(body)) {
                 throw AppleFailure(Failure.SERVICE_3077, "Apple Music could not expand this recommendation.")
             }
+            if (code == 404) return null
             if (code !in 200..299) throw AppleFailure(Failure.HTTP, "Apple Music recommendation expansion returned HTTP $code.")
             val expanded = json.parseToJsonElement(body).jsonObject
             rows = expanded["data"]?.jsonArray.orEmpty()
@@ -275,16 +294,32 @@ class AppleHomeCatalog(
 
     private suspend fun token(): String {
         if (developerToken != null && clock() - tokenFetchedAt < TOKEN_TTL) return developerToken!!
-        val home = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            client.newCall(Request.Builder().url("https://music.apple.com/").build()).execute().use { response ->
-                if (!response.isSuccessful) throw AppleFailure(Failure.HTTP, "Apple Music homepage returned HTTP ${response.code}.")
-                response.body.string()
+        val pages = listOf(
+            "https://music.apple.com/",
+            "https://music.apple.com/${storefront()}/browse",
+        )
+        var asset: String? = null
+        var lastHomepageStatus: Int? = null
+        for (pageUrl in pages) {
+            val (status, html) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                client.newCall(Request.Builder().url(pageUrl).build()).execute().use { response ->
+                    response.code to response.body.string()
+                }
             }
+            if (status !in 200..299) {
+                lastHomepageStatus = status
+                continue
+            }
+            asset = discoverWebPlayerAsset(html)
+            if (asset != null) break
         }
-        val asset = discoverWebPlayerAsset(home)
-            ?: throw AppleFailure(Failure.HTTP, "Apple Music web-player token asset was not found.")
+        val assetPath = asset ?: throw AppleFailure(
+            Failure.HTTP,
+            lastHomepageStatus?.let { "Apple Music home returned HTTP $it and its storefront page had no web-player asset." }
+                ?: "Apple Music web-player token asset was not found on the home or storefront page.",
+        )
         val bundle = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            client.newCall(Request.Builder().url("https://music.apple.com$asset").build()).execute().use { response ->
+            client.newCall(Request.Builder().url("https://music.apple.com$assetPath").build()).execute().use { response ->
                 if (!response.isSuccessful) throw AppleFailure(Failure.HTTP, "Apple Music web-player bundle returned HTTP ${response.code}.")
                 response.body.string()
             }

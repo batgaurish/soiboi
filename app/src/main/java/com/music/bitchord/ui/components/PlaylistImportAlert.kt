@@ -64,6 +64,7 @@ fun PlaylistImportAlert(
     signedIn: Boolean,
     appleMusic: Boolean = false,
     onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit,
+    onImportedWithDetails: ((source: ImportedPlaylist, rows: List<ImportRowState>, title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -179,7 +180,11 @@ fun PlaylistImportAlert(
 
         credential = ""
         val title = currentPlaylist.title.ifBlank { context.getString(R.string.new_playlist) }
-        onImported(title, privacy, playableSongs)
+        if (onImportedWithDetails != null) {
+            onImportedWithDetails(currentPlaylist, rows, title, privacy, playableSongs)
+        } else {
+            onImported(title, privacy, playableSongs)
+        }
         handleDismiss()
     }
 

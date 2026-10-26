@@ -57,6 +57,7 @@ private enum class ImportPhase {
 internal fun DesktopPlaylistImportDialog(
     signedIn: Boolean,
     onImported: suspend (title: String, songs: List<Song>) -> String?,
+    onImportedWithDetails: (suspend (source: ImportedPlaylist, rows: List<ImportRowState>, title: String, songs: List<Song>) -> String?)? = null,
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -181,7 +182,11 @@ internal fun DesktopPlaylistImportDialog(
         scope.launch {
             try {
                 val title = currentPlaylist.title.ifBlank { "Imported playlist" }
-                val note = onImported(title, playableSongs)
+                val note = if (onImportedWithDetails != null && currentPlaylist.provider == PlaylistImportProvider.APPLE_MUSIC) {
+                    onImportedWithDetails(currentPlaylist, rows, title, playableSongs)
+                } else {
+                    onImported(title, playableSongs)
+                }
                 if (note == null) {
                     handleDismiss()
                 } else {

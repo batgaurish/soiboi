@@ -77,6 +77,31 @@ object LocalPlaylistStore {
         return playlist
     }
 
+    fun replacePlaylist(id: String, title: String, songs: List<Song>): Boolean {
+        val existing = getPlaylist(id) ?: return false
+        val remainingCounts = existing.songs.groupingBy(Song::videoId).eachCount().toMutableMap()
+        val added = songs.filter { song ->
+            val count = remainingCounts[song.videoId] ?: 0
+            if (count > 0) {
+                remainingCounts[song.videoId] = count - 1
+                false
+            } else {
+                true
+            }
+        }
+        val updated = _playlists.value.map { playlist ->
+            if (playlist.id == existing.id) playlist.copy(title = title, songs = songs) else playlist
+        }
+        _playlists.value = updated
+        persist(updated)
+        if (added.isNotEmpty()) {
+            appContext?.let { context ->
+                com.music.bitchord.download.AndroidAutoDownloadHook.handlePlaylistSongsAdded(context, title, added)
+            }
+        }
+        return true
+    }
+
     fun deletePlaylist(id: String) {
         val updated = _playlists.value.filterNot { it.id == id || it.browseId == id || it.id == id.removePrefix("local:playlist:") }
         _playlists.value = updated

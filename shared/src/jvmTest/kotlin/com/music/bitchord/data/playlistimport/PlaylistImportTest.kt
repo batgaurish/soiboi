@@ -6,7 +6,7 @@ import kotlin.test.assertIs
 
 class PlaylistImportTest {
     @Test fun appleCatalogResponsePreservesOrderDuplicatesAndSourceOffsets() {
-        val fixture = """{"data":[{"attributes":{"name":"Road Mix"},"relationships":{"tracks":{"data":[{"type":"songs","attributes":{"name":"Track","artistName":"Artist","isrc":"usaaa2400001"}},{"type":"songs","attributes":{"name":"broken"}},{"type":"songs","attributes":{"name":"Track","artistName":"Artist"}}]}}}]}"""
+        val fixture = """{"data":[{"attributes":{"name":"Road Mix"},"relationships":{"tracks":{"data":[{"id":"song-1","type":"songs","attributes":{"name":"Track","artistName":"Artist","isrc":"usaaa2400001"}},{"type":"songs","attributes":{"name":"broken"}},{"id":"song-2","type":"songs","attributes":{"name":"Track","artistName":"Artist"}}]}}}]}"""
         val parsed = PlaylistImportParser.parseAppleCatalogPlaylistResponse(fixture)
         assertEquals("Road Mix", parsed.title)
         assertEquals(PlaylistImportProvider.APPLE_MUSIC, parsed.provider)
@@ -14,6 +14,7 @@ class PlaylistImportTest {
         assertEquals(listOf("Artist", "Artist"), parsed.entries.map { it.artist })
         assertEquals(listOf("USAAA2400001", null), parsed.entries.map { it.isrc })
         assertEquals(listOf(0, 2), parsed.entries.map { it.sourceIndex })
+        assertEquals(listOf("song-1", "song-2"), parsed.entries.map { it.sourceId })
     }
 
     @Test fun appleCatalogResolvesIncludedResourcesAndPaginatedTrackPages() {

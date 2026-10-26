@@ -49,7 +49,7 @@ class AppleHomeCatalogTest {
             client = client,
         ).home()
 
-        val ready = assertIs<AppleHomeResult.Ready>(result)
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
         assertEquals(false, ready.personalized)
         assertEquals("Popular on Apple Music", ready.shelves.single().title)
         assertTrue(ready.shelves.single().public)
@@ -85,13 +85,42 @@ class AppleHomeCatalogTest {
             client = client,
         ).home()
 
-        val ready = assertIs<AppleHomeResult.Ready>(result)
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
         val expansion = requests.single { it.url.encodedPath == "/v1/me/recommendations/42" }
         assertEquals("10", expansion.url.queryParameter("limit"))
         assertEquals("recent", expansion.url.queryParameter("seed"))
         assertEquals("albums,playlists,stations", expansion.url.queryParameter("types"))
         assertEquals("user-session", expansion.header("Music-User-Token"))
         assertTrue(ready.shelves.any { it.title == "Made for Gaurish" && it.items.single().title == "Recommended Album" })
+    }
+
+    @Test fun authenticatedHomeFallsBackToChartsWhenRecommendationExpansionIsNotFound() = runBlocking {
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" ->
+                    200 to "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.encodedPath.endsWith("index~abc.js") -> 200 to token
+                request.url.encodedPath == "/v1/me/recommendations" -> 200 to """{"data":[{"id":"42","type":"personal-recommendation","attributes":{"title":{"stringForDisplay":"Made for Gaurish"}},"href":"/v1/me/recommendations/42"}]}"""
+                request.url.encodedPath == "/v1/me/recommendations/42" -> 404 to "not found"
+                request.url.encodedPath == "/v1/me/recent/played" || request.url.encodedPath == "/v1/me/history/heavy-rotation" -> 200 to """{"data":[]}"""
+                request.url.encodedPath.endsWith("/charts") -> 200 to """{"results":{"albums":[{"name":"Top Albums","data":[{"id":"a1","type":"albums","attributes":{"name":"Album One","artistName":"Artist One"}}]}]}}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Status")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(
+            cookieHeader = { "media-user-token=user-session" },
+            storefront = { "us" },
+            client = client,
+        ).home()
+
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
+        assertEquals(false, ready.personalized)
+        assertEquals("Top Albums", ready.shelves.single().title)
     }
 
     @Test fun httpNon2xxWithPayloadCode3077MapsToService3077Failure() = runBlocking {
@@ -312,7 +341,7 @@ class AppleHomeCatalogTest {
             client = client,
         ).home()
 
-        val ready = assertIs<AppleHomeResult.Ready>(result)
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
         assertEquals(false, ready.personalized)
         assertTrue(requests.any { it.url.encodedPath.startsWith("/v1/catalog/jp/charts") })
     }
@@ -366,7 +395,7 @@ class AppleHomeCatalogTest {
             client = client,
         ).home()
 
-        val ready = assertIs<AppleHomeResult.Ready>(result)
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
         assertEquals(true, ready.personalized)
         assertEquals(3, ready.shelves.size)
         assertTrue(maxConcurrent.get() >= 2, "Expected concurrent requests but max was ${maxConcurrent.get()}")
@@ -396,6 +425,7 @@ class AppleHomeCatalogTest {
                         200 to """{"data":[]}"""
                     }
                 }
+                request.url.encodedPath.endsWith("/charts") -> 200 to """{"results":{"albums":{"data":[{"id":"1","type":"albums","attributes":{"name":"Chart","artistName":"Artist"}}]}}}"""
                 request.url.encodedPath == "/v1/me/recent/played" ||
                     request.url.encodedPath == "/v1/me/history/heavy-rotation" -> 200 to """{"data":[]}"""
                 else -> error("Unexpected: ${request.url}")
@@ -410,7 +440,7 @@ class AppleHomeCatalogTest {
             client = client,
         ).home()
 
-        assertIs<AppleHomeResult.Empty>(result)
+        assertEquals(false, assertIs<AppleHomeResult.Ready>(result).personalized)
         assertEquals(2, tokenScrapeCount, "Scraped token initially and refreshed once")
         assertEquals(2, recommendationsCallCount, "Called recommendations initially and retried once")
     }
@@ -527,11 +557,11 @@ class AppleHomeCatalogTest {
 
         currentCookie = "media-user-token=user1"
         val personalizedResult = catalog.home()
-        assertIs<AppleHomeResult.Empty>(personalizedResult)
+        assertEquals(false, assertIs<AppleHomeResult.Ready>(personalizedResult).personalized)
 
         catalog.invalidate()
         val reloaded = catalog.home()
-        assertIs<AppleHomeResult.Empty>(reloaded)
+        assertEquals(false, assertIs<AppleHomeResult.Ready>(reloaded).personalized)
     }
 
     @Test fun failedResultIsNotCachedSoSubsequentCallRetries(): Unit = runBlocking {
@@ -590,12 +620,68 @@ class AppleHomeCatalogTest {
 
         val result = AppleHomeCatalog(cookieHeader = { null }, storefront = { "in" }, client = client).home()
 
-        val ready = assertIs<AppleHomeResult.Ready>(result)
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
         assertEquals(listOf("Top Albums", "Top Playlists"), ready.shelves.map { it.title })
         assertEquals(listOf("Album One", "Playlist One"), ready.shelves.map { it.items.single().title })
         assertTrue(ready.shelves.all { it.public })
         val chartRequest = requests.single { it.url.encodedPath.endsWith("/charts") }
         assertEquals(listOf("albums,playlists,songs"), chartRequest.url.queryParameterValues("types"))
+    }
+
+    @Test fun authenticatedHomeFallsBackToChartsWhenPersonalizedEndpointsReturn404() = runBlocking {
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" ->
+                    200 to "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.encodedPath.endsWith("index~abc.js") -> 200 to token
+                request.url.encodedPath.startsWith("/v1/me/") ->
+                    404 to """{"errors":[{"code":"NOT_FOUND","title":"Endpoint not available"}]}"""
+                request.url.encodedPath.endsWith("/charts") ->
+                    200 to """{"results":{"albums":[{"name":"Top Albums","data":[{"id":"a1","type":"albums","attributes":{"name":"Album One","artistName":"Artist One"}}]}]}}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Status")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(
+            cookieHeader = { "media-user-token=session" },
+            storefront = { "in" },
+            client = client,
+        ).home()
+
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
+        assertEquals(false, ready.personalized)
+        assertEquals("Top Albums", ready.shelves.single().title)
+        assertEquals("Album One", ready.shelves.single().items.single().title)
+    }
+
+    @Test fun publicChartsUsesStorefrontBrowseWhenRootHomepageReturns404() = runBlocking {
+        val requests = mutableListOf<Request>()
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            requests += request
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" -> 404 to "Not found"
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/in/browse" ->
+                    200 to "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.encodedPath.endsWith("index~abc.js") -> 200 to token
+                request.url.encodedPath.endsWith("/charts") ->
+                    200 to """{"results":{"albums":[{"name":"Top Albums","data":[{"id":"a1","type":"albums","attributes":{"name":"Album One","artistName":"Artist One"}}]}]}}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Status")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(cookieHeader = { null }, storefront = { "in" }, client = client).home()
+
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
+        assertEquals("Top Albums", ready.shelves.single().title)
+        assertTrue(requests.any { it.url.encodedPath == "/in/browse" })
     }
 
     private fun jwt(header: String, payload: String): String {

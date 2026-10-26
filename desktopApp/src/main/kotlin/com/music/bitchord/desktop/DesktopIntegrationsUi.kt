@@ -47,6 +47,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.playlistimport.ImportRowState
+import com.music.bitchord.data.playlistimport.ImportedPlaylist
 import com.music.bitchord.data.spotify.SpotifyImportTrack
 import com.music.bitchord.data.spotify.SpotifyImporter
 import kotlinx.coroutines.CancellationException
@@ -329,8 +331,14 @@ internal fun DesktopSpotifyImportDialog(
 internal fun DesktopAppleMusicImportDialog(
     signedIn: Boolean,
     onImported: suspend (title: String, songs: List<Song>) -> String?,
+    onImportedWithDetails: (suspend (source: ImportedPlaylist, rows: List<ImportRowState>, title: String, songs: List<Song>) -> String?)? = null,
     onDismiss: () -> Unit,
-) = DesktopPlaylistImportDialog(signedIn = signedIn, onImported = onImported, onDismiss = onDismiss)
+) = DesktopPlaylistImportDialog(
+    signedIn = signedIn,
+    onImported = onImported,
+    onImportedWithDetails = onImportedWithDetails,
+    onDismiss = onDismiss,
+)
 
 /** The same filled field the playlist dialogs use. */
 @Composable
