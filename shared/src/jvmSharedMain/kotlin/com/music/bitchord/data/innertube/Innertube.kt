@@ -987,6 +987,30 @@ object Innertube {
      * it refuses — a playlist the account merely saved rather than owns is
      * the usual reason — so the body is checked as well as the status line.
      */
+    internal fun summarizePlaylistEditFailure(response: JsonObject): String {
+        val details = linkedSetOf<String>()
+        val diagnosticKeys = setOf("status", "code", "message", "reason")
+        fun collect(element: JsonElement, key: String? = null) {
+            when (element) {
+                is JsonObject -> element.forEach { (childKey, child) -> collect(child, childKey) }
+                is JsonArray -> element.take(8).forEach { child -> collect(child, key) }
+                is JsonPrimitive -> {
+                    val field = key?.lowercase(Locale.ROOT)
+                    if (field != null && field in diagnosticKeys) {
+                        element.contentOrNull
+                            ?.replace(Regex("[\\r\\n\\p{Cntrl}]"), " ")
+                            ?.take(120)
+                            ?.takeIf(String::isNotBlank)
+                            ?.let { details += "$field=$it" }
+                    }
+                }
+            }
+        }
+        collect(response)
+        val schema = "responseFields=${response.keys.sorted().joinToString(",")}"
+        return (listOf(schema) + details.take(8)).joinToString("; ")
+    }
+
     private suspend fun editPlaylist(
         playlistId: String,
         actions: JsonArrayBuilder.() -> Unit,
@@ -999,7 +1023,8 @@ object Innertube {
         }
         val status = response["status"]?.jsonPrimitive?.contentOrNull
         if (status != null && status != "STATUS_SUCCEEDED") {
-            error("YouTube Music refused the edit ($status)")
+            val details = summarizePlaylistEditFailure(response)
+            error("YouTube Music refused the edit ($status; ${details.take(240)})")
         }
         return response
     }
@@ -1018,14 +1043,19 @@ object Innertube {
      * Absences are normal and not an error — the add still happened; only the
      * id for undoing it is unknown.
      */
-    suspend fun addToPlaylist(playlistId: String, videoIds: List<String>): Map<String, String> {
+    internal fun playlistAddAction(videoId: String, allowDuplicates: Boolean): JsonObject = buildJsonObject {
+        put("action", "ACTION_ADD_VIDEO")
+        put("addedVideoId", videoId)
+        if (allowDuplicates) put("dedupeOption", "DEDUPE_OPTION_SKIP")
+    }
+
+    suspend fun addToPlaylist(
+        playlistId: String,
+        videoIds: List<String>,
+        allowDuplicates: Boolean = false,
+    ): Map<String, String> {
         val response = editPlaylist(playlistId) {
-            videoIds.forEach { videoId ->
-                addJsonObject {
-                    put("action", "ACTION_ADD_VIDEO")
-                    put("addedVideoId", videoId)
-                }
-            }
+            videoIds.forEach { videoId -> add(playlistAddAction(videoId, allowDuplicates)) }
         }
         return (response["playlistEditResults"] as? JsonArray)
             .orEmpty()

@@ -30,6 +30,106 @@ fun PlaylistEntry.appleSourceKey(): String = when {
     else -> "meta:${title.trim().lowercase()}|${artist.trim().lowercase()}"
 }
 
+data class ApplePlaylistMirrorUnmatchedTrack(
+    val targetId: String,
+    val mirrorTitle: String,
+    val sourceKey: String,
+    val title: String,
+    val artist: String,
+    val sourceIndex: Int,
+)
+
+data class ApplePlaylistMirrorReviewData(
+    val mirrorCount: Int,
+    val unmatchedTracks: List<ApplePlaylistMirrorUnmatchedTrack>,
+)
+
+fun applePlaylistMirrorUnmatchedTracks(
+    mirror: ApplePlaylistMirror,
+    sourceEntries: List<PlaylistEntry>,
+): List<ApplePlaylistMirrorUnmatchedTrack> {
+    val seenKeys = mirror.tracks.mapTo(mutableSetOf(), ApplePlaylistMirrorEntry::sourceKey)
+    return sourceEntries.mapNotNull { entry ->
+        val sourceKey = entry.appleSourceKey()
+        if (!seenKeys.add(sourceKey)) return@mapNotNull null
+        ApplePlaylistMirrorUnmatchedTrack(
+            targetId = mirror.targetId,
+            mirrorTitle = mirror.title,
+            sourceKey = sourceKey,
+            title = entry.title,
+            artist = entry.artist,
+            sourceIndex = entry.sourceIndex,
+        )
+    }
+}
+
+fun applePlaylistMirrorWithManualMatches(
+    mirror: ApplePlaylistMirror,
+    matches: Map<String, Song>,
+): ApplePlaylistMirror {
+    val validMatches = matches.filter { (sourceKey, song) ->
+        sourceKey.isNotBlank() && song.videoId.isNotBlank()
+    }
+    if (validMatches.isEmpty()) return mirror
+    val replacements = validMatches.map { (sourceKey, song) ->
+        ApplePlaylistMirrorEntry(
+            sourceKey = sourceKey,
+            videoId = song.videoId,
+            title = song.title,
+            artist = song.artist,
+            thumbnailUrl = song.thumbnailUrl,
+        )
+    }
+    return mirror.copy(
+        tracks = mirror.tracks.filterNot { it.sourceKey in validMatches } + replacements,
+    )
+}
+
+fun applePlaylistMirrorSyncIntervalMs(enabled: Boolean, minutes: Int): Long? =
+    if (enabled) minutes.coerceAtLeast(5).toLong() * 60_000L else null
+
+fun <T> applePlaylistSyncBatches(items: List<T>): List<List<T>> = items.chunked(50)
+
+suspend fun <T> applyApplePlaylistSyncBatches(
+    items: List<T>,
+    apply: suspend (List<T>) -> Result<Unit>,
+): Result<Unit> {
+    for (batch in applePlaylistSyncBatches(items)) {
+        val result = try {
+            apply(batch)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Throwable) {
+            Result.failure(failure)
+        }
+        if (result.isFailure) return result
+    }
+    return Result.success(Unit)
+}
+
+fun resolveAppleMirrorFallbackMatches(rows: List<ImportRowState>): List<ImportRowState> =
+    rows.map { row ->
+        if (row.isPlayable || row.availableCandidates.isEmpty()) return@map row
+        val target = com.music.bitchord.data.sources.TrackMatcher.Target(
+            title = row.entry.title,
+            artist = row.entry.artist,
+        )
+        val ranked = row.availableCandidates.mapNotNull { candidate ->
+            com.music.bitchord.data.sources.TrackMatcher.score(candidate, target)?.let { candidate to it }
+        }.sortedByDescending { it.second }
+        val best = ranked.firstOrNull() ?: return@map row
+        if (!com.music.bitchord.data.sources.TrackMatcher.sharesArtist(row.entry.artist, best.first.artist)) return@map row
+        if (ranked.getOrNull(1)?.second == best.second) return@map row
+        row.copy(
+            matchState = ImportMatchState.Matched(
+                candidate = ImportCandidate(best.first.videoId, best.first.title, best.first.artist),
+                confidence = 0.9,
+                method = ImportMatchState.Method.ARTIST_TITLE,
+            ),
+            candidateSong = best.first,
+        )
+    }
+
 fun applePlaylistMirrorFromImport(
     source: ImportedPlaylist,
     targetId: String,
@@ -69,7 +169,7 @@ object ApplePlaylistMirrorSync {
         mirror: ApplePlaylistMirror,
         loadSource: suspend (String) -> ImportedPlaylist = { PlaylistImportService.loadPlaylist(it) },
         resolveNewEntries: suspend (ImportedPlaylist) -> List<ImportRowState> = { PlaylistImportService.resolveEntries(it) },
-        applyChanges: suspend (ApplePlaylistMirror, String, List<Song>) -> Result<Unit>,
+        applyChanges: suspend (ApplePlaylistMirror, String, List<Song>) -> Result<Set<String>>,
         clock: () -> Long = System::currentTimeMillis,
     ): Result<ApplePlaylistMirror> {
         return try {
@@ -109,11 +209,11 @@ object ApplePlaylistMirrorSync {
             require(source.entries.isEmpty() || songs.isNotEmpty()) {
                 "Apple Music tracks no longer resolve to playable entries; the target playlist was left unchanged."
             }
-            applyChanges(mirror, updatedTitle, songs).getOrThrow()
+            val rejectedVideoIds = applyChanges(mirror, updatedTitle, songs).getOrThrow()
             Result.success(
                 mirror.copy(
                     title = updatedTitle,
-                    tracks = refreshedTracks,
+                    tracks = refreshedTracks.filterNot { it.videoId in rejectedVideoIds },
                     lastSyncedMs = clock(),
                 ),
             )

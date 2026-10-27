@@ -524,11 +524,19 @@ object InnertubeParser {
      * generic walk.
      */
     fun parsePlaylistShelf(root: JsonElement): PlaylistShelfPage? {
-        val scope: JsonElement = root.o("continuationContents")
+        val responseScope = root.o("continuationContents")
             ?: root.o("contents").o("twoColumnBrowseResultsRenderer").o("secondaryContents")
-            ?: return null
-        val playlistScope = scope.o("musicPlaylistShelfContinuation")
-            ?: collectRenderers(scope, "musicPlaylistShelfRenderer").firstOrNull()
+        val actionContinuationItems = root.a("onResponseReceivedActions").orEmpty()
+            .firstNotNullOfOrNull { action ->
+                action.o("appendContinuationItemsAction").a("continuationItems")
+            }
+        val scope: JsonElement = responseScope ?: actionContinuationItems ?: return null
+        val playlistScope = if (responseScope == null) {
+            scope
+        } else {
+            scope.o("musicPlaylistShelfContinuation")
+                ?: collectRenderers(scope, "musicPlaylistShelfRenderer").firstOrNull()
+        }
         val suggestionShelves = collectRenderers(scope, "musicShelfRenderer")
             .filter { it.o("title").runs() == "Suggestions" }
         if (playlistScope == null && suggestionShelves.isEmpty()) return null
@@ -537,7 +545,6 @@ object InnertubeParser {
         val songs = playlistScope?.let { playlist ->
             collectRenderers(playlist, "musicResponsiveListItemRenderer")
                 .mapNotNull { parseResponsiveListItem(it, pageCredit) }
-                .distinctBy { it.videoId }
         }.orEmpty()
         val knownSongs = songs.mapTo(HashSet()) { it.videoId }
         val suggested = suggestionShelves

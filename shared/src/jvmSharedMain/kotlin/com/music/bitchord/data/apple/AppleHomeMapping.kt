@@ -32,7 +32,7 @@ fun AppleHomeResult.toUiState(): UiState<List<HomeShelf>> = when (this) {
         Failure.SERVICE_3077 -> UiState.Error(
             message.ifBlank { "Apple Music error 3077: Check the Apple Music session." },
         )
-        Failure.HTTP, Failure.PARSE -> UiState.Error(
+        Failure.PERSONALIZED_UNAVAILABLE, Failure.HTTP, Failure.PARSE -> UiState.Error(
             message.ifBlank { "Apple Music request failed." },
         )
     }

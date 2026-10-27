@@ -223,6 +223,8 @@ object AppSettings {
 
     /** Whether the active network charges for data. `null` while offline. */
     val meteredConnection = MutableStateFlow<Boolean?>(null)
+    /** Apple catalog region, deliberately independent of the device locale. */
+    val appleMusicStorefront = MutableStateFlow("us")
 
     // `losslessAudio` used to live here, behind a "Prefer lossless" switch on
     // the Sources screen. It is gone: sources are asked for their best and each
@@ -591,6 +593,7 @@ object AppSettings {
      */
     val accountSyncEnabled = MutableStateFlow(false)
     val accountSyncIntervalMinutes = MutableStateFlow(30)
+    val applePlaylistMirrorSyncEnabled = MutableStateFlow(false)
 
     /**
      * Each album/playlist page's track-list order, keyed by browse id —
@@ -806,6 +809,7 @@ object AppSettings {
         this.authStore = authStore
         com.music.bitchord.data.spotify.LocalPlaylistStore.init(context)
         readAll()
+        com.music.bitchord.data.canvas.AppleMusicCanvas.setStorefront(appleMusicStorefront.value)
         watchConnection(context)
     }
 
@@ -826,6 +830,11 @@ object AppSettings {
     }
 
     private fun readAll() {
+        val deviceCountry = java.util.Locale.getDefault().country
+        val defaultStorefront = normalizeAppleStorefront(deviceCountry) ?: "us"
+        appleMusicStorefront.value = normalizeAppleStorefront(
+            prefs.getString(KEY_APPLE_MUSIC_STOREFRONT, null),
+        ) ?: defaultStorefront
         migrateSingleQuality()
         audioQualityWifi.value = readQuality(KEY_QUALITY_WIFI)
         audioQualityCellular.value = readQuality(KEY_QUALITY_CELLULAR)
@@ -952,6 +961,7 @@ object AppSettings {
         homeSource.value = readHomeSource()
         accountSyncEnabled.value = prefs.getBoolean(KEY_ACCOUNT_SYNC_ENABLED, false)
         accountSyncIntervalMinutes.value = prefs.getInt(KEY_ACCOUNT_SYNC_INTERVAL_MINS, 30)
+        applePlaylistMirrorSyncEnabled.value = prefs.getBoolean(KEY_APPLE_PLAYLIST_MIRROR_SYNC_ENABLED, false)
         homeRecentsViewType.value = readLibraryViewType(KEY_HOME_RECENTS_VIEW_TYPE)
         librarySort.value = prefs.getString(KEY_LIBRARY_SORT, null)
             ?.let { saved -> LibrarySort.entries.firstOrNull { it.name == saved } }
@@ -1815,9 +1825,21 @@ object AppSettings {
         prefs.edit().putString(KEY_HOME_SOURCE, value.name).apply()
     }
 
+    fun setAppleMusicStorefront(value: String) {
+        val normalized = normalizeAppleStorefront(value) ?: return
+        appleMusicStorefront.value = normalized
+        prefs.edit().putString(KEY_APPLE_MUSIC_STOREFRONT, normalized).apply()
+        com.music.bitchord.data.canvas.AppleMusicCanvas.setStorefront(normalized)
+    }
+
     fun setAccountSyncEnabled(value: Boolean) {
         accountSyncEnabled.value = value
         prefs.edit().putBoolean(KEY_ACCOUNT_SYNC_ENABLED, value).apply()
+    }
+
+    fun setApplePlaylistMirrorSyncEnabled(value: Boolean) {
+        applePlaylistMirrorSyncEnabled.value = value
+        prefs.edit().putBoolean(KEY_APPLE_PLAYLIST_MIRROR_SYNC_ENABLED, value).apply()
     }
 
     fun setAccountSyncIntervalMinutes(value: Int) {
@@ -2086,6 +2108,7 @@ object AppSettings {
         raw.trim().trimEnd('/').take(500)
 
     private const val KEY_QUALITY_LEGACY = "audio_quality"
+    private const val KEY_APPLE_MUSIC_STOREFRONT = "apple_music_storefront"
     private const val KEY_QUALITY_WIFI = "audio_quality_wifi"
     private const val KEY_QUALITY_CELLULAR = "audio_quality_cellular"
     private const val KEY_UPGRADE_LENGTH_SLACK_SECONDS = "upgrade_length_slack_seconds"
@@ -2170,6 +2193,7 @@ object AppSettings {
     private const val KEY_HOME_SOURCE = "home_source"
     private const val KEY_ACCOUNT_SYNC_ENABLED = "account_sync_enabled"
     private const val KEY_ACCOUNT_SYNC_INTERVAL_MINS = "account_sync_interval_mins"
+    private const val KEY_APPLE_PLAYLIST_MIRROR_SYNC_ENABLED = "apple_playlist_mirror_sync_enabled"
     private const val KEY_LOCAL_MUSIC_FOLDER_URI = "local_music_folder_uri"
     private const val KEY_WEBDAV_URL = "webdav_url"
     private const val KEY_WEBDAV_USERNAME = "webdav_username"

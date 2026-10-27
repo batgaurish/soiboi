@@ -942,8 +942,9 @@ object YtMusicRepository {
     suspend fun addToPlaylist(
         playlistId: String,
         videoIds: List<String>,
+        allowDuplicates: Boolean = false,
     ): Result<Map<String, String>> =
-        call("playlist:add") { Innertube.addToPlaylist(playlistId, videoIds) }
+        call("playlist:add") { Innertube.addToPlaylist(playlistId, videoIds, allowDuplicates) }
 
     /** [entries] are (setVideoId, videoId) pairs — see [Song.setVideoId]. */
     suspend fun removeFromPlaylist(
@@ -969,7 +970,14 @@ object YtMusicRepository {
         var response = Innertube.browse(browseId)
         var page = 1
         while (true) {
-            val shelf = InnertubeParser.parsePlaylistShelf(response) ?: break
+            val shelf = InnertubeParser.parsePlaylistShelf(response)
+            if (shelf == null) {
+                val continuationFields = (response["continuationContents"] as? JsonObject)?.keys?.sorted().orEmpty()
+                val contentFields = (response["contents"] as? JsonObject)?.keys?.sorted().orEmpty()
+                Log.w(TAG, "playlistEntries page=$page parse=null rootFields=${response.keys.sorted()} continuationFields=$continuationFields contentFields=$contentFields")
+                break
+            }
+            Log.d(TAG, "playlistEntries page=$page rows=${shelf.songs.size} continuation=${shelf.continuation != null}")
             shelf.songs.forEach { song ->
                 val setVideoId = song.setVideoId ?: error("playlist entry without an id")
                 out.putIfAbsent(setVideoId, song)

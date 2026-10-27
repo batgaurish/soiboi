@@ -37,6 +37,7 @@ import com.music.bitchord.R
 import com.music.bitchord.data.model.PlaylistPrivacy
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.playlistimport.*
+import com.music.bitchord.data.accounts.SessionPlaylist
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.CancellationException
@@ -63,6 +64,8 @@ fun PlaylistImportAlert(
     hazeState: HazeState,
     signedIn: Boolean,
     appleMusic: Boolean = false,
+    loadAppleLibrary: (suspend () -> List<SessionPlaylist>)? = null,
+    loadAppleLibraryPlaylist: (suspend (SessionPlaylist) -> ImportedPlaylist)? = null,
     onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit,
     onImportedWithDetails: ((source: ImportedPlaylist, rows: List<ImportRowState>, title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit)? = null,
     onDismiss: () -> Unit,
@@ -77,6 +80,8 @@ fun PlaylistImportAlert(
     var working by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var libraryPlaylists by remember { mutableStateOf<List<SessionPlaylist>?>(null) }
+    var libraryLoading by remember { mutableStateOf(false) }
 
     var importedPlaylist by remember { mutableStateOf<ImportedPlaylist?>(null) }
     var rows by remember { mutableStateOf<List<ImportRowState>>(emptyList()) }
@@ -218,6 +223,71 @@ fun PlaylistImportAlert(
                         },
                         textAlign = TextAlign.Center,
                     )
+
+                    if (appleMusic && loadAppleLibrary != null && loadAppleLibraryPlaylist != null) {
+                        TextButton(
+                            enabled = !working && !libraryLoading,
+                            onClick = {
+                                libraryLoading = true
+                                errorMessage = null
+                                scope.launch {
+                                    try {
+                                        libraryPlaylists = loadAppleLibrary()
+                                        if (libraryPlaylists.isNullOrEmpty()) errorMessage = "No playlists found in your Apple Music library."
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        errorMessage = "Couldn't load your Apple Music library: ${e.message.orEmpty()}"
+                                    } finally {
+                                        libraryLoading = false
+                                    }
+                                }
+                            },
+                        ) {
+                            if (libraryLoading) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (libraryPlaylists == null) "Browse your Apple Music library" else "Refresh Apple Music library")
+                        }
+                        libraryPlaylists?.let { savedPlaylists ->
+                            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 180.dp)) {
+                                itemsIndexed(savedPlaylists, key = { _, playlist -> playlist.id }) { _, playlist ->
+                                    TextButton(
+                                        enabled = !working,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = {
+                                            working = true
+                                            errorMessage = null
+                                            statusMessage = "Loading ${playlist.name}…"
+                                            scope.launch {
+                                                try {
+                                                    val source = loadAppleLibraryPlaylist(playlist)
+                                                    if (source.entries.isEmpty()) error("This playlist has no readable tracks.")
+                                                    importedPlaylist = source
+                                                    statusMessage = "Matching 0 of ${source.entries.size} tracks…"
+                                                    rows = PlaylistImportService.resolveEntries(source) { done, total ->
+                                                        statusMessage = "Matching $done of $total tracks…"
+                                                    }
+                                                    phase = AndroidImportPhase.REVIEW
+                                                } catch (e: CancellationException) {
+                                                    throw e
+                                                } catch (e: Exception) {
+                                                    errorMessage = "Couldn't import ${playlist.name}: ${e.message.orEmpty()}"
+                                                } finally {
+                                                    working = false
+                                                    statusMessage = null
+                                                }
+                                            }
+                                        },
+                                    ) {
+                                        Column(Modifier.fillMaxWidth()) {
+                                            Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text(playlist.trackCount?.let { "$it tracks" } ?: "Apple Music playlist", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Multi-source input box
                     Box(

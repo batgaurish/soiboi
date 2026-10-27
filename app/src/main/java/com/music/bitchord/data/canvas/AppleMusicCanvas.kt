@@ -34,13 +34,17 @@ object AppleMusicCanvas {
 
     private const val TAG = "AppleMusicCanvas"
     private const val AMP = "https://amp-api.music.apple.com/v1/catalog"
-    private const val WEB_PLAYER = "https://music.apple.com/us/browse"
+    private const val WEB_PLAYER = "https://music.apple.com/%s/browse"
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     /** Motion artwork is per storefront; use the device's if it looks sane. */
-    val storefront: String by lazy {
-        Locale.getDefault().country.takeIf { it.length == 2 }?.lowercase(Locale.ROOT) ?: "us"
+    @Volatile private var selectedStorefront: String? = null
+    val storefront: String
+        get() = selectedStorefront ?: Locale.getDefault().country.takeIf { it.length == 2 }?.lowercase(Locale.ROOT) ?: "us"
+
+    fun setStorefront(value: String) {
+        selectedStorefront = value.takeIf { it.matches(Regex("[a-z]{2}")) }
     }
 
     fun search(title: String, artist: String, album: String?): CanvasArtwork? {
@@ -350,7 +354,7 @@ object AppleMusicCanvas {
         cachedToken?.let { if (now < tokenExpiresAtMs - 60_000) return it }
         if (now < retryTokenAfterMs) return null
 
-        val html = canvasGet(WEB_PLAYER, mapOf("User-Agent" to CANVAS_UA))
+        val html = canvasGet(WEB_PLAYER.format(storefront), mapOf("User-Agent" to CANVAS_UA))
         val scripts = html?.let {
             Regex("""/assets/index(?:-legacy)?[~-][A-Za-z0-9_-]+\.js""")
                 .findAll(it).map(MatchResult::value).distinct().toList()

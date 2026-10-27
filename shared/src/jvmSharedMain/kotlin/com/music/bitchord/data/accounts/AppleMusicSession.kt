@@ -18,6 +18,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
@@ -84,80 +85,108 @@ class AppleMusicSession(
         return jwt
     }
 
-    private suspend fun apiGet(path: String, mut: String): String = withContext(Dispatchers.IO) {
+    private fun safeApiPath(path: String): String {
+        val absolute = if (path.startsWith('/')) "https://api.music.apple.com$path" else path
+        val url = absolute.toHttpUrlOrNull() ?: error("Apple Music returned an invalid continuation URL.")
+        require(url.scheme == "https" && url.host == "api.music.apple.com" && url.port == 443 &&
+            url.username.isEmpty() && url.password.isEmpty()) {
+            "Apple Music returned an unsafe continuation URL."
+        }
+        return url.encodedPath + (url.encodedQuery?.let { "?$it" } ?: "")
+    }
+
+    private suspend fun apiGet(path: String, mut: String): String {
+        val safePath = safeApiPath(path)
         var token = developerToken()
         val makeRequest = { devToken: String ->
             Request.Builder()
-                .url("https://api.music.apple.com$path")
+                .url("https://api.music.apple.com$safePath")
                 .header("Authorization", "Bearer $devToken")
                 .header("Origin", "https://music.apple.com")
                 .header("Music-User-Token", mut)
                 .build()
         }
 
-        var response = client.newCall(makeRequest(token)).execute()
-        if (response.code == 401) {
-            response.close()
-            cachedDeveloperToken = null
-            token = developerToken()
-            response = client.newCall(makeRequest(token)).execute()
-        }
-
-        response.use { resp ->
-            if (!resp.isSuccessful) {
-                error("Apple Music API returned HTTP ${resp.code}")
+        return withContext(Dispatchers.IO) {
+            var response = client.newCall(makeRequest(token)).execute()
+            if (response.code == 401) {
+                response.close()
+                cachedDeveloperToken = null
+                token = developerToken()
+                response = client.newCall(makeRequest(token)).execute()
             }
-            resp.body.string()
+
+            response.use { resp ->
+                if (!resp.isSuccessful) {
+                    error("Apple Music API returned HTTP ${resp.code}")
+                }
+                resp.body.string()
+            }
         }
+    }
+
+    private suspend fun apiGetAllData(path: String, mut: String): List<kotlinx.serialization.json.JsonElement> {
+        val output = mutableListOf<kotlinx.serialization.json.JsonElement>()
+        var expectedPath = safeApiPath(path).substringBefore('?')
+        val visited = mutableSetOf<String>()
+        var next: String? = path
+        while (next != null) {
+            val safePath = safeApiPath(next)
+            require(safePath.substringBefore('?') == expectedPath) { "Apple Music returned a continuation for an unexpected resource path." }
+            check(visited.add(safePath)) { "Apple Music playlist pagination repeated a page." }
+            check(visited.size <= MAX_PAGES) { "Apple Music playlist has too many pages." }
+            val root = json.parseToJsonElement(apiGet(safePath, mut)).jsonObject
+            output += root["data"]?.jsonArray.orEmpty()
+            val continuation = root["next"]
+                ?: root["links"]?.jsonObject?.get("next")
+                ?: root["meta"]?.jsonObject?.get("next")
+                ?: root["data"]?.jsonArray?.firstOrNull()?.jsonObject?.get("relationships")
+                    ?.jsonObject?.get("tracks")?.jsonObject?.get("links")?.jsonObject?.get("next")
+            next = runCatching { continuation?.jsonPrimitive?.content }.getOrNull()
+                ?.takeIf(String::isNotBlank)
+        }
+        return output
     }
 
     override suspend fun libraryPlaylists(): List<SessionPlaylist> {
         val mut = extractMusicUserToken(cookieHeader()) ?: return emptyList()
-        return runCatching {
-            val body = apiGet("/v1/me/library/playlists?limit=100", mut)
-            val root = json.parseToJsonElement(body).jsonObject
-            val data = root["data"]?.jsonArray.orEmpty()
-            data.mapNotNull { element ->
+        return apiGetAllData("/v1/me/library/playlists?limit=100", mut).mapNotNull { element ->
+            runCatching {
                 val obj = element.jsonObject
-                val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                val attr = obj["attributes"]?.jsonObject ?: return@mapNotNull null
+                val id = obj["id"]?.jsonPrimitive?.content ?: return@runCatching null
+                val attr = obj["attributes"]?.jsonObject ?: return@runCatching null
                 val name = attr["name"]?.jsonPrimitive?.content ?: "Untitled playlist"
                 val trackCount = attr["trackCount"]?.jsonPrimitive?.content?.toIntOrNull()
                 val artworkRaw = attr["artwork"]?.jsonObject?.get("url")?.jsonPrimitive?.content
                 val artwork = artworkRaw?.replace("{w}", "600")?.replace("{h}", "600")?.replace("{f}", "jpg")
                 SessionPlaylist(id = id, name = name, trackCount = trackCount, artworkUrl = artwork)
-            }
-        }.getOrDefault(emptyList())
+            }.getOrNull()
+        }
     }
 
     override suspend fun playlistTracks(playlistId: String): List<SessionTrack> {
         val mut = extractMusicUserToken(cookieHeader()) ?: return emptyList()
-        return runCatching {
-            val body = apiGet("/v1/me/library/playlists/$playlistId/tracks?limit=100", mut)
-            val root = json.parseToJsonElement(body).jsonObject
-            val data = root["data"]?.jsonArray.orEmpty()
-            data.mapNotNull { element ->
+        require(playlistId.matches(Regex("[A-Za-z0-9._-]{1,200}"))) { "Invalid Apple Music playlist id." }
+        return apiGetAllData("/v1/me/library/playlists/$playlistId/tracks?limit=100", mut).mapNotNull { element ->
+            runCatching {
                 val obj = element.jsonObject
-                val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                val attr = obj["attributes"]?.jsonObject ?: return@mapNotNull null
-                val title = attr["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                val id = obj["id"]?.jsonPrimitive?.content ?: return@runCatching null
+                val attr = obj["attributes"]?.jsonObject ?: return@runCatching null
+                val title = attr["name"]?.jsonPrimitive?.content ?: return@runCatching null
                 val artist = attr["artistName"]?.jsonPrimitive?.content
                 val album = attr["albumName"]?.jsonPrimitive?.content
                 val durationMs = attr["durationInMillis"]?.jsonPrimitive?.content?.toLongOrNull()
                 val isrc = attr["isrc"]?.jsonPrimitive?.content
-                val playParams = attr["playParams"]?.jsonObject
-                val catalogId = playParams?.get("catalogId")?.jsonPrimitive?.content
-                    ?: playParams?.get("id")?.jsonPrimitive?.content
                 SessionTrack(
-                    id = catalogId ?: id,
+                    id = id,
                     title = title,
                     artist = artist,
                     album = album,
                     isrc = isrc,
                     durationMs = durationMs,
                 )
-            }
-        }.getOrDefault(emptyList())
+            }.getOrNull()
+        }
     }
 
     override suspend fun resolveDownload(track: SessionTrack): Song? {
@@ -180,5 +209,6 @@ class AppleMusicSession(
 
     companion object {
         private const val TOKEN_TTL = 30 * 60 * 1000L
+        private const val MAX_PAGES = 100
     }
 }

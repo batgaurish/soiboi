@@ -22,13 +22,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
-private const val LOGIN_URL = "https://music.apple.com/us/browse"
 private const val CAPTURE_POLL_INTERVAL_MS = 1_000L
 
 /** Every Apple domain whose cookies are needed by the pipeline and catalog API. */
-private val APPLE_CAPTURE_URLS = listOf(
+private fun appleCaptureUrls(storefront: String) = listOf(
     "https://music.apple.com",
-    LOGIN_URL,
+    "https://music.apple.com/$storefront/browse",
     "https://buy.itunes.apple.com",
     "https://apple.com",
     "https://idmsa.apple.com",
@@ -87,9 +86,9 @@ private fun buildNetscapeJar(pairs: List<Triple<String, String, String>>): Strin
  * Called after the session is handed off whether saving to secure storage succeeded or failed.
  * Prevents the persistent WebView jar from being re-read as a credential fallback.
  */
-fun clearAppleWebSession(onComplete: () -> Unit = {}) {
+fun clearAppleWebSession(storefront: String = "us", onComplete: () -> Unit = {}) {
     val cookies = CookieManager.getInstance()
-    val expirations = APPLE_CAPTURE_URLS.flatMap { url ->
+    val expirations = appleCaptureUrls(storefront).flatMap { url ->
         appleCookieExpirationHeaders(cookies.getCookie(url), url).map { expired -> url to expired }
     }
     if (expirations.isEmpty()) {
@@ -131,8 +130,11 @@ fun clearAppleWebSession(onComplete: () -> Unit = {}) {
 fun AppleMusicLoginScreen(
     /** Called once with (netscapeJar, cookieHeader) when the session is ready. */
     onConnected: (netscapeJar: String, cookieHeader: String) -> Unit,
+    storefront: String = "us",
     modifier: Modifier = Modifier,
 ) {
+    val loginUrl = "https://music.apple.com/$storefront/browse"
+    val captureUrls = remember(storefront) { appleCaptureUrls(storefront) }
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
     val sessionActive = remember { AtomicBoolean(false) }
@@ -166,8 +168,9 @@ fun AppleMusicLoginScreen(
                     // Apple may set media-user-token asynchronously after onPageFinished. Keep
                     // checking the fresh cookie jar until that token arrives or the sheet closes.
                     // Query the actual browse path: CookieManager omits path-scoped cookies when
-                    // queried at the host root, even though the WebView can use them on /us/browse.
-                    val musicCookies = manager.getCookie(LOGIN_URL)
+                    // queried at the host root, even though the WebView can use them on the
+                    // selected storefront's browse path.
+                    val musicCookies = manager.getCookie(loginUrl)
                     val sessionToken = captureGate?.newSessionToken(musicCookies)
                     if (sessionToken == null) {
                         captureHandler.postDelayed(checkCapture, CAPTURE_POLL_INTERVAL_MS)
@@ -177,7 +180,7 @@ fun AppleMusicLoginScreen(
                     // Collect cookies from all Apple domains. CookieManager.getCookie() is
                     // host-scoped and returns only name=value pairs; we assign Netscape
                     // domain fields from name and source URL.
-                    val pairs = APPLE_CAPTURE_URLS.flatMap { captureUrl ->
+                    val cookiePairs = captureUrls.flatMap { captureUrl ->
                         manager.getCookie(captureUrl).orEmpty().split(";").mapNotNull { part ->
                             val eq = part.indexOf('=')
                             if (eq <= 0) return@mapNotNull null
@@ -186,12 +189,10 @@ fun AppleMusicLoginScreen(
                             if (name.isEmpty() || value.isEmpty()) null
                             else Triple(name, value, captureUrl)
                         }
-                    }.distinctBy { it.first }
+                    }
+                    val pairs = selectAppleCaptureCookies(cookiePairs, sessionToken)
 
-                    if (pairs.none {
-                            it.first.equals("media-user-token", ignoreCase = true) && it.second == sessionToken
-                        }
-                    ) {
+                    if (pairs.isEmpty()) {
                         captureHandler.postDelayed(checkCapture, CAPTURE_POLL_INTERVAL_MS)
                         return
                     }
@@ -205,7 +206,7 @@ fun AppleMusicLoginScreen(
                     try {
                         onConnected(netscapeJar, cookieHeader)
                     } finally {
-                        clearAppleWebSession()
+                        clearAppleWebSession(storefront)
                     }
                 }
                 checkCapture = Runnable { pollForSession() }
@@ -223,14 +224,14 @@ fun AppleMusicLoginScreen(
                 }
                 webView = this
             }
-            clearAppleWebSession {
+            clearAppleWebSession(storefront) {
                 if (sessionActive.get()) {
                     // Record only cookies that remain after expiration callbacks have completed.
                     // A token from a previous WebView session must not close this sign-in window.
                     captureGate = AppleSessionCaptureGate(
-                        CookieManager.getInstance().getCookie(LOGIN_URL),
+                        CookieManager.getInstance().getCookie(loginUrl),
                     )
-                    loginView.loadUrl(LOGIN_URL)
+                    loginView.loadUrl(loginUrl)
                 }
             }
             loginView

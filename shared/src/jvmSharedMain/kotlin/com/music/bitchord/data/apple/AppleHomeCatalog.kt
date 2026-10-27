@@ -67,7 +67,7 @@ sealed interface AppleHomeResult {
     data class Empty(val message: String = "No shelves available") : AppleHomeResult
     data class Failed(val kind: Failure, val message: String) : AppleHomeResult
 }
-enum class Failure { MISSING_USER_TOKEN, SERVICE_3077, HTTP, PARSE }
+enum class Failure { MISSING_USER_TOKEN, SERVICE_3077, PERSONALIZED_UNAVAILABLE, HTTP, PARSE }
 
 private data class AppleHomeResponse(val path: String, val status: Int, val body: String)
 
@@ -77,6 +77,7 @@ class AppleHomeCatalog(
     private val storefront: () -> String,
     private val client: okhttp3.OkHttpClient = Http.client,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val diagnostic: (String) -> Unit = {},
 ) {
     private var developerToken: String? = null
     private var tokenFetchedAt = 0L
@@ -87,9 +88,20 @@ class AppleHomeCatalog(
 
     suspend fun home(): AppleHomeResult {
         val mut = extractMusicUserToken(cookieHeader())
+        diagnostic("home start storefront=${storefront()} userTokenPresent=${mut != null}")
         val key = "${storefront()}|${mut.orEmpty()}"
         if (cacheKey == key && clock() - cachedAt < CACHE_TTL && cached != null) return cached!!
-        val result = if (mut == null) publicCharts() else personalized(mut)
+        val result = if (mut == null) publicCharts() else when (val personalized = personalized(mut)) {
+            is AppleHomeResult.Failed -> if (personalized.kind == Failure.PERSONALIZED_UNAVAILABLE) {
+                diagnostic("personalized rejected: ${personalized.message}; trying public charts")
+                publicCharts()
+            } else personalized
+            else -> {
+                diagnostic("personalized result=${personalized::class.simpleName} shelves=${(personalized as? AppleHomeResult.Ready)?.shelves?.size ?: 0}")
+                personalized
+            }
+        }
+        diagnostic("home result=${result::class.simpleName} personalized=${(result as? AppleHomeResult.Ready)?.personalized} shelves=${(result as? AppleHomeResult.Ready)?.shelves?.size ?: 0}")
         if (result is AppleHomeResult.Ready || result is AppleHomeResult.Empty) {
             cacheKey = key
             cachedAt = clock()
@@ -105,13 +117,14 @@ class AppleHomeCatalog(
             var requestToken = token()
             val paths = listOf(
                 "/v1/me/recommendations?limit=10",
-                "/v1/me/recent/played?limit=20",
-                "/v1/me/history/heavy-rotation?limit=20",
+                "/v1/me/recent/played?limit=10&types=albums,playlists,stations",
+                "/v1/me/history/heavy-rotation?limit=10",
             )
             var responses = paths.map { path -> async {
                 val (status, body) = request(path, requestToken, mut)
                 AppleHomeResponse(path, status, body)
             } }.map { it.await() }
+            responses.forEach { diagnostic("personalized ${it.path.substringBefore('?')} HTTP ${it.status}${if (it.status !in 200..299 && it.status != 404) ": ${safeAppleError(it.status, it.body)}" else ""}") }
             if (responses.any { it.status == 401 }) {
                 developerToken = null
                 requestToken = token()
@@ -133,7 +146,7 @@ class AppleHomeCatalog(
             errors.mapNotNull { row ->
                 val obj = row as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
                 val code = obj["code"]?.jsonPrimitive?.content?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{1,40}")) }
-                val title = obj["title"]?.jsonPrimitive?.content?.replace(Regex("[\\\\r\\\\n\\\\p{Cntrl}]"), " ")?.take(120)
+                val title = obj["title"]?.jsonPrimitive?.content?.replace(Regex("[\\r\\n\\p{Cntrl}]"), " ")?.take(120)
                 listOfNotNull(code, title).joinToString(": ").takeIf(String::isNotBlank)
             }.take(3).joinToString("; ")
         }.getOrDefault("")
@@ -163,9 +176,10 @@ class AppleHomeCatalog(
             return@coroutineScope AppleHomeResult.Failed(Failure.HTTP, "Apple Music rejected the account session. Sign in again.")
         }
         responses.firstOrNull { it.status !in 200..299 && it.status != 404 }?.let { response ->
+            val endpoint = response.path.substringBefore('?')
             return@coroutineScope AppleHomeResult.Failed(
-                Failure.HTTP,
-                "Apple Music personalized home returned HTTP ${response.status}.",
+                Failure.PERSONALIZED_UNAVAILABLE,
+                "$endpoint: ${safeAppleError(response.status, response.body)}",
             )
         }
         try {
@@ -243,7 +257,10 @@ class AppleHomeCatalog(
         if (containsService3077(body)) {
             AppleHomeResult.Failed(Failure.SERVICE_3077, "Apple Music charts returned error 3077.")
         } else if (code !in 200..299) {
-            AppleHomeResult.Failed(Failure.HTTP, "Apple Music charts returned HTTP $code.")
+            AppleHomeResult.Failed(
+                Failure.HTTP,
+                "/v1/catalog/${storefront()}/charts: ${safeAppleError(code, body)}",
+            )
         } else {
             val results = json.parseToJsonElement(body).jsonObject["results"]?.jsonObject.orEmpty()
             val shelves = results.flatMap { (_, chartGroup) ->

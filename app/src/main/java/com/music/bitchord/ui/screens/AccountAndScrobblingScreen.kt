@@ -18,14 +18,21 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.SwitchAccount
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
@@ -50,6 +57,11 @@ fun AccountAndScrobblingScreen(
     onOpenDiscord: () -> Unit,
     onOpenSpotify: () -> Unit,
     onOpenAppleMusic: () -> Unit,
+    appleMusicConnected: Boolean,
+    onDisconnectAppleMusic: () -> Unit,
+    onAppleStorefrontChange: (String) -> Unit,
+    onSyncApplePlaylistMirrors: () -> Unit,
+    onReviewApplePlaylistMatches: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -70,8 +82,13 @@ fun AccountAndScrobblingScreen(
     val discordRpcEnabled by AppSettings.discordRpcEnabled.collectAsStateWithLifecycle()
     val spotifyConnected by AppSettings.spotifySpdcToken.collectAsStateWithLifecycle()
     val accountSyncEnabled by AppSettings.accountSyncEnabled.collectAsStateWithLifecycle()
+    val applePlaylistMirrorSyncEnabled by AppSettings.applePlaylistMirrorSyncEnabled.collectAsStateWithLifecycle()
+    val accountSyncIntervalMinutes by AppSettings.accountSyncIntervalMinutes.collectAsStateWithLifecycle()
     val isSyncing by com.music.bitchord.data.account.AndroidAccountSync.sync.isSyncing.collectAsStateWithLifecycle()
     val syncStatuses by com.music.bitchord.data.account.AndroidAccountSync.sync.statuses.collectAsStateWithLifecycle()
+    val appleStorefront by AppSettings.appleMusicStorefront.collectAsStateWithLifecycle()
+    var showAppleStorefrontDialog by remember { mutableStateOf(false) }
+    var storefrontInput by remember(appleStorefront, showAppleStorefrontDialog) { mutableStateOf(appleStorefront.uppercase()) }
 
     Column(
         modifier = modifier
@@ -140,8 +157,88 @@ fun AccountAndScrobblingScreen(
             SettingsRow(
                 icon = Icons.Rounded.LibraryMusic,
                 title = "Apple Music",
-                subtitle = stringResource(R.string.tap_to_sign_in),
+                subtitle = if (appleMusicConnected) stringResource(R.string.connected) else stringResource(R.string.tap_to_sign_in),
                 onClick = onOpenAppleMusic,
+            )
+            if (appleMusicConnected) {
+                FullWidthDivider()
+                DestructiveRow(label = "Disconnect Apple Music", onClick = onDisconnectAppleMusic)
+            }
+            FullWidthDivider()
+            SettingsRow(
+                icon = Icons.Rounded.Tune,
+                title = "Apple Music country",
+                subtitle = "Storefront: ${appleStorefront.uppercase()} · Change to match your Apple account country",
+                onClick = { showAppleStorefrontDialog = true },
+            )
+        }
+
+        if (showAppleStorefrontDialog) {
+            AlertDialog(
+                onDismissRequest = { showAppleStorefrontDialog = false },
+                title = { Text("Apple Music country") },
+                text = {
+                    Column {
+                        Text("Enter the two-letter storefront code for your Apple Music account, for example IN or US.")
+                        OutlinedTextField(
+                            value = storefrontInput,
+                            onValueChange = { storefrontInput = it.take(2).uppercase() },
+                            label = { Text("Country code") },
+                            singleLine = true,
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (com.music.bitchord.data.settings.normalizeAppleStorefront(storefrontInput) != null) {
+                            onAppleStorefrontChange(storefrontInput)
+                            showAppleStorefrontDialog = false
+                        }
+                    }) { Text("Save") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAppleStorefrontDialog = false }) { Text("Cancel") }
+                },
+            )
+        }
+
+        SettingsGroup(
+            header = "Apple playlist mirrors",
+            footer = if (applePlaylistMirrorSyncEnabled) {
+                "Refreshes imported Apple Music playlists every $accountSyncIntervalMinutes minutes. Track downloads stay controlled separately."
+            } else {
+                "Turn on to keep imported Apple Music playlists updated. This does not enable track downloads."
+            },
+        ) {
+            SettingsRow(
+                icon = Icons.Rounded.Cloud,
+                title = "Keep imported playlists in sync",
+                subtitle = if (applePlaylistMirrorSyncEnabled) "Periodic refresh is on" else "Background refresh is off",
+                trailing = {
+                    Switch(
+                        checked = applePlaylistMirrorSyncEnabled,
+                        onCheckedChange = AppSettings::setApplePlaylistMirrorSyncEnabled,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            checkedBorderColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
+                },
+                onClick = { AppSettings.setApplePlaylistMirrorSyncEnabled(!applePlaylistMirrorSyncEnabled) },
+            )
+            RowDivider()
+            SettingsRow(
+                icon = Icons.Rounded.Refresh,
+                title = "Sync Apple playlists now",
+                subtitle = "Refresh imported Apple Music playlists",
+                onClick = onSyncApplePlaylistMirrors,
+            )
+            RowDivider()
+            SettingsRow(
+                icon = Icons.Rounded.LibraryMusic,
+                title = "Review unmatched tracks",
+                subtitle = "Choose YouTube Music matches for unresolved songs",
+                onClick = onReviewApplePlaylistMatches,
             )
         }
 
@@ -178,6 +275,7 @@ fun AccountAndScrobblingScreen(
                     subtitle = if (isSyncing) "Sync in progress…" else "Check connected accounts for new tracks",
                     onClick = {
                         com.music.bitchord.data.account.AndroidAccountSync.sync.syncNow()
+                        onSyncApplePlaylistMirrors()
                     },
                 )
             }

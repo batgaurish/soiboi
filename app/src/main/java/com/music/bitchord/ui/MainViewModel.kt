@@ -89,7 +89,9 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import com.music.bitchord.data.sources.AddonSource
 import com.music.bitchord.data.sources.SourceKind
@@ -114,9 +116,11 @@ enum class SearchSource { YOUTUBE, LIBRARY, ADDONS }
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val authStore = AuthStore(app)
+    private val applePlaylistMirrorSyncMutex = Mutex()
     private val appleHomeCatalog = AppleHomeCatalog(
         cookieHeader = { resolveAppleCookie() },
-        storefront = { AppleMusicCanvas.storefront },
+        storefront = { AppSettings.appleMusicStorefront.value },
+        diagnostic = { android.util.Log.i("AppleHomeCatalog", it) },
     )
 
     private fun resolveAppleCookie(): String? =
@@ -148,6 +152,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun hasAppleSession(): Boolean = resolveAppleCookie() != null
+
+    fun setAppleMusicStorefront(countryCode: String) {
+        AppSettings.setAppleMusicStorefront(countryCode)
+        appleHomeCatalog.invalidate()
+        loadHome()
+    }
 
     fun findAppleItem(title: String, subtitle: String): AppleHomeItem? =
         _appleHomeShelves.value.flatMap { it.items }.firstOrNull { it.title == title && it.subtitle == subtitle }
@@ -1165,7 +1175,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     onSuccess = { playlistId ->
                         if (videoIds.size > 50) {
                             videoIds.drop(50).chunked(50).forEach { chunk ->
-                                YtMusicRepository.addToPlaylist(playlistId, chunk)
+                                YtMusicRepository.addToPlaylist(playlistId, chunk, allowDuplicates = true)
                             }
                         }
                         setPlaylistOwned("VL$playlistId", true)
@@ -1203,26 +1213,143 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun syncApplePlaylistMirrors() {
+    fun syncApplePlaylistMirrorsNow() {
+        android.util.Log.i("ApplePlaylistMirror", "Manual sync button invoked")
+        viewModelScope.launch { syncApplePlaylistMirrors() }
+    }
+
+    suspend fun loadApplePlaylistMirrorReviewTracks(): com.music.bitchord.data.playlistimport.ApplePlaylistMirrorReviewData =
+        kotlinx.coroutines.withContext(Dispatchers.IO) {
+            applePlaylistMirrorSyncMutex.withLock {
+                val context = getApplication<Application>()
+                val store = com.music.bitchord.data.playlistimport.ApplePlaylistMirrorStore
+                val mirrors = store.all(context)
+                val appleSession = com.music.bitchord.data.account.AndroidAccountSync.registry.get("apple")
+                    as? com.music.bitchord.data.accounts.AppleMusicSession
+                val unmatchedTracks = mirrors.flatMap { mirror ->
+                    val source = loadApplePlaylistMirrorSource(mirror.sourceUrl, appleSession)
+                    com.music.bitchord.data.playlistimport.applePlaylistMirrorUnmatchedTracks(
+                        mirror = mirror,
+                        sourceEntries = source.entries,
+                    )
+                }
+                com.music.bitchord.data.playlistimport.ApplePlaylistMirrorReviewData(
+                    mirrorCount = mirrors.size,
+                    unmatchedTracks = unmatchedTracks,
+                )
+            }
+        }
+
+    suspend fun applyApplePlaylistMirrorManualMatches(
+        matches: Map<String, Map<String, Song>>,
+    ): Result<Unit> = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        applePlaylistMirrorSyncMutex.withLock {
+            val context = getApplication<Application>()
+            val store = com.music.bitchord.data.playlistimport.ApplePlaylistMirrorStore
+            val mirrorsByTargetId = store.all(context).associateBy { it.targetId }
+            var applied = false
+            for ((targetId, trackMatches) in matches) {
+                if (trackMatches.isEmpty()) continue
+                val mirror = mirrorsByTargetId[targetId]
+                    ?: return@withLock Result.failure(IllegalStateException("The mirrored playlist no longer exists."))
+                val updated = com.music.bitchord.data.playlistimport.applePlaylistMirrorWithManualMatches(
+                    mirror = mirror,
+                    matches = trackMatches,
+                )
+                if (updated == mirror) continue
+                store.put(context, updated)
+                check(store.all(context).any { it.targetId == targetId && it.tracks == updated.tracks }) {
+                    "Manual track matches could not be saved."
+                }
+                applied = true
+            }
+            if (!applied) {
+                return@withLock Result.failure(IllegalArgumentException("Select at least one track match first."))
+            }
+            syncApplePlaylistMirrorsLocked()
+        }
+    }
+
+    private suspend fun loadApplePlaylistMirrorSource(
+        sourceUrl: String,
+        appleSession: com.music.bitchord.data.accounts.AppleMusicSession?,
+    ): com.music.bitchord.data.playlistimport.ImportedPlaylist {
+        val libraryId = com.music.bitchord.data.playlistimport.AppleMusicLibraryImport.playlistId(sourceUrl)
+        if (libraryId == null) {
+            return com.music.bitchord.data.playlistimport.PlaylistImportService.loadPlaylist(sourceUrl)
+        }
+        val session = appleSession ?: error("Connect Apple Music, then retry loading playlist matches.")
+        val library = session.libraryPlaylists()
+        val playlist = library.firstOrNull { it.id == libraryId }
+            ?: error("The Apple Music library playlist is no longer available.")
+        return com.music.bitchord.data.playlistimport.AppleMusicLibraryImport.load(session, playlist)
+    }
+
+    private suspend fun syncApplePlaylistMirrors(): Result<Unit> = applePlaylistMirrorSyncMutex.withLock {
+        syncApplePlaylistMirrorsLocked()
+    }
+
+    private suspend fun syncApplePlaylistMirrorsLocked(): Result<Unit> {
         val context = getApplication<Application>()
         val store = com.music.bitchord.data.playlistimport.ApplePlaylistMirrorStore
-        store.all(context).forEach { mirror ->
+        val mirrors = store.all(context)
+        android.util.Log.i("ApplePlaylistMirror", "Sync started mirrors=${mirrors.size}")
+        val appleSession = com.music.bitchord.data.account.AndroidAccountSync.registry.get("apple")
+            as? com.music.bitchord.data.accounts.AppleMusicSession
+        var syncFailure: Throwable? = null
+        mirrors.forEach { mirror ->
             val result = com.music.bitchord.data.playlistimport.ApplePlaylistMirrorSync.refresh(
                 mirror = mirror,
+                loadSource = { sourceUrl -> loadApplePlaylistMirrorSource(sourceUrl, appleSession) },
+                resolveNewEntries = { playlist ->
+                    android.util.Log.i(
+                        "ApplePlaylistMirror",
+                        "Resolving new source tracks=${playlist.entries.size} withIsrc=${playlist.entries.count { !it.isrc.isNullOrBlank() }}",
+                    )
+                    val rows = com.music.bitchord.data.playlistimport.PlaylistImportService.resolveEntries(
+                        playlist,
+                        onProgress = { completed, total ->
+                            if (completed == total || completed % 10 == 0) {
+                                android.util.Log.i("ApplePlaylistMirror", "Track matching progress $completed/$total")
+                            }
+                        },
+                    )
+                    val resolvedRows = com.music.bitchord.data.playlistimport.resolveAppleMirrorFallbackMatches(rows)
+                    android.util.Log.i(
+                        "ApplePlaylistMirror",
+                        "Track matching finished playable=${resolvedRows.count { it.isPlayable }} recovered=${resolvedRows.count { it.isPlayable } - rows.count { it.isPlayable }} unmatched=${resolvedRows.count { !it.isPlayable }} unmatchedWithIsrc=${resolvedRows.count { !it.isPlayable && !it.entry.isrc.isNullOrBlank() }}",
+                    )
+                    resolvedRows
+                },
                 applyChanges = ::applyApplePlaylistMirrorChanges,
             )
-            result.onSuccess { store.put(context, it) }
-                .onFailure { failure ->
-                    android.util.Log.w("ApplePlaylistMirror", "Playlist sync failed (${failure.javaClass.simpleName}).")
+            result.onSuccess { updated ->
+                store.put(context, updated)
+                val omitted = mirror.tracks.size - updated.tracks.size
+                if (omitted > 0) {
+                    android.util.Log.w("ApplePlaylistMirror", "Sync completed; $omitted rejected YouTube track(s) were omitted.")
+                }
+            }.onFailure { failure ->
+                    syncFailure = syncFailure ?: failure
+                    val detail = com.music.bitchord.data.playlistimport.PlaylistImportService
+                        .sanitizeDiagnostics(failure.message)
+                        ?.replace(Regex("[\\r\\n\\p{Cntrl}]"), " ")
+                        ?.take(160)
+                    android.util.Log.w(
+                        "ApplePlaylistMirror",
+                        "Playlist sync failed (${failure.javaClass.simpleName})${detail?.let { ": $it" }.orEmpty()}",
+                    )
                 }
         }
+        return syncFailure?.let { Result.failure(it) } ?: Result.success(Unit)
     }
 
     private suspend fun applyApplePlaylistMirrorChanges(
         mirror: com.music.bitchord.data.playlistimport.ApplePlaylistMirror,
         title: String,
         songs: List<Song>,
-    ): Result<Unit> {
+    ): Result<Set<String>> {
+        var phase = "load target playlist"
         return try {
             if (mirror.targetIsLocal) {
                 val replaced = com.music.bitchord.data.spotify.LocalPlaylistStore.replacePlaylist(
@@ -1231,12 +1358,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     songs = songs,
                 )
                 check(replaced) { "The local target playlist no longer exists." }
-                return Result.success(Unit)
+                return Result.success(emptySet())
             }
 
             require(mirror.targetId.startsWith("VL")) { "The YouTube Music target id is invalid." }
             val playlistId = mirror.targetId.removePrefix("VL")
+            phase = "verify target ownership"
+            val isOwned = YtMusicRepository.playlistOwned(mirror.targetId).getOrThrow()
+            android.util.Log.i("ApplePlaylistMirror", "Target ownership confirmed=${isOwned == true}")
+            check(isOwned == true) { "The YouTube Music target is not confirmed editable by this account; no changes were made." }
+            phase = "load target playlist"
             val current = YtMusicRepository.playlistEntries(mirror.targetId).getOrThrow()
+            android.util.Log.i("ApplePlaylistMirror", "Target entries loaded count=${current.size}")
             val desiredCounts = songs.groupingBy(Song::videoId).eachCount().toMutableMap()
             val removals = mutableListOf<Pair<String, String>>()
             current.forEach { existing ->
@@ -1248,18 +1381,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     removals += setVideoId to existing.videoId
                 }
             }
-            if (removals.isNotEmpty()) {
-                YtMusicRepository.removeFromPlaylist(playlistId, removals).getOrThrow()
+            com.music.bitchord.data.playlistimport.applePlaylistSyncBatches(removals).forEach { batch ->
+                phase = "remove ${batch.size} target entries"
+                YtMusicRepository.removeFromPlaylist(playlistId, batch).getOrThrow()
             }
             val additions = desiredCounts.flatMap { (videoId, count) -> List(count) { videoId } }
-            if (additions.isNotEmpty()) {
-                YtMusicRepository.addToPlaylist(playlistId, additions).getOrThrow()
-            }
-
+            android.util.Log.i(
+                "ApplePlaylistMirror",
+                "Edit plan current=${current.size} currentUnique=${current.map(Song::videoId).toSet().size} desired=${songs.size} desiredUnique=${songs.map(Song::videoId).toSet().size} removals=${removals.size} additions=${additions.size} duplicateAdditions=${additions.size - additions.distinct().size}",
+            )
+            phase = "add mirrored tracks"
+            com.music.bitchord.data.playlistimport.applyApplePlaylistSyncBatches(additions) { batch ->
+                phase = "add ${batch.size} mirrored tracks"
+                YtMusicRepository.addToPlaylist(playlistId, batch, allowDuplicates = true).map { Unit }
+            }.getOrThrow()
+            phase = "verify target entries"
             val refreshed = YtMusicRepository.playlistEntries(mirror.targetId).getOrThrow()
             val actualCounts = refreshed.groupingBy(Song::videoId).eachCount()
             val expectedCounts = songs.groupingBy(Song::videoId).eachCount()
-            check(actualCounts == expectedCounts) { "Target playlist did not accept the mirrored tracks." }
+            check(actualCounts == expectedCounts) {
+                val missing = expectedCounts.filter { (videoId, count) -> (actualCounts[videoId] ?: 0) < count }.values.sum()
+                val extra = actualCounts.filter { (videoId, count) -> (expectedCounts[videoId] ?: 0) < count }.values.sum()
+                "Target playlist did not accept the mirrored tracks (actual=${refreshed.size}, expected=${songs.size}, missing=$missing, extra=$extra)."
+            }
             val queues = refreshed.groupBy(Song::videoId).mapValues { (_, entries) -> entries.toMutableList() }
             val targetOrder = songs.map { song ->
                 val entry = queues[song.videoId]?.takeIf { it.isNotEmpty() }?.removeAt(0)
@@ -1268,16 +1412,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
             val currentOrder = refreshed.map { it.setVideoId ?: error("Target playlist entry has no set-video-id.") }
             if (currentOrder != targetOrder) {
+                phase = "reorder target entries"
                 YtMusicRepository.reorderPlaylist(playlistId, currentOrder, targetOrder).getOrThrow()
             }
             if (mirror.title != title) {
+                phase = "rename target playlist"
                 YtMusicRepository.renamePlaylist(playlistId, title).getOrThrow()
             }
-            Result.success(Unit)
+            Result.success(emptySet())
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Throwable) {
-            Result.failure(failure)
+            Result.failure(IllegalStateException("Mirror sync failed during $phase: ${failure.message ?: failure.javaClass.simpleName}", failure))
         }
     }
 
@@ -1644,10 +1790,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             AppUpdateChecker.check()
         }
         viewModelScope.launch {
-            syncApplePlaylistMirrors()
-            while (true) {
-                delay(30 * 60 * 1_000L)
-                syncApplePlaylistMirrors()
+            combine(AppSettings.applePlaylistMirrorSyncEnabled, AppSettings.accountSyncIntervalMinutes) { enabled, minutes ->
+                com.music.bitchord.data.playlistimport.applePlaylistMirrorSyncIntervalMs(enabled, minutes)
+            }.collectLatest { intervalMs ->
+                if (intervalMs != null) {
+                    syncApplePlaylistMirrors()
+                    while (true) {
+                        delay(intervalMs)
+                        syncApplePlaylistMirrors()
+                    }
+                }
             }
         }
     }

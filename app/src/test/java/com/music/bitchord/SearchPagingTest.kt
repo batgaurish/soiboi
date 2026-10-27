@@ -531,6 +531,65 @@ class SearchPagingTest {
     }
 
     @Test
+    fun `playlist rows preserve repeated videos as separate entries`() {
+        val row = { setId: String ->
+            """
+            {
+              "musicResponsiveListItemRenderer": {
+                "playlistItemData": { "videoId": "same-video", "playlistSetVideoId": "$setId" },
+                "flexColumns": [
+                  { "musicResponsiveListItemFlexColumnRenderer": { "text": { "runs": [{ "text": "Repeated track" }] } } },
+                  { "musicResponsiveListItemFlexColumnRenderer": { "text": { "runs": [{ "text": "Artist" }] } } }
+                ]
+              }
+            }
+            """.trimIndent()
+        }
+        val json = """
+        {
+          "contents": { "twoColumnBrowseResultsRenderer": { "secondaryContents": {
+            "musicPlaylistShelfRenderer": { "contents": [${row("entry-1")},${row("entry-2")}] }
+          } } }
+        }
+        """.trimIndent()
+
+        val page = requireNotNull(InnertubeParser.parsePlaylistShelf(Json.parseToJsonElement(json).jsonObject))
+
+        assertEquals(listOf("same-video", "same-video"), page.songs.map { it.videoId })
+        assertEquals(listOf("entry-1", "entry-2"), page.songs.map { it.setVideoId })
+    }
+
+    @Test
+    fun `playlist continuation action rows and token are parsed`() {
+        val json = """
+        {
+          "onResponseReceivedActions": [{
+            "appendContinuationItemsAction": {
+              "continuationItems": [
+                { "musicResponsiveListItemRenderer": {
+                  "playlistItemData": { "videoId": "song-next", "playlistSetVideoId": "entry-next" },
+                  "flexColumns": [
+                    { "musicResponsiveListItemFlexColumnRenderer": { "text": { "runs": [{ "text": "Next page song" }] } } },
+                    { "musicResponsiveListItemFlexColumnRenderer": { "text": { "runs": [{ "text": "Artist" }] } } }
+                  ]
+                } },
+                { "continuationItemRenderer": {
+                  "continuationEndpoint": { "continuationCommand": { "token": "NEXT_PLAYLIST_PAGE" } }
+                } }
+              ]
+            }
+          }]
+        }
+        """.trimIndent()
+
+        val page = requireNotNull(InnertubeParser.parsePlaylistShelf(Json.parseToJsonElement(json).jsonObject))
+
+        assertEquals(listOf("song-next"), page.songs.map { it.videoId })
+        assertEquals(listOf("entry-next"), page.songs.map { it.setVideoId })
+        assertEquals("NEXT_PLAYLIST_PAGE", page.continuation)
+    }
+
+    @Test
     fun `playlist continuation rows are real tracks even without set video ids`() {
         val json = """
         {

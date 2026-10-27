@@ -31,4 +31,17 @@ class AppleSessionCaptureGateTest {
         assertEquals(null, gate.newSessionToken("media-user-token=old"))
         assertEquals("new", gate.newSessionToken("media-user-token=new"))
     }
+
+    @Test
+    fun capturedCookieSelectionKeepsFreshTokenWhenEarlierPathHasSameName() {
+        val cookies = listOf(
+            Triple("media-user-token", "old-fixture", "https://music.apple.com"),
+            Triple("media-user-token", "fresh-fixture", "https://music.apple.com/us/browse"),
+            Triple("dsid", "store-fixture", "https://buy.itunes.apple.com"),
+        )
+
+        val selected = selectAppleCaptureCookies(cookies, "fresh-fixture")
+
+        assertEquals("fresh-fixture", selected.single { it.first == "media-user-token" }.second)
+    }
 }

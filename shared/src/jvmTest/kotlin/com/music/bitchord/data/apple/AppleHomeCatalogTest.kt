@@ -174,6 +174,105 @@ class AppleHomeCatalogTest {
         assertEquals(Failure.SERVICE_3077, failed.kind)
     }
 
+    @Test fun personalizedFailureFallsBackAndReportsCatalogError() = runBlocking {
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" ->
+                    200 to "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.encodedPath.endsWith("index~abc.js") -> 200 to token
+                request.url.encodedPath == "/v1/me/recommendations" ->
+                    400 to """{"errors":[{"code":"BAD_REQUEST","title":"Bad query"}]}"""
+                request.url.encodedPath == "/v1/me/recent/played" || request.url.encodedPath == "/v1/me/history/heavy-rotation" ->
+                    200 to """{"data":[]}"""
+                request.url.encodedPath.endsWith("/charts") ->
+                    404 to """{"errors":[{"code":"NOT_FOUND","title":"Storefront unavailable"}]}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Status")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(
+            cookieHeader = { "media-user-token=session" },
+            storefront = { "in" },
+            client = client,
+        ).home()
+
+        val failed = assertIs<AppleHomeResult.Failed>(result)
+        assertTrue(failed.message.contains("/v1/catalog/in/charts"), failed.message)
+        assertTrue(failed.message.contains("NOT_FOUND"), failed.message)
+        assertTrue(failed.message.contains("Storefront unavailable"), failed.message)
+    }
+
+    @Test fun personalizedBadRequestFallsBackToStorefrontCharts() = runBlocking {
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val requestedPaths = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            requestedPaths += request.url.encodedPath
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && request.url.encodedPath == "/" ->
+                    200 to "<script src=\"/assets/index~abc.js\"></script>"
+                request.url.pathSegments.lastOrNull() == "index~abc.js" -> 200 to token
+                request.url.encodedPath.startsWith("/v1/me/") ->
+                    400 to """{"errors":[{"code":"BAD_REQUEST","title":"Unsupported personalized request"}]}"""
+                request.url.encodedPath.endsWith("/charts") ->
+                    200 to """{"results":{"albums":[{"name":"Top Albums","data":[{"id":"a1","type":"albums","attributes":{"name":"Album One"}}]}]}}"""
+                else -> error("Unexpected Apple Music request: ${request.url}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Status")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(
+            cookieHeader = { "media-user-token=session" },
+            storefront = { "in" },
+            client = client,
+        ).home()
+
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
+        assertEquals(false, ready.personalized)
+        assertEquals("Top Albums", ready.shelves.single().title)
+        assertTrue(requestedPaths.contains("/v1/catalog/in/charts"))
+    }
+
+    @Test fun personalizedHistoryRequestsUseAppleRequiredTypesAndSupportedLimit() = runBlocking {
+        val token = jwt("{\"alg\":\"ES256\",\"kid\":\"WebPlayKid\"}", "{\"iss\":\"AMPWebPlay\"}")
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            val path = request.url.encodedPath
+            val (code, body) = when {
+                request.url.host == "music.apple.com" && path == "/" -> 200 to "<script src=\"/assets/index~abc.js\"></script>"
+                path.endsWith("index~abc.js") -> 200 to token
+                path == "/v1/me/recommendations" -> 200 to """{"data":[]}"""
+                path == "/v1/me/recent/played" -> {
+                    check(request.url.queryParameter("types") == "albums,playlists,stations") { "recent played requires supported resource types" }
+                    check(request.url.queryParameter("limit")?.toIntOrNull() in 1..10) { "recent played limit must be at most 10" }
+                    200 to """{"data":[{"id":"r1","type":"albums","attributes":{"name":"Recently Played","artistName":"Account Artist"}}]}"""
+                }
+                path == "/v1/me/history/heavy-rotation" -> {
+                    check(request.url.queryParameter("limit")?.toIntOrNull() in 1..10) { "heavy rotation limit must be at most 10" }
+                    200 to """{"data":[]}"""
+                }
+                else -> error("Unexpected Apple Music request: ${request.url.encodedPath}")
+            }
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(code).message("Status")
+                .body(body.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+
+        val result = AppleHomeCatalog(
+            cookieHeader = { "media-user-token=session" },
+            storefront = { "in" },
+            client = client,
+        ).home()
+
+        val ready = assertIs<AppleHomeResult.Ready>(result, result.toString())
+        assertEquals(true, ready.personalized)
+        assertEquals("Recently Played", ready.shelves.single().title)
+    }
+
     @Test fun discoverWebPlayerAssetExtractsDynamicHashesAndRejectsMissing() {
         assertEquals("/assets/index~abc123.js", discoverWebPlayerAsset("<script src=\"/assets/index~abc123.js\"></script>"))
         assertEquals("/assets/index-def456.js", discoverWebPlayerAsset("<script src=\"/assets/index-def456.js\"></script>"))

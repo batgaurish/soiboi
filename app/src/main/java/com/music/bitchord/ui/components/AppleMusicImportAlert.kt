@@ -5,6 +5,7 @@ import com.music.bitchord.data.model.PlaylistPrivacy
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.playlistimport.ImportRowState
 import com.music.bitchord.data.playlistimport.ImportedPlaylist
+import com.music.bitchord.data.accounts.SessionPlaylist
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 
@@ -13,6 +14,8 @@ import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 fun AppleMusicImportAlert(
     hazeState: HazeState,
     signedIn: Boolean,
+    loadAppleLibrary: (suspend () -> List<SessionPlaylist>)? = null,
+    loadAppleLibraryPlaylist: (suspend (SessionPlaylist) -> ImportedPlaylist)? = null,
     onImported: ((title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit)? = null,
     onImportedWithDetails: ((source: ImportedPlaylist, rows: List<ImportRowState>, title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit)? = null,
     onDismiss: () -> Unit,
@@ -21,6 +24,8 @@ fun AppleMusicImportAlert(
         hazeState = hazeState,
         signedIn = signedIn,
         appleMusic = true,
+        loadAppleLibrary = loadAppleLibrary,
+        loadAppleLibraryPlaylist = loadAppleLibraryPlaylist,
         onImported = onImported ?: { _, _, _ -> },
         onImportedWithDetails = onImportedWithDetails,
         onDismiss = onDismiss,

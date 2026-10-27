@@ -160,6 +160,7 @@ import com.music.bitchord.data.settings.ThemeMode
 import com.music.bitchord.ui.components.AccountProfileSelector
 import com.music.bitchord.ui.components.SpotifyImportAlert
 import com.music.bitchord.ui.components.AppleMusicImportAlert
+import com.music.bitchord.ui.components.ApplePlaylistMirrorReviewAlert
 import com.music.bitchord.ui.screens.WearOsScreen
 import com.music.bitchord.ui.screens.AccountAndScrobblingScreen
 import com.music.bitchord.ui.screens.DiscordDialog
@@ -665,6 +666,7 @@ private fun BitChordApp(
     var creatingPlaylist by remember { mutableStateOf(false) }
     var showSpotifyImportDialog by remember { mutableStateOf(false) }
     var showAppleMusicImportDialog by remember { mutableStateOf(false) }
+    var showApplePlaylistMirrorReview by remember { mutableStateOf(false) }
     // Which album or playlist the collection menu is open on, or null when it
     // is shut. One slot for every surface that can open it — the shelves on
     // three tabs, the search rows, the artist page's carousels, the release
@@ -2831,6 +2833,14 @@ private fun BitChordApp(
                             onOpenDiscord = { showDiscord = true },
                             onOpenSpotify = { showSpotify = true },
                             onOpenAppleMusic = { showAppleLogin = true },
+                            appleMusicConnected = viewModel.hasAppleSession(),
+                            onDisconnectAppleMusic = viewModel::signOutAppleMusic,
+                            onAppleStorefrontChange = viewModel::setAppleMusicStorefront,
+                            onSyncApplePlaylistMirrors = viewModel::syncApplePlaylistMirrorsNow,
+                            onReviewApplePlaylistMatches = {
+                                showAppleMusicImportDialog = false
+                                showApplePlaylistMirrorReview = true
+                            },
                             contentPadding = listPadding,
                         )
                     } else if (key == "sources") {
@@ -3462,6 +3472,14 @@ private fun BitChordApp(
                                 onOpenDiscord = { showDiscord = true },
                                 onOpenSpotify = { showSpotify = true },
                                 onOpenAppleMusic = { showAppleLogin = true },
+                                appleMusicConnected = viewModel.hasAppleSession(),
+                                onDisconnectAppleMusic = viewModel::signOutAppleMusic,
+                                onAppleStorefrontChange = viewModel::setAppleMusicStorefront,
+                                onSyncApplePlaylistMirrors = viewModel::syncApplePlaylistMirrorsNow,
+                                onReviewApplePlaylistMatches = {
+                                    showAppleMusicImportDialog = false
+                                    showApplePlaylistMirrorReview = true
+                                },
                                 contentPadding = listPadding,
                             )
                         }
@@ -4671,6 +4689,18 @@ private fun BitChordApp(
             AppleMusicImportAlert(
                 hazeState = hazeState,
                 signedIn = signedIn,
+                loadAppleLibrary = {
+                    val session = com.music.bitchord.data.account.AndroidAccountSync.registry.get("apple")
+                        as? com.music.bitchord.data.accounts.AppleMusicSession
+                        ?: error("Apple Music session is not available. Sign in and try again.")
+                    session.libraryPlaylists()
+                },
+                loadAppleLibraryPlaylist = { playlist ->
+                    val session = com.music.bitchord.data.account.AndroidAccountSync.registry.get("apple")
+                        as? com.music.bitchord.data.accounts.AppleMusicSession
+                        ?: error("Apple Music session is not available. Sign in and try again.")
+                    com.music.bitchord.data.playlistimport.AppleMusicLibraryImport.load(session, playlist)
+                },
                 onImportedWithDetails = { source, rows, title, privacy, songs ->
                     viewModel.createPlaylistWithVideoIds(
                         title,
@@ -4692,6 +4722,16 @@ private fun BitChordApp(
                     }
                 },
                 onDismiss = { showAppleMusicImportDialog = false },
+            )
+        }
+
+        if (showApplePlaylistMirrorReview) {
+            ApplePlaylistMirrorReviewAlert(
+                hazeState = hazeState,
+                onLoadTracks = viewModel::loadApplePlaylistMirrorReviewTracks,
+                onSearchCandidates = com.music.bitchord.data.playlistimport.PlaylistImportService::searchCandidates,
+                onSaveMatches = viewModel::applyApplePlaylistMirrorManualMatches,
+                onDismiss = { showApplePlaylistMirrorReview = false },
             )
         }
 
@@ -5520,6 +5560,7 @@ private fun BitChordApp(
                     }
                     AppleMusicLoginScreen(
                         modifier = Modifier.navigationBarsPadding(),
+                        storefront = AppSettings.appleMusicStorefront.value,
                         onConnected = { netscapeJar, cookieHeader ->
                             viewModel.setAppleMusicSession(netscapeJar, cookieHeader)
                             showAppleLogin = false

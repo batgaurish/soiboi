@@ -1615,7 +1615,7 @@ fun BitChordDesktopApp() {
         mirror: com.music.bitchord.data.playlistimport.ApplePlaylistMirror,
         title: String,
         songs: List<Song>,
-    ): Result<Unit> {
+    ): Result<Set<String>> {
         return try {
             if (mirror.targetIsLocal) {
                 val existing = playlists.firstOrNull { it.id == mirror.targetId }
@@ -1645,7 +1645,7 @@ fun BitChordDesktopApp() {
                         loading = false,
                     )
                 }
-                return Result.success(Unit)
+                return Result.success(emptySet())
             }
 
             require(mirror.targetId.startsWith("VL")) { "The YouTube Music target id is invalid." }
@@ -1704,7 +1704,7 @@ fun BitChordDesktopApp() {
                     loading = false,
                 )
             }
-            Result.success(Unit)
+            Result.success(emptySet())
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Throwable) {
@@ -7012,7 +7012,7 @@ private fun DesktopSettingsScreen(
 /** The line at the foot of the settings sheet, as Android has it. */
 @Composable
 private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
-    val version = remember { System.getProperty("bitchord.version") ?: "4.0.0" }
+    val version = remember { System.getProperty("bitchord.version") ?: "4.1.0" }
     val linkStyles = TextLinkStyles(
         style = SpanStyle(color = DesktopAccent, textDecoration = TextDecoration.Underline),
     )

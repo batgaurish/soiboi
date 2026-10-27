@@ -58,3 +58,22 @@ internal class AppleSessionCaptureGate(initialCookieHeader: String?) {
         ?.trim()
         ?.takeIf(String::isNotBlank)
 }
+
+/**
+ * Deduplicate cookies from the provider's host/path snapshots without dropping the token
+ * already observed at the browse URL. The same cookie name can be returned with different
+ * values for different paths; first-wins deduplication can otherwise discard the new token.
+ */
+internal fun selectAppleCaptureCookies(
+    cookiePairs: List<Triple<String, String, String>>,
+    sessionToken: String,
+): List<Triple<String, String, String>> {
+    val sessionCookie = cookiePairs.firstOrNull {
+        it.first.equals("media-user-token", ignoreCase = true) && it.second == sessionToken
+    } ?: return emptyList()
+    val otherCookies = cookiePairs.asSequence()
+        .filterNot { it.first.equals("media-user-token", ignoreCase = true) }
+        .distinctBy { it.first }
+        .toList()
+    return listOf(sessionCookie) + otherCookies
+}
